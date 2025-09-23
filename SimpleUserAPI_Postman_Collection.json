@@ -1,0 +1,164 @@
+{
+  "info": {
+    "name": "SimpleUserAPI",
+    "_postman_id": "f5e2b1f0-8d5b-4d0e-9bb9-collection-simpleuserapi",
+    "description": "Postman collection for SimpleUserAPI CRUD endpoints and health check.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health - GET /health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Users - GET /api/user",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/user",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "user"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Users - GET /api/user/{id}",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/user/1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "user",
+            "1"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Users - POST /api/user",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": 0,\n  \"userName\": \"newuser\",\n  \"password\": \"password123\",\n  \"fullName\": \"New User\",\n  \"email\": \"newuser@example.com\",\n  \"phone\": \"0123456789\",\n  \"role\": \"User\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/user",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "user"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Users - PUT /api/user/{id}",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": 1,\n  \"userName\": \"updateduser\",\n  \"password\": \"newpassword123\",\n  \"fullName\": \"Updated User\",\n  \"email\": \"updated@example.com\",\n  \"phone\": \"0987654321\",\n  \"role\": \"User\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/user/1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "user",
+            "1"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Users - DELETE /api/user/{id}",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/user/1",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "user",
+            "1"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Users - GET /api/user/search?name=...",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/user/search?name=admin",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "user",
+            "search"
+          ],
+          "query": [
+            {
+              "key": "name",
+              "value": "admin"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
+
+
