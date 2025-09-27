@@ -1,0 +1,19 @@
+{
+    "Routes": [
+        {
+            "DownstreamPathTemplate": "/api/auth/{everything}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5051
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/auth/{everything}",
+            "UpstreamHttpMethod": [ "POST", "GET" ]
+        }
+    ],
+    "GlobalConfiguration": {
+        "BaseUrl": "http://localhost:44301"
+    }
+}

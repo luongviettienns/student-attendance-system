@@ -1,0 +1,12 @@
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.Common\bin\Debug\net8.0\EducationManagement.Common.deps.json
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.Common\bin\Debug\net8.0\EducationManagement.Common.dll
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.Common\bin\Debug\net8.0\EducationManagement.Common.pdb
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.Common\obj\Debug\net8.0\EducationManagement.Common.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.Common\obj\Debug\net8.0\EducationManagement.Common.AssemblyInfoInputs.cache
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.Common\obj\Debug\net8.0\EducationManagement.Common.AssemblyInfo.cs
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.Common\obj\Debug\net8.0\EducationManagement.Common.csproj.CoreCompileInputs.cache
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.Common\obj\Debug\net8.0\EducationManagement.Common.sourcelink.json
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.Common\obj\Debug\net8.0\EducationManagement.Common.dll
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.Common\obj\Debug\net8.0\refint\EducationManagement.Common.dll
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.Common\obj\Debug\net8.0\EducationManagement.Common.pdb
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.Common\obj\Debug\net8.0\ref\EducationManagement.Common.dll

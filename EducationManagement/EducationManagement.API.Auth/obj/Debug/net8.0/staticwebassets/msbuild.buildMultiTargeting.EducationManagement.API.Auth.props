@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\EducationManagement.API.Auth.props" />
+</Project>

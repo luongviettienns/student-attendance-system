@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "kgvNu6FpXDr61cnom6373WmEM3rU8v2lGG5FVeWwlWg=",
+  "Source": "EducationManagement.API.Auth",
+  "BasePath": "_content/EducationManagement.API.Auth",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

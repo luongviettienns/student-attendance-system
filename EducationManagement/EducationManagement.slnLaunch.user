@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "EducationManagement.API.Gateway\\EducationManagement.API.Gateway.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "EducationManagement.API.Auth\\EducationManagement.API.Auth.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]

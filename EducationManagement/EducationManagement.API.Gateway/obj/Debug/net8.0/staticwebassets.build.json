@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "Cc7mmFS3AUu4pfYriznTi8ryblNtfRvqtzg2v7zb9Xw=",
+  "Source": "EducationManagement.API.Gateway",
+  "BasePath": "_content/EducationManagement.API.Gateway",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}

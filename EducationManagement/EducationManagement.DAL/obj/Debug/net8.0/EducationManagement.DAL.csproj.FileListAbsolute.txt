@@ -1,0 +1,16 @@
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\bin\Debug\net8.0\EducationManagement.DAL.deps.json
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\bin\Debug\net8.0\EducationManagement.DAL.dll
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\bin\Debug\net8.0\EducationManagement.DAL.pdb
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\bin\Debug\net8.0\EducationManagement.Common.dll
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\bin\Debug\net8.0\EducationManagement.Common.pdb
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\obj\Debug\net8.0\EducationManagement.DAL.csproj.AssemblyReference.cache
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\obj\Debug\net8.0\EducationManagement.DAL.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\obj\Debug\net8.0\EducationManagement.DAL.AssemblyInfoInputs.cache
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\obj\Debug\net8.0\EducationManagement.DAL.AssemblyInfo.cs
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\obj\Debug\net8.0\EducationManagement.DAL.csproj.CoreCompileInputs.cache
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\obj\Debug\net8.0\EducationManagement.DAL.sourcelink.json
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\obj\Debug\net8.0\Educatio.32086619.Up2Date
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\obj\Debug\net8.0\EducationManagement.DAL.dll
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\obj\Debug\net8.0\refint\EducationManagement.DAL.dll
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\obj\Debug\net8.0\EducationManagement.DAL.pdb
+C:\Users\TK\Desktop\BTL\EducationManagement\EducationManagement.DAL\obj\Debug\net8.0\ref\EducationManagement.DAL.dll
