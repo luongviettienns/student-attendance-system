@@ -1,0 +1,21 @@
+{
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:28191"
+  },
+  "Routes": [
+    {
+      "UpstreamPathTemplate": "/user/api/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 5052 } ]
+    },
+    {
+      "UpstreamPathTemplate": "/admin/api/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE" ],
+      "DownstreamPathTemplate": "/api/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [ { "Host": "localhost", "Port": 5203 } ]
+    }
+  ]
+}
