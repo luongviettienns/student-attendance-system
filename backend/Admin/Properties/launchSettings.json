@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "BanMayTinh-Admin": {
+      "commandName": "Project",
+      "launchBrowser": false,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:59328;http://localhost:59329"
+    }
+  }
+}
