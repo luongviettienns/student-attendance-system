@@ -1,15 +1,83 @@
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+.toast-container {
+  position: fixed;
+  top: 20px;              /* sát lề trên */
+  left: 50%;              /* canh giữa ngang */
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;    /* căn giữa các toast */
 }
-.animate-fadeIn {
+
+/* Toast box */
+.toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 280px;
+  max-width: 400px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  background: #4f46e5; /* tím indigo hiện đại, khác login */
+  color: #fff;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.4s ease;
+}
+
+/* Nội dung toast */
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.toast .icon {
+  font-size: 16px;
+  font-weight: bold;
+  opacity: 0.9;
+}
+
+.toast .message {
+  flex: 1;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+/* Nút đóng */
+.toast-close {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  opacity: 0.7;
+  margin-left: 8px;
+  transition: opacity 0.2s ease;
+}
+.toast-close:hover {
+  opacity: 1;
+}
+
+/* Khi closing */
+.toast.closing {
+  animation: fadeOut 0.5s ease forwards;
+}
+.toast:not(.closing) {
   animation: fadeIn 0.5s ease forwards;
 }
 
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 @keyframes fadeOut {
   from { opacity: 1; transform: translateY(0); }
-  to { opacity: 0; transform: translateY(-10px); }
-}
-.animate-fadeOut {
-  animation: fadeOut 0.5s ease forwards;
+  to   { opacity: 0; transform: translateY(-10px); }
 }
