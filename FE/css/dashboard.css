@@ -1,0 +1,100 @@
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.card {
+  background: #fff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 14px rgba(0,0,0,0.15);
+}
+
+.card-icon {
+  padding: 16px;
+  border-radius: 50%;
+  font-size: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.card-info {
+  margin-left: 16px;
+}
+
+.card-info h3 {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.value {
+  font-size: 24px;
+  font-weight: bold;
+  margin-top: 6px;
+}
+
+/* Màu */
+.blue { background: #dbeafe; color: #2563eb; }
+.green { background: #dcfce7; color: #16a34a; }
+.purple { background: #ede9fe; color: #7c3aed; }
+.red { background: #fee2e2; color: #dc2626; }
+
+.blue-text { color: #2563eb; }
+.green-text { color: #16a34a; }
+.purple-text { color: #7c3aed; }
+.red-text { color: #dc2626; }
+
+/* Biểu đồ */
+.chart {
+  grid-column: span 1;
+  background: #fff;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+@media (min-width: 768px) {
+  .chart { grid-column: span 2; }
+}
+
+@media (min-width: 1024px) {
+  .chart { grid-column: span 4; }
+}
+
+.chart h3 {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.chart-box {
+  height: 250px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

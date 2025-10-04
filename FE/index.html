@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="vi" ng-app="eduApp">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduSystem</title>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" 
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- AngularJS -->
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
+
+  <!-- UI-Router -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/angular-ui-router/1.0.29/angular-ui-router.min.js"></script>
+
+  <!-- ng-file-upload -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/danialfarid-angular-file-upload/12.2.13/ng-file-upload.min.js"></script>
+
+  <!-- CSS chính -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/toast.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body class="app-body">
+
+  <!-- View chính -->
+  <div ui-view></div>
+
+  <!-- Toast container -->
+  <div class="toast-container" ng-repeat="toast in toasts"
+       ng-class="toast.closing ? 'fade-out' : 'fade-in'">
+
+    <div class="toast toast-{{toast.type}}">
+      <!-- Icon + Message -->
+      <div class="toast-content">
+        <span ng-if="toast.type==='success'" class="icon success">✔</span>
+        <span ng-if="toast.type==='error'"   class="icon error">✖</span>
+        <span ng-if="toast.type==='warning'" class="icon warning">⚠</span>
+        <span ng-if="toast.type==='info'"    class="icon info">ℹ</span>
+        <span class="message">{{toast.message}}</span>
+      </div>
+
+      <!-- Nút đóng -->
+      <button ng-click="ToastService.remove(toast)" class="toast-close">&times;</button>
+    </div>
+  </div>
+
+  <!-- App & Config -->
+  <script src="app.js"></script>
+
+  <!-- Services -->
+  <script src="services/AuthService.js"></script>
+  <script src="services/AuthInterceptor.js"></script>
+  <script src="services/ToastService.js"></script>
+  <script src="services/UserService.js"></script>
+
+  <!-- Controllers -->
+  <script src="controllers/LoginController.js"></script>
+  <script src="controllers/DashboardController.js"></script>
+  <script src="controllers/MainController.js"></script>
+  <script src="controllers/ClassesController.js"></script>
+  <script src="controllers/UsersController.js"></script>
+  <script src="controllers/ProfileController.js"></script>
+
+  <!-- Expose ToastService vào $rootScope -->
+  <script>
+    angular.module("eduApp").run(function($rootScope, ToastService) {
+      $rootScope.ToastService = ToastService;
+    });
+  </script>
+</body>
+</html>
