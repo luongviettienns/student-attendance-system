@@ -1,0 +1,146 @@
+<div class="flex h-screen" ng-controller="MainController">
+
+  <!-- Sidebar -->
+  <div 
+  ng-class="{
+    'translate-x-0 w-64': sidebarOpen, 
+    '-translate-x-full w-64': !sidebarOpen && isMobile,
+    'w-16': !sidebarOpen && !isMobile,
+    'fixed z-40 inset-y-0 left-0': isMobile
+  }"
+  class="bg-gray-800 text-white flex flex-col 
+         transition-all duration-300 ease-in-out 
+         md:relative md:translate-x-0">
+
+
+    <!-- Logo -->
+    <div class="p-4 font-bold text-lg flex items-center justify-center">
+      <i class="fa fa-graduation-cap mr-2"></i>
+      <span ng-show="sidebarOpen || isMobile">EduSys</span>
+    </div>
+
+    <!-- Menu -->
+    <ul class="flex-1 space-y-1">
+      <!-- Dashboard -->
+      <li class="relative group">
+        <a ui-sref="main.dashboard" 
+           class="flex items-center p-3 hover:bg-gray-700"
+           ng-class="{'justify-center': !sidebarOpen && !isMobile}">
+          <i class="fa fa-home"></i>
+          <span class="ml-2" ng-show="sidebarOpen || isMobile">Dashboard</span>
+        </a>
+        <!-- Tooltip -->
+        <span ng-show="!sidebarOpen && !isMobile"
+              class="absolute left-full top-1/2 -translate-y-1/2 ml-2 
+                     bg-black text-white text-xs px-2 py-1 rounded 
+                     opacity-0 group-hover:opacity-100 transition">
+          Dashboard
+        </span>
+      </li>
+
+      <!-- Lớp học -->
+      <li class="relative group">
+        <a ui-sref="main.classes" 
+           class="flex items-center p-3 hover:bg-gray-700"
+           ng-class="{'justify-center': !sidebarOpen && !isMobile}">
+          <i class="fa fa-users"></i>
+          <span class="ml-2" ng-show="sidebarOpen || isMobile">Lớp học</span>
+        </a>
+        <span ng-show="!sidebarOpen && !isMobile"
+              class="absolute left-full top-1/2 -translate-y-1/2 ml-2 
+                     bg-black text-white text-xs px-2 py-1 rounded 
+                     opacity-0 group-hover:opacity-100 transition">
+          Lớp học
+        </span>
+      </li>
+
+      <!-- Người dùng -->
+      <li class="relative group">
+        <a ui-sref="main.users" 
+           class="flex items-center p-3 hover:bg-gray-700"
+           ng-class="{'justify-center': !sidebarOpen && !isMobile}">
+          <i class="fa fa-user"></i>
+          <span class="ml-2" ng-show="sidebarOpen || isMobile">Người dùng</span>
+        </a>
+        <span ng-show="!sidebarOpen && !isMobile"
+              class="absolute left-full top-1/2 -translate-y-1/2 ml-2 
+                     bg-black text-white text-xs px-2 py-1 rounded 
+                     opacity-0 group-hover:opacity-100 transition">
+          Người dùng
+        </span>
+      </li>
+
+      <!-- Hồ sơ -->
+      <li class="relative group">
+        <a ui-sref="main.profile" 
+           class="flex items-center p-3 hover:bg-gray-700"
+           ng-class="{'justify-center': !sidebarOpen && !isMobile}">
+          <i class="fa fa-id-card"></i>
+          <span class="ml-2" ng-show="sidebarOpen || isMobile">Hồ sơ</span>
+        </a>
+        <span ng-show="!sidebarOpen && !isMobile"
+              class="absolute left-full top-1/2 -translate-y-1/2 ml-2 
+                     bg-black text-white text-xs px-2 py-1 rounded 
+                     opacity-0 group-hover:opacity-100 transition">
+          Hồ sơ
+        </span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- Overlay cho mobile -->
+  <div ng-show="isMobile && sidebarOpen" 
+       ng-click="toggleSidebar()" 
+       class="fixed inset-0 bg-black bg-opacity-50 z-30 md:hidden"></div>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col">
+    
+    <!-- Topbar -->
+    <div class="flex items-center justify-between bg-white shadow px-4 py-2">
+      <!-- Bên trái -->
+      <div class="flex items-center space-x-3">
+        <button ng-click="toggleSidebar()" 
+                class="p-2 rounded hover:bg-gray-200 
+                       transition-transform duration-300">
+          <i class="fa fa-bars text-xl"
+             ng-class="{'rotate-90': sidebarOpen, 'rotate-0': !sidebarOpen}"></i>
+        </button>
+        <h1 class="text-lg font-bold">Hệ thống quản lý</h1>
+      </div>
+
+      <!-- Bên phải -->
+      <div class="flex items-center space-x-4">
+        <!-- Chuông thông báo -->
+        <button class="relative p-2 rounded hover:bg-gray-200 transition">
+          <i class="fa fa-bell text-gray-600 text-lg"></i>
+          <span class="absolute -top-1 -right-1 
+                       bg-red-500 text-white text-xs 
+                       rounded-full px-1">{{ notificationsCount || 0 }}</span>
+        </button>
+
+        <!-- Avatar + user info -->
+        <a ui-sref="main.profile" class="flex items-center space-x-2 cursor-pointer">
+          <img ng-src="{{ avatarUrl || 'assets/img/default-avatar.png' }}" 
+               alt="avatar" 
+               class="w-8 h-8 rounded-full border border-gray-300">
+          <span class="hidden sm:inline">
+            {{ fullName }} ({{ role }})
+          </span>
+        </a>
+
+        <!-- Nút logout -->
+        <button ng-click="logout()" 
+                class="bg-red-500 hover:bg-red-600 text-white 
+                       px-3 py-1 rounded hidden sm:inline">
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <!-- Nội dung chính -->
+    <div class="flex-1 p-4 overflow-y-auto">
+      <div ui-view></div>
+    </div>
+  </div>
+</div>
