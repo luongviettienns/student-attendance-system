@@ -11,7 +11,8 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
 
   // Hàm kiểm tra màn hình và set trạng thái sidebar
   function checkScreen() {
-    $scope.isMobile = $window.innerWidth < 768; 
+    $scope.isMobile = $window.innerWidth < 992;
+
     // Nếu mobile thì sidebar đóng, desktop thì mở
     $scope.sidebarOpen = !$scope.isMobile;      
     $scope.$applyAsync();

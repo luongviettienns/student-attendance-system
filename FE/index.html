@@ -22,18 +22,22 @@
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/toast.css">
   <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/profile.css">
 </head>
 <body class="app-body">
 
   <!-- View chính -->
   <div ui-view></div>
 
-  <!-- Toast container -->
-  <div class="toast-container" ng-repeat="toast in toasts"
-       ng-class="toast.closing ? 'fade-out' : 'fade-in'">
+  <!-- Toast Container -->
+  <div class="toast-container">
+    <div ng-repeat="toast in toasts"
+         class="toast toast-{{toast.type}}"
+         ng-class="{ closing: toast.closing }">
 
-    <div class="toast toast-{{toast.type}}">
-      <!-- Icon + Message -->
+      <!-- Nội dung toast -->
       <div class="toast-content">
         <span ng-if="toast.type==='success'" class="icon success">✔</span>
         <span ng-if="toast.type==='error'"   class="icon error">✖</span>
