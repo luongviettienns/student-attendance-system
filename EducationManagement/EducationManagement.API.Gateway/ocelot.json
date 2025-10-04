@@ -23,6 +23,18 @@
             ],
             "UpstreamPathTemplate": "/api-edu/users/{everything}",
             "UpstreamHttpMethod": [ "GET", "PUT", "POST", "DELETE", "OPTIONS" ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/admin/{everything}",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7051
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/admin/{everything}",
+            "UpstreamHttpMethod": [ "GET", "PUT", "POST", "DELETE", "OPTIONS" ]
         }
     ],
     "GlobalConfiguration": {
