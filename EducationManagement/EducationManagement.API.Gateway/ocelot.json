@@ -1,0 +1,31 @@
+{
+    "Routes": [
+        {
+            "DownstreamPathTemplate": "/api/auth/{everything}",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7051
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/auth/{everything}",
+            "UpstreamHttpMethod": [ "POST", "GET", "OPTIONS" ]
+        },
+        {
+            "DownstreamPathTemplate": "/api/users/{everything}",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7051
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/users/{everything}",
+            "UpstreamHttpMethod": [ "GET", "PUT", "POST", "DELETE", "OPTIONS" ]
+        }
+    ],
+    "GlobalConfiguration": {
+        "BaseUrl": "http://localhost:5090"
+    }
+}
