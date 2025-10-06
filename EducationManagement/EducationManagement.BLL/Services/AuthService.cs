@@ -39,6 +39,18 @@ namespace EducationManagement.BLL.Services
             return user;
         }
 
+        // ✅ Hash mật khẩu dùng chung
+        public string HashPassword(string password)
+        {
+            return BCrypt.Net.BCrypt.HashPassword(password);
+        }
+
+        // ✅ Verify mật khẩu dùng chung
+        public bool VerifyPassword(string password, string passwordHash)
+        {
+            return BCrypt.Net.BCrypt.Verify(password, passwordHash);
+        }
+
         // ✅ Lưu refresh token
         public async Task SaveRefreshTokenAsync(string userId, RefreshToken refreshToken)
         {
