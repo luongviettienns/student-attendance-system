@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EducationManagement.Common"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EducationManagement.API.Admin", "EducationManagement.API.Admin\EducationManagement.API.Admin.csproj", "{F8F990FF-6585-4299-BFE4-FECDDB06FF3B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EducationManagement.API.Lecturer", "EducationManagement.API.Lecturer\EducationManagement.API.Lecturer.csproj", "{7439560A-E0C0-45A0-8727-16C47582AE87}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{F8F990FF-6585-4299-BFE4-FECDDB06FF3B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F8F990FF-6585-4299-BFE4-FECDDB06FF3B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F8F990FF-6585-4299-BFE4-FECDDB06FF3B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7439560A-E0C0-45A0-8727-16C47582AE87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7439560A-E0C0-45A0-8727-16C47582AE87}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7439560A-E0C0-45A0-8727-16C47582AE87}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7439560A-E0C0-45A0-8727-16C47582AE87}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
