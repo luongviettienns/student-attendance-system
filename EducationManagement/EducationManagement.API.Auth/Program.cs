@@ -3,8 +3,10 @@ using EducationManagement.BLL.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.HttpOverrides;   // ✅ Thêm
 using System.Text;
 
+// ---------------------- Builder ----------------------
 var builder = WebApplication.CreateBuilder(args);
 
 // ---------------------- Services ----------------------
@@ -55,7 +57,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ---------------------- App Pipeline ----------------------
-
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -67,7 +68,19 @@ if (app.Environment.IsDevelopment())
 // ❌ Không redirect sang HTTPS (dev dùng http qua Gateway 5090)
 //// app.UseHttpsRedirection();
 
+// ✅ Cho phép Proxy giữ đúng scheme https nếu deploy sau Gateway/Nginx
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+});
+
+// ✅ Cho phép truy cập file tĩnh (ảnh avatar)
 app.UseStaticFiles();
+
+// ✅ Tạo thư mục lưu avatar nếu chưa có
+Directory.CreateDirectory(
+    Path.Combine(app.Environment.WebRootPath, "uploads", "avatars")
+);
 
 // ✅ Bật CORS trước Authentication
 app.UseCors("AllowFrontend");

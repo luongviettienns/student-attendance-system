@@ -4,6 +4,8 @@ using EducationManagement.BLL.Services;
 using EducationManagement.Common.DTOs;
 using EducationManagement.Common.DTOs.User;
 using EducationManagement.Common.Models;
+using EducationManagement.API.Auth.Helpers; // ✅ thêm using mới
+using Microsoft.EntityFrameworkCore;
 
 namespace EducationManagement.API.Auth.Controllers
 {
@@ -49,6 +51,11 @@ namespace EducationManagement.API.Auth.Controllers
             var refreshToken = _jwtService.GenerateRefreshToken();
             await _authService.SaveRefreshTokenAsync(user.UserId, refreshToken);
 
+            // ✅ chuyển avatarUrl sang absolute URL
+            var absoluteAvatarUrl = HttpContext.Request.ToAbsoluteUrl(
+                user.AvatarUrl ?? "/uploads/avatars/default.png"
+            );
+
             return Ok(new LoginResponse
             {
                 Token = accessToken,
@@ -58,7 +65,7 @@ namespace EducationManagement.API.Auth.Controllers
                 Username = user.Username,
                 Role = user.Role?.RoleName ?? "User",
                 FullName = user.FullName ?? string.Empty,
-                AvatarUrl = user.AvatarUrl ?? "/uploads/avatars/default.png"
+                AvatarUrl = absoluteAvatarUrl // ✅ FE dùng luôn link đầy đủ
             });
         }
 
