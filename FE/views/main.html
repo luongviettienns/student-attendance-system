@@ -1,7 +1,7 @@
 <div class="layout-container" ng-controller="MainController">
 
-  <!-- Sidebar -->
-  <div 
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside 
     class="sidebar"
     ng-class="{
       'sidebar-open': sidebarOpen && !isMobile,
@@ -10,61 +10,93 @@
       'sidebar-mobile-hidden': !sidebarOpen && isMobile
     }">
 
-    <!-- Logo -->
-    <div class="sidebar-logo">
-      <i class="fa fa-graduation-cap"></i>
-      <span ng-show="sidebarOpen || isMobile">EduSys</span>
+    <!-- ===== Logo / Brand ===== -->
+    <div class="sidebar-header">
+      <div class="brand">
+        <i class="fa fa-graduation-cap"></i>
+        <span ng-show="sidebarOpen || isMobile">EduSys</span>
+      </div>
     </div>
 
-    <!-- Menu -->
-    <ul class="sidebar-menu">
-      <li class="menu-item" ng-class="{'centered': !sidebarOpen && !isMobile}">
-        <a ui-sref="main.dashboard">
-          <i class="fa fa-home"></i>
-          <span ng-show="sidebarOpen || isMobile">Dashboard</span>
-        </a>
-      </li>
+    <!-- ===== Navigation Menu ===== -->
+    <nav class="sidebar-menu">
+      <ul class="menu-list">
 
-      <li class="menu-item" ng-class="{'centered': !sidebarOpen && !isMobile}">
-        <a ui-sref="main.classes">
-          <i class="fa fa-users"></i>
-          <span ng-show="sidebarOpen || isMobile">Lớp học</span>
-        </a>
-      </li>
+        <!-- Dashboard -->
+        <li class="menu-item">
+          <a ui-sref="student.dashboard" ui-sref-active="active" class="menu-link">
+            <i class="fa fa-home"></i>
+            <span ng-show="sidebarOpen || isMobile">Trang Chủ</span>
+            <i class="fa fa-chevron-right arrow" style="visibility:hidden"></i>
+          </a>
+        </li>
 
-      <li class="menu-item" ng-class="{'centered': !sidebarOpen && !isMobile}">
-        <a ui-sref="main.users">
-          <i class="fa fa-user"></i>
-          <span ng-show="sidebarOpen || isMobile">Người dùng</span>
-        </a>
-      </li>
+        <!-- Học tập -->
+        <li class="menu-item has-sub" ng-class="{'open': activeMenu === 'hocTap'}">
+          <a href="" class="menu-link" ng-click="toggleSubmenu('hocTap')">
+            <i class="fa fa-book"></i>
+            <span ng-show="sidebarOpen || isMobile">Học tập</span>
+            <i class="fa fa-chevron-right arrow" ng-class="{'rotate': activeMenu === 'hocTap'}"></i>
+          </a>
 
-      <li class="menu-item" ng-class="{'centered': !sidebarOpen && !isMobile}">
-        <a ui-sref="main.profile">
-          <i class="fa fa-id-card"></i>
-          <span ng-show="sidebarOpen || isMobile">Hồ sơ</span>
-        </a>
-      </li>
-    </ul>
+          <ul class="submenu" ng-class="{'open': activeMenu === 'hocTap'}">
+            <li><a ui-sref="student.schedule"><i class="fa fa-calendar-alt"></i> Lịch học</a></li>
+            <li><a ui-sref="student.enrollment"><i class="fa fa-clipboard-list"></i> Đăng ký học phần</a></li>
+            <li><a ui-sref="student.attendance"><i class="fa fa-user-check"></i> Điểm danh</a></li>
+            <li><a ui-sref="student.results"><i class="fa fa-chart-line"></i> Kết quả & GPA</a></li>
+            <li><a ui-sref="student.appeals"><i class="fa fa-file-signature"></i> Phúc khảo điểm</a></li>
+          </ul>
+        </li>
+
+        <!-- Cá nhân -->
+        <li class="menu-item has-sub" ng-class="{'open': activeMenu === 'caNhan'}">
+          <a href="" class="menu-link" ng-click="toggleSubmenu('caNhan')">
+            <i class="fa fa-user"></i>
+            <span ng-show="sidebarOpen || isMobile">Cá nhân</span>
+            <i class="fa fa-chevron-right arrow" ng-class="{'rotate': activeMenu === 'caNhan'}"></i>
+          </a>
+
+          <ul class="submenu" ng-class="{'open': activeMenu === 'caNhan'}">
+            <li><a ui-sref="student.profile"><i class="fa fa-id-card"></i> Hồ sơ sinh viên</a></li>
+            <li><a ui-sref="student.family"><i class="fa fa-users"></i> Người thân</a></li>
+          </ul>
+        </li>
+
+      </ul>
+    </nav>
+
+    <!-- ===== Sidebar Footer ===== -->
+    <div class="sidebar-footer">
+  <div class="user-box" ui-sref="main.profile">
+    <img ng-src="{{ avatarUrl || 'assets/img/default-avatar.png' }}" alt="avatar">
+    <div class="user-info" ng-show="sidebarOpen || isMobile">
+      <span class="name">{{ fullName }}</span>
+      <span class="role">{{ role }}</span>
+    </div>
   </div>
+
+  <button ng-click="logout()" class="logout-btn">
+    <i class="fa fa-sign-out-alt"></i>
+    <span ng-show="sidebarOpen || isMobile">Đăng xuất</span>
+  </button>
+</div>
+
+
+  </aside>
 
   <!-- Overlay cho mobile -->
-  <div 
-    class="overlay" 
-    ng-show="isMobile && sidebarOpen"
-    ng-click="toggleSidebar()">
-  </div>
+  <div class="overlay" ng-show="isMobile && sidebarOpen" ng-click="toggleSidebar()"></div>
 
-  <!-- Main Content -->
+  <!-- ===================== MAIN CONTENT ===================== -->
   <div class="main-content">
-    
-    <!-- Topbar -->
-    <div class="topbar">
+
+    <!-- ===== Topbar ===== -->
+    <header class="topbar">
       <div class="topbar-left">
         <button class="menu-btn" ng-click="toggleSidebar()">
-          <i class="fa fa-bars" ng-class="{'rotate-90': sidebarOpen, 'rotate-0': !sidebarOpen}"></i>
+          <i class="fa fa-bars"></i>
         </button>
-        <h1>Hệ thống quản lý</h1>
+        <h1>Hệ thống quản lý sinh viên</h1>
       </div>
 
       <div class="topbar-actions">
@@ -72,22 +104,13 @@
           <i class="fa fa-bell"></i>
           <span class="badge">{{ notificationsCount || 0 }}</span>
         </button>
-
-        <a ui-sref="main.profile" class="user-profile">
-          <img ng-src="{{ avatarUrl || 'assets/img/default-avatar.png' }}" alt="avatar">
-          <span>{{ fullName }}</span>
-          <span class="role">({{ role }})</span>
-        </a>
-
-        <button ng-click="logout()" class="logout-btn">
-          <i class="fa fa-sign-out-alt"></i> Đăng xuất
-        </button>
       </div>
-    </div>
+    </header>
 
-    <!-- Nội dung -->
-    <div class="content-wrapper">
+    <!-- ===== Nội dung trang chính ===== -->
+    <main class="content-wrapper">
       <div ui-view></div>
-    </div>
+    </main>
+
   </div>
 </div>

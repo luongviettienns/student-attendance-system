@@ -1,65 +1,90 @@
-angular.module("eduApp").factory("AuthInterceptor", function($q, $injector, $window) {
+angular.module("eduApp").factory("AuthInterceptor", function($q, $injector, $window, $rootScope) {
+    let isRefreshing = false; // tránh gọi refresh nhiều lần cùng lúc
+    let retryQueue = [];      // lưu tạm các request bị 401 trong lúc refresh
+
     return {
-        // Trước khi gửi request → gắn accessToken vào header
+        /* ============================================================
+           🧩 REQUEST: Gắn token vào tất cả request ra ngoài
+        ============================================================ */
         request: function(config) {
-            var token = $window.localStorage.getItem("token") || $window.sessionStorage.getItem("token");
+            const token = $window.localStorage.getItem("token") || $window.sessionStorage.getItem("token");
             if (token) {
                 config.headers.Authorization = "Bearer " + token;
             }
             return config;
         },
 
-        // Nếu API trả về lỗi
+        /* ============================================================
+           ⚠️ RESPONSE ERROR: Xử lý lỗi 401, 500,...
+        ============================================================ */
         responseError: function(rejection) {
-            var $http = $injector.get("$http"); 
-            var AuthService = $injector.get("AuthService");
-            var ToastService = $injector.get("ToastService"); // lấy toast qua injector
-            var deferred = $q.defer();
+            const AuthService = $injector.get("AuthService");
+            const ToastService = $injector.get("ToastService");
+            const $http = $injector.get("$http");
 
+            // Nếu token hết hạn hoặc không hợp lệ
             if (rejection.status === 401) {
-                var msg = rejection.data && rejection.data.message ? rejection.data.message : "";
+                const message = (rejection.data && rejection.data.message) || "";
 
-                // 🟢 Sai tài khoản/mật khẩu → reject luôn
-                if (msg.includes("Sai tài khoản") || msg.includes("mật khẩu")) {
+                // 1️⃣ Sai tài khoản/mật khẩu → reject luôn
+                if (message.includes("Sai tài khoản") || message.includes("mật khẩu")) {
                     ToastService.show("Sai tài khoản hoặc mật khẩu", "error");
                     return $q.reject(rejection);
                 }
 
-                // 🟢 Token hết hạn → gọi refresh
-                ToastService.show("Phiên đăng nhập đã hết hạn, đang thử làm mới token...", "warning");
-
-                var refreshToken = $window.localStorage.getItem("refreshToken") || $window.sessionStorage.getItem("refreshToken");
-
+                // 2️⃣ Token hết hạn → xử lý refresh
+                const refreshToken = AuthService.getRefreshToken();
                 if (!refreshToken) {
-                    ToastService.show("Không tìm thấy refresh token, vui lòng đăng nhập lại.", "error");
-                    AuthService.logout();
-                    window.location = "#!/login";
+                    ToastService.show("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", "error");
+                    AuthService.logout().finally(() => {
+                        window.location = "#!/login";
+                    });
                     return $q.reject(rejection);
                 }
 
-                return AuthService.refresh(refreshToken)
-                    .then(function(res) {
-                        var newToken = res.data.token;
-                        var newRefreshToken = res.data.refreshToken;
+                // Nếu đang refresh token → đẩy request vào hàng đợi
+                if (isRefreshing) {
+                    const deferred = $q.defer();
+                    retryQueue.push({ config: rejection.config, deferred });
+                    return deferred.promise;
+                }
 
-                        // ✅ Lưu token mới
-                        $window.localStorage.setItem("token", newToken);
-                        $window.localStorage.setItem("refreshToken", newRefreshToken);
+                isRefreshing = true;
+                ToastService.show("Đang làm mới phiên đăng nhập...", "info");
+
+                // Gọi refresh token
+                return AuthService.refresh()
+                    .then(function(res) {
+                        const newToken = res.token;
+                        const storage = $window.localStorage.getItem("token")
+                            ? $window.localStorage
+                            : $window.sessionStorage;
+                        storage.setItem("token", newToken);
+
+                        // ✅ Retry lại các request đang chờ
+                        retryQueue.forEach(item => {
+                            item.config.headers.Authorization = "Bearer " + newToken;
+                            item.deferred.resolve($http(item.config));
+                        });
+                        retryQueue = [];
 
                         // ✅ Retry request gốc
                         rejection.config.headers.Authorization = "Bearer " + newToken;
-                        return $http(rejection.config); // ⚠️ return promise
+                        return $http(rejection.config);
                     })
                     .catch(function() {
-                        // ❌ Refresh thất bại → logout
                         ToastService.show("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", "error");
-                        AuthService.logout();
-                        window.location = "#!/login";
+                        AuthService.logout().finally(() => {
+                            window.location = "#!/login";
+                        });
                         return $q.reject(rejection);
+                    })
+                    .finally(function() {
+                        isRefreshing = false;
                     });
             }
 
-            // Các lỗi khác
+            // 3️⃣ Các lỗi khác
             if (rejection.status >= 500) {
                 ToastService.show("Lỗi máy chủ (" + rejection.status + ")", "error");
             }
