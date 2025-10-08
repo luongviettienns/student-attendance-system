@@ -17,4 +17,8 @@
     <ProjectReference Include="..\EducationManagement.DAL\EducationManagement.DAL.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Helpers\" />
+  </ItemGroup>
+
 </Project>

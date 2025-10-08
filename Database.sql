@@ -93,6 +93,7 @@ INSERT INTO dbo.users (user_id, username, password_hash, email, full_name, role_
 VALUES
 ('user-002', 'sv2024001', '$2b$12$wQ8PKj60xkkAo7df4YyF5OZiLPG3hAJIMLeKMmxy1g6PUP.pWtUs6', 
  'sv2024001@edu.com', N'Nguyễn Văn A', 'role-003', 1, 'system');
+Select * from users
 
 -- ====================================
 -- Bảng Students (chuẩn BTL)
@@ -138,6 +139,7 @@ INSERT INTO dbo.students (student_id, user_id, student_code, full_name, gender, 
 VALUES
 ('stu-001', 'user-002', 'SV2024001', N'Nguyễn Văn A', N'Nam', '2004-05-12', 'vana.sv@edu.com', '0912345678', '2024', 'system');
 GO
+Select * from students
 -- ====================================
 -- Bảng Student Profiles (chi tiết sinh viên)
 -- ====================================
