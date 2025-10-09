@@ -11,29 +11,20 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
   // === Toggle sidebar ===
   $scope.toggleSidebar = function() {
     if ($scope.isMobile) {
-      // 🔹 Mobile: đóng/mở hoàn toàn
       $scope.sidebarOpen = !$scope.sidebarOpen;
     } else {
-      // 🔹 Desktop: thu gọn/mở rộng
       $scope.sidebarOpen = !$scope.sidebarOpen;
-
-      // Khi thu gọn → đóng tất cả submenu
-      if (!$scope.sidebarOpen) {
-        $scope.activeMenu = null;
-      }
+      if (!$scope.sidebarOpen) $scope.activeMenu = null;
     }
   };
 
   // === Toggle submenu ===
   $scope.toggleSubmenu = function(menuName) {
-    // Nếu sidebar đang đóng → tự mở ra trước
     if (!$scope.sidebarOpen && !$scope.isMobile) {
       $scope.sidebarOpen = true;
       $scope.activeMenu = menuName;
       return;
     }
-
-    // Ngược lại → bật / tắt submenu
     $scope.activeMenu = ($scope.activeMenu === menuName) ? null : menuName;
   };
 
@@ -43,16 +34,15 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
     $scope.isMobile = $window.innerWidth < 992;
 
     if ($scope.isMobile && !wasMobile) {
-      $scope.sidebarOpen = false; // chuyển sang mobile → đóng sidebar
+      $scope.sidebarOpen = false;
       $scope.activeMenu = null;
     } else if (!$scope.isMobile && wasMobile) {
-      $scope.sidebarOpen = true; // quay lại desktop → mở sidebar
+      $scope.sidebarOpen = true;
     }
 
     $scope.$applyAsync();
   }
 
-  // Lắng nghe thay đổi kích thước màn hình
   var resizeHandler = function() { checkScreen(); };
   angular.element($window).on("resize", resizeHandler);
   checkScreen();
@@ -72,8 +62,56 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
     $scope.avatarUrl = "assets/img/default-avatar.png";
   }
 
-  // Demo: số lượng thông báo chưa đọc
+  // Demo thông báo
   $scope.notificationsCount = 3;
+
+
+  /* =====================
+     🔹 SIDEBAR MENU THEO ROLE
+  ===================== */
+  $scope.menus = {
+    Admin: [
+      { icon: "fa-home", label: "Trang chủ", state: "admin.dashboard" },
+      { icon: "fa-users-cog", label: "Quản lý tài khoản", state: "main.userManagement" },  // ✅ Đổi tên + route
+      {
+        icon: "fa-book",
+        label: "Quản lý đào tạo",
+        sub: [
+          { label: "Danh mục môn học", state: "admin.subjects" },
+          { label: "Lớp học", state: "admin.classes" },
+          { label: "Niên khóa", state: "admin.academicyears" }
+        ]
+      },
+      { icon: "fa-chart-line", label: "Báo cáo & Thống kê", state: "admin.reports" }
+    ],
+
+    Student: [
+      { icon: "fa-home", label: "Trang chủ", state: "student.dashboard" },
+      {
+        icon: "fa-book",
+        label: "Học tập",
+        sub: [
+          { label: "Lịch học", state: "student.schedule" },
+          { label: "Đăng ký học phần", state: "student.enrollment" },
+          { label: "Điểm danh", state: "student.attendance" },
+          { label: "Kết quả & GPA", state: "student.results" },
+          { label: "Phúc khảo điểm", state: "student.appeals" }
+        ]
+      },
+      {
+        icon: "fa-user",
+        label: "Cá nhân",
+        sub: [
+          { label: "Hồ sơ sinh viên", state: "student.profile" },
+          { label: "Người thân", state: "student.family" }
+        ]
+      }
+    ]
+  };
+
+  // 🔸 Các role khác (Lecturer, Advisor) có thể thêm sau:
+  // $scope.menus.Lecturer = [ ... ];
+  // $scope.menus.Advisor = [ ... ];
 
 
   /* =====================
@@ -92,15 +130,11 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
      🔹 PROFILE UPDATED EVENT
   ===================== */
   $rootScope.$on("profileUpdated", function(event, data) {
-    if (data.fullName) {
-      $scope.fullName = data.fullName;
-    }
+    if (data.fullName) $scope.fullName = data.fullName;
     if (data.avatarUrl) {
-      // tránh cache hình cũ
       $scope.avatarUrl = data.avatarUrl + "?t=" + new Date().getTime();
     }
 
-    // cập nhật lại user trong AuthService
     var updatedUser = AuthService.getUser() || {};
     updatedUser.fullName = $scope.fullName;
     updatedUser.role     = $scope.role;
