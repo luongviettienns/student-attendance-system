@@ -35,12 +35,13 @@ app.config(function($stateProvider, $urlRouterProvider, $httpProvider) {
             controller: "ClassesController",
             resolve: { auth: authGuard }
         })
-        .state("main.users", {
-            url: "/users",
-            templateUrl: "views/users.html",
-            controller: "UsersController",
-            resolve: { auth: authGuard }
-        })
+        .state("main.userManagement", {
+    url: "/user-management",
+    templateUrl: "views/admin/user-management.html",
+    controller: "UserManagementController",
+    resolve: { auth: authGuard }
+})
+
         .state("main.profile", {
             url: "/profile",
             templateUrl: "views/profile-student.html",

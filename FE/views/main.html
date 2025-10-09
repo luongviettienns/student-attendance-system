@@ -19,47 +19,39 @@
     </div>
 
     <!-- ===== Navigation Menu ===== -->
-    <nav class="sidebar-menu">
+    <nav class="sidebar-menu" ng-if="menus[role]">
       <ul class="menu-list">
 
-        <!-- Dashboard -->
-        <li class="menu-item">
-          <a ui-sref="student.dashboard" ui-sref-active="active" class="menu-link">
-            <i class="fa fa-home"></i>
-            <span ng-show="sidebarOpen || isMobile">Trang Chủ</span>
+        <!-- Lặp menu theo role -->
+        <li ng-repeat="menu in menus[role]" 
+            class="menu-item" 
+            ng-class="{'has-sub': menu.sub, 'open': activeMenu === menu.label}">
+
+          <!-- Menu có submenu -->
+          <a href="" class="menu-link" 
+             ng-if="menu.sub"
+             ng-click="toggleSubmenu(menu.label)">
+            <i class="fa" ng-class="menu.icon"></i>
+            <span ng-show="sidebarOpen || isMobile">{{ menu.label }}</span>
+            <i class="fa fa-chevron-right arrow" ng-class="{'rotate': activeMenu === menu.label}"></i>
+          </a>
+
+          <ul class="submenu" ng-if="menu.sub" ng-class="{'open': activeMenu === menu.label}">
+            <li ng-repeat="sub in menu.sub">
+              <a ui-sref="{{sub.state}}">
+                <i class="fa fa-angle-right"></i> {{ sub.label }}
+              </a>
+            </li>
+          </ul>
+
+          <!-- Menu không có submenu -->
+          <a ui-sref="{{menu.state}}" ui-sref-active="active" 
+             class="menu-link" ng-if="!menu.sub">
+            <i class="fa" ng-class="menu.icon"></i>
+            <span ng-show="sidebarOpen || isMobile">{{ menu.label }}</span>
             <i class="fa fa-chevron-right arrow" style="visibility:hidden"></i>
           </a>
-        </li>
 
-        <!-- Học tập -->
-        <li class="menu-item has-sub" ng-class="{'open': activeMenu === 'hocTap'}">
-          <a href="" class="menu-link" ng-click="toggleSubmenu('hocTap')">
-            <i class="fa fa-book"></i>
-            <span ng-show="sidebarOpen || isMobile">Học tập</span>
-            <i class="fa fa-chevron-right arrow" ng-class="{'rotate': activeMenu === 'hocTap'}"></i>
-          </a>
-
-          <ul class="submenu" ng-class="{'open': activeMenu === 'hocTap'}">
-            <li><a ui-sref="student.schedule"><i class="fa fa-calendar-alt"></i> Lịch học</a></li>
-            <li><a ui-sref="student.enrollment"><i class="fa fa-clipboard-list"></i> Đăng ký học phần</a></li>
-            <li><a ui-sref="student.attendance"><i class="fa fa-user-check"></i> Điểm danh</a></li>
-            <li><a ui-sref="student.results"><i class="fa fa-chart-line"></i> Kết quả & GPA</a></li>
-            <li><a ui-sref="student.appeals"><i class="fa fa-file-signature"></i> Phúc khảo điểm</a></li>
-          </ul>
-        </li>
-
-        <!-- Cá nhân -->
-        <li class="menu-item has-sub" ng-class="{'open': activeMenu === 'caNhan'}">
-          <a href="" class="menu-link" ng-click="toggleSubmenu('caNhan')">
-            <i class="fa fa-user"></i>
-            <span ng-show="sidebarOpen || isMobile">Cá nhân</span>
-            <i class="fa fa-chevron-right arrow" ng-class="{'rotate': activeMenu === 'caNhan'}"></i>
-          </a>
-
-          <ul class="submenu" ng-class="{'open': activeMenu === 'caNhan'}">
-            <li><a ui-sref="student.profile"><i class="fa fa-id-card"></i> Hồ sơ sinh viên</a></li>
-            <li><a ui-sref="student.family"><i class="fa fa-users"></i> Người thân</a></li>
-          </ul>
         </li>
 
       </ul>
@@ -67,25 +59,26 @@
 
     <!-- ===== Sidebar Footer ===== -->
     <div class="sidebar-footer">
-  <div class="user-box" ui-sref="main.profile">
-    <img ng-src="{{ avatarUrl || 'assets/img/default-avatar.png' }}" alt="avatar">
-    <div class="user-info" ng-show="sidebarOpen || isMobile">
-      <span class="name">{{ fullName }}</span>
-      <span class="role">{{ role }}</span>
+      <div class="user-box" ui-sref="main.profile">
+        <img ng-src="{{ avatarUrl || 'assets/img/default-avatar.png' }}" alt="avatar">
+        <div class="user-info" ng-show="sidebarOpen || isMobile">
+          <span class="name">{{ fullName }}</span>
+          <span class="role">{{ role }}</span>
+        </div>
+      </div>
+
+      <button ng-click="logout()" class="logout-btn">
+        <i class="fa fa-sign-out-alt"></i>
+        <span ng-show="sidebarOpen || isMobile">Đăng xuất</span>
+      </button>
     </div>
-  </div>
-
-  <button ng-click="logout()" class="logout-btn">
-    <i class="fa fa-sign-out-alt"></i>
-    <span ng-show="sidebarOpen || isMobile">Đăng xuất</span>
-  </button>
-</div>
-
 
   </aside>
 
-  <!-- Overlay cho mobile -->
-  <div class="overlay" ng-show="isMobile && sidebarOpen" ng-click="toggleSidebar()"></div>
+  <!-- ===== Overlay cho mobile ===== -->
+  <div class="overlay" 
+       ng-show="isMobile && sidebarOpen" 
+       ng-click="toggleSidebar()"></div>
 
   <!-- ===================== MAIN CONTENT ===================== -->
   <div class="main-content">
