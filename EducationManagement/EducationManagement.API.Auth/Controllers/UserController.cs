@@ -5,6 +5,7 @@ using EducationManagement.DAL;                // AppDbContext
 using EducationManagement.Common.Models;      // User entity
 using System.Security.Claims;
 using EducationManagement.Common.DTOs.User;
+using EducationManagement.Common.Helpers;
 
 
 namespace EducationManagement.API.Auth.Controllers
@@ -94,7 +95,7 @@ namespace EducationManagement.API.Auth.Controllers
             return Ok(new
             {
                 message = "Cập nhật thành công",
-                avatarUrl = GetFullAvatarUrl(user.AvatarUrl)
+                avatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), user.AvatarUrl)
             });
         }
 
@@ -118,18 +119,10 @@ namespace EducationManagement.API.Auth.Controllers
                 Email = user.Email,
                 Phone = user.Phone,
                 RoleId = user.RoleId,
-                AvatarUrl = GetFullAvatarUrl(user.AvatarUrl)
+                AvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), user.AvatarUrl)
             };
         }
 
-        // 📌 Helper để build URL avatar đầy đủ
-        private string GetFullAvatarUrl(string avatarUrl)
-        {
-            if (string.IsNullOrEmpty(avatarUrl))
-            {
-                avatarUrl = "/uploads/avatars/default.png";
-            }
-            return $"{Request.Scheme}://{Request.Host}{avatarUrl}";
-        }
+        // Removed duplicate helper, use FileHelper.BuildFullAvatarUrl
     }
 }

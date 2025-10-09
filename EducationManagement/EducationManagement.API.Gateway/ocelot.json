@@ -13,6 +13,18 @@
             "UpstreamHttpMethod": [ "POST", "GET", "OPTIONS" ]
         },
         {
+            "DownstreamPathTemplate": "/api/admin/{everything}",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7299
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/admin/{everything}",
+            "UpstreamHttpMethod": [ "GET", "PUT", "POST", "DELETE", "OPTIONS" ]
+        },
+        {
             "DownstreamPathTemplate": "/api/users/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
@@ -25,16 +37,16 @@
             "UpstreamHttpMethod": [ "GET", "PUT", "POST", "DELETE", "OPTIONS" ]
         },
         {
-            "DownstreamPathTemplate": "/api/admin/{everything}",
+            "DownstreamPathTemplate": "/api/admin/roles",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
                     "Host": "localhost",
-                    "Port": 7051
+                    "Port": 7299
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/{everything}",
-            "UpstreamHttpMethod": [ "GET", "PUT", "POST", "DELETE", "OPTIONS" ]
+            "UpstreamPathTemplate": "/api-edu/admin/roles",
+            "UpstreamHttpMethod": [ "GET", "OPTIONS" ]
         }
     ],
     "GlobalConfiguration": {
