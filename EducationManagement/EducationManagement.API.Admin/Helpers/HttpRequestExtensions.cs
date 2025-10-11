@@ -1,4 +1,4 @@
-﻿namespace EducationManagement.API.Auth.Helpers
+﻿namespace EducationManagement.API.Adnin.Helpers
 {
     public static class HttpRequestExtensions
     {

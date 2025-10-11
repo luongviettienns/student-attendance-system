@@ -18,18 +18,25 @@
       </div>
     </div>
 
-    <!-- ===== Navigation Menu ===== -->
-    <nav class="sidebar-menu" ng-if="menus[role]">
+    <!-- ===== Navigation Menu (DỮ LIỆU TỪ BE) ===== -->
+    <nav class="sidebar-menu" ng-if="roleMenus.length > 0 && !menuLoading">
       <ul class="menu-list">
 
-        <!-- Lặp menu theo role -->
-        <li ng-repeat="menu in menus[role]" 
-            class="menu-item" 
+        <!-- Lặp qua danh sách menu từ BE -->
+        <li ng-repeat="menu in roleMenus" 
+            class="menu-item"
             ng-class="{'has-sub': menu.sub, 'open': activeMenu === menu.label}">
 
+          <!-- Menu không có submenu -->
+          <a ui-sref="{{menu.state}}" ui-sref-active="active" 
+             class="menu-link" ng-if="!menu.sub">
+            <i class="fa" ng-class="menu.icon"></i>
+            <span ng-show="sidebarOpen || isMobile">{{ menu.label }}</span>
+            <i class="fa fa-chevron-right arrow" style="visibility:hidden"></i>
+          </a>
+
           <!-- Menu có submenu -->
-          <a href="" class="menu-link" 
-             ng-if="menu.sub"
+          <a href="" class="menu-link" ng-if="menu.sub"
              ng-click="toggleSubmenu(menu.label)">
             <i class="fa" ng-class="menu.icon"></i>
             <span ng-show="sidebarOpen || isMobile">{{ menu.label }}</span>
@@ -44,18 +51,15 @@
             </li>
           </ul>
 
-          <!-- Menu không có submenu -->
-          <a ui-sref="{{menu.state}}" ui-sref-active="active" 
-             class="menu-link" ng-if="!menu.sub">
-            <i class="fa" ng-class="menu.icon"></i>
-            <span ng-show="sidebarOpen || isMobile">{{ menu.label }}</span>
-            <i class="fa fa-chevron-right arrow" style="visibility:hidden"></i>
-          </a>
-
         </li>
 
       </ul>
     </nav>
+
+    <!-- ===== Trạng thái loading ===== -->
+    <div class="loading" ng-if="menuLoading">
+      <i class="fa fa-spinner fa-spin"></i> Đang tải menu...
+    </div>
 
     <!-- ===== Sidebar Footer ===== -->
     <div class="sidebar-footer">

@@ -1,54 +1,73 @@
 {
     "Routes": [
+        // ============================================================
+        // 🔹 AUTH SERVICE (Login / Refresh / Logout)
+        // ============================================================
         {
             "DownstreamPathTemplate": "/api/auth/{everything}",
-            "DownstreamScheme": "https",
+            "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
                     "Host": "localhost",
-                    "Port": 7051
+                    "Port": 5227
                 }
             ],
             "UpstreamPathTemplate": "/api-edu/auth/{everything}",
-            "UpstreamHttpMethod": [ "POST", "GET", "OPTIONS" ]
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
         },
-        {
-            "DownstreamPathTemplate": "/api/admin/{everything}",
-            "DownstreamScheme": "https",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "localhost",
-                    "Port": 7299
-                }
-            ],
-            "UpstreamPathTemplate": "/api-edu/admin/{everything}",
-            "UpstreamHttpMethod": [ "GET", "PUT", "POST", "DELETE", "OPTIONS" ]
-        },
+
+        // ============================================================
+        // 🔹 USER SERVICE (Profile / Update Avatar)
+        // ============================================================
         {
             "DownstreamPathTemplate": "/api/users/{everything}",
-            "DownstreamScheme": "https",
+            "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
                     "Host": "localhost",
-                    "Port": 7051
+                    "Port": 5227
                 }
             ],
             "UpstreamPathTemplate": "/api-edu/users/{everything}",
-            "UpstreamHttpMethod": [ "GET", "PUT", "POST", "DELETE", "OPTIONS" ]
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
         },
+
+        // ============================================================
+        // 🔹 ADMIN SERVICE (Roles / Permissions / Users)
+        // ============================================================
         {
-            "DownstreamPathTemplate": "/api/admin/roles",
-            "DownstreamScheme": "https",
+            "DownstreamPathTemplate": "/api/admin/{everything}",
+            "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
                     "Host": "localhost",
-                    "Port": 7299
+                    "Port": 5227
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/roles",
-            "UpstreamHttpMethod": [ "GET", "OPTIONS" ]
+            "UpstreamPathTemplate": "/api-edu/admin/{everything}",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
+        },
+
+        // ============================================================
+        // 🔹 STATIC FILES (Uploads - Avatar)
+        // ============================================================
+        {
+            "DownstreamPathTemplate": "/uploads/{everything}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5227
+                }
+            ],
+            "UpstreamPathTemplate": "/uploads/{everything}",
+            "UpstreamHttpMethod": [ "GET" ]
         }
     ],
+
+    // ============================================================
+    // 🔹 GLOBAL CONFIGURATION
+    // ============================================================
     "GlobalConfiguration": {
         "BaseUrl": "http://localhost:5090"
     }

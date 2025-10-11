@@ -1,14 +1,13 @@
-angular.module("eduApp").controller("MainController", 
+angular.module("eduApp").controller("MainController",
 function($scope, $window, $state, $rootScope, $location, AuthService) {
 
-  /* =====================
+  /* ============================================================
      🔹 SIDEBAR CONTROL
-  ===================== */
-  $scope.sidebarOpen = true;      // trạng thái mở / thu gọn
-  $scope.isMobile = false;        // chế độ mobile
-  $scope.activeMenu = null;       // menu con đang mở (dropdown)
+  ============================================================ */
+  $scope.sidebarOpen = true;
+  $scope.isMobile = false;
+  $scope.activeMenu = null;
 
-  // === Toggle sidebar ===
   $scope.toggleSidebar = function() {
     if ($scope.isMobile) {
       $scope.sidebarOpen = !$scope.sidebarOpen;
@@ -18,7 +17,6 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
     }
   };
 
-  // === Toggle submenu ===
   $scope.toggleSubmenu = function(menuName) {
     if (!$scope.sidebarOpen && !$scope.isMobile) {
       $scope.sidebarOpen = true;
@@ -28,7 +26,6 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
     $scope.activeMenu = ($scope.activeMenu === menuName) ? null : menuName;
   };
 
-  // === Kiểm tra kích thước màn hình ===
   function checkScreen() {
     const wasMobile = $scope.isMobile;
     $scope.isMobile = $window.innerWidth < 992;
@@ -48,75 +45,59 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
   checkScreen();
 
 
-  /* =====================
+  /* ============================================================
      🔹 USER INFORMATION
-  ===================== */
-  var user = AuthService.getUser();
+  ============================================================ */
+  const user = AuthService.getUser();
+
   if (user) {
-    $scope.fullName  = user.fullName;
-    $scope.role      = user.role;
-    $scope.avatarUrl = user.avatarUrl;
+    $scope.fullName  = user.fullName || "Người dùng";
+    $scope.role      = user.role || "Unknown";
+    $scope.avatarUrl = user.avatarUrl ? (user.avatarUrl + "?v=" + Date.now()) : null;
   } else {
-    $scope.fullName  = "Sinh viên";
-    $scope.role      = "Student";
-    $scope.avatarUrl = "assets/img/default-avatar.png";
+    $scope.fullName  = "Khách";
+    $scope.role      = "Guest";
+    $scope.avatarUrl = null;
   }
 
-  // Demo thông báo
-  $scope.notificationsCount = 3;
+  $scope.notificationsCount = 0;
 
 
-  /* =====================
-     🔹 SIDEBAR MENU THEO ROLE
-  ===================== */
-  $scope.menus = {
-    Admin: [
-      { icon: "fa-home", label: "Trang chủ", state: "admin.dashboard" },
-      { icon: "fa-users-cog", label: "Quản lý tài khoản", state: "main.userManagement" },  // ✅ Đổi tên + route
-      {
-        icon: "fa-book",
-        label: "Quản lý đào tạo",
-        sub: [
-          { label: "Danh mục môn học", state: "admin.subjects" },
-          { label: "Lớp học", state: "admin.classes" },
-          { label: "Niên khóa", state: "admin.academicyears" }
-        ]
-      },
-      { icon: "fa-chart-line", label: "Báo cáo & Thống kê", state: "admin.reports" }
-    ],
+  /* ============================================================
+     🔹 SIDEBAR MENU - DỮ LIỆU TỪ BE
+  ============================================================ */
+  $scope.roleMenus = [];
+  $scope.menuLoading = true;
 
-    Student: [
-      { icon: "fa-home", label: "Trang chủ", state: "student.dashboard" },
-      {
-        icon: "fa-book",
-        label: "Học tập",
-        sub: [
-          { label: "Lịch học", state: "student.schedule" },
-          { label: "Đăng ký học phần", state: "student.enrollment" },
-          { label: "Điểm danh", state: "student.attendance" },
-          { label: "Kết quả & GPA", state: "student.results" },
-          { label: "Phúc khảo điểm", state: "student.appeals" }
-        ]
-      },
-      {
-        icon: "fa-user",
-        label: "Cá nhân",
-        sub: [
-          { label: "Hồ sơ sinh viên", state: "student.profile" },
-          { label: "Người thân", state: "student.family" }
-        ]
-      }
-    ]
-  };
+  AuthService.getMenus()
+    .then(function(menus) {
+      console.log("✅ Menu data from BE:", menus); // Debug dữ liệu gốc
 
-  // 🔸 Các role khác (Lecturer, Advisor) có thể thêm sau:
-  // $scope.menus.Lecturer = [ ... ];
-  // $scope.menus.Advisor = [ ... ];
+      // Map dữ liệu trả về từ BE thành cấu trúc hiển thị FE
+      $scope.roleMenus = menus.map(function(m) {
+        return {
+          icon: "fa-circle", // icon mặc định, có thể map theo permissionCode sau
+          label: m.permissionName || "Chức năng",
+          state: m.permissionCode
+            ? m.permissionCode.toLowerCase().replace(/_/g, ".")
+            : "home"
+        };
+      });
+
+      console.log("✅ Mapped menus for sidebar:", $scope.roleMenus);
+    })
+    .catch(function(err) {
+      console.error("❌ Load menu failed:", err);
+    })
+    .finally(function() {
+      $scope.menuLoading = false;
+      $scope.$applyAsync();
+    });
 
 
-  /* =====================
+  /* ============================================================
      🔹 LOGOUT
-  ===================== */
+  ============================================================ */
   $scope.logout = function() {
     AuthService.logout()
       .finally(function() {
@@ -126,9 +107,9 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
   };
 
 
-  /* =====================
+  /* ============================================================
      🔹 PROFILE UPDATED EVENT
-  ===================== */
+  ============================================================ */
   $rootScope.$on("profileUpdated", function(event, data) {
     if (data.fullName) $scope.fullName = data.fullName;
     if (data.avatarUrl) {
@@ -147,9 +128,9 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
   });
 
 
-  /* =====================
+  /* ============================================================
      🔹 CLEANUP
-  ===================== */
+  ============================================================ */
   $scope.$on("$destroy", function() {
     angular.element($window).off("resize", resizeHandler);
   });

@@ -5,10 +5,10 @@ using EducationManagement.Common.DTOs;
 using EducationManagement.Common.DTOs.User;
 using EducationManagement.Common.Models;
 
-namespace EducationManagement.API.Auth.Controllers
+namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/auth")]
     public class AuthController : ControllerBase
     {
         private readonly AuthService _authService;
@@ -20,7 +20,10 @@ namespace EducationManagement.API.Auth.Controllers
             _jwtService = jwtService;
         }
 
-        // ✅ Login: trả về AccessToken + RefreshToken + User info
+        #region 🔹 LOGIN (Không cần xác thực)
+        /// <summary>
+        /// Đăng nhập hệ thống - trả về AccessToken + RefreshToken + thông tin người dùng
+        /// </summary>
         [HttpPost("login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
@@ -31,19 +34,6 @@ namespace EducationManagement.API.Auth.Controllers
             var user = await _authService.ValidateUserAsync(request.Username, request.Password);
             if (user == null)
                 return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu" });
-
-            // map sang DTO để sinh JWT
-            var userDto = new UserResponseDto
-            {
-                UserId = user.UserId.ToString(),
-                Username = user.Username,
-                FullName = user.FullName,
-                Email = user.Email,
-                Phone = user.Phone,
-                RoleId = user.RoleId.ToString(),
-                RoleName = user.Role?.RoleName ?? "User",
-                AvatarUrl = user.AvatarUrl
-            };
 
             var accessToken = _jwtService.GenerateAccessToken(user);
             var refreshToken = _jwtService.GenerateRefreshToken();
@@ -59,10 +49,15 @@ namespace EducationManagement.API.Auth.Controllers
                 Role = user.Role?.RoleName ?? "User",
                 FullName = user.FullName ?? string.Empty,
                 AvatarUrl = user.AvatarUrl ?? "/uploads/avatars/default.png"
+
             });
         }
+        #endregion
 
-        // ✅ Refresh: cấp AccessToken mới khi hết hạn
+        #region 🔹 REFRESH TOKEN (Không cần xác thực)
+        /// <summary>
+        /// Cấp mới AccessToken khi hết hạn, dùng RefreshToken cũ
+        /// </summary>
         [HttpPost("refresh")]
         [AllowAnonymous]
         public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
@@ -78,18 +73,6 @@ namespace EducationManagement.API.Auth.Controllers
             if (user == null)
                 return Unauthorized(new { message = "Không tìm thấy user" });
 
-            var userDto = new UserResponseDto
-            {
-                UserId = user.UserId.ToString(),
-                Username = user.Username,
-                FullName = user.FullName,
-                Email = user.Email,
-                Phone = user.Phone,
-                RoleId = user.RoleId.ToString(),
-                RoleName = user.Role?.RoleName ?? "User",
-                AvatarUrl = user.AvatarUrl
-            };
-
             var newAccessToken = _jwtService.GenerateAccessToken(user);
             var newRefreshToken = _jwtService.GenerateRefreshToken();
 
@@ -103,8 +86,12 @@ namespace EducationManagement.API.Auth.Controllers
                 RefreshTokenExpiry = newRefreshToken.ExpiresAt
             });
         }
+        #endregion
 
-        // ✅ Logout: vô hiệu hóa refresh token
+        #region 🔹 LOGOUT (Yêu cầu xác thực)
+        /// <summary>
+        /// Đăng xuất - vô hiệu hóa RefreshToken hiện tại
+        /// </summary>
         [HttpPost("logout")]
         [Authorize]
         public async Task<IActionResult> Logout([FromBody] RefreshRequest request)
@@ -116,7 +103,8 @@ namespace EducationManagement.API.Auth.Controllers
             if (refreshToken != null)
                 await _authService.RevokeRefreshTokenAsync(refreshToken.Id);
 
-            return Ok(new { message = "Đã logout" });
+            return Ok(new { message = "Đã logout thành công" });
         }
+        #endregion
     }
 }

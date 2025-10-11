@@ -3,7 +3,7 @@ using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace EducationManagement.API.Auth.Middleware
+namespace EducationManagement.API.Admin.Middleware
 {
     public class AuditMiddleware
     {

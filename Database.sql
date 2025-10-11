@@ -769,3 +769,67 @@ BEGIN
   ADD CONSTRAINT FK_RefreshTokens_Users
   FOREIGN KEY (UserId) REFERENCES dbo.users(user_id);
 END
+
+-- ====================================
+-- Bảng Permissions (danh sách chức năng/hành động)
+-- ====================================
+IF OBJECT_ID('dbo.permissions', 'U') IS NOT NULL
+    DROP TABLE dbo.permissions;
+GO
+
+CREATE TABLE dbo.permissions (
+    permission_id   VARCHAR(50) NOT NULL PRIMARY KEY,      -- Khóa chính
+    permission_code VARCHAR(100) NOT NULL UNIQUE,          -- Mã chức năng (VIEW_USER, CREATE_CLASS...)
+    permission_name NVARCHAR(200) NOT NULL,                -- Tên hiển thị (Xem người dùng, Tạo lớp học,...)
+    description     NVARCHAR(500) NULL,                    -- Mô tả chi tiết
+
+    -- Audit
+    created_at      DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by      VARCHAR(50) NULL,
+    updated_at      DATETIME NULL,
+    updated_by      VARCHAR(50) NULL,
+
+    -- Soft delete
+    is_active       BIT NOT NULL DEFAULT 1,
+    deleted_at      DATETIME NULL,
+    deleted_by      VARCHAR(50) NULL
+);
+GO
+
+-- Seed một số quyền mẫu
+INSERT INTO dbo.permissions (permission_id, permission_code, permission_name, description, created_by)
+VALUES
+('perm-001', 'VIEW_USER',      N'Xem danh sách người dùng', N'Cho phép xem danh sách và chi tiết người dùng', 'system'),
+('perm-002', 'MANAGE_USER',    N'Quản lý người dùng',       N'Cho phép thêm, sửa, xóa người dùng', 'system'),
+('perm-003', 'VIEW_ROLE',      N'Xem danh sách vai trò',     N'Cho phép xem vai trò và quyền', 'system'),
+('perm-004', 'MANAGE_ROLE',    N'Quản lý vai trò',           N'Thêm, sửa, xóa vai trò', 'system'),
+('perm-005', 'VIEW_CLASS',     N'Xem lớp học phần',          N'Xem thông tin các lớp học', 'system'),
+('perm-006', 'MANAGE_CLASS',   N'Quản lý lớp học phần',      N'Tạo, cập nhật, xóa lớp học phần', 'system');
+GO
+-- ====================================
+-- Bảng RolePermissions (gán quyền cho từng vai trò)
+-- ====================================
+IF OBJECT_ID('dbo.role_permissions', 'U') IS NOT NULL
+    DROP TABLE dbo.role_permissions;
+GO
+
+CREATE TABLE dbo.role_permissions (
+    role_id        VARCHAR(50) NOT NULL,
+    permission_id  VARCHAR(50) NOT NULL,
+
+    -- Audit
+    created_at     DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by     VARCHAR(50) NULL,
+    deleted_at     DATETIME NULL,
+    deleted_by     VARCHAR(50) NULL,
+
+    PRIMARY KEY (role_id, permission_id),
+    CONSTRAINT FK_role_permissions_roles FOREIGN KEY (role_id) REFERENCES dbo.roles(role_id),
+    CONSTRAINT FK_role_permissions_permissions FOREIGN KEY (permission_id) REFERENCES dbo.permissions(permission_id)
+);
+GO
+
+-- Seed quyền cơ bản cho vai trò Admin
+INSERT INTO dbo.role_permissions (role_id, permission_id, created_by)
+SELECT 'role-001', p.permission_id, 'system' FROM dbo.permissions p;
+GO

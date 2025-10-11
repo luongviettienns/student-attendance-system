@@ -3,13 +3,19 @@ using Ocelot.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ---------------------- Services ----------------------
-
+// ============================================================
+// 🧩 1. Load cấu hình Ocelot
+// ============================================================
 builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
 
+// ============================================================
+// 🧩 2. Đăng ký dịch vụ Ocelot
+// ============================================================
 builder.Services.AddOcelot(builder.Configuration);
 
-// ✅ Bật CORS AllowAll cho Gateway
+// ============================================================
+// 🧩 3. Cấu hình CORS cho phép FE gọi Gateway
+// ============================================================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -20,18 +26,32 @@ builder.Services.AddCors(options =>
     });
 });
 
+// ============================================================
+// 🧩 4. Tạo app
+// ============================================================
 var app = builder.Build();
 
-// ---------------------- App Pipeline ----------------------
+// ============================================================
+// 🚀 5. Cấu hình Middleware pipeline
+// ============================================================
 
-// ❌ Không cần HTTPS redirect cho Gateway
-//// app.UseHttpsRedirection();
-
+// ✅ Bật CORS cho tất cả request
 app.UseCors("AllowAll");
 
-// Swagger của Gateway thường không cần, vì FE test trực tiếp Auth/User API
-// Nếu muốn thì có thể tích hợp swagger for Ocelot (advanced)
+// ✅ HTTPS redirection chỉ dùng khi cần (nếu không chạy song song IIS Express thì có thể bật)
+app.UseHttpsRedirection();
 
+// ✅ Logging mặc định (giúp debug Gateway dễ hơn)
+app.Use(async (context, next) =>
+{
+    Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {context.Request.Method} {context.Request.Path}");
+    await next.Invoke();
+});
+
+// ✅ Middleware chính của Ocelot (phải luôn đặt cuối cùng)
 await app.UseOcelot();
 
+// ============================================================
+// ✅ 6. Chạy ứng dụng
+// ============================================================
 app.Run();
