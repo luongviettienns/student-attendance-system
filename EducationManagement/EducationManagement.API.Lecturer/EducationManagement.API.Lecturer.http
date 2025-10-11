@@ -1,6 +1,0 @@
-@EducationManagement.API.Lecturer_HostAddress = http://localhost:5205
-
-GET {{EducationManagement.API.Lecturer_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###

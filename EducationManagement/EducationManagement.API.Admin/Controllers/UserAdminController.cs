@@ -1,33 +1,35 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using EducationManagement.DAL;
 using EducationManagement.Common.Models;
 using EducationManagement.Common.DTOs.User;
-using System.Security.Claims;
-using EducationManagement.BLL.Services;
 using EducationManagement.Common.Helpers;
+using EducationManagement.BLL.Services;
 
 namespace EducationManagement.API.Admin.Controllers
 {
-    [Authorize(Roles = "Admin")]
     [ApiController]
+    [Authorize(Roles = "Admin")]
     [Route("api/admin/users")]
-    public class AdminController : ControllerBase
+    public class UserAdminController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IWebHostEnvironment _env;
         private readonly AuthService _authService;
 
-        public AdminController(AppDbContext context, IWebHostEnvironment env, AuthService authService)
+        public UserAdminController(AppDbContext context, AuthService authService)
         {
             _context = context;
-            _env = env;
             _authService = authService;
         }
 
+        #region 🔹 GET: Danh sách + Chi tiết
+        /// <summary>
+        /// Lấy danh sách người dùng có phân trang, lọc, tìm kiếm
+        /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetAllUsers(
+        public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
             [FromQuery] string? search = null,
@@ -39,23 +41,17 @@ namespace EducationManagement.API.Admin.Controllers
                 .Where(u => u.DeletedAt == null)
                 .AsQueryable();
 
-            if (!string.IsNullOrEmpty(search))
-            {
+            if (!string.IsNullOrWhiteSpace(search))
                 query = query.Where(u =>
                     u.Username.Contains(search) ||
                     u.FullName.Contains(search) ||
                     u.Email.Contains(search));
-            }
 
-            if (!string.IsNullOrEmpty(roleId))
-            {
+            if (!string.IsNullOrWhiteSpace(roleId))
                 query = query.Where(u => u.RoleId == roleId);
-            }
 
             if (isActive.HasValue)
-            {
                 query = query.Where(u => u.IsActive == isActive.Value);
-            }
 
             var totalCount = await query.CountAsync();
 
@@ -72,7 +68,7 @@ namespace EducationManagement.API.Admin.Controllers
                     Phone = u.Phone,
                     RoleId = u.RoleId,
                     RoleName = u.Role.RoleName,
-                    AvatarUrl = u.AvatarUrl,
+                    AvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), u.AvatarUrl),
                     IsActive = u.IsActive,
                     LastLoginAt = u.LastLoginAt,
                     CreatedAt = u.CreatedAt,
@@ -82,14 +78,9 @@ namespace EducationManagement.API.Admin.Controllers
                 })
                 .ToListAsync();
 
-            foreach (var user in users)
-            {
-                user.AvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), user.AvatarUrl);
-            }
-
             return Ok(new
             {
-                users,
+                data = users,
                 pagination = new
                 {
                     page,
@@ -100,15 +91,18 @@ namespace EducationManagement.API.Admin.Controllers
             });
         }
 
+        /// <summary>
+        /// Lấy thông tin chi tiết của 1 người dùng
+        /// </summary>
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetUserById(string id)
+        public async Task<IActionResult> GetById(string id)
         {
             var user = await _context.Users
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.UserId == id && u.DeletedAt == null);
 
             if (user == null)
-                return NotFound(new { message = "User not found" });
+                return NotFound(new { message = "Không tìm thấy người dùng" });
 
             var userDto = new UserListDto
             {
@@ -128,28 +122,32 @@ namespace EducationManagement.API.Admin.Controllers
                 UpdatedBy = user.UpdatedBy
             };
 
-            return Ok(userDto);
+            return Ok(new { data = userDto });
         }
+        #endregion
 
+        #region 🔹 POST/PUT/DELETE: CRUD
+        /// <summary>
+        /// Tạo mới người dùng
+        /// </summary>
         [HttpPost]
-        public async Task<IActionResult> CreateUser([FromBody] UserCreateDto request)
+        public async Task<IActionResult> Create([FromBody] UserCreateDto request)
         {
             if (await _context.Users.AnyAsync(u => u.Username == request.Username))
-                return BadRequest(new { message = "Username already exists" });
+                return BadRequest(new { message = "Tên đăng nhập đã tồn tại" });
 
             if (await _context.Users.AnyAsync(u => u.Email == request.Email))
-                return BadRequest(new { message = "Email already exists" });
+                return BadRequest(new { message = "Email đã tồn tại" });
 
             var role = await _context.Roles.FindAsync(request.RoleId);
             if (role == null)
-                return BadRequest(new { message = "Invalid role ID" });
+                return BadRequest(new { message = "Role không hợp lệ" });
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var userId = Guid.NewGuid().ToString();
 
             var user = new User
             {
-                UserId = userId,
+                UserId = Guid.NewGuid().ToString(),
                 Username = request.Username,
                 PasswordHash = _authService.HashPassword(request.Password),
                 FullName = request.FullName,
@@ -157,6 +155,7 @@ namespace EducationManagement.API.Admin.Controllers
                 Phone = request.Phone,
                 RoleId = request.RoleId,
                 IsActive = request.IsActive,
+                // ✅ Ảnh mặc định (default.png)
                 AvatarUrl = "/uploads/avatars/default.png",
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUserId
@@ -165,26 +164,25 @@ namespace EducationManagement.API.Admin.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction(nameof(GetUserById), new { id = userId }, new
-            {
-                message = "User created successfully",
-                userId = userId
-            });
+            return Ok(new { message = "Tạo người dùng thành công", userId = user.UserId });
         }
 
+        /// <summary>
+        /// Cập nhật thông tin người dùng
+        /// </summary>
         [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateUser(string id, [FromBody] UserUpdateAdminDto request)
+        public async Task<IActionResult> Update(string id, [FromBody] UserUpdateAdminDto request)
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null || user.DeletedAt != null)
-                return NotFound(new { message = "User not found" });
+                return NotFound(new { message = "Không tìm thấy người dùng" });
 
             if (await _context.Users.AnyAsync(u => u.Email == request.Email && u.UserId != id))
-                return BadRequest(new { message = "Email already exists" });
+                return BadRequest(new { message = "Email đã được sử dụng" });
 
             var role = await _context.Roles.FindAsync(request.RoleId);
             if (role == null)
-                return BadRequest(new { message = "Invalid role ID" });
+                return BadRequest(new { message = "Role không hợp lệ" });
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
@@ -198,40 +196,48 @@ namespace EducationManagement.API.Admin.Controllers
 
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "User updated successfully" });
+            return Ok(new { message = "Cập nhật người dùng thành công" });
         }
 
+        /// <summary>
+        /// Xoá mềm người dùng (không xoá khỏi DB)
+        /// </summary>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(string id)
+        public async Task<IActionResult> Delete(string id)
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null || user.DeletedAt != null)
-                return NotFound(new { message = "User not found" });
+                return NotFound(new { message = "Không tìm thấy người dùng" });
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (user.UserId == currentUserId)
-                return BadRequest(new { message = "Cannot delete your own account" });
 
-            var currentTime = DateTime.UtcNow;
-            user.DeletedAt = currentTime;
+            if (user.UserId == currentUserId)
+                return BadRequest(new { message = "Không thể xoá tài khoản của chính bạn" });
+
+            user.DeletedAt = DateTime.UtcNow;
             user.DeletedBy = currentUserId;
             user.IsActive = false;
 
             await _context.SaveChangesAsync();
-
-            return Ok(new { message = "User deleted successfully" });
+            return Ok(new { message = "Đã xoá người dùng thành công" });
         }
+        #endregion
 
+        #region 🔹 PUT: Toggle trạng thái hoạt động
+        /// <summary>
+        /// Chuyển trạng thái hoạt động (Active/Inactive) cho người dùng
+        /// </summary>
         [HttpPut("{id}/toggle-status")]
-        public async Task<IActionResult> ToggleUserStatus(string id)
+        public async Task<IActionResult> ToggleStatus(string id)
         {
             var user = await _context.Users.FindAsync(id);
             if (user == null || user.DeletedAt != null)
-                return NotFound(new { message = "User not found" });
+                return NotFound(new { message = "Không tìm thấy người dùng" });
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
             if (user.UserId == currentUserId)
-                return BadRequest(new { message = "Cannot deactivate your own account" });
+                return BadRequest(new { message = "Không thể vô hiệu hóa tài khoản của chính bạn" });
 
             user.IsActive = !user.IsActive;
             user.UpdatedAt = DateTime.UtcNow;
@@ -241,15 +247,10 @@ namespace EducationManagement.API.Admin.Controllers
 
             return Ok(new
             {
-                message = $"User {(user.IsActive ? "activated" : "deactivated")} successfully",
+                message = $"Tài khoản {(user.IsActive ? "đã được kích hoạt" : "đã bị vô hiệu hoá")}",
                 isActive = user.IsActive
             });
         }
-
-        // Removed: Admin cannot change user password for security reasons
-
-        
+        #endregion
     }
 }
-
-
