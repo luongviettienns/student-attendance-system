@@ -770,66 +770,87 @@ BEGIN
   FOREIGN KEY (UserId) REFERENCES dbo.users(user_id);
 END
 
--- ====================================
--- Bảng Permissions (danh sách chức năng/hành động)
--- ====================================
-IF OBJECT_ID('dbo.permissions', 'U') IS NOT NULL
-    DROP TABLE dbo.permissions;
+USE EducationManagement;
 GO
 
-CREATE TABLE dbo.permissions (
-    permission_id   VARCHAR(50) NOT NULL PRIMARY KEY,      -- Khóa chính
-    permission_code VARCHAR(100) NOT NULL UNIQUE,          -- Mã chức năng (VIEW_USER, CREATE_CLASS...)
-    permission_name NVARCHAR(200) NOT NULL,                -- Tên hiển thị (Xem người dùng, Tạo lớp học,...)
-    description     NVARCHAR(500) NULL,                    -- Mô tả chi tiết
-
-    -- Audit
-    created_at      DATETIME NOT NULL DEFAULT(GETDATE()),
-    created_by      VARCHAR(50) NULL,
-    updated_at      DATETIME NULL,
-    updated_by      VARCHAR(50) NULL,
-
-    -- Soft delete
-    is_active       BIT NOT NULL DEFAULT 1,
-    deleted_at      DATETIME NULL,
-    deleted_by      VARCHAR(50) NULL
-);
+-- ===========================================
+-- 🧹 DỌN DỮ LIỆU CŨ
+-- ===========================================
+IF OBJECT_ID('dbo.RolePermissions', 'U') IS NOT NULL
+    DELETE FROM dbo.RolePermissions;
+IF OBJECT_ID('dbo.Permissions', 'U') IS NOT NULL
+    DELETE FROM dbo.Permissions;
 GO
 
--- Seed một số quyền mẫu
-INSERT INTO dbo.permissions (permission_id, permission_code, permission_name, description, created_by)
+-- ===========================================
+-- 🧩 SEED MENU CHA - CON CHO ADMIN
+-- ===========================================
+INSERT INTO dbo.Permissions (PermissionId, PermissionCode, PermissionName, ParentCode, Icon, Description, IsActive, CreatedAt, CreatedBy)
 VALUES
-('perm-001', 'VIEW_USER',      N'Xem danh sách người dùng', N'Cho phép xem danh sách và chi tiết người dùng', 'system'),
-('perm-002', 'MANAGE_USER',    N'Quản lý người dùng',       N'Cho phép thêm, sửa, xóa người dùng', 'system'),
-('perm-003', 'VIEW_ROLE',      N'Xem danh sách vai trò',     N'Cho phép xem vai trò và quyền', 'system'),
-('perm-004', 'MANAGE_ROLE',    N'Quản lý vai trò',           N'Thêm, sửa, xóa vai trò', 'system'),
-('perm-005', 'VIEW_CLASS',     N'Xem lớp học phần',          N'Xem thông tin các lớp học', 'system'),
-('perm-006', 'MANAGE_CLASS',   N'Quản lý lớp học phần',      N'Tạo, cập nhật, xóa lớp học phần', 'system');
-GO
--- ====================================
--- Bảng RolePermissions (gán quyền cho từng vai trò)
--- ====================================
-IF OBJECT_ID('dbo.role_permissions', 'U') IS NOT NULL
-    DROP TABLE dbo.role_permissions;
+-- === I. Quản lý người dùng & phân quyền ===
+(NEWID(), 'ADMIN_USER_MANAGE', N'Quản lý người dùng', NULL, 'fa fa-users-cog', N'Menu quản lý tài khoản và quyền', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_USER_ACCOUNT', N'Tài khoản', 'ADMIN_USER_MANAGE', 'fa fa-user', N'Quản lý danh sách tài khoản', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_ROLE_MANAGE', N'Vai trò & quyền hạn', 'ADMIN_USER_MANAGE', 'fa fa-shield-alt', N'Quản lý vai trò người dùng', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_ROLE_PERMISSION', N'Phân quyền chi tiết', 'ADMIN_USER_MANAGE', 'fa fa-key', N'Phân quyền chi tiết cho vai trò', 1, GETDATE(), 'system'),
+
+-- === II. Danh mục học vụ ===
+(NEWID(), 'ADMIN_CATALOG', N'Danh mục học vụ', NULL, 'fa fa-layer-group', N'Quản lý danh mục khoa, ngành, môn học, niên khóa', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_CATALOG_FACULTY', N'Khoa', 'ADMIN_CATALOG', 'fa fa-building', N'Quản lý danh mục khoa', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_CATALOG_MAJOR', N'Ngành học', 'ADMIN_CATALOG', 'fa fa-code-branch', N'Quản lý danh mục ngành học', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_CATALOG_YEAR', N'Niên khóa', 'ADMIN_CATALOG', 'fa fa-calendar-alt', N'Quản lý niên khóa', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_CATALOG_SUBJECT', N'Môn học', 'ADMIN_CATALOG', 'fa fa-book', N'Quản lý danh mục môn học', 1, GETDATE(), 'system'),
+
+-- === III. Quản lý đào tạo ===
+(NEWID(), 'ADMIN_TRAINING', N'Quản lý đào tạo', NULL, 'fa fa-graduation-cap', N'Quản lý lớp học phần, lịch học, điểm danh, điểm số', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_TRAINING_CLASS', N'Lớp học phần', 'ADMIN_TRAINING', 'fa fa-chalkboard-teacher', N'Quản lý lớp học phần', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_TRAINING_SCHEDULE', N'Lịch học / Thi', 'ADMIN_TRAINING', 'fa fa-calendar-check', N'Quản lý lịch học và thi', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_TRAINING_ATTENDANCE', N'Điểm danh', 'ADMIN_TRAINING', 'fa fa-user-check', N'Điểm danh sinh viên', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_TRAINING_GRADE', N'Điểm số', 'ADMIN_TRAINING', 'fa fa-star-half-alt', N'Nhập và theo dõi điểm', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_TRAINING_APPEAL', N'Phúc khảo', 'ADMIN_TRAINING', 'fa fa-envelope-open-text', N'Xử lý phúc khảo điểm', 1, GETDATE(), 'system'),
+
+-- === IV. Cấu hình hệ thống ===
+(NEWID(), 'ADMIN_SYSTEM', N'Cấu hình hệ thống', NULL, 'fa fa-cogs', N'Cấu hình và thông báo hệ thống', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_SYSTEM_CONFIG', N'Cấu hình chung', 'ADMIN_SYSTEM', 'fa fa-sliders-h', N'Chỉnh sửa cấu hình hệ thống', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_SYSTEM_NOTIFICATION', N'Thông báo / Hàng đợi', 'ADMIN_SYSTEM', 'fa fa-bell', N'Quản lý thông báo và hàng đợi', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_SYSTEM_JOB', N'Jobs gửi email', 'ADMIN_SYSTEM', 'fa fa-tasks', N'Quản lý job gửi mail', 1, GETDATE(), 'system'),
+
+-- === V. Báo cáo & nhật ký ===
+(NEWID(), 'ADMIN_REPORT', N'Báo cáo & nhật ký', NULL, 'fa fa-chart-line', N'Báo cáo học tập và log hệ thống', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_REPORT_GPA', N'Báo cáo điểm & GPA', 'ADMIN_REPORT', 'fa fa-chart-pie', N'Báo cáo kết quả học tập', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_REPORT_ATTENDANCE', N'Báo cáo chuyên cần', 'ADMIN_REPORT', 'fa fa-user-clock', N'Báo cáo tình hình điểm danh', 1, GETDATE(), 'system'),
+(NEWID(), 'ADMIN_REPORT_AUDIT', N'Nhật ký hệ thống', 'ADMIN_REPORT', 'fa fa-history', N'Xem log hệ thống', 1, GETDATE(), 'system');
 GO
 
-CREATE TABLE dbo.role_permissions (
-    role_id        VARCHAR(50) NOT NULL,
-    permission_id  VARCHAR(50) NOT NULL,
+-- ===========================================
+-- 🔗 GÁN TOÀN BỘ QUYỀN CHO ADMIN
+-- ===========================================
+DECLARE @AdminRoleId VARCHAR(50);
+SELECT @AdminRoleId = role_id FROM dbo.Roles WHERE role_name = 'Admin';
 
-    -- Audit
-    created_at     DATETIME NOT NULL DEFAULT(GETDATE()),
-    created_by     VARCHAR(50) NULL,
-    deleted_at     DATETIME NULL,
-    deleted_by     VARCHAR(50) NULL,
-
-    PRIMARY KEY (role_id, permission_id),
-    CONSTRAINT FK_role_permissions_roles FOREIGN KEY (role_id) REFERENCES dbo.roles(role_id),
-    CONSTRAINT FK_role_permissions_permissions FOREIGN KEY (permission_id) REFERENCES dbo.permissions(permission_id)
-);
+INSERT INTO dbo.RolePermissions (RolePermissionId, RoleId, PermissionId, CreatedBy)
+SELECT NEWID(), @AdminRoleId, PermissionId, 'system'
+FROM dbo.Permissions;
 GO
 
--- Seed quyền cơ bản cho vai trò Admin
-INSERT INTO dbo.role_permissions (role_id, permission_id, created_by)
-SELECT 'role-001', p.permission_id, 'system' FROM dbo.permissions p;
+-- ===========================================
+-- ✅ KIỂM TRA KẾT QUẢ
+-- ===========================================
+SELECT r.role_name, p.PermissionName, p.PermissionCode, p.ParentCode
+FROM dbo.RolePermissions rp
+JOIN dbo.Roles r ON rp.RoleId = r.role_id
+JOIN dbo.Permissions p ON rp.PermissionId = p.PermissionId
+ORDER BY p.ParentCode, p.PermissionName;
 GO
+
+ALTER TABLE dbo.Permissions ADD SortOrder INT NULL;
+
+-- Cập nhật thử thứ tự
+UPDATE dbo.Permissions
+SET SortOrder = CASE 
+    WHEN PermissionCode LIKE 'ADMIN_REPORT%' THEN 1
+    WHEN PermissionCode LIKE 'ADMIN_SYSTEM%' THEN 2
+    WHEN PermissionCode LIKE 'ADMIN_CATALOG%' THEN 3
+    WHEN PermissionCode LIKE 'ADMIN_TRAINING%' THEN 4
+    WHEN PermissionCode LIKE 'ADMIN_USER%' THEN 5
+    ELSE 99
+END;

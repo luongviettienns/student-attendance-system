@@ -1,0 +1,137 @@
+<div class="account-page">
+
+  <h2 class="page-title">Quản lý tài khoản người dùng</h2>
+
+  <!-- ========== BỘ LỌC ========== -->
+  <div class="filter-bar">
+    <input 
+      type="text" 
+      placeholder="Tìm kiếm theo tên hoặc tài khoản..." 
+      ng-model="searchText">
+
+    <select ng-model="filterRoleId">
+      <option value="">Tất cả vai trò</option>
+      <option ng-repeat="r in roles" value="{{r.roleId}}">
+        {{r.roleName}}
+      </option>
+    </select>
+
+    <select ng-model="filterStatus">
+      <option value="">Tất cả trạng thái</option>
+      <option value="true">Hoạt động</option>
+      <option value="false">Vô hiệu</option>
+    </select>
+
+    <button class="btn btn-primary" ng-click="searchUsers()">Tìm kiếm</button>
+    <button class="btn btn-add" ng-click="openAddUser()">+ Thêm người dùng</button>
+  </div>
+
+  <!-- ========== BẢNG DANH SÁCH ========== -->
+  <table class="account-table" ng-if="!loading && users.length > 0">
+    <thead>
+      <tr>
+        <th>Avatar</th>
+        <th>Tài khoản</th>
+        <th>Họ tên</th>
+        <th>Email</th>
+        <th>Vai trò</th>
+        <th>Trạng thái</th>
+        <th>Thao tác</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr ng-repeat="u in users">
+        <td><img ng-src="{{u.avatarUrl || 'assets/img/default-avatar.png'}}" class="avatar"></td>
+        <td>{{u.username}}</td>
+        <td>{{u.fullName}}</td>
+        <td>{{u.email}}</td>
+        <td>{{u.roleName}}</td>
+        <td>
+          <span class="status" ng-class="{'active': u.isActive, 'inactive': !u.isActive}">
+            {{u.isActive ? "Hoạt động" : "Vô hiệu"}}
+          </span>
+        </td>
+        <td>
+          <button class="btn-action edit" ng-click="editUser(u)">Sửa</button>
+          <button class="btn-action delete" ng-click="deleteUser(u)">Xoá</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Loading / Empty -->
+  <div class="loading" ng-if="loading">Đang tải dữ liệu...</div>
+  <div class="empty" ng-if="!loading && users.length === 0">Không có người dùng nào.</div>
+
+  <!-- ========== PHÂN TRANG ========== -->
+  <div class="pagination" ng-if="pagination.totalPages > 1">
+    <button ng-disabled="pagination.page === 1" ng-click="changePage(pagination.page - 1)">«</button>
+    <span>Trang {{pagination.page}} / {{pagination.totalPages}}</span>
+    <button ng-disabled="pagination.page === pagination.totalPages" ng-click="changePage(pagination.page + 1)">»</button>
+  </div>
+
+  <!-- ========== MODAL POPUP (THÊM / SỬA) ========== -->
+  <div class="modal-overlay" ng-show="showModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>{{isEdit ? "Cập nhật người dùng" : "Thêm người dùng"}}</h3>
+        <button class="close-btn" ng-click="closeModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+        <form novalidate>
+          <div class="form-group" ng-if="!isEdit">
+            <label>Tài khoản</label>
+            <input type="text" ng-model="formData.username" placeholder="Nhập tên tài khoản">
+          </div>
+
+          <div class="form-group" ng-if="!isEdit">
+            <label>Mật khẩu</label>
+            <input type="password" ng-model="formData.password" placeholder="Nhập mật khẩu">
+          </div>
+
+          <div class="form-group">
+            <label>Họ tên</label>
+            <input type="text" ng-model="formData.fullName" placeholder="Nhập họ tên">
+          </div>
+
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" ng-model="formData.email" placeholder="Nhập email">
+          </div>
+
+          <div class="form-group">
+            <label>Điện thoại</label>
+            <input type="text" ng-model="formData.phone" placeholder="Nhập số điện thoại">
+          </div>
+
+          <div class="form-group">
+            <label>Vai trò</label>
+            <select ng-model="formData.roleId">
+              <option value="">-- Chọn vai trò --</option>
+              <option ng-repeat="r in roles" value="{{r.roleId}}">
+                {{r.roleName}}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Trạng thái</label>
+            <select ng-model="formData.isActive">
+              <option value="true">Hoạt động</option>
+              <option value="false">Vô hiệu</option>
+            </select>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" ng-click="closeModal()">Hủy</button>
+        <button class="btn btn-primary" ng-click="saveUser()">
+          {{isEdit ? "Lưu thay đổi" : "Thêm mới"}}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

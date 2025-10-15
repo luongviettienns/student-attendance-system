@@ -1,50 +1,57 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EducationManagement.Common.Models
 {
-    [Table("permissions")]
+    [Table("Permissions")]
     public class Permission
     {
         [Key]
-        [Column("permission_id")]
+        [Column("PermissionId")]
         public string PermissionId { get; set; } = Guid.NewGuid().ToString();
 
-        [Column("permission_code")]
+        [Column("PermissionCode")]
         [Required, MaxLength(100)]
         public string PermissionCode { get; set; }
 
-        [Column("permission_name")]
+        [Column("PermissionName")]
         [Required, MaxLength(200)]
         public string PermissionName { get; set; }
 
-        [Column("description")]
+        // 🔹 Dùng cho menu con (dropdown trong FE)
+        [Column("ParentCode")]
+        [MaxLength(100)]
+        public string? ParentCode { get; set; }
+
+        // 🔹 Icon hiển thị (FontAwesome)
+        [Column("Icon")]
+        [MaxLength(100)]
+        public string? Icon { get; set; }
+
+        [Column("Description")]
         public string? Description { get; set; }
 
-        [Column("is_active")]
+        // ✅ Thứ tự hiển thị menu
+        [Column("SortOrder")]
+        public int? SortOrder { get; set; }
+
+        [Column("IsActive")]
         public bool IsActive { get; set; } = true;
 
-        [Column("created_at")]
+        [Column("CreatedAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        [Column("created_by")]
+        [Column("CreatedBy")]
         public string? CreatedBy { get; set; }
 
-        [Column("updated_at")]
+        [Column("UpdatedAt")]
         public DateTime? UpdatedAt { get; set; }
 
-        [Column("updated_by")]
+        [Column("UpdatedBy")]
         public string? UpdatedBy { get; set; }
 
-        [Column("deleted_at")]
+        [Column("DeletedAt")]
         public DateTime? DeletedAt { get; set; }
-
-        [Column("deleted_by")]
-        public string? DeletedBy { get; set; }
     }
 }

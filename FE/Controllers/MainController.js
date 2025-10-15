@@ -8,6 +8,7 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
   $scope.isMobile = false;
   $scope.activeMenu = null;
 
+  // Toggle sidebar
   $scope.toggleSidebar = function() {
     if ($scope.isMobile) {
       $scope.sidebarOpen = !$scope.sidebarOpen;
@@ -17,15 +18,17 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
     }
   };
 
-  $scope.toggleSubmenu = function(menuName) {
+  // Toggle submenu
+  $scope.toggleSubmenu = function(menuLabel) {
     if (!$scope.sidebarOpen && !$scope.isMobile) {
       $scope.sidebarOpen = true;
-      $scope.activeMenu = menuName;
+      $scope.activeMenu = menuLabel;
       return;
     }
-    $scope.activeMenu = ($scope.activeMenu === menuName) ? null : menuName;
+    $scope.activeMenu = ($scope.activeMenu === menuLabel) ? null : menuLabel;
   };
 
+  // Detect responsive
   function checkScreen() {
     const wasMobile = $scope.isMobile;
     $scope.isMobile = $window.innerWidth < 992;
@@ -36,7 +39,6 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
     } else if (!$scope.isMobile && wasMobile) {
       $scope.sidebarOpen = true;
     }
-
     $scope.$applyAsync();
   }
 
@@ -64,24 +66,34 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
 
 
   /* ============================================================
-     🔹 SIDEBAR MENU - DỮ LIỆU TỪ BE
+     🔹 SIDEBAR MENU (LOAD TỪ BACKEND)
   ============================================================ */
   $scope.roleMenus = [];
   $scope.menuLoading = true;
 
   AuthService.getMenus()
     .then(function(menus) {
-      console.log("✅ Menu data from BE:", menus); // Debug dữ liệu gốc
+      console.log("✅ Raw menus from BE:", menus);
 
-      // Map dữ liệu trả về từ BE thành cấu trúc hiển thị FE
+      // === Map dữ liệu menu ===
       $scope.roleMenus = menus.map(function(m) {
-        return {
-          icon: "fa-circle", // icon mặc định, có thể map theo permissionCode sau
-          label: m.permissionName || "Chức năng",
-          state: m.permissionCode
-            ? m.permissionCode.toLowerCase().replace(/_/g, ".")
-            : "home"
+        const mapped = {
+          label: m.permissionName || m.label || "Chức năng",
+          icon: m.icon || "fa fa-circle",
+          state: m.state || (m.permissionCode ? m.permissionCode.toLowerCase().replace(/_/g, ".") : null)
         };
+
+        // Nếu có submenu
+        if (m.sub && m.sub.length > 0) {
+          mapped.sub = m.sub.map(function(s) {
+            return {
+              label: s.permissionName || s.label || "Chức năng con",
+              icon: s.icon || "fa fa-angle-right",
+              state: s.state || (s.permissionCode ? s.permissionCode.toLowerCase().replace(/_/g, ".") : null)
+            };
+          });
+        }
+        return mapped;
       });
 
       console.log("✅ Mapped menus for sidebar:", $scope.roleMenus);
@@ -116,13 +128,18 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
       $scope.avatarUrl = data.avatarUrl + "?t=" + new Date().getTime();
     }
 
-    var updatedUser = AuthService.getUser() || {};
+    // cập nhật lại currentUser trong storage
+    const storage = $window.localStorage.getItem("currentUser")
+      ? $window.localStorage
+      : $window.sessionStorage;
+
+    let updatedUser = AuthService.getUser() || {};
     updatedUser.fullName = $scope.fullName;
     updatedUser.role     = $scope.role;
     if (data.avatarUrl) {
       updatedUser.avatarUrl = data.avatarUrl.split("?")[0];
     }
-    AuthService.setUser(updatedUser);
+    storage.setItem("currentUser", JSON.stringify(updatedUser));
 
     $scope.$applyAsync();
   });
