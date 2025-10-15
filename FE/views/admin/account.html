@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="css/account.css" />
+
 <div class="account-page" ng-controller="AccountController">
 
   <!-- ================== TIÊU ĐỀ TRANG ================== -->
@@ -76,7 +78,14 @@
       </thead>
       <tbody>
         <tr ng-repeat="u in users" ng-class="{'inactive-row': !u.isActive}">
-          <td><img ng-src="{{u.avatarUrl || 'assets/img/default-avatar.png'}}" class="avatar"></td>
+          <!-- ✅ ĐÃ FIX: dùng ng-src + fallback BE -->
+          <td>
+            <img 
+              ng-src="{{u.avatarUrl}}" 
+              onerror="this.src='https://localhost:7033/avatars/default.png';" 
+              alt="Avatar" 
+              class="avatar">
+          </td>
           <td>{{u.username}}</td>
           <td>{{u.fullName}}</td>
           <td>{{u.email}}</td>
@@ -117,7 +126,8 @@
   <div class="modal-overlay" ng-show="showModal">
     <div class="modal">
       <div class="modal-header">
-        <h3><i class="fa" ng-class="isEdit ? 'fa-edit' : 'fa-user-plus'"></i>
+        <h3>
+          <i class="fa" ng-class="isEdit ? 'fa-edit' : 'fa-user-plus'"></i>
           {{isEdit ? "Cập nhật người dùng" : "Thêm người dùng"}}
         </h3>
         <button class="close-btn" ng-click="closeModal()">×</button>

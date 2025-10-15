@@ -24,9 +24,6 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         #region 🔹 GET: Lấy thông tin user hiện tại (từ token)
-        /// <summary>
-        /// Lấy thông tin người dùng hiện tại (theo token đăng nhập)
-        /// </summary>
         [HttpGet("me")]
         public async Task<IActionResult> GetCurrentUser()
         {
@@ -48,9 +45,6 @@ namespace EducationManagement.API.Admin.Controllers
         #endregion
 
         #region 🔹 PUT: Cập nhật thông tin + avatar (FormData)
-        /// <summary>
-        /// Cập nhật thông tin cá nhân và avatar (FormData)
-        /// </summary>
         [HttpPut("me")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UpdateProfile([FromForm] UserUpdateRequest request)
@@ -70,43 +64,43 @@ namespace EducationManagement.API.Admin.Controllers
             user.UpdatedAt = DateTime.UtcNow;
             user.UpdatedBy = userId;
 
-            // ✅ Thư mục lưu ảnh tùy chỉnh
-            var customFolder = @"C:\Users\TK\Desktop\student-attendance-system\EducationManagement\Avatar_User";
-            if (!Directory.Exists(customFolder))
-                Directory.CreateDirectory(customFolder);
+            // ✅ Thư mục lưu ảnh (giống Program.cs)
+            var avatarFolder = @"C:\Users\TK\Desktop\student-attendance-system\EducationManagement\Avatar_User";
+            if (!Directory.Exists(avatarFolder))
+                Directory.CreateDirectory(avatarFolder);
 
-            // ✅ Xử lý upload avatar
+            // ✅ Xử lý upload avatar mới
             if (request.Avatar != null && request.Avatar.Length > 0)
             {
                 var extension = Path.GetExtension(request.Avatar.FileName).ToLower();
-                var fileName = $"{user.UserId}{extension}"; // tên file = userId + đuôi
-                var filePath = Path.Combine(customFolder, fileName);
+                var fileName = $"{user.UserId}{extension}";
+                var filePath = Path.Combine(avatarFolder, fileName);
 
-                // Xóa file cũ nếu tồn tại (để ghi đè)
+                // Xóa file cũ nếu tồn tại
                 if (System.IO.File.Exists(filePath))
                 {
                     try { System.IO.File.Delete(filePath); } catch { }
                 }
 
-                // Ghi file mới
+                // Lưu file mới
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await request.Avatar.CopyToAsync(stream);
                 }
 
-                // Lưu đường dẫn public cho FE
-                user.AvatarUrl = $"/uploads/avatars/{fileName}";
+                // ✅ Lưu đường dẫn public (đúng với RequestPath = "/avatars")
+                user.AvatarUrl = $"/avatars/{fileName}";
             }
 
             await _context.SaveChangesAsync();
 
+            // ✅ Tạo URL đầy đủ để FE hiển thị đúng port Gateway
+            var fullAvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), user.AvatarUrl);
+
             return Ok(new
             {
                 message = "Cập nhật thông tin thành công",
-                data = new
-                {
-                    avatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), user.AvatarUrl)
-                }
+                data = new { avatarUrl = fullAvatarUrl }
             });
         }
         #endregion
@@ -124,6 +118,19 @@ namespace EducationManagement.API.Admin.Controllers
         #region 📌 Helper: Map entity → DTO
         private UserResponseDto MapToDto(User user)
         {
+            // ✅ Chuẩn hóa đường dẫn cũ (nếu còn /uploads/avatars)
+            string relativePath = user.AvatarUrl;
+
+            if (!string.IsNullOrEmpty(relativePath))
+            {
+                if (relativePath.Contains("/uploads/avatars"))
+                    relativePath = relativePath.Replace("/uploads/avatars", "/avatars");
+            }
+            else
+            {
+                relativePath = "/avatars/default.png";
+            }
+
             return new UserResponseDto
             {
                 UserId = user.UserId,
@@ -133,7 +140,7 @@ namespace EducationManagement.API.Admin.Controllers
                 Phone = user.Phone,
                 RoleId = user.RoleId,
                 RoleName = user.Role?.RoleName,
-                AvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), user.AvatarUrl)
+                AvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), relativePath)
             };
         }
         #endregion

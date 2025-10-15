@@ -854,3 +854,5 @@ SET SortOrder = CASE
     WHEN PermissionCode LIKE 'ADMIN_USER%' THEN 5
     ELSE 99
 END;
+
+Select * from users;

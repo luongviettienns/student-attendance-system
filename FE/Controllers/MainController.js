@@ -26,6 +26,12 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
     $scope.activeMenu = ($scope.activeMenu === menuLabel) ? null : menuLabel;
   };
 
+  $scope.toggleSidebarMobile = function() {
+    if ($scope.isMobile) {
+      $scope.sidebarOpen = false;
+    }
+  };
+
   function checkScreen() {
     const wasMobile = $scope.isMobile;
     $scope.isMobile = $window.innerWidth < 992;
@@ -43,67 +49,60 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
   angular.element($window).on("resize", resizeHandler);
   checkScreen();
 
-
   /* ============================================================
      🔹 USER INFORMATION & ROLE CHECK
   ============================================================ */
   const user = AuthService.getUser();
 
   if (!user) {
-    // 🚫 Chưa đăng nhập → về login
     $location.path("/login");
     return;
   }
 
   $scope.fullName  = user.fullName || "Người dùng";
   $scope.role      = user.role || "Unknown";
-  $scope.avatarUrl = user.avatarUrl ? (user.avatarUrl + "?v=" + Date.now()) : null;
+
+  // ✅ Avatar fallback: luôn có ảnh mặc định BE (/avatars/default.png)
+  if (user.avatarUrl && user.avatarUrl.trim() !== "") {
+    $scope.avatarUrl = user.avatarUrl + "?v=" + Date.now();
+  } else {
+    $scope.avatarUrl = "https://localhost:7033/avatars/default.png";
+  }
 
   $scope.notificationsCount = 0;
 
-
   /* ============================================================
-     🔹 HÀM CHUYỂN ĐẾN TRANG HỒ SƠ (PROFILE)
+     🔹 CHUYỂN ĐẾN TRANG HỒ SƠ
   ============================================================ */
   $scope.goToProfile = function() {
     $state.go("main.profile");
     if ($scope.isMobile) $scope.sidebarOpen = false;
   };
 
-
   /* ============================================================
-     🔹 SIDEBAR MENU (LOAD TỪ BACKEND)
+     🔹 LOAD MENU TỪ BACKEND
   ============================================================ */
   $scope.roleMenus = [];
   $scope.menuLoading = true;
 
   AuthService.getMenus()
     .then(function(menus) {
-      console.log("✅ Raw menus from BE:", menus);
-
-      // 🧩 Hàm chuẩn hóa state từ BE sang FE
       function normalizeState(state) {
         if (!state) return null;
-
-        // Nếu state đã bắt đầu bằng "main." thì giữ nguyên
         if (state.startsWith("main.")) return state;
-
-        // Nếu BE trả "admin.xxx" → chuyển thành "main.admin.xxx"
         if (state.startsWith("admin.")) return "main." + state;
-
-        // Nếu BE trả "dashboard.xxx" → chuyển thành "main.xxx"
         if (state.startsWith("dashboard.")) return "main." + state.replace("dashboard.", "");
-
-        // Ngược lại giữ nguyên
-        return state;
+        return "main." + state;
       }
 
-      // Map dữ liệu menu từ BE sang FE
       $scope.roleMenus = menus.map(function(m) {
         const mapped = {
           label: m.permissionName || m.label || "Chức năng",
           icon: m.icon || "fa fa-circle",
-          state: normalizeState(m.state || (m.permissionCode ? m.permissionCode.toLowerCase().replace(/_/g, ".") : null))
+          state: normalizeState(
+            m.state || 
+            (m.permissionCode ? m.permissionCode.toLowerCase().replace(/_/g, ".") : null)
+          )
         };
 
         if (m.sub && m.sub.length > 0) {
@@ -111,14 +110,16 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
             return {
               label: s.permissionName || s.label || "Chức năng con",
               icon: s.icon || "fa fa-angle-right",
-              state: normalizeState(s.state || (s.permissionCode ? s.permissionCode.toLowerCase().replace(/_/g, ".") : null))
+              state: normalizeState(
+                s.state || 
+                (s.permissionCode ? s.permissionCode.toLowerCase().replace(/_/g, ".") : null)
+              )
             };
           });
         }
+
         return mapped;
       });
-
-      console.log("✅ Mapped menus for sidebar:", $scope.roleMenus);
     })
     .catch(function(err) {
       console.error("❌ Load menu failed:", err);
@@ -127,7 +128,6 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
       $scope.menuLoading = false;
       $scope.$applyAsync();
     });
-
 
   /* ============================================================
      🔹 LOGOUT
@@ -140,13 +140,13 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
       });
   };
 
-
   /* ============================================================
      🔹 PROFILE UPDATED EVENT
   ============================================================ */
   $rootScope.$on("profileUpdated", function(event, data) {
     if (data.fullName) $scope.fullName = data.fullName;
     if (data.avatarUrl) {
+      // ✅ Avatar mới từ BE: luôn dạng /avatars/... hoặc full URL
       $scope.avatarUrl = data.avatarUrl + "?t=" + new Date().getTime();
     }
 
@@ -157,14 +157,17 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
     let updatedUser = AuthService.getUser() || {};
     updatedUser.fullName = $scope.fullName;
     updatedUser.role     = $scope.role;
+
     if (data.avatarUrl) {
       updatedUser.avatarUrl = data.avatarUrl.split("?")[0];
+    } else if (!updatedUser.avatarUrl) {
+      updatedUser.avatarUrl = "https://localhost:7033/avatars/default.png";
     }
+
     storage.setItem("currentUser", JSON.stringify(updatedUser));
 
     $scope.$applyAsync();
   });
-
 
   /* ============================================================
      🔹 CLEANUP
@@ -172,5 +175,4 @@ function($scope, $window, $state, $rootScope, $location, AuthService) {
   $scope.$on("$destroy", function() {
     angular.element($window).off("resize", resizeHandler);
   });
-
 });

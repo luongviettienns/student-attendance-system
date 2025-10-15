@@ -25,9 +25,6 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         #region 🔹 GET: Danh sách + Chi tiết
-        /// <summary>
-        /// Lấy danh sách người dùng có phân trang, lọc, tìm kiếm
-        /// </summary>
         [HttpGet]
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
@@ -91,9 +88,6 @@ namespace EducationManagement.API.Admin.Controllers
             });
         }
 
-        /// <summary>
-        /// Lấy thông tin chi tiết của 1 người dùng
-        /// </summary>
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
@@ -127,9 +121,6 @@ namespace EducationManagement.API.Admin.Controllers
         #endregion
 
         #region 🔹 POST/PUT/DELETE: CRUD
-        /// <summary>
-        /// Tạo mới người dùng
-        /// </summary>
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] UserCreateDto request)
         {
@@ -155,8 +146,8 @@ namespace EducationManagement.API.Admin.Controllers
                 Phone = request.Phone,
                 RoleId = request.RoleId,
                 IsActive = request.IsActive,
-                // ✅ Ảnh mặc định (default.png)
-                AvatarUrl = "/uploads/avatars/default.png",
+                // ✅ Ảnh mặc định theo cấu hình mới
+                AvatarUrl = "/avatars/default.png",
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUserId
             };
@@ -167,9 +158,6 @@ namespace EducationManagement.API.Admin.Controllers
             return Ok(new { message = "Tạo người dùng thành công", userId = user.UserId });
         }
 
-        /// <summary>
-        /// Cập nhật thông tin người dùng
-        /// </summary>
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] UserUpdateAdminDto request)
         {
@@ -199,9 +187,6 @@ namespace EducationManagement.API.Admin.Controllers
             return Ok(new { message = "Cập nhật người dùng thành công" });
         }
 
-        /// <summary>
-        /// Xoá mềm người dùng (không xoá khỏi DB)
-        /// </summary>
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
@@ -224,9 +209,6 @@ namespace EducationManagement.API.Admin.Controllers
         #endregion
 
         #region 🔹 PUT: Toggle trạng thái hoạt động
-        /// <summary>
-        /// Chuyển trạng thái hoạt động (Active/Inactive) cho người dùng
-        /// </summary>
         [HttpPut("{id}/toggle-status")]
         public async Task<IActionResult> ToggleStatus(string id)
         {

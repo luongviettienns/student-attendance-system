@@ -5,19 +5,19 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.FileProviders;
 using System.Text;
-
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ======================================================
-// 🧩 1. Add Controllers & Swagger
+// 🧩 1️⃣ Add Controllers & Swagger
 // ======================================================
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // ======================================================
-// 🧩 2. DbContext Configuration
+// 🧩 2️⃣ DbContext Configuration
 // ======================================================
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
@@ -26,22 +26,22 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 );
 
 // ======================================================
-// 🧩 3. Register BLL Services (Dependency Injection)
+// 🧩 3️⃣ Register BLL Services (Dependency Injection)
 // ======================================================
 builder.Services.AddScoped<IRefreshTokenStore, InMemoryRefreshTokenStore>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<JwtService>();
 
 // ======================================================
-// 🧩 4. CORS Configuration
+// 🧩 4️⃣ CORS Configuration
 // ======================================================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
-            "http://127.0.0.1:5500",   // FE chạy local
-            "http://localhost:5500"    // fallback cho trường hợp khác
+            "http://127.0.0.1:5500",
+            "http://localhost:5500"
         )
         .AllowAnyHeader()
         .AllowAnyMethod()
@@ -50,7 +50,7 @@ builder.Services.AddCors(options =>
 });
 
 // ======================================================
-// 🧩 5. JWT Authentication Configuration
+// 🧩 5️⃣ JWT Authentication Configuration
 // ======================================================
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -73,10 +73,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ======================================================
-// 🧩 6. Build & Configure Middleware Pipeline
+// 🧩 6️⃣ Build app
 // ======================================================
 var app = builder.Build();
 
+// ======================================================
+// 🧩 7️⃣ Swagger (chỉ bật khi Development)
+// ======================================================
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -84,37 +87,45 @@ if (app.Environment.IsDevelopment())
 }
 
 // ======================================================
-// 🧩 7. Serve Static Files (Ảnh lưu ngoài wwwroot)
+// 🧩 8️⃣ Serve Static Files (Ảnh avatar)
 // ======================================================
-var customAvatarPath = @"C:\Users\TK\Desktop\student-attendance-system\EducationManagement\Avatar_User";
+var avatarRootPath = Path.Combine(
+    @"C:\Users\TK\Desktop\student-attendance-system\EducationManagement",
+    "Avatar_User"
+);
 
-if (Directory.Exists(customAvatarPath))
+// 🔹 Tạo thư mục nếu chưa tồn tại
+if (!Directory.Exists(avatarRootPath))
+    Directory.CreateDirectory(avatarRootPath);
+
+// ⚙️ Đăng ký middleware phục vụ ảnh tĩnh (đặt TRƯỚC UseRouting / UseCors / Auth)
+app.UseStaticFiles(new StaticFileOptions
 {
-    app.UseStaticFiles(new StaticFileOptions
-    {
-        FileProvider = new PhysicalFileProvider(customAvatarPath),
-        RequestPath = "/uploads/avatars"
-    });
-}
+    FileProvider = new PhysicalFileProvider(avatarRootPath),
+    RequestPath = "/avatars"
+});
+
+Console.WriteLine($"🖼️ Avatar static files served from: {avatarRootPath}");
 
 // ======================================================
-// 🧩 8. Enable CORS + Authentication
+// 🧩 9️⃣ Middleware Pipeline
 // ======================================================
 
-// ⚠️ Nếu bạn cần chạy HTTPS thật có thể bật dòng dưới
-// app.UseHttpsRedirection();
+// ⚙️ HTTPS (tuỳ bạn có dùng hay không)
+app.UseHttpsRedirection();
 
+app.UseRouting();          // 👈 Thêm dòng này trước các middleware khác
 app.UseCors("AllowFrontend");
-
 app.UseAuthentication();
 app.UseAuthorization();
 
 // ======================================================
-// 🧩 9. Map Controllers
+// 🧩 🔟 Map Controllers
 // ======================================================
 app.MapControllers();
 
 // ======================================================
-// 🧩 10. Run
+// 🧩 11️⃣ Run
 // ======================================================
+Console.WriteLine("🚀 EducationManagement.API.Admin started successfully!");
 app.Run();

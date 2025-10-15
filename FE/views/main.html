@@ -1,3 +1,5 @@
+<link rel="stylesheet" href="css/main.css" />
+
 <div class="layout-container" ng-controller="MainController">
 
   <!-- ===================== SIDEBAR ===================== -->
@@ -18,7 +20,7 @@
       </div>
     </div>
 
-    <!-- ===== MENU DYNAMIC FROM BE ===== -->
+    <!-- ===== MENU DYNAMIC FROM BACKEND ===== -->
     <nav class="sidebar-menu" ng-if="roleMenus.length > 0 && !menuLoading">
       <ul class="menu-list">
 
@@ -27,7 +29,7 @@
             class="menu-item"
             ng-class="{'has-sub': menu.sub, 'open': activeMenu === menu.label}">
 
-          <!-- 🔹 Menu không có submenu -->
+          <!-- 🔹 Menu KHÔNG có submenu -->
           <a ui-sref="{{menu.state}}"
              ui-sref-active="active"
              class="menu-link"
@@ -40,9 +42,8 @@
             <i class="fa fa-chevron-right arrow" style="visibility:hidden"></i>
           </a>
 
-          <!-- 🔹 Menu có submenu -->
-          <a href=""
-             ng-if="menu.sub"
+          <!-- 🔹 Menu CÓ submenu -->
+          <a ng-if="menu.sub"
              class="menu-link"
              ng-click="toggleSubmenu(menu.label)">
             <div class="flex items-center gap-3">
@@ -58,7 +59,6 @@
               ng-if="menu.sub"
               ng-class="{'open': activeMenu === menu.label}">
             <li ng-repeat="sub in menu.sub">
-              <!-- ✅ Binding state động: dùng ui-sref -->
               <a ui-sref="{{sub.state}}" 
                  ui-sref-active="active" 
                  class="submenu-link"
@@ -69,7 +69,6 @@
             </li>
           </ul>
         </li>
-
       </ul>
     </nav>
 
@@ -81,21 +80,27 @@
     <!-- ===== SIDEBAR FOOTER ===== -->
     <div class="sidebar-footer">
 
-      <!-- ✅ Chuyển sang ng-click thay vì ui-sref -->
+      <!-- Hồ sơ người dùng -->
       <div class="user-box" ng-click="goToProfile()">
-        <img ng-src="{{ avatarUrl || 'assets/img/default-avatar.png' }}" alt="avatar">
+        <!-- ✅ Sửa đúng: dùng ng-src + fallback ảnh BE -->
+        <img 
+          ng-src="{{avatarUrl}}" 
+          onerror="this.src='https://localhost:7033/avatars/default.png';" 
+          alt="avatar" 
+          class="avatar-img">
+        
         <div class="user-info" ng-show="sidebarOpen || isMobile">
           <span class="name">{{ fullName }}</span>
           <span class="role">{{ role }}</span>
         </div>
       </div>
 
+      <!-- Đăng xuất -->
       <button class="logout-btn" ng-click="logout()">
         <i class="fa fa-sign-out-alt"></i>
         <span ng-show="sidebarOpen || isMobile">Đăng xuất</span>
       </button>
     </div>
-
   </aside>
 
   <!-- ===== OVERLAY (MOBILE) ===== -->
@@ -125,9 +130,8 @@
 
     <!-- ===== CONTENT WRAPPER ===== -->
     <main class="content-wrapper">
-      <!-- ✅ Nơi render view con -->
+      <!-- ✅ nơi router render view -->
       <div ui-view></div>
     </main>
-
   </div>
 </div>

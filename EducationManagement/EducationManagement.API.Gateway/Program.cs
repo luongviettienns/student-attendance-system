@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.FileProviders;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using System.Text;
@@ -7,12 +8,12 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // ============================================================
-// 🧩 1. Load cấu hình Ocelot
+// 🧩 1️⃣ Load cấu hình Ocelot
 // ============================================================
 builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
 
 // ============================================================
-// 🧩 2. Đăng ký Authentication + Authorization (JWT)
+// 🧩 2️⃣ JWT Authentication
 // ============================================================
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -34,17 +35,17 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             )
         };
 
-        // 🧠 Log lỗi xác thực JWT để dễ debug
+        // 🧠 Log chi tiết lỗi JWT để debug
         options.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = context =>
             {
-                Console.WriteLine($"❌ JWT Auth Failed: {context.Exception.Message}");
+                Console.WriteLine($"❌ JWT Authentication Failed: {context.Exception.Message}");
                 return Task.CompletedTask;
             },
             OnTokenValidated = context =>
             {
-                Console.WriteLine($"✅ Token hợp lệ: {context.Principal.Identity.Name}");
+                Console.WriteLine($"✅ Token Valid: {context.Principal.Identity?.Name}");
                 return Task.CompletedTask;
             }
         };
@@ -53,12 +54,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ============================================================
-// 🧩 3. Đăng ký dịch vụ Ocelot
-// ============================================================
-builder.Services.AddOcelot(builder.Configuration);
-
-// ============================================================
-// 🧩 4. Cấu hình CORS cho phép FE gọi Gateway
+// 🧩 3️⃣ Cấu hình CORS (FE gọi Gateway trực tiếp)
 // ============================================================
 builder.Services.AddCors(options =>
 {
@@ -70,37 +66,57 @@ builder.Services.AddCors(options =>
                 "http://localhost:5500"
             )
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
 // ============================================================
-// 🧩 5. Build ứng dụng
+// 🧩 4️⃣ Đăng ký Ocelot
+// ============================================================
+builder.Services.AddOcelot(builder.Configuration);
+
+// ============================================================
+// 🧩 5️⃣ Build app
 // ============================================================
 var app = builder.Build();
 
 // ============================================================
-// 🚀 6. Middleware pipeline
+// 🚀 6️⃣ Middleware Pipeline
 // ============================================================
 
-// ✅ Bật CORS
-app.UseCors("AllowFrontend");
-
-// ✅ Bật xác thực & phân quyền
-app.UseAuthentication();
-app.UseAuthorization();
-
-// ✅ Ghi log các request đi qua Gateway
+// 🔹 Ghi log tất cả request qua gateway
 app.Use(async (context, next) =>
 {
     Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {context.Request.Method} {context.Request.Path}");
     await next();
 });
 
-// ✅ Ocelot middleware (luôn cuối cùng)
+// 🔹 Cho phép FE truy cập
+app.UseCors("AllowFrontend");
+
+// 🔹 JWT + Authorization
+app.UseAuthentication();
+app.UseAuthorization();
+
+// 🔹 Static Files – phục vụ ảnh avatar trực tiếp
+var avatarFolder = @"C:\Users\TK\Desktop\student-attendance-system\EducationManagement\Avatar_User";
+if (!Directory.Exists(avatarFolder))
+    Directory.CreateDirectory(avatarFolder);
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(avatarFolder),
+    RequestPath = "/avatars"
+});
+
+Console.WriteLine($"🖼️  Static avatars served from: {avatarFolder}");
+
+// 🔹 Cuối cùng: Ocelot (luôn cuối pipeline)
 await app.UseOcelot();
 
 // ============================================================
-// ✅ 7. Run
+// ✅ 7️⃣ Run
 // ============================================================
+Console.WriteLine("🚀 Gateway started at https://localhost:7033");
 app.Run();

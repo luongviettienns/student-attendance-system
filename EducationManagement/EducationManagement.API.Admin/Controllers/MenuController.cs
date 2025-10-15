@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using EducationManagement.DAL;
+using System.Text;
 
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize] // ✅ Chỉ cho phép user đã đăng nhập
+    [Authorize]
     [Route("api/admin/menu")]
     public class MenuController : ControllerBase
     {
@@ -100,12 +101,47 @@ namespace EducationManagement.API.Admin.Controllers
             }
         }
 
-        // 🔧 Hàm helper: format state cho FE
+        // ============================================================
+        // 🔧 Hàm helper: tự động format PermissionCode -> FE State
+        // ============================================================
         private static string FormatState(string code)
         {
-            return string.IsNullOrEmpty(code)
-                ? null
-                : code.ToLower().Replace("_", ".");
+            if (string.IsNullOrEmpty(code))
+                return null;
+
+            // 1️⃣ Xác định prefix FE dựa vào vai trò
+            // (ADMIN_, TEACHER_, STUDENT_, ADVISOR_)
+            string prefix = code.StartsWith("TEACHER_", StringComparison.OrdinalIgnoreCase) ? "main.teacher." :
+                            code.StartsWith("STUDENT_", StringComparison.OrdinalIgnoreCase) ? "main.student." :
+                            code.StartsWith("ADVISOR_", StringComparison.OrdinalIgnoreCase) ? "main.advisor." :
+                            "main.admin."; // mặc định admin
+
+            // 2️⃣ Loại bỏ tiền tố role_ khỏi code
+            string raw = code;
+            foreach (var rolePrefix in new[] { "ADMIN_", "TEACHER_", "STUDENT_", "ADVISOR_" })
+            {
+                if (raw.StartsWith(rolePrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    raw = raw.Substring(rolePrefix.Length);
+                    break;
+                }
+            }
+
+            // 3️⃣ Chuyển sang chữ thường, thay "_" bằng "."
+            string formatted = raw.ToLower().Replace("_", ".");
+
+            // 4️⃣ Thêm prefix
+            string fullState = prefix + formatted;
+
+            // 5️⃣ Gộp 2 phần cuối (ví dụ: user.account → userAccount)
+            var parts = fullState.Split('.');
+            if (parts.Length > 3)
+            {
+                var lastTwo = parts[^2] + char.ToUpper(parts[^1][0]) + parts[^1].Substring(1);
+                fullState = string.Join(".", parts.Take(parts.Length - 2)) + "." + lastTwo;
+            }
+
+            return fullState;
         }
     }
 }

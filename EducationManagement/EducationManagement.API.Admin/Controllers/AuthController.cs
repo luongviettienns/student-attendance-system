@@ -4,6 +4,7 @@ using EducationManagement.BLL.Services;
 using EducationManagement.Common.DTOs;
 using EducationManagement.Common.DTOs.User;
 using EducationManagement.Common.Models;
+using EducationManagement.Common.Helpers;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -21,43 +22,77 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         #region 🔹 LOGIN (Không cần xác thực)
-        /// <summary>
-        /// Đăng nhập hệ thống - trả về AccessToken + RefreshToken + thông tin người dùng
-        /// </summary>
         [HttpPost("login")]
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            if (request == null || string.IsNullOrWhiteSpace(request.Username) || string.IsNullOrWhiteSpace(request.Password))
+            // 🔹 Validate input
+            if (request == null ||
+                string.IsNullOrWhiteSpace(request.Username) ||
+                string.IsNullOrWhiteSpace(request.Password))
+            {
                 return BadRequest(new { message = "Vui lòng nhập đầy đủ tài khoản và mật khẩu" });
+            }
 
+            // 🔹 Kiểm tra tài khoản
             var user = await _authService.ValidateUserAsync(request.Username, request.Password);
             if (user == null)
                 return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu" });
 
+            // 🔹 Sinh token
             var accessToken = _jwtService.GenerateAccessToken(user);
             var refreshToken = _jwtService.GenerateRefreshToken();
             await _authService.SaveRefreshTokenAsync(user.UserId, refreshToken);
 
-            return Ok(new LoginResponse
+            // 🔹 Thư mục chứa avatar
+            var avatarFolder = @"C:\Users\TK\Desktop\student-attendance-system\EducationManagement\Avatar_User";
+
+            // 🔹 Lấy đường dẫn vật lý đến ảnh của user
+            string avatarPath = user.AvatarUrl;
+            string fileName = string.IsNullOrEmpty(avatarPath)
+                ? string.Empty
+                : Path.GetFileName(avatarPath);
+
+            string physicalPath = string.IsNullOrEmpty(fileName)
+                ? string.Empty
+                : Path.Combine(avatarFolder, fileName);
+
+            // 🔹 Nếu không có avatar hoặc file không tồn tại → fallback về default.png
+            if (string.IsNullOrEmpty(fileName) || !System.IO.File.Exists(physicalPath))
+            {
+                avatarPath = "/avatars/default.png";
+            }
+            else
+            {
+                // Đảm bảo đường dẫn public khớp /avatars/
+                avatarPath = $"/avatars/{fileName}";
+            }
+
+            // 🔹 Tạo URL đầy đủ cho FE
+            string fullAvatarUrl = FileHelper.BuildFullAvatarUrl(
+                Request.Scheme,
+                Request.Host.ToString(),
+                avatarPath
+            );
+
+            // 🔹 Chuẩn bị response
+            var response = new LoginResponse
             {
                 Token = accessToken,
                 RefreshToken = refreshToken.Token,
-                RefreshTokenExpiry = refreshToken.ExpiresAt,
+                RefreshTokenExpiry = refreshToken.ExpiresAt.ToUniversalTime(),
                 UserId = user.UserId,
                 Username = user.Username,
                 Role = user.Role?.RoleName ?? "User",
                 FullName = user.FullName ?? string.Empty,
-                AvatarUrl = user.AvatarUrl ?? "/uploads/avatars/default.png"
+                AvatarUrl = fullAvatarUrl
+            };
 
-            });
+            return Ok(new { data = response });
         }
         #endregion
 
         #region 🔹 REFRESH TOKEN (Không cần xác thực)
-        /// <summary>
-        /// Cấp mới AccessToken khi hết hạn, dùng RefreshToken cũ
-        /// </summary>
         [HttpPost("refresh")]
         [AllowAnonymous]
         public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
@@ -89,9 +124,6 @@ namespace EducationManagement.API.Admin.Controllers
         #endregion
 
         #region 🔹 LOGOUT (Yêu cầu xác thực)
-        /// <summary>
-        /// Đăng xuất - vô hiệu hóa RefreshToken hiện tại
-        /// </summary>
         [HttpPost("logout")]
         [Authorize]
         public async Task<IActionResult> Logout([FromBody] RefreshRequest request)
