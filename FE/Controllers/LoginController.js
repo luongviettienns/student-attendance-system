@@ -1,16 +1,21 @@
 angular.module("eduApp").controller("LoginController", 
-function($scope, $location, AuthService, ToastService) {
+function($scope, $state, $rootScope, AuthService, ToastService) {
+
   $scope.errorMessage = "";
   $scope.rememberMe = false;
   $scope.form = { username: "", password: "" };
 
-  // 🔹 Nếu vừa logout thì show thông báo
+  /* ============================================================
+     🔹 Thông báo sau khi logout
+  ============================================================ */
   if (sessionStorage.getItem("justLoggedOut") === "true") {
     ToastService.show("Bạn đã đăng xuất thành công!", "info");
     sessionStorage.removeItem("justLoggedOut");
   }
 
-  // 🔹 Hàm login
+  /* ============================================================
+     🔹 Hàm LOGIN
+  ============================================================ */
   $scope.login = function() {
     if (!$scope.form.username || !$scope.form.password) {
       $scope.errorMessage = "Vui lòng nhập đầy đủ tài khoản và mật khẩu";
@@ -20,31 +25,57 @@ function($scope, $location, AuthService, ToastService) {
     AuthService.login($scope.form.username, $scope.form.password, $scope.rememberMe)
       .then(function(data) {
         if (data && data.token) {
-          var role = data.role || "User";
-          var fullName = data.fullName || "";
+          const role = (data.role || "").toLowerCase();
+          const fullName = data.fullName || "";
 
-          // ✅ Hiện toast chào mừng
           ToastService.show(
-            `Chào mừng ${role} ${fullName} quay lại hệ thống 🎉`,
+            `Chào mừng ${data.role || "Người dùng"} ${fullName} quay lại hệ thống 🎉`, 
             "success"
           );
 
-          // ✅ Tất cả role đều về chung 1 dashboard
-          $location.path("/main/dashboard");
+          $rootScope.$emit("auth:login");
+
+          /* ============================================================
+             ✅ Chuyển hướng sau khi đăng nhập dựa theo vai trò
+             → Dùng hàm redirectAfterLogin() trong AuthService
+          ============================================================ */
+          const targetState = AuthService.redirectAfterLogin(role);
+
+          if (targetState && targetState !== "login") {
+            $state.go(targetState);
+          } else {
+            ToastService.show(
+              "Đăng nhập thành công, nhưng chưa được cấu hình màn hình cho vai trò này.",
+              "info"
+            );
+          }
         } else {
           $scope.errorMessage = "Đăng nhập thất bại, vui lòng thử lại.";
         }
       })
       .catch(function(err) {
-        console.error("Login error:", err);
+        console.error("❌ Login error:", err);
         $scope.errorMessage = "Sai tài khoản hoặc mật khẩu";
       });
   };
 
-  // 🔹 Nếu đã login → tự redirect vào dashboard
+  /* ============================================================
+     🔹 Nếu đã đăng nhập sẵn → Tự chuyển đến màn hình phù hợp
+  ============================================================ */
   (function init() {
     if (AuthService.isAuthenticated()) {
-      $location.path("/main/dashboard");
+      const user = AuthService.getUser();
+      const role = (user?.role || "").toLowerCase();
+
+      const targetState = AuthService.redirectAfterLogin(role);
+      if (targetState && targetState !== "login") {
+        $state.go(targetState);
+      } else {
+        ToastService.show(
+          "Bạn đã đăng nhập, nhưng chưa được cấu hình trang riêng.",
+          "info"
+        );
+      }
     }
   })();
 });

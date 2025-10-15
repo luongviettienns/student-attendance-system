@@ -1,121 +1,156 @@
 /* ============================================================
-   🧩 Khởi tạo module chính của ứng dụng
+   🧩 KHỞI TẠO MODULE CHÍNH CỦA ỨNG DỤNG
 ============================================================ */
 var app = angular.module("eduApp", ["ui.router", "ngFileUpload"]);
 
 /* ============================================================
-   ⚙️ CẤU HÌNH CHÍNH: Routing + HTTP + Guard
+   ⚙️ CẤU HÌNH ROUTER & GUARD
+   → Cấu trúc URL: /main/admin/account
 ============================================================ */
 app.config(function ($stateProvider, $urlRouterProvider) {
 
-    /* ============================================================
-       1️⃣ Hàm bảo vệ route
-    ============================================================ */
-    function authGuard(AuthService, $state, $q) {
-        if (!AuthService.isAuthenticated()) {
-            $state.go("login");
-            return $q.reject("Not Authenticated");
-        }
-        return true;
+  /* ============================================================
+     🧩 HÀM BẢO VỆ ROUTE (XÁC THỰC)
+  ============================================================ */
+  function authGuard(AuthService, $state, $q) {
+    if (!AuthService.isAuthenticated()) {
+      $state.go("login");
+      return $q.reject("Not Authenticated");
     }
+    return true;
+  }
+
+  /* ============================================================
+     🧭 KHAI BÁO CÁC STATE / ROUTE
+  ============================================================ */
+  $stateProvider
 
     /* ============================================================
-       2️⃣ Cấu hình routing
+       1️⃣ LOGIN
     ============================================================ */
-    $stateProvider
-
-        // ===== LOGIN =====
-        .state("login", {
-            url: "/login",
-            templateUrl: "views/login.html",
-            controller: "LoginController"
-        })
-
-        // ===== MAIN LAYOUT =====
-        .state("main", {
-            url: "/main",
-            templateUrl: "views/main.html",
-            controller: "MainController",
-            resolve: { auth: authGuard }
-        })
-
-        // ===== DASHBOARD =====
-        .state("main.dashboard", {
-            url: "/dashboard",
-            templateUrl: "views/dashboard.html",
-            controller: "DashboardController",
-            resolve: { auth: authGuard }
-        })
-
-        // ===== HỒ SƠ CÁ NHÂN =====
-        .state("main.profile", {
-            url: "/profile",
-            templateUrl: "views/profile.html",
-            controller: "ProfileController",
-            resolve: { auth: authGuard }
-        })
-
-        // =====================================================
-        // 🧩 ADMIN AREA
-        // =====================================================
-        .state("admin", {
-            url: "/admin",
-            abstract: true,
-            template: "<ui-view></ui-view>",
-            resolve: { auth: authGuard }
-        })
-
-        // 🔸 ADMIN: QUẢN LÝ TÀI KHOẢN NGƯỜI DÙNG
-        .state("admin.userAccount", {
-            url: "/user/account",
-            templateUrl: "views/admin/account.html",
-            controller: "AccountController",
-            resolve: { auth: authGuard }
-        })
-
-        // 🔸 ADMIN: QUẢN LÝ VAI TRÒ & QUYỀN HẠN
-        .state("admin.roleManage", {
-            url: "/role/manage",
-            templateUrl: "views/admin/role-manage.html",
-            controller: "RoleManageController",
-            resolve: { auth: authGuard }
-        })
-
-        // 🔸 ADMIN: PHÂN QUYỀN
-        .state("admin.rolePermission", {
-            url: "/role/permission",
-            templateUrl: "views/admin/role-permission.html",
-            controller: "RolePermissionController",
-            resolve: { auth: authGuard }
-        });
+    .state("login", {
+      url: "/login",
+      templateUrl: "views/login.html",
+      controller: "LoginController"
+    })
 
     /* ============================================================
-       3️⃣ URL mặc định
+       2️⃣ MAIN LAYOUT (CHA)
     ============================================================ */
-    $urlRouterProvider.otherwise("/login");
+    .state("main", {
+      url: "/main",
+      templateUrl: "views/main.html",
+      controller: "MainController",
+      resolve: { auth: authGuard }
+    })
+
+    /* ============================================================
+       3️⃣ TRANG CHÀO MỪNG (THAY THẾ DASHBOARD)
+    ============================================================ */
+    .state("main.welcome", {
+      url: "/welcome",
+      templateUrl: "views/welcome.html",
+      resolve: { auth: authGuard }
+    })
+
+    /* ============================================================
+       4️⃣ ADMIN MODULE
+    ============================================================ */
+    .state("main.admin", {
+      url: "/admin",
+      abstract: true,
+      template: "<ui-view></ui-view>",
+      resolve: { auth: authGuard }
+    })
+
+    .state("main.admin.account", {
+      url: "/account",
+      templateUrl: "views/admin/account.html",
+      controller: "AccountController",
+      resolve: { auth: authGuard }
+    })
+
+    .state("main.admin.roleManage", {
+      url: "/role/manage",
+      templateUrl: "views/admin/role-manage.html",
+      controller: "RoleManageController",
+      resolve: { auth: authGuard }
+    })
+
+    .state("main.admin.rolePermission", {
+      url: "/role/permission",
+      templateUrl: "views/admin/role-permission.html",
+      controller: "RolePermissionController",
+      resolve: { auth: authGuard }
+    })
+
+    /* ============================================================
+       5️⃣ MODULE KHÁC
+    ============================================================ */
+    .state("main.profile", {
+      url: "/profile",
+      templateUrl: "views/profile.html",
+      controller: "ProfileController",
+      resolve: { auth: authGuard }
+    })
+
+    .state("main.student", {
+      url: "/student",
+      templateUrl: "views/student.html",
+      controller: "StudentController",
+      resolve: { auth: authGuard }
+    })
+
+    .state("main.teacher", {
+      url: "/teacher",
+      templateUrl: "views/teacher.html",
+      controller: "TeacherController",
+      resolve: { auth: authGuard }
+    })
+
+    .state("main.advisor", {
+      url: "/advisor",
+      templateUrl: "views/advisor.html",
+      controller: "AdvisorController",
+      resolve: { auth: authGuard }
+    });
+
+  /* ============================================================
+     6️⃣ URL MẶC ĐỊNH
+  ============================================================ */
+  $urlRouterProvider.otherwise("/login");
 });
 
+
 /* ============================================================
-   🚀 CHẠY SAU KHI ỨNG DỤNG KHỞI ĐỘNG
+   🚀 KHỞI ĐỘNG ỨNG DỤNG (ROLE GUARD + LOGIN REDIRECT)
 ============================================================ */
-app.run(function ($transitions, $state, AuthService, $rootScope) {
+app.run(function ($transitions, $state, AuthService, $rootScope, ToastService) {
 
-    // 🔹 Điều hướng: nếu đã login mà vẫn vào /login thì tự sang dashboard
-    $transitions.onStart({ to: "login" }, function () {
-        if (AuthService.isAuthenticated()) {
-            return $state.target("main.dashboard");
-        }
-    });
+  /* ============================================================
+     🔹 Nếu đã login mà vẫn vào /login → tự chuyển về trang chào mừng
+  ============================================================ */
+  $transitions.onStart({ to: "login" }, function () {
+    if (AuthService.isAuthenticated()) {
+      const user = AuthService.getUser();
+      const role = (user?.role || "").toLowerCase();
+      if (role === "admin") {
+        return $state.target("main.welcome"); // ✅ Chuyển sang trang chào mừng
+      }
+      ToastService.show("Tài khoản này chưa được cấu hình trang riêng.", "info");
+    }
+  });
 
-    // 🔹 Theo dõi trạng thái xác thực toàn cục
-    $rootScope.isAuthenticated = AuthService.isAuthenticated();
+  /* ============================================================
+     🔹 Theo dõi trạng thái đăng nhập toàn cục
+  ============================================================ */
+  $rootScope.isAuthenticated = AuthService.isAuthenticated();
 
-    // 🔹 Khi logout thì cập nhật lại
-    $rootScope.$on("auth:logout", function () {
-        $rootScope.isAuthenticated = false;
-    });
+  $rootScope.$on("auth:logout", function () {
+    $rootScope.isAuthenticated = false;
+  });
 
-    $rootScope.$on("auth:login", function () {
-        $rootScope.isAuthenticated = true;
-    });
+  $rootScope.$on("auth:login", function () {
+    $rootScope.isAuthenticated = true;
+  });
 });

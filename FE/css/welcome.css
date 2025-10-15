@@ -1,0 +1,29 @@
+/* ============================================================
+   🪄 TRANG CHÀO MỪNG
+============================================================ */
+.welcome-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 80px);
+  background: linear-gradient(135deg, #f0f4ff, #e8f0fe);
+}
+
+.welcome-box {
+  text-align: center;
+  background: white;
+  padding: 60px 100px;
+  border-radius: 20px;
+  box-shadow: 0 5px 25px rgba(0,0,0,0.1);
+}
+
+.welcome-box h1 {
+  font-size: 28px;
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+.welcome-box p {
+  font-size: 18px;
+  color: #555;
+}
