@@ -28,11 +28,11 @@
             ng-class="{'has-sub': menu.sub, 'open': activeMenu === menu.label}">
 
           <!-- 🔹 Menu không có submenu -->
-          <a ng-attr-ui-sref="{{menu.state}}"
+          <a ui-sref="{{menu.state}}"
              ui-sref-active="active"
              class="menu-link"
              ng-if="!menu.sub"
-             ng-click="activeMenu = null">
+             ng-click="activeMenu = null; toggleSidebarMobile()">
             <div class="flex items-center gap-3">
               <i class="{{menu.icon}}"></i>
               <span ng-show="sidebarOpen || isMobile">{{menu.label}}</span>
@@ -58,8 +58,11 @@
               ng-if="menu.sub"
               ng-class="{'open': activeMenu === menu.label}">
             <li ng-repeat="sub in menu.sub">
-              <!-- ✅ Binding state động -->
-              <a ng-attr-ui-sref="{{sub.state}}" ui-sref-active="active" ng-click="toggleSidebarMobile()">
+              <!-- ✅ Binding state động: dùng ui-sref -->
+              <a ui-sref="{{sub.state}}" 
+                 ui-sref-active="active" 
+                 class="submenu-link"
+                 ng-click="toggleSidebarMobile()">
                 <i class="fa fa-angle-right"></i>
                 <span>{{sub.label}}</span>
               </a>
@@ -77,7 +80,9 @@
 
     <!-- ===== SIDEBAR FOOTER ===== -->
     <div class="sidebar-footer">
-      <div class="user-box" ui-sref="main.profile">
+
+      <!-- ✅ Chuyển sang ng-click thay vì ui-sref -->
+      <div class="user-box" ng-click="goToProfile()">
         <img ng-src="{{ avatarUrl || 'assets/img/default-avatar.png' }}" alt="avatar">
         <div class="user-info" ng-show="sidebarOpen || isMobile">
           <span class="name">{{ fullName }}</span>
@@ -120,7 +125,7 @@
 
     <!-- ===== CONTENT WRAPPER ===== -->
     <main class="content-wrapper">
-      <!-- ✅ Nơi render view con (vd: admin.user.account) -->
+      <!-- ✅ Nơi render view con -->
       <div ui-view></div>
     </main>
 

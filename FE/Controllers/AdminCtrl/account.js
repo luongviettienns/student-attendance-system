@@ -1,4 +1,4 @@
-angular.module("eduApp").controller("AccountController", function ($scope, $http, AuthService) {
+angular.module("eduApp").controller("AccountController", function ($scope, $http, $timeout, AuthService) {
   const gatewayBase = "http://localhost:5090";
   const apiAdmin = gatewayBase + "/api-edu/admin";
 
@@ -9,9 +9,9 @@ angular.module("eduApp").controller("AccountController", function ($scope, $http
   $scope.roles = [];
   $scope.loading = false;
 
-  $scope.showModal = false;   // 👈 thêm dòng này
-  $scope.isEdit = false;      // 👈 thêm dòng này
-  $scope.formData = {};       // 👈 thêm dòng này
+  $scope.showModal = false;
+  $scope.isEdit = false;
+  $scope.formData = {};
 
   $scope.pagination = {
     page: 1,
@@ -20,12 +20,17 @@ angular.module("eduApp").controller("AccountController", function ($scope, $http
     totalCount: 0
   };
 
+  // 🔹 Thống kê người dùng (hiển thị ở summary cards)
+  $scope.totalUsers = 0;
+  $scope.activeUsers = 0;
+  $scope.inactiveUsers = 0;
 
   /* ============================================================
-     🔹 LOAD DANH SÁCH
+     🔹 LOAD DANH SÁCH NGƯỜI DÙNG
   ============================================================ */
   $scope.loadUsers = function () {
     $scope.loading = true;
+    $scope.users = [];
 
     const params = {
       page: $scope.pagination.page,
@@ -41,8 +46,26 @@ angular.module("eduApp").controller("AccountController", function ($scope, $http
         params
       })
       .then(res => {
-        $scope.users = res.data.data;
-        $scope.pagination = res.data.pagination;
+        $scope.users = res.data.data || [];
+        $scope.pagination = res.data.pagination || $scope.pagination;
+
+        // ✅ Hiệu ứng fade-in từng dòng
+        $timeout(() => {
+          angular.element(".account-table tbody tr").each(function (i, el) {
+            el.style.opacity = 0;
+            el.style.transform = "translateY(10px)";
+            setTimeout(() => {
+              el.style.transition = "all 0.35s ease";
+              el.style.opacity = 1;
+              el.style.transform = "translateY(0)";
+            }, i * 80);
+          });
+        }, 100);
+
+        // ✅ Cập nhật thống kê (tự tính nếu chưa có API riêng)
+        $scope.totalUsers = $scope.pagination.totalCount || $scope.users.length;
+        $scope.activeUsers = $scope.users.filter(u => u.isActive).length;
+        $scope.inactiveUsers = $scope.users.filter(u => !u.isActive).length;
       })
       .catch(err => {
         console.error("❌ Lỗi tải danh sách người dùng:", err);
@@ -84,16 +107,14 @@ angular.module("eduApp").controller("AccountController", function ($scope, $http
   ============================================================ */
   $scope.openAddUser = function () {
     $scope.isEdit = false;
-    $scope.formData = {
-      isActive: "true"
-    };
+    $scope.formData = { isActive: "true" };
     $scope.showModal = true;
   };
 
   $scope.editUser = function (user) {
     $scope.isEdit = true;
     $scope.formData = angular.copy(user);
-    $scope.formData.isActive = String(user.isActive); // chuyển về "true"/"false"
+    $scope.formData.isActive = String(user.isActive);
     $scope.showModal = true;
   };
 
@@ -108,55 +129,36 @@ angular.module("eduApp").controller("AccountController", function ($scope, $http
     const data = angular.copy($scope.formData);
     data.isActive = data.isActive === "true";
 
-    if ($scope.isEdit) {
-      // Cập nhật
-      $http
-        .put(apiAdmin + "/users/" + data.userId, data, {
-          headers: AuthService.getAuthHeader()
-        })
-        .then(res => {
-          alert(res.data.message || "Cập nhật thành công");
-          $scope.closeModal();
-          $scope.loadUsers();
-        })
-        .catch(err => {
-          console.error("❌ Lỗi cập nhật:", err);
-          alert(err.data?.message || "Không thể cập nhật người dùng");
-        });
-    } else {
-      // Tạo mới
-      $http
-        .post(apiAdmin + "/users", data, {
-          headers: AuthService.getAuthHeader()
-        })
-        .then(res => {
-          alert(res.data.message || "Thêm người dùng thành công");
-          $scope.closeModal();
-          $scope.loadUsers();
-        })
-        .catch(err => {
-          console.error("❌ Lỗi thêm mới:", err);
-          alert(err.data?.message || "Không thể tạo người dùng");
-        });
-    }
+    const request = $scope.isEdit
+      ? $http.put(`${apiAdmin}/users/${data.userId}`, data, { headers: AuthService.getAuthHeader() })
+      : $http.post(`${apiAdmin}/users`, data, { headers: AuthService.getAuthHeader() });
+
+    request
+      .then(res => {
+        alert(res.data.message || ($scope.isEdit ? "Cập nhật thành công" : "Thêm mới thành công"));
+        $scope.closeModal();
+        $scope.loadUsers();
+      })
+      .catch(err => {
+        console.error("❌ Lỗi lưu người dùng:", err);
+        alert(err.data?.message || "Không thể lưu người dùng");
+      });
   };
 
   /* ============================================================
-     🔹 XOÁ MỀM NGƯỜI DÙNG
+     🔹 XOÁ NGƯỜI DÙNG (SOFT DELETE)
   ============================================================ */
   $scope.deleteUser = function (user) {
     if (!confirm(`Bạn có chắc muốn xoá người dùng "${user.username}" không?`)) return;
 
     $http
-      .delete(apiAdmin + "/users/" + user.userId, {
-        headers: AuthService.getAuthHeader()
-      })
+      .delete(`${apiAdmin}/users/${user.userId}`, { headers: AuthService.getAuthHeader() })
       .then(res => {
         alert(res.data.message || "Đã xoá người dùng");
         $scope.loadUsers();
       })
       .catch(err => {
-        console.error("❌ Lỗi xoá:", err);
+        console.error("❌ Lỗi xoá người dùng:", err);
         alert(err.data?.message || "Không thể xoá người dùng");
       });
   };

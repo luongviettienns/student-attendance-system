@@ -1,12 +1,41 @@
-<div class="account-page">
+<div class="account-page" ng-controller="AccountController">
 
-  <h2 class="page-title">Quản lý tài khoản người dùng</h2>
+  <!-- ================== TIÊU ĐỀ TRANG ================== -->
+  <div class="page-title">
+    <i class="fa fa-users"></i>
+    <span>Quản lý tài khoản người dùng</span>
+  </div>
 
-  <!-- ========== BỘ LỌC ========== -->
-  <div class="filter-bar">
+  <!-- ================== THỐNG KÊ TỔNG QUAN ================== -->
+  <div class="summary-cards">
+    <div class="summary-card">
+      <i class="fa fa-user"></i>
+      <div>
+        <h4>{{totalUsers || 0}}</h4>
+        <p>Tổng số người dùng</p>
+      </div>
+    </div>
+    <div class="summary-card active">
+      <i class="fa fa-check-circle"></i>
+      <div>
+        <h4>{{activeUsers || 0}}</h4>
+        <p>Đang hoạt động</p>
+      </div>
+    </div>
+    <div class="summary-card inactive">
+      <i class="fa fa-ban"></i>
+      <div>
+        <h4>{{inactiveUsers || 0}}</h4>
+        <p>Đã vô hiệu</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================== BỘ LỌC NGƯỜI DÙNG ================== -->
+  <div class="filter-section">
     <input 
-      type="text" 
-      placeholder="Tìm kiếm theo tên hoặc tài khoản..." 
+      type="text"
+      placeholder="🔍 Tìm kiếm theo tên hoặc tài khoản..."
       ng-model="searchText">
 
     <select ng-model="filterRoleId">
@@ -22,59 +51,75 @@
       <option value="false">Vô hiệu</option>
     </select>
 
-    <button class="btn btn-primary" ng-click="searchUsers()">Tìm kiếm</button>
-    <button class="btn btn-add" ng-click="openAddUser()">+ Thêm người dùng</button>
+    <button class="btn btn-primary" ng-click="searchUsers()">
+      <i class="fa fa-search"></i> Tìm kiếm
+    </button>
+
+    <button class="btn btn-add" ng-click="openAddUser()">
+      <i class="fa fa-plus"></i> Thêm người dùng
+    </button>
   </div>
 
-  <!-- ========== BẢNG DANH SÁCH ========== -->
-  <table class="account-table" ng-if="!loading && users.length > 0">
-    <thead>
-      <tr>
-        <th>Avatar</th>
-        <th>Tài khoản</th>
-        <th>Họ tên</th>
-        <th>Email</th>
-        <th>Vai trò</th>
-        <th>Trạng thái</th>
-        <th>Thao tác</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr ng-repeat="u in users">
-        <td><img ng-src="{{u.avatarUrl || 'assets/img/default-avatar.png'}}" class="avatar"></td>
-        <td>{{u.username}}</td>
-        <td>{{u.fullName}}</td>
-        <td>{{u.email}}</td>
-        <td>{{u.roleName}}</td>
-        <td>
-          <span class="status" ng-class="{'active': u.isActive, 'inactive': !u.isActive}">
-            {{u.isActive ? "Hoạt động" : "Vô hiệu"}}
-          </span>
-        </td>
-        <td>
-          <button class="btn-action edit" ng-click="editUser(u)">Sửa</button>
-          <button class="btn-action delete" ng-click="deleteUser(u)">Xoá</button>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  <!-- ================== BẢNG DỮ LIỆU ================== -->
+  <div class="table-container" ng-if="!loading && users.length > 0">
+    <table class="account-table">
+      <thead>
+        <tr>
+          <th>Avatar</th>
+          <th>Tài khoản</th>
+          <th>Họ tên</th>
+          <th>Email</th>
+          <th>Vai trò</th>
+          <th>Trạng thái</th>
+          <th>Thao tác</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="u in users" ng-class="{'inactive-row': !u.isActive}">
+          <td><img ng-src="{{u.avatarUrl || 'assets/img/default-avatar.png'}}" class="avatar"></td>
+          <td>{{u.username}}</td>
+          <td>{{u.fullName}}</td>
+          <td>{{u.email}}</td>
+          <td>{{u.roleName}}</td>
+          <td>
+            <span class="status" ng-class="{'active': u.isActive, 'inactive': !u.isActive}">
+              {{u.isActive ? "Hoạt động" : "Vô hiệu"}}
+            </span>
+          </td>
+          <td>
+            <div class="action-icons">
+              <i class="fa fa-edit edit" ng-click="editUser(u)" title="Chỉnh sửa"></i>
+              <i class="fa fa-trash delete" ng-click="deleteUser(u)" title="Xóa người dùng"></i>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 
-  <!-- Loading / Empty -->
-  <div class="loading" ng-if="loading">Đang tải dữ liệu...</div>
-  <div class="empty" ng-if="!loading && users.length === 0">Không có người dùng nào.</div>
+  <!-- ================== TRẠNG THÁI RỖNG / LOADING ================== -->
+  <div class="loading" ng-if="loading">
+    <i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...
+  </div>
 
-  <!-- ========== PHÂN TRANG ========== -->
+  <div class="empty" ng-if="!loading && users.length === 0">
+    <i class="fa fa-exclamation-circle"></i> Không có người dùng nào.
+  </div>
+
+  <!-- ================== PHÂN TRANG ================== -->
   <div class="pagination" ng-if="pagination.totalPages > 1">
     <button ng-disabled="pagination.page === 1" ng-click="changePage(pagination.page - 1)">«</button>
     <span>Trang {{pagination.page}} / {{pagination.totalPages}}</span>
     <button ng-disabled="pagination.page === pagination.totalPages" ng-click="changePage(pagination.page + 1)">»</button>
   </div>
 
-  <!-- ========== MODAL POPUP (THÊM / SỬA) ========== -->
+  <!-- ================== MODAL POPUP (THÊM / SỬA) ================== -->
   <div class="modal-overlay" ng-show="showModal">
     <div class="modal">
       <div class="modal-header">
-        <h3>{{isEdit ? "Cập nhật người dùng" : "Thêm người dùng"}}</h3>
+        <h3><i class="fa" ng-class="isEdit ? 'fa-edit' : 'fa-user-plus'"></i>
+          {{isEdit ? "Cập nhật người dùng" : "Thêm người dùng"}}
+        </h3>
         <button class="close-btn" ng-click="closeModal()">×</button>
       </div>
 
