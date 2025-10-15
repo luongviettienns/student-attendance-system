@@ -1,6 +1,8 @@
-﻿using System;
-using EducationManagement.Common.Models;
+﻿using EducationManagement.Common.Models;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Data;
 
 namespace EducationManagement.DAL
 {
@@ -113,6 +115,20 @@ namespace EducationManagement.DAL
                     IsActive = true
                 }
             );
+        }
+        public async Task ExecuteAddStudentAsync(SqlCommand cmd)
+        {
+            // Lấy chuỗi kết nối từ DbContext
+            var connection = Database.GetDbConnection();
+
+            // Gán connection cho command
+            cmd.Connection = (SqlConnection)connection;
+            cmd.CommandType = CommandType.StoredProcedure;
+
+            if (connection.State != ConnectionState.Open)
+                await connection.OpenAsync();
+
+            await cmd.ExecuteNonQueryAsync();
         }
     }
 }
