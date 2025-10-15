@@ -1,47 +1,36 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace EducationManagement.Common.DTOs.Student
 {
-    public class StudentUpdateDto
+    public class UpdateStudentFullDto
     {
-        [Required(ErrorMessage = "Họ tên là bắt buộc")]
-        [StringLength(150, ErrorMessage = "Họ tên không được quá 150 ký tự")]
-        public string FullName { get; set; } = string.Empty;
-
-        [StringLength(10, ErrorMessage = "Giới tính không được quá 10 ký tự")]
-        public string? Gender { get; set; }
-
-        public DateTime? Dob { get; set; }
-
-        [EmailAddress(ErrorMessage = "Email không hợp lệ")]
-        [StringLength(150, ErrorMessage = "Email không được quá 150 ký tự")]
-        public string? Email { get; set; }
-
-        [StringLength(20, ErrorMessage = "Số điện thoại không được quá 20 ký tự")]
-        public string? Phone { get; set; }
-
+        public string StudentId { get; set; }
+        public string FullName { get; set; }
+        public string Gender { get; set; }
+        public DateTime Dob { get; set; }
+        public string Email { get; set; }
+        public string Phone { get; set; }
         public string? FacultyId { get; set; }
         public string? MajorId { get; set; }
         public string? AcademicYearId { get; set; }
-
-        [StringLength(10, ErrorMessage = "Năm nhập học không được quá 10 ký tự")]
         public string? CohortYear { get; set; }
 
-        public bool IsActive { get; set; }
+        public string? Nationality { get; set; }
+        public string? Ethnicity { get; set; }
+        public string? Religion { get; set; }
+        public string? Hometown { get; set; }
+        public string? CurrentAddress { get; set; }
+        public string? BankNo { get; set; }
+        public string? BankName { get; set; }
+        public string? InsuranceNo { get; set; }
+        public string? IssuePlace { get; set; }
+        public DateTime? IssueDate { get; set; }
+        public string? Facebook { get; set; }
+
+        public string? FamilyFullName { get; set; }
+        public string? RelationType { get; set; }
+        public int? BirthYear { get; set; }
+        public string? PhoneFamily { get; set; }
+        public string? JobFamily { get; set; }
+
+        public string UpdatedBy { get; set; }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
