@@ -10,7 +10,7 @@
       'sidebar-mobile-hidden': !sidebarOpen && isMobile
     }">
 
-    <!-- ===== Logo / Brand ===== -->
+    <!-- ===== SIDEBAR HEADER / LOGO ===== -->
     <div class="sidebar-header">
       <div class="brand">
         <i class="fa fa-graduation-cap"></i>
@@ -18,50 +18,64 @@
       </div>
     </div>
 
-    <!-- ===== Navigation Menu (DỮ LIỆU TỪ BE) ===== -->
+    <!-- ===== MENU DYNAMIC FROM BE ===== -->
     <nav class="sidebar-menu" ng-if="roleMenus.length > 0 && !menuLoading">
       <ul class="menu-list">
 
-        <!-- Lặp qua danh sách menu từ BE -->
-        <li ng-repeat="menu in roleMenus" 
+        <!-- Lặp menu cha -->
+        <li ng-repeat="menu in roleMenus"
             class="menu-item"
             ng-class="{'has-sub': menu.sub, 'open': activeMenu === menu.label}">
 
-          <!-- Menu không có submenu -->
-          <a ui-sref="{{menu.state}}" ui-sref-active="active" 
-             class="menu-link" ng-if="!menu.sub">
-            <i class="fa" ng-class="menu.icon"></i>
-            <span ng-show="sidebarOpen || isMobile">{{ menu.label }}</span>
+          <!-- 🔹 Menu không có submenu -->
+          <a ng-attr-ui-sref="{{menu.state}}"
+             ui-sref-active="active"
+             class="menu-link"
+             ng-if="!menu.sub"
+             ng-click="activeMenu = null">
+            <div class="flex items-center gap-3">
+              <i class="{{menu.icon}}"></i>
+              <span ng-show="sidebarOpen || isMobile">{{menu.label}}</span>
+            </div>
             <i class="fa fa-chevron-right arrow" style="visibility:hidden"></i>
           </a>
 
-          <!-- Menu có submenu -->
-          <a href="" class="menu-link" ng-if="menu.sub"
+          <!-- 🔹 Menu có submenu -->
+          <a href=""
+             ng-if="menu.sub"
+             class="menu-link"
              ng-click="toggleSubmenu(menu.label)">
-            <i class="fa" ng-class="menu.icon"></i>
-            <span ng-show="sidebarOpen || isMobile">{{ menu.label }}</span>
-            <i class="fa fa-chevron-right arrow" ng-class="{'rotate': activeMenu === menu.label}"></i>
+            <div class="flex items-center gap-3">
+              <i class="{{menu.icon}}"></i>
+              <span ng-show="sidebarOpen || isMobile">{{menu.label}}</span>
+            </div>
+            <i class="fa fa-chevron-right arrow"
+               ng-class="{'rotate': activeMenu === menu.label}"></i>
           </a>
 
-          <ul class="submenu" ng-if="menu.sub" ng-class="{'open': activeMenu === menu.label}">
+          <!-- 🔹 Submenu -->
+          <ul class="submenu"
+              ng-if="menu.sub"
+              ng-class="{'open': activeMenu === menu.label}">
             <li ng-repeat="sub in menu.sub">
-              <a ui-sref="{{sub.state}}">
-                <i class="fa fa-angle-right"></i> {{ sub.label }}
+              <!-- ✅ Binding state động -->
+              <a ng-attr-ui-sref="{{sub.state}}" ui-sref-active="active" ng-click="toggleSidebarMobile()">
+                <i class="fa fa-angle-right"></i>
+                <span>{{sub.label}}</span>
               </a>
             </li>
           </ul>
-
         </li>
 
       </ul>
     </nav>
 
-    <!-- ===== Trạng thái loading ===== -->
+    <!-- ===== LOADING ===== -->
     <div class="loading" ng-if="menuLoading">
       <i class="fa fa-spinner fa-spin"></i> Đang tải menu...
     </div>
 
-    <!-- ===== Sidebar Footer ===== -->
+    <!-- ===== SIDEBAR FOOTER ===== -->
     <div class="sidebar-footer">
       <div class="user-box" ui-sref="main.profile">
         <img ng-src="{{ avatarUrl || 'assets/img/default-avatar.png' }}" alt="avatar">
@@ -71,7 +85,7 @@
         </div>
       </div>
 
-      <button ng-click="logout()" class="logout-btn">
+      <button class="logout-btn" ng-click="logout()">
         <i class="fa fa-sign-out-alt"></i>
         <span ng-show="sidebarOpen || isMobile">Đăng xuất</span>
       </button>
@@ -79,15 +93,15 @@
 
   </aside>
 
-  <!-- ===== Overlay cho mobile ===== -->
-  <div class="overlay" 
-       ng-show="isMobile && sidebarOpen" 
+  <!-- ===== OVERLAY (MOBILE) ===== -->
+  <div class="overlay"
+       ng-show="isMobile && sidebarOpen"
        ng-click="toggleSidebar()"></div>
 
   <!-- ===================== MAIN CONTENT ===================== -->
   <div class="main-content">
 
-    <!-- ===== Topbar ===== -->
+    <!-- ===== TOPBAR ===== -->
     <header class="topbar">
       <div class="topbar-left">
         <button class="menu-btn" ng-click="toggleSidebar()">
@@ -104,8 +118,9 @@
       </div>
     </header>
 
-    <!-- ===== Nội dung trang chính ===== -->
+    <!-- ===== CONTENT WRAPPER ===== -->
     <main class="content-wrapper">
+      <!-- ✅ Nơi render view con (vd: admin.user.account) -->
       <div ui-view></div>
     </main>
 

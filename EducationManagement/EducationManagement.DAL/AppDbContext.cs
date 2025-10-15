@@ -16,11 +16,9 @@ namespace EducationManagement.DAL
         // ==============================
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
-        public DbSet<RefreshToken> RefreshTokens { get; set; }
-
-        // 🔹 Thêm mới cho RBAC
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
+        public DbSet<RefreshToken> RefreshTokens { get; set; }
 
         // ==============================
         // 🔹 Cấu hình mối quan hệ
@@ -29,7 +27,7 @@ namespace EducationManagement.DAL
         {
             base.OnModelCreating(modelBuilder);
 
-            // Bảng users
+            // ===== USERS =====
             modelBuilder.Entity<User>(entity =>
             {
                 entity.ToTable("users");
@@ -37,49 +35,84 @@ namespace EducationManagement.DAL
 
                 entity.HasOne(u => u.Role)
                       .WithMany(r => r.Users)
-                      .HasForeignKey(u => u.RoleId);
+                      .HasForeignKey(u => u.RoleId)
+                      .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // Bảng roles
+            // ===== ROLES =====
             modelBuilder.Entity<Role>(entity =>
             {
                 entity.ToTable("roles");
                 entity.HasKey(r => r.RoleId);
             });
 
-            // Bảng permissions
+            // ===== PERMISSIONS =====
             modelBuilder.Entity<Permission>(entity =>
             {
                 entity.ToTable("permissions");
                 entity.HasKey(p => p.PermissionId);
             });
 
-            // Bảng role_permissions (many-to-many)
+            // ===== ROLE_PERMISSIONS =====
             modelBuilder.Entity<RolePermission>(entity =>
             {
-                entity.ToTable("role_permissions");
-                entity.HasKey(rp => new { rp.RoleId, rp.PermissionId });
+                entity.ToTable("RolePermissions");
 
+                // Khóa chính riêng biệt
+                entity.HasKey(rp => rp.RolePermissionId);
+
+                // Quan hệ Role → RolePermissions
                 entity.HasOne(rp => rp.Role)
                       .WithMany()
                       .HasForeignKey(rp => rp.RoleId)
                       .OnDelete(DeleteBehavior.Cascade);
 
+                // Quan hệ Permission → RolePermissions
                 entity.HasOne(rp => rp.Permission)
                       .WithMany()
                       .HasForeignKey(rp => rp.PermissionId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // 📌 Seed dữ liệu roles cơ bản (nếu cần)
-            // 📌 Seed dữ liệu roles mặc định
+            // ===== SEED DỮ LIỆU ROLE CƠ BẢN =====
             modelBuilder.Entity<Role>().HasData(
-                new Role { RoleId = "role-001", RoleName = "Admin", Description = "Quản trị hệ thống" },
-                new Role { RoleId = "role-002", RoleName = "Lecturer", Description = "Giảng viên" },
-                new Role { RoleId = "role-003", RoleName = "Student", Description = "Sinh viên" },
-                new Role { RoleId = "role-004", RoleName = "Advisor", Description = "Cố vấn học tập" }
+                new Role
+                {
+                    RoleId = "role-001",
+                    RoleName = "Admin",
+                    Description = "Quản trị hệ thống",
+                    CreatedAt = DateTime.Now,
+                    CreatedBy = "system",
+                    IsActive = true
+                },
+                new Role
+                {
+                    RoleId = "role-002",
+                    RoleName = "Lecturer",
+                    Description = "Giảng viên",
+                    CreatedAt = DateTime.Now,
+                    CreatedBy = "system",
+                    IsActive = true
+                },
+                new Role
+                {
+                    RoleId = "role-003",
+                    RoleName = "Student",
+                    Description = "Sinh viên",
+                    CreatedAt = DateTime.Now,
+                    CreatedBy = "system",
+                    IsActive = true
+                },
+                new Role
+                {
+                    RoleId = "role-004",
+                    RoleName = "Advisor",
+                    Description = "Cố vấn học tập",
+                    CreatedAt = DateTime.Now,
+                    CreatedBy = "system",
+                    IsActive = true
+                }
             );
-
         }
     }
 }

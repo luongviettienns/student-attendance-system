@@ -1,9 +1,12 @@
-angular.module("eduApp").factory("AuthService", function ($http, $window, $q, $rootScope) {
-    // 💡 Tất cả request đi qua Gateway (Auth API)
-    const gatewayBase = "http://localhost:5090";
+angular.module("eduApp")
+
+/* ============================================================
+   🔹 AUTH SERVICE – Quản lý đăng nhập, token, refresh, logout, user info & menu
+============================================================ */
+.factory("AuthService", function ($http, $window, $q, $rootScope) {
+    const gatewayBase = "https://localhost:7033";
     const apiAuth = gatewayBase + "/api-edu/auth";
     const apiMenu = gatewayBase + "/api-edu/admin/menu";
-
 
     const auth = {};
 
@@ -25,44 +28,40 @@ angular.module("eduApp").factory("AuthService", function ($http, $window, $q, $r
        🔐 LOGIN
     ============================================================ */
     auth.login = function (username, password, rememberMe) {
-        return $http
-            .post(apiAuth + "/login", { username, password }, {
-                headers: { "Content-Type": "application/json" }
-            })
-            .then(function (response) {
-                const data = response.data;
-                if (data && data.token) {
-                    const storage = rememberMe ? $window.localStorage : $window.sessionStorage;
+        return $http.post(apiAuth + "/login", { username, password }, {
+            headers: { "Content-Type": "application/json" }
+        })
+        .then(function (res) {
+            const data = res.data;
+            if (data && data.token) {
+                const storage = rememberMe ? $window.localStorage : $window.sessionStorage;
+                storage.setItem("token", data.token);
+                storage.setItem("refreshToken", data.refreshToken);
+                storage.setItem("refreshTokenExpiry", data.refreshTokenExpiry);
 
-                    // ✅ Lưu token
-                    storage.setItem("token", data.token);
-                    storage.setItem("refreshToken", data.refreshToken);
-                    storage.setItem("refreshTokenExpiry", data.refreshTokenExpiry);
+                let avatarUrl = data.avatarUrl;
+                if (avatarUrl && avatarUrl.startsWith("/uploads"))
+                    avatarUrl = gatewayBase + avatarUrl;
 
-                    // ✅ Avatar qua gateway nếu là path tương đối
-                    let avatarUrl = data.avatarUrl;
-                    if (avatarUrl && avatarUrl.startsWith("/uploads")) {
-                        avatarUrl = gatewayBase + avatarUrl;
-                    }
+                const user = {
+                    userId: data.userId,
+                    username: data.username,
+                    fullName: data.fullName,
+                    email: data.email,
+                    role: data.role,
+                    avatarUrl: avatarUrl || null
+                };
+                storage.setItem("currentUser", JSON.stringify(user));
 
-                    // ✅ Lưu user info
-                    const user = {
-                        userId: data.userId,
-                        username: data.username,
-                        fullName: data.fullName,
-                        email: data.email,
-                        role: data.role,
-                        avatarUrl: avatarUrl || null
-                    };
-                    storage.setItem("currentUser", JSON.stringify(user));
-                    $rootScope.isAuthenticated = true;
-                }
-                return data;
-            })
-            .catch(function (err) {
-                console.error("❌ Login failed:", err);
-                return $q.reject(err);
-            });
+                $rootScope.isAuthenticated = true;
+                $rootScope.$broadcast("auth:login", user);
+            }
+            return data;
+        })
+        .catch(err => {
+            console.error("❌ Login failed:", err);
+            return $q.reject(err);
+        });
     };
 
     /* ============================================================
@@ -73,17 +72,25 @@ angular.module("eduApp").factory("AuthService", function ($http, $window, $q, $r
         if (!refreshToken) return $q.reject("No refresh token");
 
         return $http.post(apiAuth + "/refresh", { refreshToken })
-            .then(function (response) {
-                const data = response.data;
-                const storage = getStorage();
-                storage.setItem("token", data.token);
-                storage.setItem("refreshToken", data.refreshToken);
-                storage.setItem("refreshTokenExpiry", data.refreshTokenExpiry);
-                return data;
+            .then(function (res) {
+                const data = res.data;
+                if (data && data.token) {
+                    const storage = $window.localStorage.getItem("token")
+                        ? $window.localStorage
+                        : $window.sessionStorage;
+
+                    storage.setItem("token", data.token);
+                    if (data.refreshToken) storage.setItem("refreshToken", data.refreshToken);
+                    if (data.refreshTokenExpiry) storage.setItem("refreshTokenExpiry", data.refreshTokenExpiry);
+
+                    $rootScope.isAuthenticated = true;
+                    return data;
+                } else {
+                    return $q.reject("Invalid refresh response");
+                }
             })
-            .catch(function (err) {
-                console.warn("⚠️ Refresh token failed, logging out.");
-                auth.logout();
+            .catch(err => {
+                console.error("❌ Refresh token failed:", err);
                 return $q.reject(err);
             });
     };
@@ -98,105 +105,85 @@ angular.module("eduApp").factory("AuthService", function ($http, $window, $q, $r
 
         if (refreshToken && token) {
             return $http.post(apiAuth + "/logout", { refreshToken }, config)
-                .catch(function (error) {
-                    if (error.status === 401) {
-                        console.warn("⚠️ Token expired, skip logout API.");
-                    } else {
-                        console.error("Logout API failed:", error);
-                    }
-                })
-                .finally(function () {
+                .catch(err => console.error("Logout API failed:", err))
+                .finally(() => {
                     clearAllStorage();
                     $rootScope.isAuthenticated = false;
+                    $rootScope.$broadcast("auth:logout");
+                    $window.location.href = "#/login";
                 });
         } else {
             clearAllStorage();
             $rootScope.isAuthenticated = false;
+            $rootScope.$broadcast("auth:logout");
+            $window.location.href = "#/login";
             return $q.resolve();
         }
     };
 
     /* ============================================================
-       🪪 TOKEN HELPERS
+       ⚙️ TOKEN & USER HELPERS
     ============================================================ */
-    auth.getToken = function () {
-        return $window.localStorage.getItem("token") || $window.sessionStorage.getItem("token");
-    };
+    auth.getToken = () => $window.localStorage.getItem("token") || $window.sessionStorage.getItem("token");
+    auth.getRefreshToken = () => $window.localStorage.getItem("refreshToken") || $window.sessionStorage.getItem("refreshToken");
+    auth.isAuthenticated = () => !!auth.getToken();
 
-    auth.getRefreshToken = function () {
-        return $window.localStorage.getItem("refreshToken") || $window.sessionStorage.getItem("refreshToken");
-    };
-
-    auth.isRefreshTokenValid = function () {
-        const expiry = getStorage().getItem("refreshTokenExpiry");
-        if (!expiry) return false;
-        return new Date(expiry) > new Date();
-    };
-
-    /* ============================================================
-       👤 USER HELPERS
-    ============================================================ */
+    // 🔹 Lấy thông tin user
     auth.getUser = function () {
-        const storage = getStorage();
-        const raw = storage.getItem("currentUser");
-        if (!raw) return null;
-        try {
-            return JSON.parse(raw);
-        } catch {
-            return null;
-        }
+        const raw = getStorage().getItem("currentUser");
+        try { return JSON.parse(raw); } catch { return null; }
     };
 
+    // 🔹 Ghi lại thông tin user (sau khi cập nhật hồ sơ)
     auth.setUser = function (user) {
         const storage = getStorage();
         storage.setItem("currentUser", JSON.stringify(user));
+        $rootScope.$broadcast("auth:userUpdated", user);
     };
 
-    auth.getUserId = function () {
-        const u = auth.getUser();
-        return u ? u.userId : null;
-    };
-
+    // 🔹 Lấy các field cơ bản
     auth.getFullName = function () {
-        const u = auth.getUser();
-        return u ? u.fullName : "Người dùng";
+        const user = auth.getUser();
+        return user ? user.fullName : null;
     };
 
     auth.getRole = function () {
-        const u = auth.getUser();
-        return u ? u.role : "Unknown";
+        const user = auth.getUser();
+        return user ? user.role : null;
     };
 
     auth.getAvatarUrl = function () {
-        const u = auth.getUser();
-        return u && u.avatarUrl ? u.avatarUrl : null;
+        const user = auth.getUser();
+        return user ? user.avatarUrl : null;
+    };
+
+    auth.getAuthHeader = () => {
+        const t = auth.getToken();
+        return t ? { Authorization: "Bearer " + t } : {};
     };
 
     /* ============================================================
-       🧭 MENU (load theo phân quyền BE)
+       📚 LẤY DANH SÁCH MENU (theo vai trò người dùng)
     ============================================================ */
-    auth.getMenus = function () {
-        const token = auth.getToken();
-        if (!token) return $q.reject("No token");
-
-        return $http.get(apiMenu, {
-            headers: { Authorization: "Bearer " + token }
-        })
-            .then(function (res) {
-                // Trả về danh sách menu đã map theo quyền
-                return res.data.menus || [];
+    auth.getMenus = function() {
+        return $http.get(apiMenu, { headers: auth.getAuthHeader() })
+            .then(function(res) {
+                // Một số BE có thể trả { data: [...] }
+                if (Array.isArray(res.data)) {
+                    return res.data;
+                } else if (Array.isArray(res.data.data)) {
+                    return res.data.data;
+                } else if (Array.isArray(res.data.menus)) {
+                    return res.data.menus;
+                } else {
+                    console.warn("⚠️ Menu API không trả về dạng mảng:", res.data);
+                    return [];
+                }
             })
-            .catch(function (err) {
-                console.error("❌ Get menus failed:", err);
-                return [];
+            .catch(function(err) {
+                console.error("❌ Lỗi khi lấy menu:", err);
+                return $q.reject(err);
             });
-    };
-
-    /* ============================================================
-       🧠 STATUS
-    ============================================================ */
-    auth.isAuthenticated = function () {
-        return !!auth.getToken();
     };
 
     return auth;

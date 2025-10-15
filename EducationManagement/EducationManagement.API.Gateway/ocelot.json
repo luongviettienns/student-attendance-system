@@ -29,11 +29,15 @@
                 }
             ],
             "UpstreamPathTemplate": "/api-edu/users/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
         },
 
         // ============================================================
-        // 🔹 ADMIN SERVICE (Roles / Permissions / Users)
+        // 🔹 ADMIN SERVICE (Roles / Permissions / Users / Menu)
         // ============================================================
         {
             "DownstreamPathTemplate": "/api/admin/{everything}",
@@ -45,7 +49,11 @@
                 }
             ],
             "UpstreamPathTemplate": "/api-edu/admin/{everything}",
-            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
         },
 
         // ============================================================

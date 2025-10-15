@@ -1,36 +1,41 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EducationManagement.Common.Models
 {
-    [Table("role_permissions")]
+    [Table("RolePermissions")] // ⚙️ Đặt đúng tên bảng trong DB (PascalCase)
     public class RolePermission
     {
-        [Column("role_id")]
+        [Key]
+        [Column("RolePermissionId")]
+        public string RolePermissionId { get; set; } = Guid.NewGuid().ToString();
+
+        [Column("RoleId")]
+        [Required]
         public string RoleId { get; set; }
 
-        [Column("permission_id")]
+        [Column("PermissionId")]
+        [Required]
         public string PermissionId { get; set; }
 
-        [Column("created_at")]
+        [Column("CreatedAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        [Column("created_by")]
+        [Column("CreatedBy")]
         public string? CreatedBy { get; set; }
 
-        [Column("deleted_at")]
+        [Column("DeletedAt")]
         public DateTime? DeletedAt { get; set; }
 
-        [Column("deleted_by")]
+        [Column("DeletedBy")]
         public string? DeletedBy { get; set; }
 
         // 🔗 Navigation Properties
+        [ForeignKey("RoleId")]
         public Role Role { get; set; }
+
+        [ForeignKey("PermissionId")]
         public Permission Permission { get; set; }
     }
 }
