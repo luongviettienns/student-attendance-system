@@ -4,10 +4,11 @@ angular.module("eduApp")
    🔹 AUTH SERVICE – Quản lý đăng nhập, token, refresh, logout, user info & menu
 ============================================================ */
 .factory("AuthService", function ($http, $window, $q, $rootScope) {
+
     /* ============================================================
-       ⚙️ BASE CONFIG (Gateway + API)
+       ⚙️ BASE CONFIG
     ============================================================ */
-    const BASE_URL = "https://localhost:7033/api-edu"; // ✅ cấu hình tập trung
+    const BASE_URL = "https://localhost:7033/api-edu"; // ✅ Gateway URL
     const apiAuth = BASE_URL + "/auth";
     const apiMenu = BASE_URL + "/admin/menu";
 
@@ -35,16 +36,27 @@ angular.module("eduApp")
             headers: { "Content-Type": "application/json" }
         })
         .then(function (res) {
-            const data = res.data;
+            const data = res.data?.data || res.data; // Một số API trả {data: {...}}
+
             if (data && data.token) {
                 const storage = rememberMe ? $window.localStorage : $window.sessionStorage;
                 storage.setItem("token", data.token);
                 storage.setItem("refreshToken", data.refreshToken);
                 storage.setItem("refreshTokenExpiry", data.refreshTokenExpiry);
 
+                // ✅ Chuẩn hóa avatarUrl
                 let avatarUrl = data.avatarUrl;
-                if (avatarUrl && avatarUrl.startsWith("/uploads"))
-                    avatarUrl = BASE_URL.replace("/api-edu", "") + avatarUrl;
+
+                // Nếu BE trả tương đối (/avatars/user-001.png) → ghép vào host Gateway
+                if (avatarUrl && avatarUrl.startsWith("/avatars")) {
+                    const gatewayOrigin = BASE_URL.replace("/api-edu", "");
+                    avatarUrl = gatewayOrigin + avatarUrl;
+                }
+
+                // Nếu BE không có avatar → dùng ảnh mặc định
+                if (!avatarUrl || avatarUrl.trim() === "") {
+                    avatarUrl = BASE_URL.replace("/api-edu", "") + "/avatars/default.png";
+                }
 
                 const user = {
                     userId: data.userId,
@@ -52,13 +64,14 @@ angular.module("eduApp")
                     fullName: data.fullName,
                     email: data.email,
                     role: data.role,
-                    avatarUrl: avatarUrl || null
+                    avatarUrl: avatarUrl
                 };
                 storage.setItem("currentUser", JSON.stringify(user));
 
                 $rootScope.isAuthenticated = true;
                 $rootScope.$broadcast("auth:login", user);
             }
+
             return data;
         })
         .catch(err => {
@@ -94,7 +107,7 @@ angular.module("eduApp")
             })
             .catch(err => {
                 console.error("❌ Refresh token failed:", err);
-                clearAllStorage(); // ✅ Clear token khi refresh lỗi
+                clearAllStorage();
                 $rootScope.isAuthenticated = false;
                 return $q.reject(err);
             });
@@ -108,12 +121,11 @@ angular.module("eduApp")
         const token = auth.getToken();
         const config = token ? { headers: { Authorization: "Bearer " + token } } : {};
 
-        // ✅ Gom logic clear ra hàm riêng
         const doClear = () => {
             clearAllStorage();
             $rootScope.isAuthenticated = false;
             $rootScope.$broadcast("auth:logout");
-            sessionStorage.setItem("justLoggedOut", "true"); // ✅ flag hiển thị toast
+            sessionStorage.setItem("justLoggedOut", "true");
             $window.location.href = "#/login";
         };
 
@@ -138,34 +150,20 @@ angular.module("eduApp")
 
     auth.isAuthenticated = () => !!auth.getToken();
 
-    // 🔹 Lấy thông tin user
     auth.getUser = function () {
         const raw = getStorage().getItem("currentUser");
         try { return JSON.parse(raw); } catch { return null; }
     };
 
-    // 🔹 Ghi lại thông tin user (sau khi cập nhật hồ sơ)
     auth.setUser = function (user) {
         const storage = getStorage();
         storage.setItem("currentUser", JSON.stringify(user));
         $rootScope.$broadcast("auth:userUpdated", user);
     };
 
-    // 🔹 Lấy các field cơ bản
-    auth.getFullName = function () {
-        const user = auth.getUser();
-        return user ? user.fullName : null;
-    };
-
-    auth.getRole = function () {
-        const user = auth.getUser();
-        return user ? user.role : null;
-    };
-
-    auth.getAvatarUrl = function () {
-        const user = auth.getUser();
-        return user ? user.avatarUrl : null;
-    };
+    auth.getFullName = () => (auth.getUser()?.fullName ?? null);
+    auth.getRole = () => (auth.getUser()?.role ?? null);
+    auth.getAvatarUrl = () => (auth.getUser()?.avatarUrl ?? null);
 
     auth.getAuthHeader = () => {
         const t = auth.getToken();
@@ -173,21 +171,16 @@ angular.module("eduApp")
     };
 
     /* ============================================================
-       📚 LẤY DANH SÁCH MENU (theo vai trò người dùng)
+       📚 LẤY MENU THEO VAI TRÒ
     ============================================================ */
     auth.getMenus = function() {
         return $http.get(apiMenu, { headers: auth.getAuthHeader() })
             .then(function(res) {
-                if (Array.isArray(res.data)) {
-                    return res.data;
-                } else if (Array.isArray(res.data.data)) {
-                    return res.data.data;
-                } else if (Array.isArray(res.data.menus)) {
-                    return res.data.menus;
-                } else {
-                    console.warn("⚠️ Menu API không trả về dạng mảng:", res.data);
-                    return [];
-                }
+                if (Array.isArray(res.data)) return res.data;
+                if (Array.isArray(res.data.data)) return res.data.data;
+                if (Array.isArray(res.data.menus)) return res.data.menus;
+                console.warn("⚠️ Menu API không trả về dạng mảng:", res.data);
+                return [];
             })
             .catch(function(err) {
                 console.error("❌ Lỗi khi lấy menu:", err);
@@ -196,16 +189,11 @@ angular.module("eduApp")
     };
 
     /* ============================================================
-       🚦 HỖ TRỢ: Xác định route sau đăng nhập theo role
+       🚦 HỖ TRỢ: Redirect sau đăng nhập
     ============================================================ */
     auth.redirectAfterLogin = function(role) {
-        switch ((role || "").toLowerCase()) {
-            case "admin": return "main.welcome";
-            case "teacher": return "main.teacher";
-            case "student": return "main.student";
-            case "advisor": return "main.advisor";
-            default: return "login";
-        }
+        // Có thể tùy chỉnh theo vai trò sau này
+        return "main.welcome";
     };
 
     return auth;

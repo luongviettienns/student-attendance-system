@@ -23,12 +23,7 @@
   <!-- ========== CSS ========== -->
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/toast.css" />
-  <link rel="stylesheet" href="css/login.css" />
-  <link rel="stylesheet" href="css/main.css" />
-  <link rel="stylesheet" href="css/profile.css" />
-  <link rel="stylesheet" href="css/account.css" />
 </head>
-
 <body class="app-body">
   <!-- View chính -->
   <div ui-view></div>
@@ -69,12 +64,5 @@
 <script src="controllers/ProfileController.js"></script>
 <script src="controllers/AdminCtrl/account.js"></script>
 
-
-  <!-- ========== TOAST GLOBAL ACCESS ========== -->
-  <script>
-    angular.module("eduApp").run(function ($rootScope, ToastService) {
-      $rootScope.ToastService = ToastService;
-    });
-  </script>
 </body>
 </html>
