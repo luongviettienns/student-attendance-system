@@ -1,4 +1,5 @@
 ﻿using EducationManagement.DAL;
+using EducationManagement.DAL.Repositories;
 using EducationManagement.BLL.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -26,11 +27,28 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 );
 
 // ======================================================
-// 🧩 3️⃣ Register BLL Services (Dependency Injection)
+// 🧩 3️⃣ Register BLL Services & Repositories (Dependency Injection)
 // ======================================================
+
+// 🔐 Auth & JWT
 builder.Services.AddScoped<IRefreshTokenStore, InMemoryRefreshTokenStore>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<JwtService>();
+
+// 📘 Danh mục học vụ
+builder.Services.AddScoped<AcademicYearRepository>();
+builder.Services.AddScoped<AcademicYearService>();
+
+builder.Services.AddScoped<FacultyRepository>();
+builder.Services.AddScoped<FacultyService>();
+
+builder.Services.AddScoped<MajorRepository>();
+builder.Services.AddScoped<MajorService>();
+
+// 🧑‍🏫 Giảng viên & Bộ môn
+builder.Services.AddScoped<DepartmentRepository>();
+builder.Services.AddScoped<LecturerRepository>();
+builder.Services.AddScoped<LecturerService>();
 
 // ======================================================
 // 🧩 4️⃣ CORS Configuration
@@ -55,6 +73,9 @@ builder.Services.AddCors(options =>
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.RequireHttpsMetadata = false; // Cho phép test local
+        options.SaveToken = true;
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -66,7 +87,36 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"])
-            )
+            ),
+
+            // Token hết hạn đúng giờ, không cộng thêm 5 phút mặc định
+            ClockSkew = TimeSpan.Zero
+        };
+
+        // 🔹 Ghi log khi JWT gặp lỗi hoặc xác thực thành công
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"❌ JWT Auth failed: {context.Exception.Message}");
+                Console.ResetColor();
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.WriteLine($"✅ Token hợp lệ cho user: {context.Principal?.Identity?.Name}");
+                Console.ResetColor();
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"⚠️ JWT challenge: {context.ErrorDescription}");
+                Console.ResetColor();
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -78,7 +128,7 @@ builder.Services.AddAuthorization();
 var app = builder.Build();
 
 // ======================================================
-// 🧩 7️⃣ Swagger (chỉ bật khi Development)
+// 🧩 7️⃣ Swagger (bật khi Development)
 // ======================================================
 if (app.Environment.IsDevelopment())
 {
@@ -98,7 +148,7 @@ var avatarRootPath = Path.Combine(
 if (!Directory.Exists(avatarRootPath))
     Directory.CreateDirectory(avatarRootPath);
 
-// ⚙️ Đăng ký middleware phục vụ ảnh tĩnh (đặt TRƯỚC UseRouting / UseCors / Auth)
+// ⚙️ Đăng ký middleware phục vụ ảnh tĩnh
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(avatarRootPath),
@@ -110,11 +160,9 @@ Console.WriteLine($"🖼️ Avatar static files served from: {avatarRootPath}");
 // ======================================================
 // 🧩 9️⃣ Middleware Pipeline
 // ======================================================
-
-// ⚙️ HTTPS (tuỳ bạn có dùng hay không)
 app.UseHttpsRedirection();
 
-app.UseRouting();          // 👈 Thêm dòng này trước các middleware khác
+app.UseRouting();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();

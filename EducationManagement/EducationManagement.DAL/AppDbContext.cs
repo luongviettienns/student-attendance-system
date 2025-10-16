@@ -11,18 +11,28 @@ namespace EducationManagement.DAL
         {
         }
 
-        // ==============================
-        // 🔹 Các DbSet (bảng chính)
-        // ==============================
+        // ==========================================================
+        // 🔹 HỆ THỐNG NGƯỜI DÙNG & PHÂN QUYỀN
+        // ==========================================================
         public DbSet<User> Users { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<RolePermission> RolePermissions { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
 
-        // ==============================
-        // 🔹 Cấu hình mối quan hệ
-        // ==============================
+        // ==========================================================
+        // 🔹 DANH MỤC QUẢN LÝ ĐÀO TẠO
+        // ==========================================================
+        public DbSet<AcademicYear> AcademicYears { get; set; }
+        public DbSet<Faculty> Faculties { get; set; }
+        public DbSet<Lecturer> Lecturers { get; set; }
+        public DbSet<Major> Majors { get; set; }
+        public DbSet<Subject> Subjects { get; set; }
+        public DbSet<Department> Departments { get; set; }
+
+        // ==========================================================
+        // 🔹 CẤU HÌNH MỐI QUAN HỆ
+        // ==========================================================
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -56,25 +66,23 @@ namespace EducationManagement.DAL
             // ===== ROLE_PERMISSIONS =====
             modelBuilder.Entity<RolePermission>(entity =>
             {
-                entity.ToTable("RolePermissions");
-
-                // Khóa chính riêng biệt
+                entity.ToTable("role_permissions");
                 entity.HasKey(rp => rp.RolePermissionId);
 
-                // Quan hệ Role → RolePermissions
                 entity.HasOne(rp => rp.Role)
                       .WithMany()
                       .HasForeignKey(rp => rp.RoleId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                // Quan hệ Permission → RolePermissions
                 entity.HasOne(rp => rp.Permission)
                       .WithMany()
                       .HasForeignKey(rp => rp.PermissionId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // ===== SEED DỮ LIỆU ROLE CƠ BẢN =====
+            // ======================================================
+            // 🔹 SEED DỮ LIỆU ROLE CƠ BẢN
+            // ======================================================
             modelBuilder.Entity<Role>().HasData(
                 new Role
                 {
