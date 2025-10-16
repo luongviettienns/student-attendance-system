@@ -856,3 +856,101 @@ SET SortOrder = CASE
 END;
 
 Select * from users;
+
+
+ 
+IF OBJECT_ID('dbo.departments', 'U') IS NOT NULL
+    DROP TABLE dbo.departments;
+GO
+
+CREATE TABLE dbo.departments (
+    department_id   VARCHAR(50) NOT NULL PRIMARY KEY,
+    department_code VARCHAR(20) NOT NULL UNIQUE,
+    department_name NVARCHAR(200) NOT NULL,
+    faculty_id      VARCHAR(50) NOT NULL,              -- 🔗 FK tới faculties
+    description     NVARCHAR(255) NULL,
+
+    -- Audit
+    created_at      DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by      VARCHAR(50) NULL,
+    updated_at      DATETIME NULL,
+    updated_by      VARCHAR(50) NULL,
+    is_active       BIT NOT NULL DEFAULT 1,
+    deleted_at      DATETIME NULL,
+    deleted_by      VARCHAR(50) NULL,
+
+    CONSTRAINT FK_departments_faculty FOREIGN KEY (faculty_id)
+        REFERENCES dbo.faculties(faculty_id)
+);
+GO
+
+-- Seed dữ liệu bộ môn
+INSERT INTO dbo.departments (department_id, department_code, department_name, faculty_id, created_by)
+VALUES
+('dep-001', 'CS-BASE', N'Công nghệ phần mềm', 'fac-001', 'system'),
+('dep-002', 'CS-NET',  N'Mạng máy tính', 'fac-001', 'system'),
+('dep-003', 'ENG-LING',N'Ngôn ngữ học ứng dụng', 'fac-002', 'system');
+GO
+
+-- Nếu có bảng lecturers
+ALTER TABLE dbo.lecturers
+ADD CONSTRAINT FK_lecturers_departments FOREIGN KEY (department_id)
+REFERENCES dbo.departments(department_id);
+
+-- Nếu có bảng subjects
+ALTER TABLE dbo.subjects
+ADD CONSTRAINT FK_subjects_departments FOREIGN KEY (department_id)
+REFERENCES dbo.departments(department_id);
+GO
+
+IF OBJECT_ID('dbo.lecturers', 'U') IS NOT NULL
+    DROP TABLE dbo.lecturers;
+GO
+
+CREATE TABLE dbo.lecturers (
+    lecturer_id     VARCHAR(50) NOT NULL PRIMARY KEY,
+    user_id         VARCHAR(50) NOT NULL UNIQUE,          -- 🔗 FK tới users
+    department_id   VARCHAR(50) NOT NULL,                 -- 🔗 FK tới departments
+    academic_title  NVARCHAR(100) NULL,                   -- Học hàm (PGS, GS, TS...)
+    degree          NVARCHAR(100) NULL,                   -- Học vị (ThS, TS...)
+    specialization  NVARCHAR(255) NULL,                   -- Chuyên ngành
+    position        NVARCHAR(100) NULL,                   -- Chức vụ (Trưởng BM, Giảng viên chính,...)
+    join_date       DATE NULL,                            -- Ngày vào trường
+    is_active       BIT NOT NULL DEFAULT 1,
+
+    -- Audit
+    created_at      DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by      VARCHAR(50) NULL,
+    updated_at      DATETIME NULL,
+    updated_by      VARCHAR(50) NULL,
+    deleted_at      DATETIME NULL,
+    deleted_by      VARCHAR(50) NULL,
+
+    CONSTRAINT FK_lecturers_users FOREIGN KEY (user_id) REFERENCES dbo.users(user_id),
+    CONSTRAINT FK_lecturers_departments FOREIGN KEY (department_id) REFERENCES dbo.departments(department_id)
+);
+GO
+
+-- Seed dữ liệu mẫu giảng viên
+INSERT INTO dbo.lecturers (lecturer_id, user_id, department_id, academic_title, degree, specialization, position, join_date, created_by)
+VALUES
+('lec-001', 'user-001', 'dep-001', N'TS.', N'Tiến sĩ', N'Phát triển phần mềm', N'Trưởng bộ môn', '2020-08-15', 'system');
+GO
+
+ALTER TABLE dbo.subjects
+ADD CONSTRAINT FK_subjects_departments FOREIGN KEY (department_id)
+REFERENCES dbo.departments(department_id);
+GO
+-- Gán các môn thuộc Khoa CNTT vào Bộ môn "Công nghệ phần mềm"
+UPDATE dbo.subjects
+SET department_id = 'dep-001'
+WHERE subject_code LIKE 'CS%';
+
+-- Gán các môn thuộc Khoa Ngoại ngữ vào Bộ môn "Ngôn ngữ học ứng dụng"
+UPDATE dbo.subjects
+SET department_id = 'dep-003'
+WHERE subject_code LIKE 'ENG%';
+GO
+SELECT subject_code, subject_name, department_id
+FROM dbo.subjects;
+

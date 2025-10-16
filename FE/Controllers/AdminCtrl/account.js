@@ -166,6 +166,6 @@ angular.module("eduApp").controller("AccountController", function ($scope, $http
   /* ============================================================
      🔹 KHỞI TẠO
   ============================================================ */
-  $scope.loadRoles();
+  $scope.loadRoles(); 
   $scope.loadUsers();
 });
