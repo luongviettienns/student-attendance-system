@@ -1,5 +1,5 @@
 angular.module("eduApp").controller("AccountController", function (
-  $scope, $http, $timeout, AuthService, ToastService
+  $scope, $http, AuthService, ToastService
 ) {
   const gatewayBase = "https://localhost:7033"; // ✅ Gateway HTTPS
   const apiUsers = `${gatewayBase}/api-edu/account-management`;
@@ -26,6 +26,7 @@ angular.module("eduApp").controller("AccountController", function (
   $scope.loadUsers = async () => {
     $scope.loading = true;
     $scope.users = [];
+
     const params = {
       page: $scope.pagination.page,
       pageSize: $scope.pagination.pageSize,
@@ -39,25 +40,14 @@ angular.module("eduApp").controller("AccountController", function (
         headers: AuthService.getAuthHeader(),
         params
       });
+
       $scope.users = res.data.data || [];
       $scope.pagination = res.data.pagination || $scope.pagination;
-
-      // ✅ Hiệu ứng fade-in từng dòng
-      $timeout(() => {
-        angular.element(".account-table tbody tr").each(function (i, el) {
-          el.style.opacity = 0;
-          el.style.transform = "translateY(10px)";
-          setTimeout(() => {
-            el.style.transition = "all 0.35s ease";
-            el.style.opacity = 1;
-            el.style.transform = "translateY(0)";
-          }, i * 80);
-        });
-      }, 100);
 
       $scope.totalUsers = $scope.pagination.totalCount || $scope.users.length;
       $scope.activeUsers = $scope.users.filter(u => u.isActive).length;
       $scope.inactiveUsers = $scope.users.filter(u => !u.isActive).length;
+
     } catch (err) {
       console.error("❌ Lỗi tải danh sách người dùng:", err);
       ToastService.error("Không thể tải danh sách người dùng");
@@ -100,7 +90,15 @@ angular.module("eduApp").controller("AccountController", function (
   ============================================================ */
   $scope.openAddUser = () => {
     $scope.isEdit = false;
-    $scope.formData = { username: "", password: "", fullName: "", email: "", phone: "", roleId: "", isActive: "true" };
+    $scope.formData = { 
+      username: "", 
+      password: "", 
+      fullName: "", 
+      email: "", 
+      phone: "", 
+      roleId: "", 
+      isActive: "true" 
+    };
     $scope.showModal = true;
   };
 
@@ -112,7 +110,9 @@ angular.module("eduApp").controller("AccountController", function (
     $scope.showModal = true;
   };
 
-  $scope.closeModal = () => { $scope.showModal = false; };
+  $scope.closeModal = () => { 
+    $scope.showModal = false; 
+  };
 
   /* ============================================================
      🔹 SAVE (CREATE / UPDATE)

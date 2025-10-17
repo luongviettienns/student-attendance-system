@@ -4,7 +4,7 @@
         // 🔹 AUTH SERVICE (Login / Refresh / Logout)
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/auth/{everything}",
+            "DownstreamPathTemplate": "/api-edu/auth/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -20,7 +20,7 @@
         // 🔹 USER SERVICE (Profile / Update Avatar)
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/users/{everything}",
+            "DownstreamPathTemplate": "/api-edu/users/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -37,10 +37,26 @@
         },
 
         // ============================================================
-        // 🔹 MENU SERVICE
+        // 🔹 MENU SERVICE (có & không có {everything})
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/menu/{everything}",
+            "DownstreamPathTemplate": "/api-edu/menu",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7299
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/menu",
+            "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+        {
+            "DownstreamPathTemplate": "/api-edu/menu/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -57,10 +73,26 @@
         },
 
         // ============================================================
-        // 🔹 ROLES MANAGEMENT
+        // 🔹 ROLES MANAGEMENT (có & không có {everything})
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/roles/{everything}",
+            "DownstreamPathTemplate": "/api-edu/roles",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7299
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/roles",
+            "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+        {
+            "DownstreamPathTemplate": "/api-edu/roles/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -77,10 +109,26 @@
         },
 
         // ============================================================
-        // 🔹 ACCOUNT MANAGEMENT
+        // 🔹 ACCOUNT MANAGEMENT (có & không có {everything})
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/account-management/{everything}",
+            "DownstreamPathTemplate": "/api-edu/account-management",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7299
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/account-management",
+            "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+        {
+            "DownstreamPathTemplate": "/api-edu/account-management/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -100,7 +148,7 @@
         // 🔹 ROLE-PERMISSION MANAGEMENT
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/role-permissions/{everything}",
+            "DownstreamPathTemplate": "/api-edu/role-permissions/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -120,7 +168,7 @@
         // 🔹 ACADEMIC YEARS
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/academic-years/{everything}",
+            "DownstreamPathTemplate": "/api-edu/academic-years/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -140,7 +188,7 @@
         // 🔹 FACULTIES
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/faculties/{everything}",
+            "DownstreamPathTemplate": "/api-edu/faculties/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -160,7 +208,7 @@
         // 🔹 LECTURERS
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/lecturers/{everything}",
+            "DownstreamPathTemplate": "/api-edu/lecturers/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -180,7 +228,7 @@
         // 🔹 MAJORS
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/majors/{everything}",
+            "DownstreamPathTemplate": "/api-edu/majors/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -200,7 +248,7 @@
         // 🔹 SUBJECTS
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/subjects/{everything}",
+            "DownstreamPathTemplate": "/api-edu/subjects/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {

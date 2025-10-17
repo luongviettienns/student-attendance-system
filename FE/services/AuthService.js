@@ -33,20 +33,24 @@ angular.module("eduApp")
             headers: { "Content-Type": "application/json" }
         })
         .then(res => {
+            // ✅ BE trả { data: {...} }
             const data = res.data?.data || res.data;
             if (!data?.token) return $q.reject({ message: "Phản hồi không hợp lệ từ máy chủ" });
 
+            // ✅ Lưu token vào localStorage hoặc sessionStorage
             const storage = rememberMe ? $window.localStorage : $window.sessionStorage;
             storage.setItem("token", data.token);
             if (data.refreshToken) storage.setItem("refreshToken", data.refreshToken);
             if (data.refreshTokenExpiry) storage.setItem("refreshTokenExpiry", data.refreshTokenExpiry);
 
-            // ✅ Avatar URL chuẩn hóa
+            // ✅ Avatar URL đã được BE trả đầy đủ → chỉ fallback nếu thiếu
             let avatarUrl = data.avatarUrl;
-            const gatewayOrigin = BASE_URL.replace("/api-edu", "");
-            if (!avatarUrl || !avatarUrl.trim()) avatarUrl = `${gatewayOrigin}/avatars/default.png`;
-            else if (avatarUrl.startsWith("/avatars")) avatarUrl = gatewayOrigin + avatarUrl;
+            if (!avatarUrl || !avatarUrl.trim()) {
+                const gatewayOrigin = BASE_URL.replace("/api-edu", "");
+                avatarUrl = `${gatewayOrigin}/avatars/default.png`;
+            }
 
+            // ✅ Lưu thông tin user
             const user = {
                 userId: data.userId,
                 username: data.username,
@@ -63,7 +67,7 @@ angular.module("eduApp")
         })
         .catch(err => {
             console.error("❌ Login failed:", err);
-            const message = err?.data?.message || "Sai tài khoản hoặc mật khẩu";
+            const message = err?.data?.message || err?.response?.data?.message || "Sai tài khoản hoặc mật khẩu";
             return $q.reject({ message });
         });
 
@@ -76,8 +80,8 @@ angular.module("eduApp")
 
         return $http.post(`${apiAuth}/refresh`, { refreshToken })
             .then(res => {
-                const data = res.data;
-                if (!data?.token) return $q.reject("Invalid refresh response");
+                const data = res.data?.data || res.data;
+                if (!data?.token) return $q.reject("Phản hồi refresh không hợp lệ");
 
                 const storage = getStorage();
                 setItem("token", data.token);
@@ -166,7 +170,19 @@ angular.module("eduApp")
     // ============================================================
     // 🚦 REDIRECT SAU LOGIN
     // ============================================================
-    auth.redirectAfterLogin = role => "main.welcome";
+    auth.redirectAfterLogin = role => {
+        role = (role || "").toLowerCase();
+        switch (role) {
+            case "admin":
+                return "main.dashboard";
+            case "lecturer":
+                return "main.lecturer";
+            case "student":
+                return "main.student";
+            default:
+                return "main.welcome";
+        }
+    };
 
     return auth;
 });
