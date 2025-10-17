@@ -24,7 +24,7 @@ namespace EducationManagement.API.Admin.Controllers
             _context = context;
             _authService = authService;
 
-            // ✅ Tự động tìm thư mục Avatar_User ở gốc solution
+            // ✅ Xác định thư mục Avatar_User ở gốc solution
             var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
             _avatarFolder = Path.Combine(solutionRoot, "Avatar_User");
 
@@ -64,7 +64,22 @@ namespace EducationManagement.API.Admin.Controllers
                 .OrderByDescending(u => u.CreatedAt)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(u => new UserListDto
+                .ToListAsync();
+
+            // ✅ Chuẩn hóa đường dẫn avatar trước khi trả về
+            var result = users.Select(u =>
+            {
+                string avatarPath = string.IsNullOrEmpty(u.AvatarUrl)
+                    ? "/avatars/default.png"
+                    : u.AvatarUrl;
+
+                // Kiểm tra file có tồn tại không
+                var relative = avatarPath.TrimStart('/');
+                var physicalPath = Path.Combine(_avatarFolder, relative.Replace('/', Path.DirectorySeparatorChar));
+                if (!System.IO.File.Exists(physicalPath))
+                    avatarPath = "/avatars/default.png";
+
+                return new UserListDto
                 {
                     UserId = u.UserId,
                     Username = u.Username,
@@ -72,20 +87,20 @@ namespace EducationManagement.API.Admin.Controllers
                     Email = u.Email,
                     Phone = u.Phone,
                     RoleId = u.RoleId,
-                    RoleName = u.Role.RoleName,
-                    AvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), u.AvatarUrl),
+                    RoleName = u.Role?.RoleName,
+                    AvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), avatarPath),
                     IsActive = u.IsActive,
                     LastLoginAt = u.LastLoginAt,
                     CreatedAt = u.CreatedAt,
                     CreatedBy = u.CreatedBy,
                     UpdatedAt = u.UpdatedAt,
                     UpdatedBy = u.UpdatedBy
-                })
-                .ToListAsync();
+                };
+            });
 
             return Ok(new
             {
-                data = users,
+                data = result,
                 pagination = new
                 {
                     page,
@@ -106,6 +121,15 @@ namespace EducationManagement.API.Admin.Controllers
             if (user == null)
                 return NotFound(new { message = "Không tìm thấy người dùng" });
 
+            string avatarPath = string.IsNullOrEmpty(user.AvatarUrl)
+                ? "/avatars/default.png"
+                : user.AvatarUrl;
+
+            var relative = avatarPath.TrimStart('/');
+            var physicalPath = Path.Combine(_avatarFolder, relative.Replace('/', Path.DirectorySeparatorChar));
+            if (!System.IO.File.Exists(physicalPath))
+                avatarPath = "/avatars/default.png";
+
             var userDto = new UserListDto
             {
                 UserId = user.UserId,
@@ -115,7 +139,7 @@ namespace EducationManagement.API.Admin.Controllers
                 Phone = user.Phone,
                 RoleId = user.RoleId,
                 RoleName = user.Role.RoleName,
-                AvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), user.AvatarUrl),
+                AvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), avatarPath),
                 IsActive = user.IsActive,
                 LastLoginAt = user.LastLoginAt,
                 CreatedAt = user.CreatedAt,
@@ -154,7 +178,8 @@ namespace EducationManagement.API.Admin.Controllers
                 Phone = request.Phone,
                 RoleId = request.RoleId,
                 IsActive = request.IsActive,
-                AvatarUrl = "/avatars/default.png", // ✅ Ảnh mặc định
+                // ✅ Ảnh mặc định luôn tồn tại
+                AvatarUrl = "/avatars/default.png",
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUserId
             };

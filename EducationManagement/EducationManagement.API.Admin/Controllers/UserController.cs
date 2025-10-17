@@ -63,19 +63,20 @@ namespace EducationManagement.API.Admin.Controllers
             user.UpdatedAt = DateTime.UtcNow;
             user.UpdatedBy = userId;
 
-            // ✅ Xác định thư mục Avatar_User động theo solution gốc
+            // ✅ Xác định thư mục Avatar_User/uploads/avatars
             var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
-            var avatarFolder = Path.Combine(solutionRoot, "Avatar_User");
+            var avatarRoot = Path.Combine(solutionRoot, "Avatar_User");
+            var uploadPath = Path.Combine(avatarRoot, "uploads", "avatars");
 
-            if (!Directory.Exists(avatarFolder))
-                Directory.CreateDirectory(avatarFolder);
+            if (!Directory.Exists(uploadPath))
+                Directory.CreateDirectory(uploadPath);
 
             // ✅ Xử lý upload avatar mới
             if (request.Avatar != null && request.Avatar.Length > 0)
             {
                 var extension = Path.GetExtension(request.Avatar.FileName).ToLower();
                 var fileName = $"{user.UserId}{extension}";
-                var filePath = Path.Combine(avatarFolder, fileName);
+                var filePath = Path.Combine(uploadPath, fileName);
 
                 // Xóa file cũ nếu tồn tại
                 if (System.IO.File.Exists(filePath))
@@ -90,13 +91,17 @@ namespace EducationManagement.API.Admin.Controllers
                 }
 
                 // ✅ Lưu đường dẫn public (đúng với RequestPath = "/avatars")
-                user.AvatarUrl = $"/avatars/{fileName}";
+                user.AvatarUrl = $"/avatars/uploads/avatars/{fileName}";
             }
 
             await _context.SaveChangesAsync();
 
             // ✅ Tạo URL đầy đủ để FE hiển thị đúng port Gateway
-            var fullAvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), user.AvatarUrl);
+            var fullAvatarUrl = FileHelper.BuildFullAvatarUrl(
+                Request.Scheme,
+                Request.Host.ToString(),
+                user.AvatarUrl ?? "/avatars/default.png"
+            );
 
             return Ok(new
             {
@@ -119,17 +124,21 @@ namespace EducationManagement.API.Admin.Controllers
         #region 📌 Helper: Map entity → DTO
         private UserResponseDto MapToDto(User user)
         {
-            // ✅ Chuẩn hóa đường dẫn cũ (nếu còn /uploads/avatars)
             string relativePath = user.AvatarUrl;
 
-            if (!string.IsNullOrEmpty(relativePath))
+            // 🔹 Nếu không có hoặc file bị xóa → fallback default.png
+            if (string.IsNullOrEmpty(relativePath))
             {
-                if (relativePath.Contains("/uploads/avatars"))
-                    relativePath = relativePath.Replace("/uploads/avatars", "/avatars");
+                relativePath = "/avatars/default.png";
             }
             else
             {
-                relativePath = "/avatars/default.png";
+                var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
+                var avatarRoot = Path.Combine(solutionRoot, "Avatar_User");
+                var physicalPath = Path.Combine(avatarRoot, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+
+                if (!System.IO.File.Exists(physicalPath))
+                    relativePath = "/avatars/default.png";
             }
 
             return new UserResponseDto

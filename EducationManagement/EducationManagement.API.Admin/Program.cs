@@ -137,7 +137,7 @@ if (app.Environment.IsDevelopment())
 }
 
 // ======================================================
-// 🧩 8️⃣ Serve Static Files (Ảnh avatar - dùng đường dẫn tương đối)
+// 🧩 8️⃣ Serve Static Files (Ảnh avatar)
 // ======================================================
 
 // 📁 Tạo đường dẫn tương đối tới thư mục Avatar_User (ở cùng cấp solution)
@@ -150,11 +150,29 @@ var avatarRootPath = Path.Combine(
 if (!Directory.Exists(avatarRootPath))
     Directory.CreateDirectory(avatarRootPath);
 
+// 🔹 Middleware fallback về default.png nếu file không tồn tại
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/avatars"))
+    {
+        var relativePath = context.Request.Path.Value.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var fullPath = Path.Combine(avatarRootPath, relativePath);
+
+        if (!File.Exists(fullPath))
+        {
+            Console.WriteLine($"⚠️ File không tồn tại: {fullPath}. Dùng default.png");
+            context.Request.Path = "/avatars/default.png";
+        }
+    }
+
+    await next();
+});
+
 // ⚙️ Đăng ký middleware phục vụ ảnh tĩnh
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(avatarRootPath),
-    RequestPath = "/avatars" // Truy cập qua: https://localhost:7299/avatars/ten-file.jpg
+    RequestPath = "/avatars" // Truy cập qua: https://localhost:7299/avatars/...
 });
 
 Console.WriteLine($"🖼️ Avatar static files served from: {avatarRootPath}");

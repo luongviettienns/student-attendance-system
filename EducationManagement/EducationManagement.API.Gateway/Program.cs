@@ -4,6 +4,7 @@ using Microsoft.Extensions.FileProviders;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using System.Text;
+using System.IO;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,12 +40,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnAuthenticationFailed = context =>
             {
+                Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"❌ JWT Authentication Failed: {context.Exception.Message}");
+                Console.ResetColor();
                 return Task.CompletedTask;
             },
             OnTokenValidated = context =>
             {
+                Console.ForegroundColor = ConsoleColor.Green;
                 Console.WriteLine($"✅ Token Valid: {context.Principal.Identity?.Name}");
+                Console.ResetColor();
                 return Task.CompletedTask;
             }
         };
@@ -96,10 +101,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // ============================================================
-// 🧩 7️⃣ Static Files – phục vụ ảnh avatar (dùng thư mục gốc solution)
+// 🧩 7️⃣ Static Files – phục vụ ảnh avatar (Avatar_User/uploads/avatars/...)
 // ============================================================
 
-// 📂 Xác định thư mục Avatar_User tự động, không hard-code đường dẫn
+// 📂 Xác định thư mục Avatar_User tự động (ở cùng cấp solution)
 var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
 var avatarFolder = Path.Combine(solutionRoot, "Avatar_User");
 
@@ -107,6 +112,25 @@ var avatarFolder = Path.Combine(solutionRoot, "Avatar_User");
 if (!Directory.Exists(avatarFolder))
     Directory.CreateDirectory(avatarFolder);
 
+// 🔹 Middleware fallback: nếu ảnh không tồn tại → dùng default.png
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/avatars"))
+    {
+        var relativePath = context.Request.Path.Value.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var filePath = Path.Combine(avatarFolder, relativePath);
+
+        if (!File.Exists(filePath))
+        {
+            Console.WriteLine($"⚠️ Ảnh không tồn tại: {filePath}. Trả về default.png");
+            context.Request.Path = "/avatars/default.png";
+        }
+    }
+
+    await next();
+});
+
+// ⚙️ Đăng ký middleware phục vụ file tĩnh
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(avatarFolder),
@@ -123,5 +147,8 @@ await app.UseOcelot();
 // ============================================================
 // ✅ 9️⃣ Run
 // ============================================================
+Console.ForegroundColor = ConsoleColor.Cyan;
 Console.WriteLine("🚀 Gateway started at https://localhost:7033");
+Console.ResetColor();
+
 app.Run();
