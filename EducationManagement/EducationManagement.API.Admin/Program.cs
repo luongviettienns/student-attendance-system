@@ -137,10 +137,12 @@ if (app.Environment.IsDevelopment())
 }
 
 // ======================================================
-// 🧩 8️⃣ Serve Static Files (Ảnh avatar)
+// 🧩 8️⃣ Serve Static Files (Ảnh avatar - dùng đường dẫn tương đối)
 // ======================================================
+
+// 📁 Tạo đường dẫn tương đối tới thư mục Avatar_User (ở cùng cấp solution)
 var avatarRootPath = Path.Combine(
-    @"C:\Users\TK\Desktop\student-attendance-system\EducationManagement",
+    Directory.GetParent(Directory.GetCurrentDirectory())!.FullName,
     "Avatar_User"
 );
 
@@ -152,7 +154,7 @@ if (!Directory.Exists(avatarRootPath))
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(avatarRootPath),
-    RequestPath = "/avatars"
+    RequestPath = "/avatars" // Truy cập qua: https://localhost:7299/avatars/ten-file.jpg
 });
 
 Console.WriteLine($"🖼️ Avatar static files served from: {avatarRootPath}");

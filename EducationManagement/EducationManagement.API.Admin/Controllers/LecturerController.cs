@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using EducationManagement.BLL.Services;
 using EducationManagement.Common.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Route("api/admin/lecturers")]
+    [Authorize(Roles = "Admin")]
+    [Route("api-edu/lecturers")]
     public class LecturerController : ControllerBase
     {
         private readonly LecturerService _service;

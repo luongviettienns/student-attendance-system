@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using EducationManagement.BLL.Services;
 using EducationManagement.Common.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Route("api/admin/academic-years")]
+    [Authorize(Roles = "Admin")]
+    [Route("api-edu/academic-years")]
     public class AcademicYearController : ControllerBase
     {
         private readonly AcademicYearService _service;

@@ -9,16 +9,24 @@ using EducationManagement.Common.Helpers;
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Route("api/auth")]
+    [Route("api-edu/auth")]
     public class AuthController : ControllerBase
     {
         private readonly AuthService _authService;
         private readonly JwtService _jwtService;
+        private readonly string _avatarFolder;
 
         public AuthController(AuthService authService, JwtService jwtService)
         {
             _authService = authService;
             _jwtService = jwtService;
+
+            // ✅ Tự động tìm thư mục Avatar_User tại gốc solution
+            var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
+            _avatarFolder = Path.Combine(solutionRoot, "Avatar_User");
+
+            if (!Directory.Exists(_avatarFolder))
+                Directory.CreateDirectory(_avatarFolder);
         }
 
         #region 🔹 LOGIN (Không cần xác thực)
@@ -44,10 +52,7 @@ namespace EducationManagement.API.Admin.Controllers
             var refreshToken = _jwtService.GenerateRefreshToken();
             await _authService.SaveRefreshTokenAsync(user.UserId, refreshToken);
 
-            // 🔹 Thư mục chứa avatar
-            var avatarFolder = @"C:\Users\TK\Desktop\student-attendance-system\EducationManagement\Avatar_User";
-
-            // 🔹 Lấy đường dẫn vật lý đến ảnh của user
+            // 🔹 Lấy avatar hiện có
             string avatarPath = user.AvatarUrl;
             string fileName = string.IsNullOrEmpty(avatarPath)
                 ? string.Empty
@@ -55,20 +60,19 @@ namespace EducationManagement.API.Admin.Controllers
 
             string physicalPath = string.IsNullOrEmpty(fileName)
                 ? string.Empty
-                : Path.Combine(avatarFolder, fileName);
+                : Path.Combine(_avatarFolder, fileName);
 
-            // 🔹 Nếu không có avatar hoặc file không tồn tại → fallback về default.png
+            // 🔹 Nếu không có avatar hoặc file không tồn tại → dùng default
             if (string.IsNullOrEmpty(fileName) || !System.IO.File.Exists(physicalPath))
             {
                 avatarPath = "/avatars/default.png";
             }
             else
             {
-                // Đảm bảo đường dẫn public khớp /avatars/
                 avatarPath = $"/avatars/{fileName}";
             }
 
-            // 🔹 Tạo URL đầy đủ cho FE
+            // 🔹 Tạo URL đầy đủ cho FE (qua Gateway)
             string fullAvatarUrl = FileHelper.BuildFullAvatarUrl(
                 Request.Scheme,
                 Request.Host.ToString(),

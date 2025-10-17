@@ -37,10 +37,10 @@
         },
 
         // ============================================================
-        // 🔹 ADMIN SERVICE (Roles / Permissions / Users / Menu)
+        // 🔹 MENU SERVICE
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/admin/{everything}",
+            "DownstreamPathTemplate": "/api/menu/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -48,7 +48,7 @@
                     "Port": 7299
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/{everything}",
+            "UpstreamPathTemplate": "/api-edu/menu/{everything}",
             "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
@@ -57,10 +57,10 @@
         },
 
         // ============================================================
-        // 🔹 DANH MỤC ĐÀO TẠO (AcademicYear / Faculty / Lecturer / Major ...)
+        // 🔹 ROLES MANAGEMENT
         // ============================================================
         {
-            "DownstreamPathTemplate": "/api/admin/academic-years/{everything}",
+            "DownstreamPathTemplate": "/api/roles/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -68,15 +68,19 @@
                     "Port": 7299
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/academic-years/{everything}",
+            "UpstreamPathTemplate": "/api-edu/roles/{everything}",
             "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
             }
         },
+
+        // ============================================================
+        // 🔹 ACCOUNT MANAGEMENT
+        // ============================================================
         {
-            "DownstreamPathTemplate": "/api/admin/faculties/{everything}",
+            "DownstreamPathTemplate": "/api/account-management/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -84,15 +88,19 @@
                     "Port": 7299
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/faculties/{everything}",
+            "UpstreamPathTemplate": "/api-edu/account-management/{everything}",
             "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
             }
         },
+
+        // ============================================================
+        // 🔹 ROLE-PERMISSION MANAGEMENT
+        // ============================================================
         {
-            "DownstreamPathTemplate": "/api/admin/lecturers/{everything}",
+            "DownstreamPathTemplate": "/api/role-permissions/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -100,15 +108,19 @@
                     "Port": 7299
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/lecturers/{everything}",
+            "UpstreamPathTemplate": "/api-edu/role-permissions/{everything}",
             "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
             }
         },
+
+        // ============================================================
+        // 🔹 ACADEMIC YEARS
+        // ============================================================
         {
-            "DownstreamPathTemplate": "/api/admin/majors/{everything}",
+            "DownstreamPathTemplate": "/api/academic-years/{everything}",
             "DownstreamScheme": "https",
             "DownstreamHostAndPorts": [
                 {
@@ -116,7 +128,87 @@
                     "Port": 7299
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/majors/{everything}",
+            "UpstreamPathTemplate": "/api-edu/academic-years/{everything}",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+
+        // ============================================================
+        // 🔹 FACULTIES
+        // ============================================================
+        {
+            "DownstreamPathTemplate": "/api/faculties/{everything}",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7299
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/faculties/{everything}",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+
+        // ============================================================
+        // 🔹 LECTURERS
+        // ============================================================
+        {
+            "DownstreamPathTemplate": "/api/lecturers/{everything}",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7299
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/lecturers/{everything}",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+
+        // ============================================================
+        // 🔹 MAJORS
+        // ============================================================
+        {
+            "DownstreamPathTemplate": "/api/majors/{everything}",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7299
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/majors/{everything}",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+
+        // ============================================================
+        // 🔹 SUBJECTS
+        // ============================================================
+        {
+            "DownstreamPathTemplate": "/api/subjects/{everything}",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7299
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/subjects/{everything}",
             "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",

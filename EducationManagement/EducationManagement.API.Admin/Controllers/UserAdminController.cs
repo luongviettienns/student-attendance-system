@@ -12,16 +12,24 @@ namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
     [Authorize(Roles = "Admin")]
-    [Route("api/admin/users")]
+    [Route("api-edu/account-management")]
     public class UserAdminController : ControllerBase
     {
         private readonly AppDbContext _context;
         private readonly AuthService _authService;
+        private readonly string _avatarFolder;
 
         public UserAdminController(AppDbContext context, AuthService authService)
         {
             _context = context;
             _authService = authService;
+
+            // ✅ Tự động tìm thư mục Avatar_User ở gốc solution
+            var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
+            _avatarFolder = Path.Combine(solutionRoot, "Avatar_User");
+
+            if (!Directory.Exists(_avatarFolder))
+                Directory.CreateDirectory(_avatarFolder);
         }
 
         #region 🔹 GET: Danh sách + Chi tiết
@@ -146,8 +154,7 @@ namespace EducationManagement.API.Admin.Controllers
                 Phone = request.Phone,
                 RoleId = request.RoleId,
                 IsActive = request.IsActive,
-                // ✅ Ảnh mặc định theo cấu hình mới
-                AvatarUrl = "/avatars/default.png",
+                AvatarUrl = "/avatars/default.png", // ✅ Ảnh mặc định
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = currentUserId
             };

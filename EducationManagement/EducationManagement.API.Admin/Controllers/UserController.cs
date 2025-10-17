@@ -10,8 +10,7 @@ using EducationManagement.Common.Helpers;
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize]
-    [Route("api/users")]
+    [Route("api-edu/users")]
     public class UserController : ControllerBase
     {
         private readonly IWebHostEnvironment _env;
@@ -64,8 +63,10 @@ namespace EducationManagement.API.Admin.Controllers
             user.UpdatedAt = DateTime.UtcNow;
             user.UpdatedBy = userId;
 
-            // ✅ Thư mục lưu ảnh (giống Program.cs)
-            var avatarFolder = @"C:\Users\TK\Desktop\student-attendance-system\EducationManagement\Avatar_User";
+            // ✅ Xác định thư mục Avatar_User động theo solution gốc
+            var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
+            var avatarFolder = Path.Combine(solutionRoot, "Avatar_User");
+
             if (!Directory.Exists(avatarFolder))
                 Directory.CreateDirectory(avatarFolder);
 

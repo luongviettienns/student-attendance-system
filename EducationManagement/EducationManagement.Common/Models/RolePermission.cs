@@ -4,38 +4,50 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EducationManagement.Common.Models
 {
-    [Table("RolePermissions")] // ⚙️ Đặt đúng tên bảng trong DB (PascalCase)
+    [Table("RolePermissions")] // ✅ Map đúng tên bảng trong SQL Server
     public class RolePermission
     {
         [Key]
         [Column("RolePermissionId")]
+        [Required]
+        [StringLength(50)]
         public string RolePermissionId { get; set; } = Guid.NewGuid().ToString();
 
+        [Required]
         [Column("RoleId")]
-        [Required]
-        public string RoleId { get; set; }
+        [StringLength(50)]
+        public string RoleId { get; set; } = string.Empty;
 
+        [Required]
         [Column("PermissionId")]
-        [Required]
-        public string PermissionId { get; set; }
+        [StringLength(50)]
+        public string PermissionId { get; set; } = string.Empty;
 
+        [Required]
         [Column("CreatedAt")]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
 
         [Column("CreatedBy")]
+        [StringLength(50)]
         public string? CreatedBy { get; set; }
+
+        [Column("UpdatedAt")]
+        public DateTime? UpdatedAt { get; set; }
+
+        [Column("UpdatedBy")]
+        [StringLength(50)]
+        public string? UpdatedBy { get; set; }
 
         [Column("DeletedAt")]
         public DateTime? DeletedAt { get; set; }
 
-        [Column("DeletedBy")]
-        public string? DeletedBy { get; set; }
+        // ============================================================
+        // 🔹 Navigation properties
+        // ============================================================
+        [ForeignKey(nameof(RoleId))]
+        public virtual Role? Role { get; set; }
 
-        // 🔗 Navigation Properties
-        [ForeignKey("RoleId")]
-        public Role Role { get; set; }
-
-        [ForeignKey("PermissionId")]
-        public Permission Permission { get; set; }
+        [ForeignKey(nameof(PermissionId))]
+        public virtual Permission? Permission { get; set; }
     }
 }
