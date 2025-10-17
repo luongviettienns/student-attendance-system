@@ -9,7 +9,7 @@ namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
     [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được phép quản lý phân quyền
-    [Route("api/admin/role-permissions")]
+    [Route("api-edu/role-permissions")]
     public class RolePermissionController : ControllerBase
     {
         private readonly AppDbContext _context;

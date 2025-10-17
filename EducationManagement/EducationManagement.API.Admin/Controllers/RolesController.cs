@@ -9,7 +9,7 @@ namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
     [Authorize(Roles = "Admin")]
-    [Route("api/admin/roles")]
+    [Route("api-edu/roles")]
     public class RoleController : ControllerBase
     {
         private readonly AppDbContext _context;

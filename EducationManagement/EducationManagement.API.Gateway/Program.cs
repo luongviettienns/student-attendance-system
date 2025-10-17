@@ -27,7 +27,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
@@ -35,7 +34,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             )
         };
 
-        // 🧠 Log chi tiết lỗi JWT để debug
+        // 🧠 Ghi log JWT để dễ debug
         options.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = context =>
@@ -61,10 +60,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .WithOrigins(
-                "http://127.0.0.1:5500",
-                "http://localhost:5500"
-            )
+            .WithOrigins("http://127.0.0.1:5500", "http://localhost:5500")
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -85,7 +81,7 @@ var app = builder.Build();
 // 🚀 6️⃣ Middleware Pipeline
 // ============================================================
 
-// 🔹 Ghi log tất cả request qua gateway
+// 🔹 Log tất cả request qua Gateway
 app.Use(async (context, next) =>
 {
     Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {context.Request.Method} {context.Request.Path}");
@@ -99,8 +95,15 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 
-// 🔹 Static Files – phục vụ ảnh avatar trực tiếp
-var avatarFolder = @"C:\Users\TK\Desktop\student-attendance-system\EducationManagement\Avatar_User";
+// ============================================================
+// 🧩 7️⃣ Static Files – phục vụ ảnh avatar (dùng thư mục gốc solution)
+// ============================================================
+
+// 📂 Xác định thư mục Avatar_User tự động, không hard-code đường dẫn
+var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
+var avatarFolder = Path.Combine(solutionRoot, "Avatar_User");
+
+// ✅ Nếu chưa có thì tạo
 if (!Directory.Exists(avatarFolder))
     Directory.CreateDirectory(avatarFolder);
 
@@ -110,13 +113,15 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/avatars"
 });
 
-Console.WriteLine($"🖼️  Static avatars served from: {avatarFolder}");
+Console.WriteLine($"🖼️ Static avatars served from: {avatarFolder}");
 
-// 🔹 Cuối cùng: Ocelot (luôn cuối pipeline)
+// ============================================================
+// 🧩 8️⃣ Cuối cùng: Ocelot Middleware
+// ============================================================
 await app.UseOcelot();
 
 // ============================================================
-// ✅ 7️⃣ Run
+// ✅ 9️⃣ Run
 // ============================================================
 Console.WriteLine("🚀 Gateway started at https://localhost:7033");
 app.Run();

@@ -31,7 +31,7 @@ namespace EducationManagement.DAL
         public DbSet<Department> Departments { get; set; }
 
         // ==========================================================
-        // 🔹 CẤU HÌNH MỐI QUAN HỆ
+        // 🔹 CẤU HÌNH MỐI QUAN HỆ & TÊN BẢNG
         // ==========================================================
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -40,7 +40,7 @@ namespace EducationManagement.DAL
             // ===== USERS =====
             modelBuilder.Entity<User>(entity =>
             {
-                entity.ToTable("users");
+                entity.ToTable("Users"); // ✅ đúng với DB
                 entity.HasKey(u => u.UserId);
 
                 entity.HasOne(u => u.Role)
@@ -52,21 +52,21 @@ namespace EducationManagement.DAL
             // ===== ROLES =====
             modelBuilder.Entity<Role>(entity =>
             {
-                entity.ToTable("roles");
+                entity.ToTable("Roles"); // ✅ đúng với DB
                 entity.HasKey(r => r.RoleId);
             });
 
             // ===== PERMISSIONS =====
             modelBuilder.Entity<Permission>(entity =>
             {
-                entity.ToTable("permissions");
+                entity.ToTable("Permissions"); // ✅ đúng với DB
                 entity.HasKey(p => p.PermissionId);
             });
 
             // ===== ROLE_PERMISSIONS =====
             modelBuilder.Entity<RolePermission>(entity =>
             {
-                entity.ToTable("role_permissions");
+                entity.ToTable("RolePermissions"); // ✅ FIXED: đúng với DB thật
                 entity.HasKey(rp => rp.RolePermissionId);
 
                 entity.HasOne(rp => rp.Role)
@@ -79,6 +79,39 @@ namespace EducationManagement.DAL
                       .HasForeignKey(rp => rp.PermissionId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
+
+            // ===== REFRESH TOKENS =====
+            // ===== REFRESH TOKENS =====
+            modelBuilder.Entity<RefreshToken>(entity =>
+            {
+                entity.ToTable("RefreshTokens");      // ✅ Map đúng bảng
+                entity.HasKey(r => r.Id);             // ✅ Khóa chính đúng tên cột DB
+                entity.Property(r => r.Token)
+                      .IsRequired()
+                      .HasMaxLength(4000);
+
+                entity.Property(r => r.UserId)
+                      .IsRequired()
+                      .HasMaxLength(50);
+
+                entity.Property(r => r.CreatedAt)
+                      .HasColumnType("datetime2");
+
+                entity.Property(r => r.ExpiresAt)
+                      .HasColumnType("datetime2");
+
+                entity.Property(r => r.RevokedAt)
+                      .HasColumnType("datetime2");
+            });
+
+
+            // ===== DANH MỤC ĐÀO TẠO =====
+            modelBuilder.Entity<AcademicYear>().ToTable("Academic_Years");
+            modelBuilder.Entity<Faculty>().ToTable("Faculties");
+            modelBuilder.Entity<Lecturer>().ToTable("Lecturers");
+            modelBuilder.Entity<Major>().ToTable("Majors");
+            modelBuilder.Entity<Subject>().ToTable("Subjects");
+            modelBuilder.Entity<Department>().ToTable("Departments");
 
             // ======================================================
             // 🔹 SEED DỮ LIỆU ROLE CƠ BẢN
