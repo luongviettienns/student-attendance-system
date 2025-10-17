@@ -54,9 +54,12 @@ function($scope, $state, $rootScope, AuthService, ToastService) {
         }
       })
       .catch(function(err) {
-        console.error("❌ Login error:", err);
-        $scope.errorMessage = "Sai tài khoản hoặc mật khẩu";
-      });
+  console.error("❌ Login error:", err.response ? err.response.data : err);
+  
+  // Lấy message thực tế từ BE (nếu có)
+  $scope.errorMessage = err?.response?.data?.message || "Sai tài khoản hoặc mật khẩu";
+});
+
   };
 
   /* ============================================================
