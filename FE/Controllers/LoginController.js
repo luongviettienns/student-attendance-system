@@ -1,6 +1,9 @@
 angular.module("eduApp").controller("LoginController", 
-function($scope, $state, $rootScope, AuthService, ToastService) {
+function ($scope, $state, $rootScope, AuthService, ToastService, $timeout) {
 
+  /* ============================================================
+     🔹 STATE
+  ============================================================ */
   $scope.errorMessage = "";
   $scope.rememberMe = false;
   $scope.form = { username: "", password: "" };
@@ -16,33 +19,33 @@ function($scope, $state, $rootScope, AuthService, ToastService) {
   /* ============================================================
      🔹 Hàm LOGIN
   ============================================================ */
-  $scope.login = function() {
+  $scope.login = function () {
     if (!$scope.form.username || !$scope.form.password) {
       $scope.errorMessage = "Vui lòng nhập đầy đủ tài khoản và mật khẩu";
       return;
     }
 
     AuthService.login($scope.form.username, $scope.form.password, $scope.rememberMe)
-      .then(function(data) {
+      .then(function (data) {
         if (data && data.token) {
           const role = (data.role || "").toLowerCase();
           const fullName = data.fullName || "";
 
           ToastService.show(
-            `Chào mừng ${data.role || "Người dùng"} ${fullName} quay lại hệ thống 🎉`, 
+            `Chào mừng ${data.role || "Người dùng"} ${fullName} quay lại hệ thống 🎉`,
             "success"
           );
 
           $rootScope.$emit("auth:login");
 
-          /* ============================================================
-             ✅ Chuyển hướng sau khi đăng nhập dựa theo vai trò
-             → Dùng hàm redirectAfterLogin() trong AuthService
-          ============================================================ */
+          // ✅ Chuyển hướng theo vai trò
           const targetState = AuthService.redirectAfterLogin(role);
 
           if (targetState && targetState !== "login") {
-            $state.go(targetState);
+            // 🟢 Delay nhẹ để guard nhận token trước khi chuyển state
+            $timeout(() => {
+              $state.go(targetState);
+            }, 100);
           } else {
             ToastService.show(
               "Đăng nhập thành công, nhưng chưa được cấu hình màn hình cho vai trò này.",
@@ -53,13 +56,14 @@ function($scope, $state, $rootScope, AuthService, ToastService) {
           $scope.errorMessage = "Đăng nhập thất bại, vui lòng thử lại.";
         }
       })
-      .catch(function(err) {
-  console.error("❌ Login error:", err.response ? err.response.data : err);
-  
-  // Lấy message thực tế từ BE (nếu có)
-  $scope.errorMessage = err?.response?.data?.message || "Sai tài khoản hoặc mật khẩu";
-});
-
+      .catch(function (err) {
+        console.error("❌ Login error:", err);
+        $scope.errorMessage =
+          err?.message ||
+          err?.data?.message ||
+          err?.response?.data?.message ||
+          "Sai tài khoản hoặc mật khẩu";
+      });
   };
 
   /* ============================================================
