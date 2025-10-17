@@ -33,7 +33,6 @@ angular.module("eduApp")
             headers: { "Content-Type": "application/json" }
         })
         .then(res => {
-            // ✅ BE trả { data: {...} }
             const data = res.data?.data || res.data;
             if (!data?.token) return $q.reject({ message: "Phản hồi không hợp lệ từ máy chủ" });
 
@@ -43,7 +42,10 @@ angular.module("eduApp")
             if (data.refreshToken) storage.setItem("refreshToken", data.refreshToken);
             if (data.refreshTokenExpiry) storage.setItem("refreshTokenExpiry", data.refreshTokenExpiry);
 
-            // ✅ Avatar URL đã được BE trả đầy đủ → chỉ fallback nếu thiếu
+            // ✅ Gắn token vào header mặc định để các request sau login đều dùng được
+            $http.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+
+            // ✅ Avatar URL fallback
             let avatarUrl = data.avatarUrl;
             if (!avatarUrl || !avatarUrl.trim()) {
                 const gatewayOrigin = BASE_URL.replace("/api-edu", "");
@@ -61,8 +63,11 @@ angular.module("eduApp")
             };
 
             storage.setItem("currentUser", JSON.stringify(user));
+
+            // ✅ Cập nhật trạng thái đăng nhập
             $rootScope.isAuthenticated = true;
             $rootScope.$broadcast("auth:login", user);
+
             return data;
         })
         .catch(err => {
@@ -88,6 +93,9 @@ angular.module("eduApp")
                 if (data.refreshToken) setItem("refreshToken", data.refreshToken);
                 if (data.refreshTokenExpiry) setItem("refreshTokenExpiry", data.refreshTokenExpiry);
 
+                // 🟢 Gắn lại token global
+                $http.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
+
                 $rootScope.isAuthenticated = true;
                 return data;
             })
@@ -109,6 +117,7 @@ angular.module("eduApp")
 
         const clearAndRedirect = () => {
             clearStorage();
+            delete $http.defaults.headers.common["Authorization"];
             $rootScope.isAuthenticated = false;
             $rootScope.$broadcast("auth:logout");
             setTimeout(() => { $window.location.href = "#/login"; }, 200);
@@ -174,11 +183,11 @@ angular.module("eduApp")
         role = (role || "").toLowerCase();
         switch (role) {
             case "admin":
-                return "main.dashboard";
+                return "main.welcome"; // ✅ sửa lại đúng state dashboard cha
             case "lecturer":
-                return "main.lecturer";
+                return "main.teacher.classView";
             case "student":
-                return "main.student";
+                return "main.student.scheduleView";
             default:
                 return "main.welcome";
         }
