@@ -13,21 +13,21 @@
     <div class="summary-card">
       <i class="fa fa-user"></i>
       <div>
-        <h4>{{totalUsers || 0}}</h4>
+        <h4>{{ totalUsers || 0 }}</h4>
         <p>Tổng số người dùng</p>
       </div>
     </div>
     <div class="summary-card active">
       <i class="fa fa-check-circle"></i>
       <div>
-        <h4>{{activeUsers || 0}}</h4>
+        <h4>{{ activeUsers || 0 }}</h4>
         <p>Đang hoạt động</p>
       </div>
     </div>
     <div class="summary-card inactive">
       <i class="fa fa-ban"></i>
       <div>
-        <h4>{{inactiveUsers || 0}}</h4>
+        <h4>{{ inactiveUsers || 0 }}</h4>
         <p>Đã vô hiệu</p>
       </div>
     </div>
@@ -38,26 +38,28 @@
     <input 
       type="text"
       placeholder="🔍 Tìm kiếm theo tên hoặc tài khoản..."
-      ng-model="searchText">
+      ng-model="searchText"
+      ng-keyup="$event.keyCode === 13 && searchUsers()"
+      aria-label="Tìm kiếm người dùng">
 
-    <select ng-model="filterRoleId">
+    <select ng-model="filterRoleId" aria-label="Lọc theo vai trò">
       <option value="">Tất cả vai trò</option>
       <option ng-repeat="r in roles" value="{{r.roleId}}">
         {{r.roleName}}
       </option>
     </select>
 
-    <select ng-model="filterStatus">
+    <select ng-model="filterStatus" aria-label="Lọc theo trạng thái">
       <option value="">Tất cả trạng thái</option>
       <option value="true">Hoạt động</option>
       <option value="false">Vô hiệu</option>
     </select>
 
-    <button class="btn btn-primary" ng-click="searchUsers()">
+    <button type="button" class="btn btn-primary" ng-click="searchUsers()">
       <i class="fa fa-search"></i> Tìm kiếm
     </button>
 
-    <button class="btn btn-add" ng-click="openAddUser()">
+    <button type="button" class="btn btn-add" ng-click="openAddUser()">
       <i class="fa fa-plus"></i> Thêm người dùng
     </button>
   </div>
@@ -78,13 +80,13 @@
       </thead>
       <tbody>
         <tr ng-repeat="u in users" ng-class="{'inactive-row': !u.isActive}">
-          <!-- ✅ ĐÃ FIX: dùng ng-src + fallback BE -->
           <td>
+            <!-- ✅ Dùng directive fallback-src -->
             <img 
               ng-src="{{u.avatarUrl}}" 
-              onerror="this.src='https://localhost:7033/avatars/default.png';" 
-              alt="Avatar" 
-              class="avatar">
+              fallback-src="https://localhost:7033/avatars/default.png"
+              alt="Avatar người dùng"
+              class="avatar" />
           </td>
           <td>{{u.username}}</td>
           <td>{{u.fullName}}</td>
@@ -106,7 +108,7 @@
     </table>
   </div>
 
-  <!-- ================== TRẠNG THÁI RỖNG / LOADING ================== -->
+  <!-- ================== TRẠNG THÁI LOADING / RỖNG ================== -->
   <div class="loading" ng-if="loading">
     <i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...
   </div>
@@ -122,8 +124,8 @@
     <button ng-disabled="pagination.page === pagination.totalPages" ng-click="changePage(pagination.page + 1)">»</button>
   </div>
 
-  <!-- ================== MODAL POPUP (THÊM / SỬA) ================== -->
-  <div class="modal-overlay" ng-show="showModal">
+  <!-- ================== MODAL (THÊM / SỬA) ================== -->
+  <div class="modal-overlay fade-in" ng-show="showModal">
     <div class="modal">
       <div class="modal-header">
         <h3>
@@ -137,17 +139,17 @@
         <form novalidate>
           <div class="form-group" ng-if="!isEdit">
             <label>Tài khoản</label>
-            <input type="text" ng-model="formData.username" placeholder="Nhập tên tài khoản">
+            <input type="text" ng-model="formData.username" placeholder="Nhập tên tài khoản" required>
           </div>
 
           <div class="form-group" ng-if="!isEdit">
             <label>Mật khẩu</label>
-            <input type="password" ng-model="formData.password" placeholder="Nhập mật khẩu">
+            <input type="password" ng-model="formData.password" placeholder="Nhập mật khẩu" required>
           </div>
 
           <div class="form-group">
             <label>Họ tên</label>
-            <input type="text" ng-model="formData.fullName" placeholder="Nhập họ tên">
+            <input type="text" ng-model="formData.fullName" placeholder="Nhập họ tên" required>
           </div>
 
           <div class="form-group">
@@ -162,7 +164,7 @@
 
           <div class="form-group">
             <label>Vai trò</label>
-            <select ng-model="formData.roleId">
+            <select ng-model="formData.roleId" required>
               <option value="">-- Chọn vai trò --</option>
               <option ng-repeat="r in roles" value="{{r.roleId}}">
                 {{r.roleName}}
@@ -181,12 +183,11 @@
       </div>
 
       <div class="modal-footer">
-        <button class="btn btn-secondary" ng-click="closeModal()">Hủy</button>
-        <button class="btn btn-primary" ng-click="saveUser()">
+        <button class="btn btn-secondary" type="button" ng-click="closeModal()">Hủy</button>
+        <button class="btn btn-primary" type="button" ng-disabled="loading" ng-click="saveUser()">
           {{isEdit ? "Lưu thay đổi" : "Thêm mới"}}
         </button>
       </div>
     </div>
   </div>
-
 </div>
