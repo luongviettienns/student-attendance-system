@@ -21,12 +21,14 @@ namespace EducationManagement.API.Admin.Controllers
             _authService = authService;
             _jwtService = jwtService;
 
-            // ✅ Xác định thư mục Avatar_User tại gốc solution
-            var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
-            _avatarFolder = Path.Combine(solutionRoot, "Avatar_User");
+            // ✅ Xác định đúng thư mục Avatar_User bên trong EducationManagement
+            var projectRoot = Directory.GetParent(Directory.GetCurrentDirectory())?.FullName;
+            _avatarFolder = Path.Combine(projectRoot!, "Avatar_User");
 
             if (!Directory.Exists(_avatarFolder))
                 Directory.CreateDirectory(_avatarFolder);
+
+            Console.WriteLine($"🧭 Avatar folder path: {_avatarFolder}");
         }
 
         #region 🔹 LOGIN (Không cần xác thực)
@@ -64,23 +66,25 @@ namespace EducationManagement.API.Admin.Controllers
             }
             else
             {
-                // Đảm bảo đường dẫn tương thích hệ thống file
-                string relativePath = avatarPath.Replace("/", Path.DirectorySeparatorChar.ToString());
+                // ✅ Chuẩn hóa đường dẫn tương thích hệ thống file
+                string relativePath = avatarPath.TrimStart('/')
+                    .Replace('/', Path.DirectorySeparatorChar);
 
-                // Đường dẫn thật trên ổ đĩa
-                string physicalPath = Path.Combine(_avatarFolder, relativePath.Replace("avatars" + Path.DirectorySeparatorChar, ""));
+                // ✅ Tạo đường dẫn vật lý đầy đủ (EducationManagement\Avatar_User\uploads\avatars\xxx.jpg)
+                string physicalPath = Path.Combine(_avatarFolder, relativePath);
 
-                // Nếu file không tồn tại → fallback default.png
+                // Nếu file không tồn tại → fallback default
                 if (!System.IO.File.Exists(physicalPath))
                 {
                     avatarPath = "/avatars/default.png";
                 }
                 else
                 {
-                    // Chuẩn hóa URL trả về cho FE
+                    // ✅ Chuẩn hóa URL trả về cho FE
                     avatarPath = $"/{avatarPath.TrimStart('/')}";
                 }
             }
+
 
             // 🔹 Tạo URL đầy đủ cho FE (qua Gateway)
             string fullAvatarUrl = FileHelper.BuildFullAvatarUrl(

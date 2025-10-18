@@ -23,11 +23,14 @@ app.controller("ProfileController", function ($scope, $rootScope, UserService, A
      🔹 LẤY THÔNG TIN NGƯỜI DÙNG
   ============================================================ */
   UserService.getProfile()
-    .then(function (user) {
+    .then(function (res) {
+      // ✅ API trả về { data: { ... } }
+      const user = res.data || res;
+
       $scope.student = angular.copy(user);
       $scope.originalStudent = angular.copy(user);
 
-      // ✅ Nếu thiếu avatar thì fallback
+      // ✅ Nếu thiếu avatar thì fallback từ BE
       if (!$scope.student.avatarUrl) {
         $scope.student.avatarUrl = "https://localhost:7033/avatars/default.png";
       }
@@ -88,7 +91,7 @@ app.controller("ProfileController", function ($scope, $rootScope, UserService, A
 
     UserService.updateProfile(formData)
       .then(function (result) {
-        // ✅ Cập nhật avatar hiển thị ngay lập tức
+        // ✅ Nếu BE trả avatarUrl mới
         if (result.avatarUrl) {
           $scope.student.avatarUrl = result.avatarUrl + "?t=" + new Date().getTime(); // tránh cache
         }

@@ -36,16 +36,16 @@ angular.module("eduApp")
             const data = res.data?.data || res.data;
             if (!data?.token) return $q.reject({ message: "Phản hồi không hợp lệ từ máy chủ" });
 
-            // ✅ Lưu token vào localStorage hoặc sessionStorage
+            // ✅ Lưu token
             const storage = rememberMe ? $window.localStorage : $window.sessionStorage;
             storage.setItem("token", data.token);
             if (data.refreshToken) storage.setItem("refreshToken", data.refreshToken);
             if (data.refreshTokenExpiry) storage.setItem("refreshTokenExpiry", data.refreshTokenExpiry);
 
-            // ✅ Gắn token vào header mặc định để các request sau login đều dùng được
+            // ✅ Đặt header mặc định
             $http.defaults.headers.common["Authorization"] = `Bearer ${data.token}`;
 
-            // ✅ Avatar URL fallback
+            // ✅ Avatar fallback
             let avatarUrl = data.avatarUrl;
             if (!avatarUrl || !avatarUrl.trim()) {
                 const gatewayOrigin = BASE_URL.replace("/api-edu", "");
@@ -64,7 +64,7 @@ angular.module("eduApp")
 
             storage.setItem("currentUser", JSON.stringify(user));
 
-            // ✅ Cập nhật trạng thái đăng nhập
+            // ✅ Cập nhật trạng thái
             $rootScope.isAuthenticated = true;
             $rootScope.$broadcast("auth:login", user);
 
@@ -72,7 +72,22 @@ angular.module("eduApp")
         })
         .catch(err => {
             console.error("❌ Login failed:", err);
-            const message = err?.data?.message || err?.response?.data?.message || "Sai tài khoản hoặc mật khẩu";
+
+            let message = "Đăng nhập thất bại";
+
+            // ✅ Trường hợp không kết nối được tới API Gateway
+            if (err.status === -1 || err.xhrStatus === "error") {
+                message = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra lại API Gateway.";
+            }
+            // ✅ Trường hợp BE phản hồi lỗi hợp lệ
+            else if (err.data?.message) {
+                message = err.data.message;
+            }
+            // ✅ Mặc định fallback
+            else {
+                message = "Sai tài khoản hoặc mật khẩu";
+            }
+
             return $q.reject({ message });
         });
 

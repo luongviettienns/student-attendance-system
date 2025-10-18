@@ -63,9 +63,9 @@ namespace EducationManagement.API.Admin.Controllers
             user.UpdatedAt = DateTime.UtcNow;
             user.UpdatedBy = userId;
 
-            // ✅ Xác định thư mục Avatar_User/uploads/avatars
-            var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
-            var avatarRoot = Path.Combine(solutionRoot, "Avatar_User");
+            // ✅ Xác định đúng thư mục EducationManagement\Avatar_User\uploads\avatars
+            var projectRoot = Directory.GetParent(Directory.GetCurrentDirectory())?.FullName;
+            var avatarRoot = Path.Combine(projectRoot!, "Avatar_User");
             var uploadPath = Path.Combine(avatarRoot, "uploads", "avatars");
 
             if (!Directory.Exists(uploadPath))
@@ -90,13 +90,13 @@ namespace EducationManagement.API.Admin.Controllers
                     await request.Avatar.CopyToAsync(stream);
                 }
 
-                // ✅ Lưu đường dẫn public (đúng với RequestPath = "/avatars")
-                user.AvatarUrl = $"/avatars/uploads/avatars/{fileName}";
+                // ✅ Lưu đường dẫn public (Gateway ánh xạ /avatars → Avatar_User)
+                user.AvatarUrl = $"/uploads/avatars/{fileName}";
             }
 
             await _context.SaveChangesAsync();
 
-            // ✅ Tạo URL đầy đủ để FE hiển thị đúng port Gateway
+            // ✅ Tạo URL đầy đủ để FE hiển thị qua Gateway
             var fullAvatarUrl = FileHelper.BuildFullAvatarUrl(
                 Request.Scheme,
                 Request.Host.ToString(),
@@ -124,18 +124,29 @@ namespace EducationManagement.API.Admin.Controllers
         #region 📌 Helper: Map entity → DTO
         private UserResponseDto MapToDto(User user)
         {
-            string relativePath = user.AvatarUrl;
+            string relativePath = user.AvatarUrl?.Trim() ?? "";
 
-            // 🔹 Nếu không có hoặc file bị xóa → fallback default.png
+            // ✅ Chuẩn hóa đường dẫn để tránh lỗi ghép path
             if (string.IsNullOrEmpty(relativePath))
             {
                 relativePath = "/avatars/default.png";
             }
             else
             {
-                var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
-                var avatarRoot = Path.Combine(solutionRoot, "Avatar_User");
-                var physicalPath = Path.Combine(avatarRoot, relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+                // ép dấu / và đảm bảo có tiền tố "uploads/"
+                relativePath = relativePath.Replace("\\", "/");
+                if (!relativePath.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase) &&
+                    !relativePath.StartsWith("/avatars/", StringComparison.OrdinalIgnoreCase))
+                {
+                    relativePath = "/uploads/" + relativePath.TrimStart('/');
+                }
+
+                var projectRoot = Directory.GetParent(Directory.GetCurrentDirectory())?.FullName;
+                var avatarRoot = Path.Combine(projectRoot!, "Avatar_User");
+                var physicalPath = Path.Combine(
+                    avatarRoot,
+                    relativePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar)
+                );
 
                 if (!System.IO.File.Exists(physicalPath))
                     relativePath = "/avatars/default.png";
