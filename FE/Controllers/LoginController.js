@@ -4,7 +4,6 @@ function ($scope, $state, $rootScope, AuthService, ToastService, $timeout) {
   /* ============================================================
      🔹 STATE
   ============================================================ */
-  $scope.errorMessage = "";
   $scope.rememberMe = false;
   $scope.form = { username: "", password: "" };
 
@@ -21,7 +20,7 @@ function ($scope, $state, $rootScope, AuthService, ToastService, $timeout) {
   ============================================================ */
   $scope.login = function () {
     if (!$scope.form.username || !$scope.form.password) {
-      $scope.errorMessage = "Vui lòng nhập đầy đủ tài khoản và mật khẩu";
+      ToastService.show("Vui lòng nhập đầy đủ tài khoản và mật khẩu", "warning");
       return;
     }
 
@@ -53,16 +52,20 @@ function ($scope, $state, $rootScope, AuthService, ToastService, $timeout) {
             );
           }
         } else {
-          $scope.errorMessage = "Đăng nhập thất bại, vui lòng thử lại.";
+          ToastService.show("Đăng nhập thất bại, vui lòng thử lại.", "error");
         }
       })
       .catch(function (err) {
         console.error("❌ Login error:", err);
-        $scope.errorMessage =
+
+        // ✅ Lấy thông điệp lỗi chính xác từ AuthService
+        const message =
           err?.message ||
           err?.data?.message ||
           err?.response?.data?.message ||
-          "Sai tài khoản hoặc mật khẩu";
+          "Đăng nhập thất bại, vui lòng thử lại.";
+
+        ToastService.show(message, "error");
       });
   };
 

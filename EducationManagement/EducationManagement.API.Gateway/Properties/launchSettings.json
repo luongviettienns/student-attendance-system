@@ -9,7 +9,10 @@
         }
     },
     "profiles": {
-        "https": {
+        // ============================================================
+        // 🔹 MAIN PROFILE (HTTPS Gateway + HTTP Admin API)
+        // ============================================================
+        "EducationManagement.API.Gateway (TLS Termination)": {
             "commandName": "Project",
             "dotnetRunMessages": true,
             "launchBrowser": true,
@@ -19,7 +22,11 @@
                 "ASPNETCORE_ENVIRONMENT": "Development"
             }
         },
-        "http": {
+
+        // ============================================================
+        // 🔹 FALLBACK PROFILE (HTTP only - khi bạn test nội bộ nhanh)
+        // ============================================================
+        "EducationManagement.API.Gateway (HTTP Only)": {
             "commandName": "Project",
             "dotnetRunMessages": true,
             "launchBrowser": true,
@@ -29,6 +36,10 @@
                 "ASPNETCORE_ENVIRONMENT": "Development"
             }
         },
+
+        // ============================================================
+        // 🔹 IIS Express (optional)
+        // ============================================================
         "IIS Express": {
             "commandName": "IISExpress",
             "launchBrowser": true,

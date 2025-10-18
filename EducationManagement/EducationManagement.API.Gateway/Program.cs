@@ -4,7 +4,7 @@ using Microsoft.Extensions.FileProviders;
 using Ocelot.DependencyInjection;
 using Ocelot.Middleware;
 using System.Text;
-using System.IO;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,11 +31,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidAudience = builder.Configuration["Jwt:Audience"],
             IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"])
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]!)
             )
         };
 
-        // 🧠 Ghi log JWT để dễ debug
+        // 🧠 Ghi log JWT để debug
         options.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = context =>
@@ -48,7 +48,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             OnTokenValidated = context =>
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"✅ Token Valid: {context.Principal.Identity?.Name}");
+                Console.WriteLine($"✅ Token Valid: {context.Principal?.Identity?.Name}");
                 Console.ResetColor();
                 return Task.CompletedTask;
             }
@@ -58,14 +58,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ============================================================
-// 🧩 3️⃣ Cấu hình CORS (FE gọi Gateway trực tiếp)
+// 🧩 3️⃣ CORS (cho phép FE gọi Gateway trực tiếp)
 // ============================================================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy
-            .WithOrigins("http://127.0.0.1:5500", "http://localhost:5500")
+            .WithOrigins(
+                "http://127.0.0.1:5500",
+                "http://localhost:5500",
+                "https://localhost:5500"
+            )
             .AllowAnyHeader()
             .AllowAnyMethod()
             .AllowCredentials();
@@ -93,36 +97,41 @@ app.Use(async (context, next) =>
     await next();
 });
 
-// 🔹 Cho phép FE truy cập
 app.UseCors("AllowFrontend");
-
-// 🔹 JWT + Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
 // ============================================================
-// 🧩 7️⃣ Static Files – phục vụ ảnh avatar (Avatar_User/uploads/avatars/...)
+// 🧩 7️⃣ Static Files – phục vụ ảnh avatar
 // ============================================================
+var projectRoot = Directory.GetParent(Directory.GetCurrentDirectory())?.FullName;
+var avatarFolder = Path.Combine(projectRoot!, "Avatar_User");
 
-// 📂 Xác định thư mục Avatar_User tự động (ở cùng cấp solution)
-var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
-var avatarFolder = Path.Combine(solutionRoot, "Avatar_User");
-
-// ✅ Nếu chưa có thì tạo
+// ✅ Đảm bảo thư mục tồn tại
 if (!Directory.Exists(avatarFolder))
     Directory.CreateDirectory(avatarFolder);
 
-// 🔹 Middleware fallback: nếu ảnh không tồn tại → dùng default.png
+// ✅ Nếu ảnh không tồn tại, trả về default.png
 app.Use(async (context, next) =>
 {
     if (context.Request.Path.StartsWithSegments("/avatars"))
     {
-        var relativePath = context.Request.Path.Value.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var rawPath = context.Request.Path.Value ?? string.Empty;
+
+        var relativePath = rawPath.StartsWith("/avatars/", StringComparison.OrdinalIgnoreCase)
+            ? rawPath.Substring("/avatars/".Length)
+            : rawPath.StartsWith("/avatars", StringComparison.OrdinalIgnoreCase)
+                ? rawPath.Substring("/avatars".Length)
+                : rawPath;
+
+        relativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
         var filePath = Path.Combine(avatarFolder, relativePath);
 
         if (!File.Exists(filePath))
         {
-            Console.WriteLine($"⚠️ Ảnh không tồn tại: {filePath}. Trả về default.png");
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"⚠️ File not found: {filePath}, fallback to default.png");
+            Console.ResetColor();
             context.Request.Path = "/avatars/default.png";
         }
     }
@@ -130,14 +139,16 @@ app.Use(async (context, next) =>
     await next();
 });
 
-// ⚙️ Đăng ký middleware phục vụ file tĩnh
+// ⚙️ Static file middleware
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(avatarFolder),
     RequestPath = "/avatars"
 });
 
+Console.ForegroundColor = ConsoleColor.Cyan;
 Console.WriteLine($"🖼️ Static avatars served from: {avatarFolder}");
+Console.ResetColor();
 
 // ============================================================
 // 🧩 8️⃣ Cuối cùng: Ocelot Middleware
@@ -147,7 +158,7 @@ await app.UseOcelot();
 // ============================================================
 // ✅ 9️⃣ Run
 // ============================================================
-Console.ForegroundColor = ConsoleColor.Cyan;
+Console.ForegroundColor = ConsoleColor.Green;
 Console.WriteLine("🚀 Gateway started at https://localhost:7033");
 Console.ResetColor();
 
