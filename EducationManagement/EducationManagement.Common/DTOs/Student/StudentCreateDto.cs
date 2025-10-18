@@ -1,48 +1,40 @@
-using System.ComponentModel.DataAnnotations;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace EducationManagement.Common.DTOs.Student
 {
-    public class StudentCreateDto
+    public class StudentCreateDTO
     {
-        [Required(ErrorMessage = "Tên đăng nhập là bắt buộc")]
-        [StringLength(50, ErrorMessage = "Tên đăng nhập không được quá 50 ký tự")]
-        public string Username { get; set; } = string.Empty;
+        public string Username { get; set; }
+        public string PasswordHash { get; set; }
+        public string Email { get; set; }
+        public string Phone { get; set; }
+        public string FullName { get; set; }
+        public string Gender { get; set; }
+        public DateTime Dob { get; set; }
+        public string FacultyId { get; set; }
+        public string MajorId { get; set; }
+        public string AcademicYearId { get; set; }
+        public string CohortYear { get; set; }
 
-        [Required(ErrorMessage = "Mật khẩu là bắt buộc")]
-        [StringLength(100, MinimumLength = 6, ErrorMessage = "Mật khẩu phải từ 6-100 ký tự")]
-        public string Password { get; set; } = string.Empty;
+        // Profile
+        public string? Nationality { get; set; }
+        public string? Ethnicity { get; set; }
+        public string? Religion { get; set; }
+        public string? Hometown { get; set; }
+        public string? CurrentAddress { get; set; }
 
-        [Required(ErrorMessage = "Mã sinh viên là bắt buộc")]
-        [StringLength(20, ErrorMessage = "Mã sinh viên không được quá 20 ký tự")]
-        public string StudentCode { get; set; } = string.Empty;
+        // Family
+        public string? FatherName { get; set; }
+        public string? FatherPhone { get; set; }
+        public string? FatherJob { get; set; }
+        public string? MotherName { get; set; }
+        public string? MotherPhone { get; set; }
+        public string? MotherJob { get; set; }
 
-        [Required(ErrorMessage = "Họ tên là bắt buộc")]
-        [StringLength(150, ErrorMessage = "Họ tên không được quá 150 ký tự")]
-        public string FullName { get; set; } = string.Empty;
-
-        [StringLength(10, ErrorMessage = "Giới tính không được quá 10 ký tự")]
-        public string? Gender { get; set; }
-
-        public DateTime? Dob { get; set; }
-
-        [EmailAddress(ErrorMessage = "Email không hợp lệ")]
-        [StringLength(150, ErrorMessage = "Email không được quá 150 ký tự")]
-        public string? Email { get; set; }
-
-        [StringLength(20, ErrorMessage = "Số điện thoại không được quá 20 ký tự")]
-        public string? Phone { get; set; }
-
-        public string? FacultyId { get; set; }
-        public string? MajorId { get; set; }
-        public string? AcademicYearId { get; set; }
-
-        [StringLength(10, ErrorMessage = "Năm nhập học không được quá 10 ký tự")]
-        public string? CohortYear { get; set; }
-
-        public bool IsActive { get; set; } = true;
+        public string CreatedBy { get; set; } = "system";
     }
 }
-
-
-
-
