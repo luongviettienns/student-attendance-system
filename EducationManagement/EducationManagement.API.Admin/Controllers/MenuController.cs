@@ -1,8 +1,7 @@
 ﻿    using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
-    using Microsoft.EntityFrameworkCore;
     using System.Security.Claims;
-    using EducationManagement.DAL;
+    using EducationManagement.DAL.Repositories;
 
     namespace EducationManagement.API.Admin.Controllers
     {
@@ -11,11 +10,11 @@
         [Route("api-edu/menu")] // ✅ Route thống nhất toàn hệ thống
         public class MenuController : ControllerBase
         {
-            private readonly AppDbContext _context;
+            private readonly PermissionRepository _permissionRepository;
 
-            public MenuController(AppDbContext context)
+            public MenuController(PermissionRepository permissionRepository)
             {
-                _context = context;
+                _permissionRepository = permissionRepository;
             }
 
             /// <summary>
@@ -35,30 +34,27 @@
                         return Unauthorized(new { message = "Không xác định được vai trò người dùng." });
                     }
 
-                    // 🔍 Lấy quyền theo RoleName
-                    var permissions = await (
-                        from rp in _context.RolePermissions
-                        join p in _context.Permissions on rp.PermissionId equals p.PermissionId
-                        join r in _context.Roles on rp.RoleId equals r.RoleId
-                        where r.RoleName.ToLower() == roleName.ToLower()
-                              && p.IsActive
-                              && p.DeletedAt == null
-                              && r.DeletedAt == null
-                        orderby p.SortOrder, p.PermissionName
-                        select new
+                    // 🔍 Lấy quyền theo RoleName từ repository
+                    var permissionsFromDb = await _permissionRepository.GetByRoleNameAsync(roleName);
+
+                    if (!permissionsFromDb.Any())
+                    {
+                        return Ok(new { role = roleName, menus = new List<object>() });
+                    }
+
+                    // Map sang cấu trúc cần thiết
+                    var permissions = permissionsFromDb
+                        .OrderBy(p => p.SortOrder)
+                        .ThenBy(p => p.PermissionName)
+                        .Select(p => new
                         {
                             p.PermissionId,
                             p.PermissionCode,
                             p.PermissionName,
                             p.ParentCode,
                             p.Icon
-                        }
-                    ).ToListAsync();
-
-                    if (!permissions.Any())
-                    {
-                        return Ok(new { role = roleName, menus = new List<object>() });
-                    }
+                        })
+                        .ToList();
 
                     // ✅ Xây dựng cây menu cha - con (theo ParentCode)
                     var menuTree = permissions

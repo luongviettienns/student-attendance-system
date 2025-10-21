@@ -1,0 +1,150 @@
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <app-sidebar></app-sidebar>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1 class="page-title">Bảng điểm</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info" ng-init="currentUser = getCurrentUser()">
+                    <div class="user-avatar" ng-click="openAvatarModal()">
+                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
+                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{{currentUser.fullName}}</span>
+                        <span class="user-role">{{currentUser.roleName || 'Sinh viên'}}</span>
+                    </div>
+                </div>
+                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+            </div>
+        </header>
+        
+        <!-- Content Body -->
+        <div class="content-body">
+            <!-- GPA Summary -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="gpa-summary">
+                        <div class="gpa-item">
+                            <div class="gpa-value">{{summary.currentGPA | number:2}}</div>
+                            <div class="gpa-label">GPA Hiện tại</div>
+                        </div>
+                        <div class="gpa-item">
+                            <div class="gpa-value">{{summary.cumulativeGPA | number:2}}</div>
+                            <div class="gpa-label">GPA Tích lũy</div>
+                        </div>
+                        <div class="gpa-item">
+                            <div class="gpa-value">{{summary.totalCredits}}/{{summary.requiredCredits}}</div>
+                            <div class="gpa-label">Tín chỉ</div>
+                        </div>
+                        <div class="gpa-item">
+                            <div class="gpa-value">
+                                <span ng-class="{
+                                    'text-success': summary.rank === 'Giỏi',
+                                    'text-primary': summary.rank === 'Khá',
+                                    'text-warning': summary.rank === 'Trung bình'
+                                }">{{summary.rank}}</span>
+                            </div>
+                            <div class="gpa-label">Xếp loại</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Semester Selection -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-filter"></i> Lọc theo học kỳ</h2>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Năm học</label>
+                            <select class="form-control" ng-model="selectedYear">
+                                <option value="">Tất cả</option>
+                                <option value="2023-2024">2023-2024</option>
+                                <option value="2022-2023">2022-2023</option>
+                                <option value="2021-2022">2021-2022</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Học kỳ</label>
+                            <select class="form-control" ng-model="selectedSemester">
+                                <option value="">Tất cả</option>
+                                <option value="1">Học kỳ 1</option>
+                                <option value="2">Học kỳ 2</option>
+                                <option value="3">Học kỳ hè</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Grades Table by Semester -->
+            <div class="card" ng-repeat="semester in semesters">
+                <div class="card-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2><i class="fas fa-calendar-alt"></i> {{semester.name}}</h2>
+                        <div>
+                            <span class="badge badge-info">GPA: {{semester.gpa | number:2}}</span>
+                            <span class="badge badge-secondary">{{semester.credits}} TC</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 100px;">Mã MH</th>
+                                    <th>Tên môn học</th>
+                                    <th style="width: 80px;">TC</th>
+                                    <th style="width: 80px;">CC</th>
+                                    <th style="width: 80px;">BT</th>
+                                    <th style="width: 80px;">GK</th>
+                                    <th style="width: 80px;">CK</th>
+                                    <th style="width: 80px;">Tổng</th>
+                                    <th style="width: 80px;">Chữ</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="grade in semester.grades">
+                                    <td><strong>{{grade.subjectCode}}</strong></td>
+                                    <td>{{grade.subjectName}}</td>
+                                    <td class="text-center">{{grade.credits}}</td>
+                                    <td class="text-center">{{grade.attendance || '-'}}</td>
+                                    <td class="text-center">{{grade.assignment || '-'}}</td>
+                                    <td class="text-center">{{grade.midterm || '-'}}</td>
+                                    <td class="text-center">{{grade.final || '-'}}</td>
+                                    <td class="text-center">
+                                        <strong ng-class="{
+                                            'text-success': grade.total >= 8,
+                                            'text-primary': grade.total >= 6.5 && grade.total < 8,
+                                            'text-warning': grade.total >= 5 && grade.total < 6.5,
+                                            'text-danger': grade.total < 5
+                                        }">{{grade.total | number:1}}</strong>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge" ng-class="{
+                                            'badge-success': grade.letter === 'A' || grade.letter === 'B+',
+                                            'badge-primary': grade.letter === 'B' || grade.letter === 'C+',
+                                            'badge-warning': grade.letter === 'C' || grade.letter === 'D+',
+                                            'badge-danger': grade.letter === 'D' || grade.letter === 'F'
+                                        }">{{grade.letter}}</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

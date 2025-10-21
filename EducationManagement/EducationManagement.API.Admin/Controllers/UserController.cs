@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using EducationManagement.DAL;
+using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
 using EducationManagement.Common.DTOs.User;
 using EducationManagement.Common.Helpers;
@@ -14,12 +13,12 @@ namespace EducationManagement.API.Admin.Controllers
     public class UserController : ControllerBase
     {
         private readonly IWebHostEnvironment _env;
-        private readonly AppDbContext _context;
+        private readonly UserRepository _userRepository;
 
-        public UserController(IWebHostEnvironment env, AppDbContext context)
+        public UserController(IWebHostEnvironment env, UserRepository userRepository)
         {
             _env = env;
-            _context = context;
+            _userRepository = userRepository;
         }
 
         #region 🔹 GET: Lấy thông tin user hiện tại (từ token)
@@ -30,12 +29,8 @@ namespace EducationManagement.API.Admin.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            var user = await _context.Users
-                .Include(u => u.Role)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(u => u.UserId == userId && u.DeletedAt == null);
-
-            if (user == null)
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user == null || user.DeletedAt != null)
                 return NotFound(new { message = "Không tìm thấy người dùng" });
 
             var dto = MapToDto(user);
@@ -52,14 +47,18 @@ namespace EducationManagement.API.Admin.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(new { message = "Token không hợp lệ" });
 
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _userRepository.GetByIdAsync(userId);
             if (user == null || user.DeletedAt != null)
                 return NotFound(new { message = "Không tìm thấy người dùng" });
 
-            // ✅ Cập nhật thông tin cơ bản
-            user.FullName = request.FullName;
-            user.Email = request.Email;
-            user.Phone = request.Phone;
+            // ✅ Cập nhật thông tin cơ bản (chỉ update nếu có giá trị)
+            if (!string.IsNullOrWhiteSpace(request.FullName))
+                user.FullName = request.FullName;
+            if (!string.IsNullOrWhiteSpace(request.Email))
+                user.Email = request.Email;
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+                user.Phone = request.Phone;
+                
             user.UpdatedAt = DateTime.UtcNow;
             user.UpdatedBy = userId;
 
@@ -94,7 +93,7 @@ namespace EducationManagement.API.Admin.Controllers
                 user.AvatarUrl = $"/uploads/avatars/{fileName}";
             }
 
-            await _context.SaveChangesAsync();
+            await _userRepository.UpdateAsync(user);
 
             // ✅ Tạo URL đầy đủ để FE hiển thị qua Gateway
             var fullAvatarUrl = FileHelper.BuildFullAvatarUrl(
@@ -114,9 +113,9 @@ namespace EducationManagement.API.Admin.Controllers
         #region 📌 DTO nội bộ cho cập nhật hồ sơ
         public class UserUpdateRequest
         {
-            public string FullName { get; set; } = string.Empty;
-            public string Email { get; set; } = string.Empty;
-            public string Phone { get; set; } = string.Empty;
+            public string? FullName { get; set; }
+            public string? Email { get; set; }
+            public string? Phone { get; set; }
             public IFormFile? Avatar { get; set; }
         }
         #endregion

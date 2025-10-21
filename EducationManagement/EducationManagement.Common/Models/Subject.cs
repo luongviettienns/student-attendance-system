@@ -1,27 +1,67 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
 namespace EducationManagement.Common.Models
 {
+    [Table("subjects")]
     public class Subject
     {
-        public string SubjectId { get; set; }
-        public string SubjectCode { get; set; }     // Mã môn học (CS101, ENG101)
-        public string SubjectName { get; set; }     // Tên môn học
-        public int Credits { get; set; }            // Số tín chỉ
-        public string? Description { get; set; }    // Mô tả chi tiết
+        [Key]
+        [Column("subject_id")]
+        public string SubjectId { get; set; } = string.Empty;
 
-        public string DepartmentId { get; set; }    // 🔗 FK tới Department
+        [Required]
+        [Column("subject_code")]
+        [MaxLength(20)]
+        public string SubjectCode { get; set; } = string.Empty;
 
-        // Audit
+        [Required]
+        [Column("subject_name")]
+        [MaxLength(200)]
+        public string SubjectName { get; set; } = string.Empty;
+
+        [Required]
+        [Column("credits")]
+        public int Credits { get; set; }
+
+        [Column("description")]
+        [MaxLength(500)]
+        public string? Description { get; set; }
+
+        [Column("department_id")]
+        [MaxLength(50)]
+        public string? DepartmentId { get; set; }
+
+        // 🔹 Thêm để map kết quả SP (d.department_name)
+        [NotMapped]
+        public string? DepartmentName { get; set; }
+
+        // ==================================================
+        // 🔹 Audit fields
+        // ==================================================
+        [Column("is_active")]
         public bool IsActive { get; set; } = true;
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        [Column("created_at")]
+        public DateTime? CreatedAt { get; set; }
+
+        [Column("created_by")]
+        [MaxLength(50)]
         public string? CreatedBy { get; set; }
+
+        [Column("updated_at")]
         public DateTime? UpdatedAt { get; set; }
+
+        [Column("updated_by")]
+        [MaxLength(50)]
         public string? UpdatedBy { get; set; }
+
+        [Column("deleted_at")]
         public DateTime? DeletedAt { get; set; }
+
+        [Column("deleted_by")]
+        [MaxLength(50)]
         public string? DeletedBy { get; set; }
     }
 }

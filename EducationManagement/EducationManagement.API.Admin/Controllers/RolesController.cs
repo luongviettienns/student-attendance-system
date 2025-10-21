@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using EducationManagement.DAL;
+using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
 
 namespace EducationManagement.API.Admin.Controllers
@@ -10,13 +9,13 @@ namespace EducationManagement.API.Admin.Controllers
     [ApiController]
     [Authorize(Roles = "Admin")]
     [Route("api-edu/roles")]
-    public class RoleController : ControllerBase
+    public class RolesController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly RoleRepository _roleRepository;
 
-        public RoleController(AppDbContext context)
+        public RolesController(RoleRepository roleRepository)
         {
-            _context = context;
+            _roleRepository = roleRepository;
         }
 
         #region 🔹 GET: Danh sách và chi tiết
@@ -26,21 +25,19 @@ namespace EducationManagement.API.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var roles = await _context.Roles
-                .Where(r => r.DeletedAt == null)
-                .OrderBy(r => r.RoleName)
-                .Select(r => new
-                {
-                    r.RoleId,
-                    r.RoleName,
-                    r.Description,
-                    r.IsActive,
-                    r.CreatedAt,
-                    r.UpdatedAt
-                })
-                .ToListAsync();
+            var roles = await _roleRepository.GetAllAsync();
+            
+            var result = roles.Select(r => new
+            {
+                r.RoleId,
+                r.RoleName,
+                r.Description,
+                r.IsActive,
+                r.CreatedAt,
+                r.UpdatedAt
+            });
 
-            return Ok(new { data = roles });
+            return Ok(new { data = result });
         }
 
         /// <summary>
@@ -49,10 +46,9 @@ namespace EducationManagement.API.Admin.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
-            var role = await _context.Roles
-                .FirstOrDefaultAsync(r => r.RoleId == id && r.DeletedAt == null);
+            var role = await _roleRepository.GetByIdAsync(id);
 
-            if (role == null)
+            if (role == null || role.DeletedAt != null)
                 return NotFound(new { message = "Không tìm thấy vai trò" });
 
             return Ok(new { data = role });
@@ -69,7 +65,7 @@ namespace EducationManagement.API.Admin.Controllers
             if (string.IsNullOrWhiteSpace(request.RoleName))
                 return BadRequest(new { message = "Tên vai trò không được để trống" });
 
-            if (await _context.Roles.AnyAsync(r => r.RoleName == request.RoleName && r.DeletedAt == null))
+            if (await _roleRepository.ExistsByNameAsync(request.RoleName))
                 return BadRequest(new { message = "Tên vai trò đã tồn tại" });
 
             request.RoleId = Guid.NewGuid().ToString();
@@ -77,8 +73,7 @@ namespace EducationManagement.API.Admin.Controllers
             request.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
             request.IsActive = true;
 
-            _context.Roles.Add(request);
-            await _context.SaveChangesAsync();
+            await _roleRepository.CreateAsync(request);
 
             return Ok(new
             {
@@ -95,11 +90,11 @@ namespace EducationManagement.API.Admin.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] Role request)
         {
-            var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleId == id && r.DeletedAt == null);
-            if (role == null)
+            var role = await _roleRepository.GetByIdAsync(id);
+            if (role == null || role.DeletedAt != null)
                 return NotFound(new { message = "Không tìm thấy vai trò" });
 
-            if (await _context.Roles.AnyAsync(r => r.RoleName == request.RoleName && r.RoleId != id && r.DeletedAt == null))
+            if (await _roleRepository.ExistsByNameAsync(request.RoleName, id))
                 return BadRequest(new { message = "Tên vai trò đã tồn tại" });
 
             role.RoleName = request.RoleName;
@@ -107,7 +102,7 @@ namespace EducationManagement.API.Admin.Controllers
             role.UpdatedAt = DateTime.UtcNow;
             role.UpdatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            await _context.SaveChangesAsync();
+            await _roleRepository.UpdateAsync(role);
 
             return Ok(new { message = "Cập nhật vai trò thành công" });
         }
@@ -120,15 +115,12 @@ namespace EducationManagement.API.Admin.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
-            var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleId == id && r.DeletedAt == null);
-            if (role == null)
+            var role = await _roleRepository.GetByIdAsync(id);
+            if (role == null || role.DeletedAt != null)
                 return NotFound(new { message = "Không tìm thấy vai trò" });
 
-            role.DeletedAt = DateTime.UtcNow;
-            role.DeletedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            role.IsActive = false;
-
-            await _context.SaveChangesAsync();
+            var deletedBy = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "system";
+            await _roleRepository.SoftDeleteAsync(id, deletedBy);
 
             return Ok(new { message = "Đã xoá vai trò thành công" });
         }
@@ -141,20 +133,20 @@ namespace EducationManagement.API.Admin.Controllers
         [HttpPut("{id}/toggle-status")]
         public async Task<IActionResult> ToggleStatus(string id)
         {
-            var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleId == id && r.DeletedAt == null);
-            if (role == null)
+            var role = await _roleRepository.GetByIdAsync(id);
+            if (role == null || role.DeletedAt != null)
                 return NotFound(new { message = "Không tìm thấy vai trò" });
 
-            role.IsActive = !role.IsActive;
-            role.UpdatedAt = DateTime.UtcNow;
-            role.UpdatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            await _context.SaveChangesAsync();
+            var updatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "system";
+            await _roleRepository.ToggleStatusAsync(id, updatedBy);
+            
+            // Lấy lại role để kiểm tra trạng thái mới
+            var updatedRole = await _roleRepository.GetByIdAsync(id);
 
             return Ok(new
             {
-                message = $"Đã {(role.IsActive ? "kích hoạt" : "vô hiệu hóa")} vai trò thành công",
-                isActive = role.IsActive
+                message = $"Đã {(updatedRole!.IsActive ? "kích hoạt" : "vô hiệu hóa")} vai trò thành công",
+                isActive = updatedRole.IsActive
             });
         }
         #endregion

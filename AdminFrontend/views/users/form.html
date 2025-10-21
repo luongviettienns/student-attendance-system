@@ -1,0 +1,170 @@
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <app-sidebar></app-sidebar>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1 class="page-title">{{isEditMode ? 'Sửa' : 'Thêm'}} Người dùng</h1>
+            </div>
+            <div class="header-right">
+                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+            </div>
+        </header>
+        
+        <!-- Content Body -->
+        <div class="content-body">
+            <div ng-if="success" class="alert alert-success">
+                <i class="fas fa-check-circle"></i> {{success}}
+            </div>
+            
+            <div ng-if="error" class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> {{error}}
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Thông tin Người dùng</h3>
+                </div>
+                <div class="card-body">
+                    <form name="userForm" ng-submit="saveUser()" novalidate>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label required">Tên đăng nhập</label>
+                                <input type="text" 
+                                       name="username"
+                                       class="form-control" 
+                                       ng-model="user.username" 
+                                       ng-disabled="isEditMode" 
+                                       ng-pattern="/^[a-zA-Z0-9_]{3,20}$/"
+                                       required
+                                       ng-class="{'is-invalid': userForm.username.$invalid && userForm.username.$touched}">
+                                <div class="invalid-feedback" ng-show="userForm.username.$error.required && userForm.username.$touched">
+                                    Tên đăng nhập là bắt buộc
+                                </div>
+                                <div class="invalid-feedback" ng-show="userForm.username.$error.pattern && userForm.username.$touched">
+                                    Tên đăng nhập phải có 3-20 ký tự, chỉ bao gồm chữ, số và dấu gạch dưới
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label required">Họ tên</label>
+                                <input type="text" 
+                                       name="fullName"
+                                       class="form-control" 
+                                       ng-model="user.fullName" 
+                                       ng-minlength="3"
+                                       ng-maxlength="100"
+                                       required
+                                       ng-class="{'is-invalid': userForm.fullName.$invalid && userForm.fullName.$touched}">
+                                <div class="invalid-feedback" ng-show="userForm.fullName.$error.required && userForm.fullName.$touched">
+                                    Họ tên là bắt buộc
+                                </div>
+                                <div class="invalid-feedback" ng-show="userForm.fullName.$error.minlength && userForm.fullName.$touched">
+                                    Họ tên phải có ít nhất 3 ký tự
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label required">Email</label>
+                                <input type="email" 
+                                       name="email"
+                                       class="form-control" 
+                                       ng-model="user.email" 
+                                       required
+                                       ng-class="{'is-invalid': userForm.email.$invalid && userForm.email.$touched}">
+                                <div class="invalid-feedback" ng-show="userForm.email.$error.required && userForm.email.$touched">
+                                    Email là bắt buộc
+                                </div>
+                                <div class="invalid-feedback" ng-show="userForm.email.$error.email && userForm.email.$touched">
+                                    Email không hợp lệ
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Số điện thoại</label>
+                                <input type="tel" 
+                                       name="phone"
+                                       class="form-control" 
+                                       ng-model="user.phone"
+                                       ng-pattern="/^[0-9]{10,11}$/"
+                                       ng-class="{'is-invalid': userForm.phone.$invalid && userForm.phone.$touched}">
+                                <div class="invalid-feedback" ng-show="userForm.phone.$error.pattern && userForm.phone.$touched">
+                                    Số điện thoại phải có 10-11 chữ số
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label required">Vai trò</label>
+                                <select class="form-control" 
+                                        name="roleId"
+                                        ng-model="user.roleId" 
+                                        required
+                                        ng-class="{'is-invalid': userForm.roleId.$invalid && userForm.roleId.$touched}">
+                                    <option value="">-- Chọn vai trò --</option>
+                                    <option ng-repeat="role in roles" value="{{role.roleId}}">
+                                        {{role.roleName}}
+                                    </option>
+                                </select>
+                                <div class="invalid-feedback" ng-show="userForm.roleId.$error.required && userForm.roleId.$touched">
+                                    Vui lòng chọn vai trò
+                                </div>
+                            </div>
+                            
+                            <div class="form-group" ng-if="!isEditMode">
+                                <label class="form-label required">Mật khẩu</label>
+                                <input type="password" 
+                                       name="password"
+                                       class="form-control" 
+                                       ng-model="user.password" 
+                                       ng-required="!isEditMode"
+                                       ng-minlength="6"
+                                       ng-pattern="/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/"
+                                       ng-class="{'is-invalid': userForm.password.$invalid && userForm.password.$touched}">
+                                <div class="invalid-feedback" ng-show="userForm.password.$error.required && userForm.password.$touched">
+                                    Mật khẩu là bắt buộc
+                                </div>
+                                <div class="invalid-feedback" ng-show="userForm.password.$error.minlength && userForm.password.$touched">
+                                    Mật khẩu phải có ít nhất 6 ký tự
+                                </div>
+                                <div class="invalid-feedback" ng-show="userForm.password.$error.pattern && userForm.password.$touched">
+                                    Mật khẩu phải chứa ít nhất 1 chữ hoa, 1 chữ thường và 1 số
+                                </div>
+                                <small class="form-text">Mật khẩu phải có ít nhất 6 ký tự, bao gồm chữ hoa, chữ thường và số</small>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="isActive" ng-model="user.isActive">
+                                <label for="isActive">Tài khoản hoạt động</label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mt-30">
+                            <button type="submit" class="btn btn-primary" ng-disabled="loading || userForm.$invalid">
+                                <i class="fas fa-save"></i> {{isEditMode ? 'Cập nhật' : 'Thêm mới'}}
+                            </button>
+                            <button type="button" class="btn btn-secondary" ng-click="cancel()">
+                                <i class="fas fa-times"></i> Hủy
+                            </button>
+                        </div>
+                        
+                        <!-- Debug form validation -->
+                        <div ng-if="userForm.$submitted && userForm.$invalid" class="alert alert-warning mt-20">
+                            <i class="fas fa-exclamation-triangle"></i> Vui lòng kiểm tra lại các trường đã nhập
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

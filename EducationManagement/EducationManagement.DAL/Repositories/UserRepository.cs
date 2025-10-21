@@ -1,30 +1,270 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using System.Data;
 using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using EducationManagement.Common.Models;
-using Microsoft.EntityFrameworkCore;
+using EducationManagement.DAL;
 
 namespace EducationManagement.DAL.Repositories
 {
     public class UserRepository
     {
-        private readonly AppDbContext _context;
+        private readonly string _connectionString;
 
-        public UserRepository(AppDbContext context)
+        public UserRepository(IConfiguration configuration)
         {
-            _context = context;
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? throw new ArgumentNullException("Connection string 'DefaultConnection' not found.");
         }
 
-        public async Task<User?> GetByIdAsync(string id)
+        // ============================================================
+        // 🔹 LẤY DANH SÁCH NGƯỜI DÙNG (CÓ PHÂN TRANG)
+        // ============================================================
+        public async Task<(List<User> Users, int TotalCount)> GetAllAsync(
+            int page = 1,
+            int pageSize = 10,
+            string? search = null,
+            string? roleId = null,
+            bool? isActive = null)
         {
-            return await _context.Users.FirstOrDefaultAsync(x => x.UserId == id);
+            var users = new List<User>();
+            int totalCount = 0;
+
+            var parameters = new[]
+            {
+                new SqlParameter("@Page", page),
+                new SqlParameter("@PageSize", pageSize),
+                new SqlParameter("@Search", (object?)search ?? DBNull.Value),
+                new SqlParameter("@RoleId", (object?)roleId ?? DBNull.Value),
+                new SqlParameter("@IsActive", (object?)isActive ?? DBNull.Value)
+            };
+
+            var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(_connectionString, "sp_GetAllUsers", parameters);
+
+            // 🔍 DEBUG
+            Console.WriteLine($"🔍 DataSet info: Tables count = {ds.Tables.Count}");
+            for (int i = 0; i < ds.Tables.Count; i++)
+            {
+                Console.WriteLine($"   Table[{i}]: {ds.Tables[i].Rows.Count} rows, {ds.Tables[i].Columns.Count} columns");
+                if (ds.Tables[i].Rows.Count > 0)
+                {
+                    Console.WriteLine($"   First column: {ds.Tables[i].Columns[0].ColumnName}");
+                }
+            }
+
+            // First result set: TotalCount
+            if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
+            {
+                totalCount = Convert.ToInt32(ds.Tables[0].Rows[0]["TotalCount"]);
+                Console.WriteLine($"✅ TotalCount extracted: {totalCount}");
+            }
+
+            // Second result set: Data
+            if (ds.Tables.Count > 1)
+            {
+                Console.WriteLine($"🔍 Processing Table[1] with {ds.Tables[1].Rows.Count} rows...");
+                foreach (DataRow row in ds.Tables[1].Rows)
+                {
+                    users.Add(MapToUser(row));
+                }
+                Console.WriteLine($"✅ Users mapped: {users.Count}");
+            }
+            else
+            {
+                Console.WriteLine($"❌ No second result set! Tables.Count = {ds.Tables.Count}");
+            }
+
+            return (users, totalCount);
         }
 
+        // ============================================================
+        // 🔹 LẤY NGƯỜI DÙNG THEO ID
+        // ============================================================
+        public async Task<User?> GetByIdAsync(string userId)
+        {
+            var param = new SqlParameter("@UserId", userId);
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetUserById", param);
+
+            if (dt.Rows.Count == 0)
+                return null;
+
+            return MapToUser(dt.Rows[0]);
+        }
+
+        // ============================================================
+        // 🔹 LẤY NGƯỜI DÙNG THEO USERNAME (CHO AUTH)
+        // ============================================================
         public async Task<User?> GetByUsernameAsync(string username)
         {
-            return await _context.Users.FirstOrDefaultAsync(x => x.Username == username);
+            var param = new SqlParameter("@Username", username);
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetUserByUsername", param);
+
+            if (dt.Rows.Count == 0)
+                return null;
+
+            return MapToUser(dt.Rows[0]);
+        }
+
+        // ============================================================
+        // 🔹 TẠO MỚI NGƯỜI DÙNG
+        // ============================================================
+        public async Task<string?> CreateAsync(User user)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@UserId", user.UserId),
+                new SqlParameter("@Username", user.Username),
+                new SqlParameter("@PasswordHash", user.PasswordHash),
+                new SqlParameter("@Email", user.Email),
+                new SqlParameter("@Phone", (object?)user.Phone ?? DBNull.Value),
+                new SqlParameter("@FullName", user.FullName),
+                new SqlParameter("@RoleId", user.RoleId),
+                new SqlParameter("@IsActive", user.IsActive),
+                new SqlParameter("@AvatarUrl", (object?)user.AvatarUrl ?? "/avatars/default.png"),
+                new SqlParameter("@CreatedBy", user.CreatedBy ?? "System")
+            };
+
+            var result = await DatabaseHelper.ExecuteScalarAsync(_connectionString, "sp_CreateUser", parameters);
+            return result?.ToString();
+        }
+
+        // ============================================================
+        // 🔹 CẬP NHẬT NGƯỜI DÙNG
+        // ============================================================
+        public async Task<int> UpdateAsync(User user)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@UserId", user.UserId),
+                new SqlParameter("@FullName", user.FullName),
+                new SqlParameter("@Email", user.Email),
+                new SqlParameter("@Phone", (object?)user.Phone ?? DBNull.Value),
+                new SqlParameter("@RoleId", user.RoleId),
+                new SqlParameter("@IsActive", user.IsActive),
+                new SqlParameter("@AvatarUrl", (object?)user.AvatarUrl ?? DBNull.Value),
+                new SqlParameter("@UpdatedBy", user.UpdatedBy ?? "System")
+            };
+
+            return await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_UpdateUser", parameters);
+        }
+
+        // ============================================================
+        // 🔹 XOÁ NGƯỜI DÙNG (SOFT DELETE)
+        // ============================================================
+        public async Task<int> DeleteAsync(string userId, string deletedBy)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@UserId", userId),
+                new SqlParameter("@DeletedBy", deletedBy)
+            };
+
+            return await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_DeleteUser", parameters);
+        }
+
+        // ============================================================
+        // 🔹 CHUYỂN TRẠNG THÁI KÍCH HOẠT / VÔ HIỆU
+        // ============================================================
+        public async Task<bool> ToggleStatusAsync(string userId, string updatedBy)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@UserId", userId),
+                new SqlParameter("@UpdatedBy", updatedBy)
+            };
+
+            var result = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_ToggleUserStatus", parameters);
+
+            if (result.Rows.Count == 0)
+                return false;
+
+            return Convert.ToBoolean(result.Rows[0]["is_active"]);
+        }
+
+        // ============================================================
+        // 🔹 KIỂM TRA USERNAME ĐÃ TỒN TẠI
+        // ============================================================
+        public async Task<bool> ExistsByUsernameAsync(string username)
+        {
+            var query = "SELECT COUNT(*) FROM dbo.users WHERE username = @Username AND deleted_at IS NULL";
+
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@Username", username);
+
+            await conn.OpenAsync();
+            var count = (int)(await cmd.ExecuteScalarAsync() ?? 0);
+            return count > 0;
+        }
+
+        // ============================================================
+        // 🔹 KIỂM TRA EMAIL ĐÃ TỒN TẠI
+        // ============================================================
+        public async Task<bool> ExistsByEmailAsync(string email, string? excludeUserId = null)
+        {
+            var query = excludeUserId == null
+                ? "SELECT COUNT(*) FROM dbo.users WHERE email = @Email AND deleted_at IS NULL"
+                : "SELECT COUNT(*) FROM dbo.users WHERE email = @Email AND user_id != @ExcludeId AND deleted_at IS NULL";
+
+            using var conn = new SqlConnection(_connectionString);
+            using var cmd = new SqlCommand(query, conn);
+            cmd.Parameters.AddWithValue("@Email", email);
+            if (excludeUserId != null)
+                cmd.Parameters.AddWithValue("@ExcludeId", excludeUserId);
+
+            await conn.OpenAsync();
+            var count = (int)(await cmd.ExecuteScalarAsync() ?? 0);
+            return count > 0;
+        }
+
+        // ============================================================
+        // 🔹 XOÁ MỀM USER
+        // ============================================================
+        public async Task SoftDeleteAsync(string userId, string deletedBy)
+        {
+            await DeleteAsync(userId, deletedBy);
+        }
+
+        // ============================================================
+        // 🔹 MAP DỮ LIỆU DataRow → User
+        // ============================================================
+        private static User MapToUser(DataRow row)
+        {
+            var user = new User
+            {
+                UserId = row["user_id"].ToString()!,
+                Username = row["username"].ToString()!,
+                // ✅ Thêm map PasswordHash
+                PasswordHash = row.Table.Columns.Contains("password_hash") ? row["password_hash"]?.ToString() : null,
+                FullName = row["full_name"].ToString()!,
+                Email = row["email"].ToString()!,
+                Phone = row["phone"]?.ToString(),
+                RoleId = row["role_id"].ToString()!,
+                RoleName = row.Table.Columns.Contains("role_name") ? row["role_name"]?.ToString() : null,
+                AvatarUrl = row["avatar_url"]?.ToString(),
+                IsActive = Convert.ToBoolean(row["is_active"]),
+                CreatedBy = row.Table.Columns.Contains("created_by") ? row["created_by"]?.ToString() : null,
+                UpdatedBy = row.Table.Columns.Contains("updated_by") ? row["updated_by"]?.ToString() : null,
+                DeletedBy = row.Table.Columns.Contains("deleted_by") ? row["deleted_by"]?.ToString() : null
+            };
+
+            // Xử lý kiểu DateTime nullable an toàn
+            user.LastLoginAt = row.Table.Columns.Contains("last_login_at") && row["last_login_at"] != DBNull.Value
+                ? Convert.ToDateTime(row["last_login_at"])
+                : null;
+            user.CreatedAt = row.Table.Columns.Contains("created_at") && row["created_at"] != DBNull.Value
+                ? Convert.ToDateTime(row["created_at"])
+                : DateTime.Now;
+            user.UpdatedAt = row.Table.Columns.Contains("updated_at") && row["updated_at"] != DBNull.Value
+                ? Convert.ToDateTime(row["updated_at"])
+                : null;
+            user.DeletedAt = row.Table.Columns.Contains("deleted_at") && row["deleted_at"] != DBNull.Value
+                ? Convert.ToDateTime(row["deleted_at"])
+                : null;
+
+            return user;
         }
     }
 }

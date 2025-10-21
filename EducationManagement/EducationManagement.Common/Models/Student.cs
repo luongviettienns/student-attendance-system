@@ -9,112 +9,91 @@ namespace EducationManagement.Common.Models
     {
         [Key]
         [Column("student_id")]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int StudentId { get; set; }
+        public string StudentId { get; set; } = string.Empty;
 
         [Required]
-        [Column("username")]
+        [Column("user_id")]
         [MaxLength(50)]
-        public string Username { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
         [Required]
-        [Column("password_hash")]
-        [MaxLength(255)]
-        public string PasswordHash { get; set; }
-
-        [Column("email")]
-        [MaxLength(100)]
-        public string Email { get; set; }
-
-        [Column("phone")]
-        [MaxLength(15)]
-        public string? Phone { get; set; }
+        [Column("student_code")]
+        [MaxLength(20)]
+        public string StudentCode { get; set; } = string.Empty;
 
         [Required]
         [Column("full_name")]
-        [MaxLength(100)]
-        public string FullName { get; set; }
+        [MaxLength(150)]
+        public string FullName { get; set; } = string.Empty;
 
         [Column("gender")]
         [MaxLength(10)]
         public string? Gender { get; set; }
 
         [Column("dob")]
-        public DateTime Dob { get; set; }
+        public DateTime? Dob { get; set; }
+
+        [Column("email")]
+        [MaxLength(150)]
+        public string? Email { get; set; }
+
+        [Column("phone")]
+        [MaxLength(20)]
+        public string? Phone { get; set; }
 
         [Column("faculty_id")]
-        public int FacultyId { get; set; }
+        [MaxLength(50)]
+        public string? FacultyId { get; set; }
+
+        // 🔹 Thêm để map kết quả SP (f.faculty_name)
+        [NotMapped]
+        public string? FacultyName { get; set; }
 
         [Column("major_id")]
-        public int MajorId { get; set; }
+        [MaxLength(50)]
+        public string? MajorId { get; set; }
+
+        // 🔹 Thêm để map kết quả SP (m.major_name)
+        [NotMapped]
+        public string? MajorName { get; set; }
 
         [Column("academic_year_id")]
-        public int AcademicYearId { get; set; }
+        [MaxLength(50)]
+        public string? AcademicYearId { get; set; }
+
+        // 🔹 Thêm để map kết quả SP (ay.year_code)
+        [NotMapped]
+        public string? YearCode { get; set; }
 
         [Column("cohort_year")]
-        public int CohortYear { get; set; }
+        [MaxLength(10)]
+        public string? CohortYear { get; set; }
 
-        [Column("nationality")]
-        [MaxLength(50)]
-        public string? Nationality { get; set; }
+        // ==================================================
+        // 🔹 Audit fields
+        // ==================================================
+        [Column("is_active")]
+        public bool IsActive { get; set; } = true;
 
-        [Column("ethnicity")]
-        [MaxLength(50)]
-        public string? Ethnicity { get; set; }
-
-        [Column("religion")]
-        [MaxLength(50)]
-        public string? Religion { get; set; }
-
-        [Column("hometown")]
-        [MaxLength(255)]
-        public string? Hometown { get; set; }
-
-        [Column("current_address")]
-        [MaxLength(255)]
-        public string? CurrentAddress { get; set; }
-
-        [Column("father_name")]
-        [MaxLength(100)]
-        public string? FatherName { get; set; }
-
-        [Column("father_phone")]
-        [MaxLength(15)]
-        public string? FatherPhone { get; set; }
-
-        [Column("father_job")]
-        [MaxLength(100)]
-        public string? FatherJob { get; set; }
-
-        [Column("mother_name")]
-        [MaxLength(100)]
-        public string? MotherName { get; set; }
-
-        [Column("mother_phone")]
-        [MaxLength(15)]
-        public string? MotherPhone { get; set; }
-
-        [Column("mother_job")]
-        [MaxLength(100)]
-        public string? MotherJob { get; set; }
+        [Column("created_at")]
+        public DateTime? CreatedAt { get; set; }
 
         [Column("created_by")]
         [MaxLength(50)]
-        public string CreatedBy { get; set; }
-
-        [Column("created_at")]
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public string? CreatedBy { get; set; }
 
         [Column("updated_at")]
         public DateTime? UpdatedAt { get; set; }
 
         [Column("updated_by")]
+        [MaxLength(50)]
         public string? UpdatedBy { get; set; }
 
         [Column("deleted_at")]
         public DateTime? DeletedAt { get; set; }
 
         [Column("deleted_by")]
+        [MaxLength(50)]
         public string? DeletedBy { get; set; }
     }
 }

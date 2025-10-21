@@ -1,94 +1,165 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Data;
 using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using EducationManagement.Common.Models;
-using Microsoft.EntityFrameworkCore;
+using EducationManagement.DAL;
 
 namespace EducationManagement.DAL.Repositories
 {
     public class LecturerRepository
     {
-        private readonly AppDbContext _context;
+        private readonly string _connectionString;
 
-        public LecturerRepository(AppDbContext context)
+        public LecturerRepository(IConfiguration configuration)
         {
-            _context = context;
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? throw new ArgumentNullException("Connection string 'DefaultConnection' not found.");
         }
 
         // ============================================================
-        // 🔹 Lấy danh sách giảng viên (chỉ các bản ghi đang hoạt động)
+        // 🔹 LẤY DANH SÁCH GIẢNG VIÊN (ACTIVE)
         // ============================================================
         public async Task<List<Lecturer>> GetAllAsync()
         {
-            return await _context.Lecturers
-                .Where(x => x.IsActive)
-                .OrderByDescending(x => x.CreatedAt)
-                .ToListAsync();
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAllLecturers");
+            var list = new List<Lecturer>();
+
+            foreach (DataRow row in dt.Rows)
+                list.Add(MapToLecturer(row));
+
+            return list;
         }
 
         // ============================================================
-        // 🔹 Lấy giảng viên theo ID
+        // 🔹 LẤY GIẢNG VIÊN THEO ID
         // ============================================================
-        public async Task<Lecturer?> GetByIdAsync(string id)
+        public async Task<Lecturer?> GetByIdAsync(string lecturerId)
         {
-            return await _context.Lecturers
-                .FirstOrDefaultAsync(x => x.LecturerId == id && x.IsActive);
+            var param = new SqlParameter("@LecturerId", lecturerId);
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetLecturerById", param);
+
+            if (dt.Rows.Count == 0)
+                return null;
+
+            return MapToLecturer(dt.Rows[0]);
         }
 
         // ============================================================
-        // 🔹 Lấy giảng viên theo UserId (dùng khi login hoặc xem profile)
+        // 🔹 LẤY GIẢNG VIÊN THEO USER ID
         // ============================================================
         public async Task<Lecturer?> GetByUserIdAsync(string userId)
         {
-            return await _context.Lecturers
-                .FirstOrDefaultAsync(x => x.UserId == userId && x.IsActive);
+            var parameters = new[]
+            {
+                new SqlParameter("@UserId", userId)
+            };
+
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetLecturerByUserId", parameters);
+
+            if (dt.Rows.Count == 0)
+                return null;
+
+            return MapToLecturer(dt.Rows[0]);
         }
 
         // ============================================================
-        // 🔹 Thêm mới giảng viên
+        // 🔹 THÊM MỚI GIẢNG VIÊN
         // ============================================================
-        public async Task AddAsync(Lecturer entity)
+        public async Task AddAsync(Lecturer lecturer)
         {
-            entity.LecturerId = Guid.NewGuid().ToString();
-            entity.CreatedAt = DateTime.Now;
-            entity.IsActive = true;
+            var parameters = new[]
+            {
+                new SqlParameter("@LecturerId", lecturer.LecturerId),
+                new SqlParameter("@UserId", lecturer.UserId),
+                new SqlParameter("@DepartmentId", lecturer.DepartmentId),
+                new SqlParameter("@AcademicTitle", (object?)lecturer.AcademicTitle ?? DBNull.Value),
+                new SqlParameter("@Degree", (object?)lecturer.Degree ?? DBNull.Value),
+                new SqlParameter("@Specialization", (object?)lecturer.Specialization ?? DBNull.Value),
+                new SqlParameter("@Position", (object?)lecturer.Position ?? DBNull.Value),
+                new SqlParameter("@JoinDate", (object?)lecturer.JoinDate ?? DBNull.Value),
+                new SqlParameter("@CreatedBy", lecturer.CreatedBy)
+            };
 
-            _context.Lecturers.Add(entity);
-            await _context.SaveChangesAsync();
+            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_CreateLecturer", parameters);
         }
 
         // ============================================================
-        // 🔹 Cập nhật giảng viên
+        // 🔹 CẬP NHẬT GIẢNG VIÊN
         // ============================================================
-        public async Task UpdateAsync(Lecturer entity)
+        public async Task<int> UpdateAsync(Lecturer lecturer)
         {
-            var existing = await _context.Lecturers.FindAsync(entity.LecturerId);
-            if (existing == null)
-                throw new Exception("Không tìm thấy giảng viên để cập nhật.");
+            var parameters = new[]
+            {
+                new SqlParameter("@LecturerId", lecturer.LecturerId),
+                new SqlParameter("@DepartmentId", lecturer.DepartmentId),
+                new SqlParameter("@AcademicTitle", (object?)lecturer.AcademicTitle ?? DBNull.Value),
+                new SqlParameter("@Degree", (object?)lecturer.Degree ?? DBNull.Value),
+                new SqlParameter("@Specialization", (object?)lecturer.Specialization ?? DBNull.Value),
+                new SqlParameter("@Position", (object?)lecturer.Position ?? DBNull.Value),
+                new SqlParameter("@JoinDate", (object?)lecturer.JoinDate ?? DBNull.Value),
+                new SqlParameter("@UpdatedBy", lecturer.UpdatedBy)
+            };
 
-            // Giữ nguyên CreatedAt/CreatedBy
-            entity.CreatedAt = existing.CreatedAt;
-            entity.CreatedBy = existing.CreatedBy;
-
-            entity.UpdatedAt = DateTime.Now;
-            _context.Entry(existing).CurrentValues.SetValues(entity);
-            await _context.SaveChangesAsync();
+            return await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_UpdateLecturer", parameters);
         }
 
         // ============================================================
-        // 🔹 Xóa mềm giảng viên
+        // 🔹 XOÁ MỀM (SOFT DELETE)
         // ============================================================
-        public async Task DeleteAsync(string id)
+        public async Task DeleteAsync(string lecturerId)
         {
-            var item = await _context.Lecturers.FindAsync(id);
-            if (item == null)
-                throw new Exception("Không tìm thấy giảng viên để xóa.");
+            var parameters = new[]
+            {
+                new SqlParameter("@LecturerId", lecturerId),
+                new SqlParameter("@DeletedBy", "System") // TODO: Lấy từ context user
+            };
 
-            item.IsActive = false;
-            item.DeletedAt = DateTime.Now;
-            _context.Lecturers.Update(item);
-            await _context.SaveChangesAsync();
+            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_DeleteLecturer", parameters);
         }
+
+        // ============================================================
+        // 🔹 MAP DỮ LIỆU DataRow → Lecturer
+        // ============================================================
+        private static Lecturer MapToLecturer(DataRow row)
+        {
+            var lecturer = new Lecturer
+            {
+                LecturerId = row["lecturer_id"].ToString()!,
+                UserId = row["user_id"].ToString()!,
+                Username = row.Table.Columns.Contains("username") ? row["username"]?.ToString() : null,
+                FullName = row.Table.Columns.Contains("full_name") ? row["full_name"]?.ToString() : null,
+                Email = row.Table.Columns.Contains("email") ? row["email"]?.ToString() : null,
+                DepartmentId = row["department_id"].ToString()!,
+                DepartmentName = row.Table.Columns.Contains("department_name") ? row["department_name"]?.ToString() : null,
+                AcademicTitle = row.Table.Columns.Contains("academic_title") ? row["academic_title"]?.ToString() : null,
+                Degree = row.Table.Columns.Contains("degree") ? row["degree"]?.ToString() : null,
+                Specialization = row.Table.Columns.Contains("specialization") ? row["specialization"]?.ToString() : null,
+                Position = row.Table.Columns.Contains("position") ? row["position"]?.ToString() : null,
+                JoinDate = row.Table.Columns.Contains("join_date") && row["join_date"] != DBNull.Value ? Convert.ToDateTime(row["join_date"]) : (DateTime?)null,
+                IsActive = row.Table.Columns.Contains("is_active") && row["is_active"] != DBNull.Value
+                    ? Convert.ToBoolean(row["is_active"])
+                    : true,
+                CreatedBy = row.Table.Columns.Contains("created_by") ? row["created_by"]?.ToString() : null,
+                UpdatedBy = row.Table.Columns.Contains("updated_by") ? row["updated_by"]?.ToString() : null,
+                DeletedBy = row.Table.Columns.Contains("deleted_by") ? row["deleted_by"]?.ToString() : null
+            };
+
+            // ✅ Gán các trường DateTime an toàn
+            lecturer.CreatedAt = row.Table.Columns.Contains("created_at") && row["created_at"] != DBNull.Value 
+                ? Convert.ToDateTime(row["created_at"]) 
+                : DateTime.Now;
+            lecturer.UpdatedAt = row.Table.Columns.Contains("updated_at") && row["updated_at"] != DBNull.Value 
+                ? Convert.ToDateTime(row["updated_at"]) 
+                : (DateTime?)null;
+            lecturer.DeletedAt = row.Table.Columns.Contains("deleted_at") && row["deleted_at"] != DBNull.Value
+                ? Convert.ToDateTime(row["deleted_at"])
+                : null;
+
+            return lecturer;
+        }
+
     }
 }

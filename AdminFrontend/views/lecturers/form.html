@@ -1,0 +1,189 @@
+<div class="admin-layout">
+    <app-sidebar></app-sidebar>
+    
+    <div class="main-content">
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1 class="page-title">{{isEditMode ? 'Sửa' : 'Thêm'}} Giảng viên</h1>
+            </div>
+            <div class="header-right">
+                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+            </div>
+        </header>
+        
+        <div class="content-body">
+            <div ng-if="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{success}}</div>
+            <div ng-if="error" class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> {{error}}</div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Thông tin Giảng viên</h3>
+                </div>
+                <div class="card-body">
+                    <form ng-submit="saveLecturer()">
+                        <div class="form-group">
+                            <label class="form-label required">Thuộc bộ môn</label>
+                            <select class="form-control" ng-model="lecturer.departmentId" required>
+                                <option value="">-- Chọn bộ môn --</option>
+                                <option ng-repeat="dept in departments" value="{{dept.departmentId}}">
+                                    {{dept.departmentName}} ({{dept.facultyName}})
+                                </option>
+                            </select>
+                            <small class="form-text">Bộ môn chính mà giảng viên thuộc về</small>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Học hàm</label>
+                                <input type="text" class="form-control" ng-model="lecturer.academicTitle" placeholder="VD: PGS, TS">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Học vị</label>
+                                <input type="text" class="form-control" ng-model="lecturer.degree" placeholder="VD: Tiến sĩ, Thạc sĩ">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">Chuyên môn</label>
+                            <input type="text" class="form-control" ng-model="lecturer.specialization">
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Chức vụ</label>
+                                <input type="text" class="form-control" ng-model="lecturer.position" placeholder="VD: Trưởng bộ môn">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Ngày vào làm</label>
+                                <input type="date" class="form-control" ng-model="lecturer.joinDate">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="isActive" ng-model="lecturer.isActive">
+                                <label for="isActive">Đang làm việc</label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mt-30">
+                            <button type="submit" class="btn btn-primary" ng-disabled="loading">
+                                <i class="fas fa-save"></i> {{isEditMode ? 'Cập nhật' : 'Thêm mới'}}
+                            </button>
+                            <button type="button" class="btn btn-secondary" ng-click="cancel()">
+                                <i class="fas fa-times"></i> Hủy
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Quản lý môn dạy (chỉ hiện khi đang edit) -->
+            <div ng-if="isEditMode" class="card mt-20">
+                <div class="card-header">
+                    <h3 class="card-title"><i class="fas fa-book-open"></i> Phân môn giảng dạy</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Form phân môn mới -->
+                    <div class="card-section">
+                        <h4>Thêm môn dạy mới</h4>
+                        <form ng-submit="assignNewSubject()">
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 2;">
+                                    <label class="form-label required">Môn học</label>
+                                    <select class="form-control" ng-model="newAssignment.subjectId" required>
+                                        <option value="">-- Chọn môn học --</option>
+                                        <option ng-repeat="subject in allSubjects" value="{{subject.subjectId}}">
+                                            {{subject.subjectCode}} - {{subject.subjectName}}
+                                        </option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Số năm kinh nghiệm</label>
+                                    <input type="number" class="form-control" ng-model="newAssignment.experienceYears" min="0" max="50">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">Ngày chứng nhận</label>
+                                    <input type="date" class="form-control" ng-model="newAssignment.certifiedDate">
+                                </div>
+                            </div>
+                            
+                            <div class="form-row">
+                                <div class="form-group" style="flex: 2;">
+                                    <label class="form-label">Ghi chú</label>
+                                    <input type="text" class="form-control" ng-model="newAssignment.notes" placeholder="Ghi chú về môn dạy...">
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label class="form-label">&nbsp;</label>
+                                    <div class="checkbox-group">
+                                        <input type="checkbox" id="isPrimary" ng-model="newAssignment.isPrimary">
+                                        <label for="isPrimary">Môn chủ đạo</label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-plus"></i> Thêm môn dạy
+                            </button>
+                        </form>
+                    </div>
+                    
+                    <!-- Danh sách môn đã phân -->
+                    <div class="card-section mt-30">
+                        <h4>Môn đang dạy ({{assignedSubjects.length}})</h4>
+                        
+                        <div ng-if="assignedSubjects.length === 0" class="empty-state-small">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Chưa có môn học nào được phân công</p>
+                        </div>
+                        
+                        <table ng-if="assignedSubjects.length > 0" class="data-table mt-10">
+                            <thead>
+                                <tr>
+                                    <th>Mã môn</th>
+                                    <th>Tên môn học</th>
+                                    <th>Tín chỉ</th>
+                                    <th>Kinh nghiệm</th>
+                                    <th>Môn chủ đạo</th>
+                                    <th>Ghi chú</th>
+                                    <th class="text-center">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="assignment in assignedSubjects">
+                                    <td><strong>{{assignment.subjectCode}}</strong></td>
+                                    <td>{{assignment.subjectName}}</td>
+                                    <td>{{assignment.credits}} TC</td>
+                                    <td>{{assignment.experienceYears || 0}} năm</td>
+                                    <td>
+                                        <span ng-if="assignment.isPrimary" class="badge badge-primary">
+                                            <i class="fas fa-star"></i> Chủ đạo
+                                        </span>
+                                        <span ng-if="!assignment.isPrimary" class="badge badge-secondary">
+                                            Phụ trách
+                                        </span>
+                                    </td>
+                                    <td>{{assignment.notes || '-'}}</td>
+                                    <td class="text-center">
+                                        <button class="btn btn-sm btn-danger" 
+                                                ng-click="removeSubjectAssignment(assignment.lecturerSubjectId, assignment.subjectName)" 
+                                                title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

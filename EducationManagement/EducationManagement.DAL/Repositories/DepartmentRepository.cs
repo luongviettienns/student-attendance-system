@@ -1,76 +1,130 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Data;
 using System.Threading.Tasks;
+using Microsoft.Data.SqlClient;
+using Microsoft.Extensions.Configuration;
 using EducationManagement.Common.Models;
-using Microsoft.EntityFrameworkCore;
+using EducationManagement.DAL;
 
 namespace EducationManagement.DAL.Repositories
 {
     public class DepartmentRepository
     {
-        private readonly AppDbContext _context;
+        private readonly string _connectionString;
 
-        public DepartmentRepository(AppDbContext context)
+        public DepartmentRepository(IConfiguration configuration)
         {
-            _context = context;
+            _connectionString = configuration.GetConnectionString("DefaultConnection")
+                ?? throw new ArgumentNullException("Connection string 'DefaultConnection' not found.");
         }
 
-        // ==========================================================
-        // 🔹 Lấy tất cả bộ môn (còn hoạt động)
-        // ==========================================================
+        // ============================================================
+        // 🔹 LẤY DANH SÁCH BỘ MÔN (ACTIVE)
+        // ============================================================
         public async Task<List<Department>> GetAllAsync()
         {
-            return await _context.Departments
-                .Where(x => x.IsActive)
-                .OrderBy(x => x.DepartmentName)
-                .ToListAsync();
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAllDepartments");
+            var list = new List<Department>();
+
+            foreach (DataRow row in dt.Rows)
+                list.Add(MapToDepartment(row));
+
+            return list;
         }
 
-        // ==========================================================
-        // 🔹 Lấy bộ môn theo ID
-        // ==========================================================
-        public async Task<Department?> GetByIdAsync(string id)
+        // ============================================================
+        // 🔹 LẤY BỘ MÔN THEO ID
+        // ============================================================
+        public async Task<Department?> GetByIdAsync(string departmentId)
         {
-            return await _context.Departments
-                .FirstOrDefaultAsync(x => x.DepartmentId == id && x.IsActive);
+            var param = new SqlParameter("@DepartmentId", departmentId);
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetDepartmentById", param);
+
+            if (dt.Rows.Count == 0)
+                return null;
+
+            return MapToDepartment(dt.Rows[0]);
         }
 
-        // ==========================================================
-        // 🔹 Thêm mới
-        // ==========================================================
-        public async Task AddAsync(Department entity)
+        // ============================================================
+        // 🔹 THÊM MỚI BỘ MÔN
+        // ============================================================
+        public async Task AddAsync(Department department)
         {
-            entity.CreatedAt = DateTime.Now;
-            entity.IsActive = true;
-            _context.Departments.Add(entity);
-            await _context.SaveChangesAsync();
-        }
-
-        // ==========================================================
-        // 🔹 Cập nhật
-        // ==========================================================
-        public async Task UpdateAsync(Department entity)
-        {
-            entity.UpdatedAt = DateTime.Now;
-            _context.Departments.Update(entity);
-            await _context.SaveChangesAsync();
-        }
-
-        // ==========================================================
-        // 🔹 Xoá mềm (soft delete)
-        // ==========================================================
-        public async Task DeleteAsync(string id)
-        {
-            var dep = await _context.Departments
-                .FirstOrDefaultAsync(x => x.DepartmentId == id);
-            if (dep != null)
+            var parameters = new[]
             {
-                dep.IsActive = false;
-                dep.DeletedAt = DateTime.Now;
-                _context.Departments.Update(dep);
-                await _context.SaveChangesAsync();
-            }
+                new SqlParameter("@DepartmentId", department.DepartmentId),
+                new SqlParameter("@DepartmentName", department.DepartmentName),
+                new SqlParameter("@FacultyId", department.FacultyId),
+                new SqlParameter("@Description", (object?)department.Description ?? DBNull.Value),
+                new SqlParameter("@CreatedBy", department.CreatedBy)
+            };
+
+            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_CreateDepartment", parameters);
+        }
+
+        // ============================================================
+        // 🔹 CẬP NHẬT BỘ MÔN
+        // ============================================================
+        public async Task<int> UpdateAsync(Department department)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@DepartmentId", department.DepartmentId),
+                new SqlParameter("@DepartmentName", department.DepartmentName),
+                new SqlParameter("@FacultyId", department.FacultyId),
+                new SqlParameter("@Description", (object?)department.Description ?? DBNull.Value),
+                new SqlParameter("@UpdatedBy", department.UpdatedBy)
+            };
+
+            return await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_UpdateDepartment", parameters);
+        }
+
+        // ============================================================
+        // 🔹 XOÁ MỀM (SOFT DELETE)
+        // ============================================================
+        public async Task DeleteAsync(string departmentId)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@DepartmentId", departmentId),
+                new SqlParameter("@DeletedBy", "System") // TODO: Lấy từ context user
+            };
+
+            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_DeleteDepartment", parameters);
+        }
+
+        // ============================================================
+        // 🔹 MAP DỮ LIỆU DataRow → Department
+        // ============================================================
+        private static Department MapToDepartment(DataRow row)
+        {
+            return new Department
+            {
+                DepartmentId = row["department_id"].ToString()!,
+                // Database không có department_code, dùng department_id làm code
+                DepartmentCode = row.Table.Columns.Contains("department_code") 
+                    ? row["department_code"]?.ToString() ?? ""
+                    : row["department_id"].ToString()!,
+                DepartmentName = row["department_name"].ToString()!,
+                FacultyId = row["faculty_id"].ToString()!,
+                FacultyName = row.Table.Columns.Contains("faculty_name") 
+                    ? row["faculty_name"]?.ToString() 
+                    : null,
+                Description = row.Table.Columns.Contains("description") ? row["description"]?.ToString() : null,
+                IsActive = row.Table.Columns.Contains("is_active") && row["is_active"] != DBNull.Value
+                    ? Convert.ToBoolean(row["is_active"])
+                    : true,
+                CreatedAt = row.Table.Columns.Contains("created_at") && row["created_at"] != DBNull.Value 
+                    ? Convert.ToDateTime(row["created_at"]) 
+                    : (DateTime?)null,
+                CreatedBy = row.Table.Columns.Contains("created_by") ? row["created_by"]?.ToString() : null,
+                UpdatedAt = row.Table.Columns.Contains("updated_at") && row["updated_at"] != DBNull.Value 
+                    ? Convert.ToDateTime(row["updated_at"]) 
+                    : (DateTime?)null,
+                UpdatedBy = row.Table.Columns.Contains("updated_by") ? row["updated_by"]?.ToString() : null
+            };
         }
     }
 }

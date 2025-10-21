@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using EducationManagement.DAL;
+using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
 
 namespace EducationManagement.API.Admin.Controllers
@@ -12,11 +11,13 @@ namespace EducationManagement.API.Admin.Controllers
     [Route("api-edu/role-permissions")]
     public class RolePermissionController : ControllerBase
     {
-        private readonly AppDbContext _context;
+        private readonly RoleRepository _roleRepository;
+        private readonly PermissionRepository _permissionRepository;
 
-        public RolePermissionController(AppDbContext context)
+        public RolePermissionController(RoleRepository roleRepository, PermissionRepository permissionRepository)
         {
-            _context = context;
+            _roleRepository = roleRepository;
+            _permissionRepository = permissionRepository;
         }
 
         #region 🔹 GET: Lấy danh sách quyền của 1 Role
@@ -26,27 +27,12 @@ namespace EducationManagement.API.Admin.Controllers
         [HttpGet("{roleId}")]
         public async Task<IActionResult> GetPermissionsByRole(string roleId)
         {
-            var role = await _context.Roles
-                .FirstOrDefaultAsync(r => r.RoleId == roleId && r.DeletedAt == null);
-
-            if (role == null)
+            var role = await _roleRepository.GetByIdAsync(roleId);
+            if (role == null || role.DeletedAt != null)
                 return NotFound(new { message = "Không tìm thấy vai trò" });
 
-            var allPermissions = await _context.Permissions
-                .Where(p => p.DeletedAt == null && p.IsActive)
-                .Select(p => new
-                {
-                    p.PermissionId,
-                    p.PermissionCode,
-                    p.PermissionName,
-                    p.Description
-                })
-                .ToListAsync();
-
-            var rolePermIds = await _context.RolePermissions
-                .Where(rp => rp.RoleId == roleId)
-                .Select(rp => rp.PermissionId)
-                .ToListAsync();
+            var allPermissions = await _permissionRepository.GetAllAsync();
+            var rolePermIds = await _permissionRepository.GetPermissionIdsByRoleAsync(roleId);
 
             var result = allPermissions.Select(p => new
             {
@@ -76,27 +62,19 @@ namespace EducationManagement.API.Admin.Controllers
             if (permissionIds == null)
                 return BadRequest(new { message = "Danh sách quyền không hợp lệ" });
 
-            var role = await _context.Roles
-                .FirstOrDefaultAsync(r => r.RoleId == roleId && r.DeletedAt == null);
-
-            if (role == null)
+            var role = await _roleRepository.GetByIdAsync(roleId);
+            if (role == null || role.DeletedAt != null)
                 return NotFound(new { message = "Không tìm thấy vai trò" });
 
             // Xóa quyền cũ
-            var oldPermissions = _context.RolePermissions.Where(rp => rp.RoleId == roleId);
-            _context.RolePermissions.RemoveRange(oldPermissions);
+            await _permissionRepository.DeleteAllByRoleAsync(roleId);
 
             // Thêm quyền mới
-            var newRolePerms = permissionIds.Select(pid => new RolePermission
+            var createdBy = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "system";
+            foreach (var permissionId in permissionIds)
             {
-                RoleId = roleId,
-                PermissionId = pid,
-                CreatedAt = DateTime.UtcNow,
-                CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier)
-            }).ToList();
-
-            _context.RolePermissions.AddRange(newRolePerms);
-            await _context.SaveChangesAsync();
+                await _permissionRepository.AddRolePermissionAsync(roleId, permissionId, createdBy);
+            }
 
             return Ok(new { message = "Cập nhật quyền thành công" });
         }
@@ -109,19 +87,18 @@ namespace EducationManagement.API.Admin.Controllers
         [HttpGet("all")]
         public async Task<IActionResult> GetAllPermissions()
         {
-            var permissions = await _context.Permissions
-                .Where(p => p.DeletedAt == null && p.IsActive)
-                .Select(p => new
-                {
-                    p.PermissionId,
-                    p.PermissionCode,
-                    p.PermissionName,
-                    p.Description
-                })
-                .OrderBy(p => p.PermissionName)
-                .ToListAsync();
+            var permissions = await _permissionRepository.GetAllAsync();
+            
+            var result = permissions.Select(p => new
+            {
+                p.PermissionId,
+                p.PermissionCode,
+                p.PermissionName,
+                p.Description
+            })
+            .OrderBy(p => p.PermissionName);
 
-            return Ok(permissions);
+            return Ok(result);
         }
         #endregion
     }
