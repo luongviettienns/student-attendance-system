@@ -68,7 +68,13 @@ builder.Services.AddCors(options =>
             .WithOrigins(
                 "http://127.0.0.1:5500",
                 "http://localhost:5500",
-                "https://localhost:5500"
+                "https://localhost:5500",
+                "http://127.0.0.1:5501",   // ✅ Live Server port 5501
+                "http://localhost:5501",   // ✅ Live Server port 5501
+                "https://localhost:5501",  // ✅ Live Server port 5501
+                "http://127.0.0.1:3000",   // ✅ Live Server port 3000
+                "http://localhost:3000",   // ✅ Live Server port 3000
+                "https://localhost:3000"   // ✅ Live Server port 3000
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
@@ -111,29 +117,15 @@ var avatarFolder = Path.Combine(projectRoot!, "Avatar_User");
 if (!Directory.Exists(avatarFolder))
     Directory.CreateDirectory(avatarFolder);
 
-// ✅ Nếu ảnh không tồn tại, trả về default.png
+// ✅ Log file requests for debugging
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/avatars"))
+    if (context.Request.Path.StartsWithSegments("/avatars") || context.Request.Path.StartsWithSegments("/uploads"))
     {
         var rawPath = context.Request.Path.Value ?? string.Empty;
-
-        var relativePath = rawPath.StartsWith("/avatars/", StringComparison.OrdinalIgnoreCase)
-            ? rawPath.Substring("/avatars/".Length)
-            : rawPath.StartsWith("/avatars", StringComparison.OrdinalIgnoreCase)
-                ? rawPath.Substring("/avatars".Length)
-                : rawPath;
-
-        relativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
-        var filePath = Path.Combine(avatarFolder, relativePath);
-
-        if (!File.Exists(filePath))
-        {
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"⚠️ File not found: {filePath}, fallback to default.png");
-            Console.ResetColor();
-            context.Request.Path = "/avatars/default.png";
-        }
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine($"📸 Avatar request: {rawPath}");
+        Console.ResetColor();
     }
 
     await next();

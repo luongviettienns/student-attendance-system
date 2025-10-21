@@ -1,14 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace EducationManagement.Common.Models
 {
-    [Table("academic_years")]  // ✅ ánh xạ đúng tên bảng
+    [Table("academic_years")]
     public class AcademicYear
     {
         [Key]
@@ -19,13 +15,17 @@ namespace EducationManagement.Common.Models
         public string YearCode { get; set; }
 
         [Column("description")]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [Column("is_active")]
-        public bool IsActive { get; set; }
+        public bool IsActive { get; set; } = true; // ⚙️ thêm mặc định cho rõ ràng
+
+        // ================================
+        // 🔹 Audit fields
+        // ================================
 
         [Column("created_at")]
-        public DateTime CreatedAt { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.Now; // ✅ thêm default để không null
 
         [Column("created_by")]
         public string? CreatedBy { get; set; }

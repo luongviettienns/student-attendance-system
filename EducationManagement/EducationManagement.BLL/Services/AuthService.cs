@@ -1,20 +1,19 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using EducationManagement.DAL;
-using Microsoft.EntityFrameworkCore;
+using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
 
 namespace EducationManagement.BLL.Services
 {
     public class AuthService
     {
-        private readonly AppDbContext _context;
+        private readonly UserRepository _userRepository;
         private readonly IRefreshTokenStore _refreshStore;
 
-        public AuthService(AppDbContext context, IRefreshTokenStore refreshStore)
+        public AuthService(UserRepository userRepository, IRefreshTokenStore refreshStore)
         {
-            _context = context;
+            _userRepository = userRepository;
             _refreshStore = refreshStore;
         }
 
@@ -25,22 +24,10 @@ namespace EducationManagement.BLL.Services
 
             var normalizedUsername = username.Trim().ToLower();
 
-            // ✅ Chỉ lấy các cột cần thiết, không Include toàn bộ Role
-            var user = await _context.Users
-                .Where(u => u.IsActive && u.Username.ToLower() == normalizedUsername)
-                .Select(u => new User
-                {
-                    UserId = u.UserId,
-                    Username = u.Username,
-                    PasswordHash = u.PasswordHash,
-                    FullName = u.FullName,
-                    AvatarUrl = u.AvatarUrl,
-                    Role = new Role { RoleName = u.Role.RoleName }
-                })
-                .AsNoTracking()
-                .FirstOrDefaultAsync();
+            // ✅ Lấy user từ repository
+            var user = await _userRepository.GetByUsernameAsync(normalizedUsername);
 
-            if (user == null)
+            if (user == null || !user.IsActive)
             {
                 Console.WriteLine($"[Login] ❌ User không tồn tại ({stopwatch.ElapsedMilliseconds} ms)");
                 return null;
@@ -98,9 +85,7 @@ namespace EducationManagement.BLL.Services
         // 🔹 Lấy thông tin user từ DB
         public async Task<User?> GetUserByIdAsync(string userId)
         {
-            return await _context.Users
-                .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.UserId == userId);
+            return await _userRepository.GetByIdAsync(userId);
         }
     }
 }

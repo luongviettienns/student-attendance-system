@@ -1,0 +1,208 @@
+using EducationManagement.BLL.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Threading.Tasks;
+
+namespace EducationManagement.API.Admin.Controllers
+{
+    [Authorize]
+    [ApiController]
+    [Route("api-edu/attendances")]
+    public class AttendanceController : ControllerBase
+    {
+        private readonly AttendanceService _attendanceService;
+
+        public AttendanceController(AttendanceService attendanceService)
+        {
+            _attendanceService = attendanceService;
+        }
+
+        /// <summary>
+        /// Lấy tất cả attendance records
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            try
+            {
+                var attendances = await _attendanceService.GetAllAttendancesAsync();
+                return Ok(new { data = attendances });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Lấy attendance theo ID
+        /// </summary>
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(string id)
+        {
+            try
+            {
+                var attendance = await _attendanceService.GetAttendanceByIdAsync(id);
+                if (attendance == null)
+                    return NotFound(new { message = "Không tìm thấy bản ghi điểm danh" });
+
+                return Ok(new { data = attendance });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Tạo attendance record mới
+        /// </summary>
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateAttendanceRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var attendanceId = "att-" + Guid.NewGuid().ToString().Substring(0, 8);
+                var newId = await _attendanceService.CreateAttendanceAsync(
+                    attendanceId,
+                    request.StudentId,
+                    request.ScheduleId,
+                    request.AttendanceDate ?? DateTime.Now,
+                    request.Status,
+                    request.Notes,
+                    request.MarkedBy,
+                    request.CreatedBy ?? "system"
+                );
+
+                return Ok(new { message = "Tạo bản ghi điểm danh thành công", attendanceId = newId });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Cập nhật attendance
+        /// </summary>
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(string id, [FromBody] UpdateAttendanceRequest request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                await _attendanceService.UpdateAttendanceAsync(
+                    id,
+                    request.Status,
+                    request.Notes,
+                    request.UpdatedBy ?? "system"
+                );
+
+                return Ok(new { message = "Cập nhật điểm danh thành công" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Xóa attendance (soft delete)
+        /// </summary>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(string id, [FromBody] DeleteAttendanceRequest request)
+        {
+            try
+            {
+                await _attendanceService.DeleteAttendanceAsync(id, request.DeletedBy ?? "system");
+                return Ok(new { message = "Xóa bản ghi điểm danh thành công" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Lấy attendances theo student ID
+        /// </summary>
+        [HttpGet("student/{studentId}")]
+        public async Task<IActionResult> GetByStudent(string studentId)
+        {
+            try
+            {
+                var attendances = await _attendanceService.GetAttendancesByStudentAsync(studentId);
+                return Ok(new { data = attendances });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Lấy attendances theo schedule ID
+        /// </summary>
+        [HttpGet("schedule/{scheduleId}")]
+        public async Task<IActionResult> GetBySchedule(string scheduleId)
+        {
+            try
+            {
+                var attendances = await _attendanceService.GetAttendancesByScheduleAsync(scheduleId);
+                return Ok(new { data = attendances });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Lấy attendances theo class ID
+        /// </summary>
+        [HttpGet("class/{classId}")]
+        public async Task<IActionResult> GetByClass(string classId)
+        {
+            try
+            {
+                var attendances = await _attendanceService.GetAttendancesByClassAsync(classId);
+                return Ok(new { data = attendances });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+    }
+
+    // DTOs for Attendance
+    public class CreateAttendanceRequest
+    {
+        public string StudentId { get; set; } = string.Empty;
+        public string ScheduleId { get; set; } = string.Empty;
+        public DateTime? AttendanceDate { get; set; }
+        public string Status { get; set; } = "Present"; // Present, Absent, Late, Excused
+        public string? Notes { get; set; }
+        public string? MarkedBy { get; set; }
+        public string? CreatedBy { get; set; }
+    }
+
+    public class UpdateAttendanceRequest
+    {
+        public string Status { get; set; } = "Present";
+        public string? Notes { get; set; }
+        public string? UpdatedBy { get; set; }
+    }
+
+    public class DeleteAttendanceRequest
+    {
+        public string? DeletedBy { get; set; }
+    }
+}
+

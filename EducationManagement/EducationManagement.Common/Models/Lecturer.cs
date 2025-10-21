@@ -34,6 +34,20 @@ namespace EducationManagement.Common.Models
         [Column("join_date")]
         public DateTime? JoinDate { get; set; }
 
+        // 🔹 Thêm để map kết quả SP (u.username, u.full_name, u.email)
+        [NotMapped]
+        public string? Username { get; set; }
+
+        [NotMapped]
+        public string? FullName { get; set; }
+
+        [NotMapped]
+        public string? Email { get; set; }
+
+        // 🔹 Thêm để map kết quả SP (d.department_name)
+        [NotMapped]
+        public string? DepartmentName { get; set; }
+
         // ==================================================
         // 🔹 Audit fields
         // ==================================================

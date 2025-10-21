@@ -1,0 +1,113 @@
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <app-sidebar></app-sidebar>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1 class="page-title">Lịch học</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info" ng-init="currentUser = getCurrentUser()">
+                    <div class="user-avatar" ng-click="openAvatarModal()">
+                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
+                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{{currentUser.fullName}}</span>
+                        <span class="user-role">{{currentUser.roleName || 'Sinh viên'}}</span>
+                    </div>
+                </div>
+                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+            </div>
+        </header>
+        
+        <!-- Content Body -->
+        <div class="content-body">
+            <!-- Week Navigation -->
+            <div class="card">
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <button class="btn btn-secondary" ng-click="previousWeek()">
+                            <i class="fas fa-chevron-left"></i> Tuần trước
+                        </button>
+                        <h3>{{currentWeekRange}}</h3>
+                        <button class="btn btn-secondary" ng-click="nextWeek()">
+                            Tuần sau <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Weekly Schedule Table -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="schedule-table">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th style="width: 100px;">Tiết</th>
+                                    <th>Thứ 2</th>
+                                    <th>Thứ 3</th>
+                                    <th>Thứ 4</th>
+                                    <th>Thứ 5</th>
+                                    <th>Thứ 6</th>
+                                    <th>Thứ 7</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="period in periods">
+                                    <td class="text-center">
+                                        <strong>{{period.name}}</strong><br>
+                                        <small>{{period.time}}</small>
+                                    </td>
+                                    <td ng-repeat="day in [2,3,4,5,6,7]" class="schedule-cell">
+                                        <div ng-if="getSchedule(day, period.value)" class="schedule-class">
+                                            <div class="class-name">{{getSchedule(day, period.value).subjectName}}</div>
+                                            <div class="class-details">
+                                                <div><i class="fas fa-chalkboard-teacher"></i> {{getSchedule(day, period.value).lecturerName}}</div>
+                                                <div><i class="fas fa-door-open"></i> {{getSchedule(day, period.value).room}}</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Schedule List View -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-list"></i> Danh sách lịch học tuần này</h2>
+                </div>
+                <div class="card-body">
+                    <div class="schedule-list">
+                        <div class="schedule-item" ng-repeat="item in scheduleList | orderBy:'dayOfWeek'">
+                            <div class="schedule-day">
+                                <div class="day-name">{{getDayName(item.dayOfWeek)}}</div>
+                                <div class="day-date">{{item.date}}</div>
+                            </div>
+                            <div class="schedule-time">
+                                <div class="time-period">Tiết {{item.period}}</div>
+                                <div class="time-range">{{item.startTime}} - {{item.endTime}}</div>
+                            </div>
+                            <div class="schedule-details">
+                                <h3>{{item.subjectName}}</h3>
+                                <div class="schedule-meta">
+                                    <span><i class="fas fa-chalkboard-teacher"></i> {{item.lecturerName}}</span>
+                                    <span><i class="fas fa-door-open"></i> Phòng {{item.room}}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,138 @@
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <app-sidebar></app-sidebar>
+    
+    <div class="main-content">
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1 class="page-title">Thông báo</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info" ng-init="currentUser = getCurrentUser()">
+                    <div class="user-avatar" ng-click="openAvatarModal()">
+                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
+                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{{currentUser.fullName}}</span>
+                        <span class="user-role">{{currentUser.roleName || 'Admin'}}</span>
+                    </div>
+                </div>
+                <button ng-click="logout()" class="btn btn-outline">
+                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                </button>
+            </div>
+        </header>
+        
+        <div class="content-body">
+            <div ng-if="success" class="alert alert-success">
+                <i class="fas fa-check-circle"></i> {{success}}
+            </div>
+            <div ng-if="error" class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> {{error}}
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Danh sách thông báo</h3>
+                    <div class="card-actions">
+                        <button class="btn btn-outline" ng-click="markAllAsRead()">
+                            <i class="fas fa-check-double"></i> Đánh dấu tất cả là đã đọc
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Search Bar -->
+                    <search-bar 
+                        search-term="pagination.searchTerm" 
+                        on-search="handleSearch()" 
+                        placeholder="Tìm kiếm thông báo...">
+                    </search-bar>
+                    
+                    <!-- Filters -->
+                    <div class="filters-bar">
+                        <div class="filter-group">
+                            <label class="filter-label">Trạng thái</label>
+                            <select ng-model="filters.isRead" 
+                                    ng-change="handleFilterChange()" 
+                                    class="filter-select">
+                                <option value="">Tất cả</option>
+                                <option value="false">Chưa đọc</option>
+                                <option value="true">Đã đọc</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">Loại</label>
+                            <select ng-model="filters.type" 
+                                    ng-change="handleFilterChange()" 
+                                    class="filter-select">
+                                <option value="">Tất cả</option>
+                                <option value="info">Thông tin</option>
+                                <option value="success">Thành công</option>
+                                <option value="warning">Cảnh báo</option>
+                                <option value="error">Lỗi</option>
+                                <option value="grade">Điểm</option>
+                                <option value="attendance">Điểm danh</option>
+                                <option value="system">Hệ thống</option>
+                            </select>
+                        </div>
+                        
+                        <button ng-click="resetFilters()" class="btn btn-outline" style="margin-top: 20px;">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                    </div>
+                    
+                    <!-- Notifications List -->
+                    <div class="notifications-list">
+                        <div ng-if="loading" class="text-center" style="padding: 40px;">
+                            <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                        </div>
+                        
+                        <div ng-if="!loading && displayedNotifications.length === 0" class="text-center" style="padding: 40px;">
+                            <i class="fas fa-inbox" style="font-size: 48px; color: #ccc;"></i>
+                            <p style="color: #999; margin-top: 10px;">Không có thông báo</p>
+                        </div>
+                        
+                        <div ng-repeat="notif in displayedNotifications" 
+                             class="notification-item" 
+                             ng-class="{'unread': !notif.isRead}"
+                             ng-if="!loading">
+                            <div class="notification-icon">
+                                <i class="fas {{getNotificationIcon(notif.type)}}" 
+                                   ng-class="getNotificationClass(notif.type)"></i>
+                            </div>
+                            <div class="notification-content">
+                                <div class="notification-header">
+                                    <h4 class="notification-title">{{notif.title}}</h4>
+                                    <span class="notification-time">{{timeAgo(notif.createdAt)}}</span>
+                                </div>
+                                <p class="notification-message">{{notif.message}}</p>
+                                <div class="notification-actions">
+                                    <button ng-if="!notif.isRead" 
+                                            class="btn btn-sm btn-outline" 
+                                            ng-click="markAsRead(notif.id)">
+                                        <i class="fas fa-check"></i> Đánh dấu đã đọc
+                                    </button>
+                                    <button class="btn btn-sm btn-danger" 
+                                            ng-click="deleteNotification(notif.id)">
+                                        <i class="fas fa-trash"></i> Xóa
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <pagination 
+                        pagination="pagination" 
+                        on-page-change="handlePageChange()">
+                    </pagination>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

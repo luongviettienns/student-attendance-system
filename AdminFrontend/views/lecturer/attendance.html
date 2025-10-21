@@ -1,0 +1,147 @@
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <app-sidebar></app-sidebar>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1 class="page-title">Điểm danh lớp học</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info" ng-init="currentUser = getCurrentUser()">
+                    <div class="user-avatar" ng-click="openAvatarModal()">
+                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
+                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{{currentUser.fullName}}</span>
+                        <span class="user-role">{{currentUser.roleName || 'Giảng viên'}}</span>
+                    </div>
+                </div>
+                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+            </div>
+        </header>
+        
+        <!-- Content Body -->
+        <div class="content-body">
+            <div ng-if="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{success}}</div>
+            <div ng-if="error" class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> {{error}}</div>
+            
+            <!-- Class Selection -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-book"></i> Chọn lớp học</h2>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Môn học - Lớp</label>
+                            <select class="form-control" ng-model="selectedClass" ng-change="loadStudents()">
+                                <option value="">-- Chọn lớp học --</option>
+                                <option ng-repeat="class in classes" value="{{class.id}}">
+                                    {{class.subjectName}} - {{class.className}}
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Ngày học</label>
+                            <input type="date" class="form-control" ng-model="attendanceDate">
+                        </div>
+                        
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Tiết học</label>
+                            <select class="form-control" ng-model="period">
+                                <option value="">-- Chọn tiết --</option>
+                                <option value="1-2">Tiết 1-2</option>
+                                <option value="3-4">Tiết 3-4</option>
+                                <option value="5-6">Tiết 5-6</option>
+                                <option value="6-7">Tiết 6-7</option>
+                                <option value="8-9">Tiết 8-9</option>
+                                <option value="10-11">Tiết 10-11</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Attendance List -->
+            <div class="card" ng-if="selectedClass">
+                <div class="card-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2><i class="fas fa-clipboard-check"></i> Danh sách điểm danh</h2>
+                        <div>
+                            <button ng-click="markAllPresent()" class="btn btn-sm btn-success">
+                                <i class="fas fa-check-double"></i> Có mặt tất cả
+                            </button>
+                            <button ng-click="saveAttendance()" class="btn btn-sm btn-primary" ng-disabled="saving">
+                                <i class="fas fa-save"></i> {{saving ? 'Đang lưu...' : 'Lưu điểm danh'}}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">STT</th>
+                                    <th>MSSV</th>
+                                    <th>Họ và tên</th>
+                                    <th style="width: 150px;">Trạng thái</th>
+                                    <th style="width: 300px;">Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="student in students">
+                                    <td>{{$index + 1}}</td>
+                                    <td>{{student.studentCode}}</td>
+                                    <td>{{student.fullName}}</td>
+                                    <td>
+                                        <select class="form-control form-control-sm" ng-model="student.status">
+                                            <option value="present">Có mặt</option>
+                                            <option value="absent">Vắng mặt</option>
+                                            <option value="late">Đi muộn</option>
+                                            <option value="excused">Có phép</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <input type="text" class="form-control form-control-sm" 
+                                               ng-model="student.note" 
+                                               placeholder="Ghi chú (nếu có)">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Summary -->
+                    <div class="attendance-summary" style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                        <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px; font-weight: bold; color: #10b981;">{{getCountByStatus('present')}}</div>
+                                <div style="color: #64748b;">Có mặt</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px; font-weight: bold; color: #ef4444;">{{getCountByStatus('absent')}}</div>
+                                <div style="color: #64748b;">Vắng mặt</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px; font-weight: bold; color: #f59e0b;">{{getCountByStatus('late')}}</div>
+                                <div style="color: #64748b;">Đi muộn</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">{{getCountByStatus('excused')}}</div>
+                                <div style="color: #64748b;">Có phép</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

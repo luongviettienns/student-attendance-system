@@ -1,0 +1,65 @@
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-logo">
+                <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h1 class="login-title">Hệ thống Quản lý Điểm danh</h1>
+            <p class="login-subtitle">Đăng nhập vào trang quản trị</p>
+        </div>
+        
+        <div ng-if="error" class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i>
+            {{error}}
+        </div>
+        
+        <form ng-submit="login()" class="login-form">
+            <div class="form-group">
+                <label class="form-label required">Tên đăng nhập</label>
+                <input 
+                    type="text" 
+                    class="form-control" 
+                    ng-model="credentials.username" 
+                    placeholder="Nhập tên đăng nhập"
+                    required
+                    autofocus>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label required">Mật khẩu</label>
+                <input 
+                    type="password" 
+                    class="form-control" 
+                    ng-model="credentials.password" 
+                    placeholder="Nhập mật khẩu"
+                    required>
+            </div>
+            
+            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
+                <label class="checkbox-label" style="margin: 0;">
+                    <input 
+                        type="checkbox" 
+                        ng-model="credentials.rememberMe">
+                    <span>Ghi nhớ đăng nhập</span>
+                </label>
+                <a href="#!/forgot-password" style="font-size: 14px; color: #667eea; text-decoration: none;">
+                    Quên mật khẩu?
+                </a>
+            </div>
+            
+            <button type="submit" class="btn btn-primary btn-block btn-lg" ng-disabled="loading">
+                <span ng-if="!loading">
+                    <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                </span>
+                <span ng-if="loading">
+                    <i class="fas fa-spinner fa-spin"></i> Đang đăng nhập...
+                </span>
+            </button>
+        </form>
+        
+        <div class="login-footer">
+            <p>&copy; 2024 Hệ thống Quản lý Điểm danh Sinh viên</p>
+        </div>
+    </div>
+</div>
+

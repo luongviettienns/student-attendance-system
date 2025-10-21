@@ -1,0 +1,141 @@
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <app-sidebar></app-sidebar>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1 class="page-title">Nhập điểm</h1>
+            </div>
+            <div class="header-right">
+                <div class="user-info" ng-init="currentUser = getCurrentUser()">
+                    <div class="user-avatar" ng-click="openAvatarModal()">
+                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
+                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{{currentUser.fullName}}</span>
+                        <span class="user-role">{{currentUser.roleName || 'Giảng viên'}}</span>
+                    </div>
+                </div>
+                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+            </div>
+        </header>
+        
+        <!-- Content Body -->
+        <div class="content-body">
+            <div ng-if="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{success}}</div>
+            <div ng-if="error" class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> {{error}}</div>
+            
+            <!-- Class and Component Selection -->
+            <div class="card">
+                <div class="card-header">
+                    <h2><i class="fas fa-book"></i> Chọn lớp học và loại điểm</h2>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Môn học - Lớp</label>
+                            <select class="form-control" ng-model="selectedClass" ng-change="loadStudents()">
+                                <option value="">-- Chọn lớp học --</option>
+                                <option ng-repeat="class in classes" value="{{class.id}}">
+                                    {{class.subjectName}} - {{class.className}}
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Loại điểm</label>
+                            <select class="form-control" ng-model="gradeType">
+                                <option value="">-- Chọn loại điểm --</option>
+                                <option value="attendance">Điểm chuyên cần (10%)</option>
+                                <option value="midterm">Điểm giữa kỳ (20%)</option>
+                                <option value="assignment">Điểm bài tập (20%)</option>
+                                <option value="final">Điểm cuối kỳ (50%)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Grades Input -->
+            <div class="card" ng-if="selectedClass && gradeType">
+                <div class="card-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2><i class="fas fa-edit"></i> Nhập điểm {{gradeTypeName}}</h2>
+                        <button ng-click="saveGrades()" class="btn btn-sm btn-primary" ng-disabled="saving">
+                            <i class="fas fa-save"></i> {{saving ? 'Đang lưu...' : 'Lưu điểm'}}
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 60px;">STT</th>
+                                    <th>MSSV</th>
+                                    <th>Họ và tên</th>
+                                    <th style="width: 150px;">Điểm</th>
+                                    <th style="width: 300px;">Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="student in students">
+                                    <td>{{$index + 1}}</td>
+                                    <td>{{student.studentCode}}</td>
+                                    <td>{{student.fullName}}</td>
+                                    <td>
+                                        <input type="number" 
+                                               class="form-control form-control-sm" 
+                                               ng-model="student.grade" 
+                                               min="0" 
+                                               max="10" 
+                                               step="0.1"
+                                               placeholder="0-10">
+                                    </td>
+                                    <td>
+                                        <input type="text" 
+                                               class="form-control form-control-sm" 
+                                               ng-model="student.note" 
+                                               placeholder="Ghi chú (nếu có)">
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Grade Statistics -->
+                    <div class="grade-summary" style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px;">
+                        <div class="stats-grid" style="grid-template-columns: repeat(5, 1fr);">
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">{{getAverageGrade() | number:2}}</div>
+                                <div style="color: #64748b;">Điểm TB</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px; font-weight: bold; color: #10b981;">{{getCountByRange(8, 10)}}</div>
+                                <div style="color: #64748b;">Giỏi (8-10)</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">{{getCountByRange(6.5, 7.9)}}</div>
+                                <div style="color: #64748b;">Khá (6.5-7.9)</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px; font-weight: bold; color: #f59e0b;">{{getCountByRange(5, 6.4)}}</div>
+                                <div style="color: #64748b;">TB (5-6.4)</div>
+                            </div>
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px; font-weight: bold; color: #ef4444;">{{getCountByRange(0, 4.9)}}</div>
+                                <div style="color: #64748b;">Yếu (< 5)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
