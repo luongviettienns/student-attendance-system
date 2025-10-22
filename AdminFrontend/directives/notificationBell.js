@@ -48,7 +48,8 @@ app.directive('notificationBell', function() {
             // Close dropdown when clicking outside
             angular.element(document).on('click', function(e) {
                 if (!element[0].contains(e.target)) {
-                    scope.$apply(function() {
+                    // Use $evalAsync to avoid $digest already in progress error
+                    scope.$evalAsync(function() {
                         scope.showDropdown = false;
                     });
                 }

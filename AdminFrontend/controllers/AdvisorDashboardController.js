@@ -1,7 +1,5 @@
 // Advisor Dashboard Controller
 app.controller('AdvisorDashboardController', ['$scope', 'AuthService', 'AvatarService', function($scope, AuthService, AvatarService) {
-    console.log('AdvisorDashboardController initialized');
-    
     $scope.currentUser = AuthService.getCurrentUser();
     
     // Initialize Avatar Modal Functions
@@ -80,7 +78,5 @@ app.controller('AdvisorDashboardController', ['$scope', 'AuthService', 'AvatarSe
     $scope.contactStudent = function(student) {
         alert('Gửi email liên hệ đến sinh viên: ' + student.fullName);
     };
-    
-    console.log('Advisor Dashboard loaded with stats:', $scope.stats);
 }]);
 

@@ -217,21 +217,23 @@
     <div class="spinner"></div>
 </div>
 
-<!-- Avatar Change Modal -->
-<div class="modal-overlay avatar-modal" ng-if="avatarModal.show" ng-click="closeAvatarModal()">
+<!-- 🆕 Avatar Modal - Clean & Simple -->
+<div class="modal-overlay avatar-modal" ng-show="avatarModal.show" ng-click="closeAvatarModal()">
     <div class="modal" ng-click="$event.stopPropagation()">
         <div class="modal-header">
-            <h3 class="modal-title"><i class="fas fa-user-circle"></i> Thay đổi ảnh đại diện</h3>
+            <h3 class="modal-title">
+                <i class="fas fa-user-circle"></i> Thay đổi ảnh đại diện
+            </h3>
             <button class="modal-close" ng-click="closeAvatarModal()">
                 <i class="fas fa-times"></i>
             </button>
         </div>
         
         <div class="modal-body">
-            <!-- Avatar Preview -->
+            <!-- Preview Circle -->
             <div class="avatar-preview-container">
                 <div class="avatar-preview">
-                    <img ng-if="avatarModal.previewUrl" ng-src="{{avatarModal.previewUrl}}" alt="Preview">
+                    <img ng-if="avatarModal.previewUrl" ng-src="{{avatarModal.previewUrl}}" alt="Avatar Preview">
                     <div ng-if="!avatarModal.previewUrl" class="avatar-preview-placeholder">
                         <i class="fas fa-user"></i>
                         <span>{{currentUser.fullName.charAt(0)}}</span>
@@ -239,14 +241,11 @@
                 </div>
             </div>
             
-            <!-- Upload Area -->
+            <!-- Upload Zone -->
             <div class="avatar-upload-area">
                 <div class="avatar-upload-dropzone" 
                      ng-click="triggerFileInput()"
-                     ng-class="{'drag-over': avatarModal.dragOver}"
-                     ng-drop="handleDrop($event)"
-                     ng-dragover="handleDragOver($event)"
-                     ng-dragleave="handleDragLeave($event)">
+                     ng-class="{'drag-over': avatarModal.dragOver}">
                     <div class="avatar-upload-icon">
                         <i class="fas fa-cloud-upload-alt"></i>
                     </div>
@@ -261,11 +260,9 @@
                 <input type="file" 
                        id="avatarFileInput" 
                        accept="image/jpeg,image/png,image/gif" 
-                       style="display: none;" 
-                       ng-change="handleFileSelect($event)"
-                       onchange="angular.element(this).scope().handleFileSelect(this.files)">
+                       style="display: none;">
                 
-                <!-- File Info -->
+                <!-- Selected File Info -->
                 <div class="avatar-file-info" ng-if="avatarModal.selectedFile">
                     <i class="fas fa-check-circle"></i>
                     <div class="avatar-file-details">
@@ -277,12 +274,10 @@
                     </button>
                 </div>
                 
-                <!-- Error Message -->
+                <!-- Messages -->
                 <div class="avatar-error" ng-if="avatarModal.error">
                     <i class="fas fa-exclamation-circle"></i> {{avatarModal.error}}
                 </div>
-                
-                <!-- Success Message -->
                 <div class="avatar-success" ng-if="avatarModal.success">
                     <i class="fas fa-check-circle"></i> {{avatarModal.success}}
                 </div>
@@ -290,15 +285,19 @@
         </div>
         
         <div class="modal-footer">
-            <button class="btn btn-outline" ng-click="closeAvatarModal()" ng-disabled="avatarModal.uploading">
-                Hủy
+            <button class="btn btn-outline" 
+                    ng-click="closeAvatarModal()" 
+                    ng-disabled="avatarModal.uploading">
+                <i class="fas fa-times"></i> Hủy
             </button>
             <button class="btn btn-primary" 
                     ng-click="uploadAvatar()" 
                     ng-disabled="!avatarModal.selectedFile || avatarModal.uploading">
-                <i class="fas fa-upload"></i> 
+                <i class="fas fa-upload"></i>
                 <span ng-if="!avatarModal.uploading">Tải lên</span>
-                <span ng-if="avatarModal.uploading">Đang tải...</span>
+                <span ng-if="avatarModal.uploading">
+                    <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                </span>
             </button>
         </div>
     </div>

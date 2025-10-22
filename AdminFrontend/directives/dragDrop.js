@@ -9,7 +9,7 @@ app.directive('ngDrop', function() {
                 
                 var fn = scope.$eval(attrs.ngDrop);
                 if (typeof fn === 'function') {
-                    scope.$apply(function() {
+                    scope.$evalAsync(function() {
                         fn(e.originalEvent || e);
                     });
                 }
@@ -28,7 +28,7 @@ app.directive('ngDragover', function() {
                 
                 var fn = scope.$eval(attrs.ngDragover);
                 if (typeof fn === 'function') {
-                    scope.$apply(function() {
+                    scope.$evalAsync(function() {
                         fn(e.originalEvent || e);
                     });
                 }
@@ -47,7 +47,7 @@ app.directive('ngDragleave', function() {
                 
                 var fn = scope.$eval(attrs.ngDragleave);
                 if (typeof fn === 'function') {
-                    scope.$apply(function() {
+                    scope.$evalAsync(function() {
                         fn(e.originalEvent || e);
                     });
                 }

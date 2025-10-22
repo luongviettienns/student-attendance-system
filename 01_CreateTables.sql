@@ -70,8 +70,10 @@ GO
 
 CREATE TABLE dbo.faculties (
     faculty_id   VARCHAR(50) PRIMARY KEY,
+    faculty_code VARCHAR(20) NOT NULL UNIQUE,
     faculty_name NVARCHAR(150) NOT NULL UNIQUE,
     description  NVARCHAR(500) NULL,
+    is_active    BIT NOT NULL DEFAULT 1,
     created_at   DATETIME NOT NULL DEFAULT(GETDATE()),
     created_by   VARCHAR(50) NULL,
     updated_at   DATETIME NULL,
@@ -321,7 +323,47 @@ CREATE TABLE dbo.notifications (
 GO
 
 -- ===========================================
--- 15. BẢNG AUDIT_LOGS (Nhật ký hệ thống)
+-- 15. BẢNG PERMISSIONS (Quyền hạn)
+-- ===========================================
+IF OBJECT_ID('dbo.permissions', 'U') IS NOT NULL DROP TABLE dbo.permissions;
+GO
+
+CREATE TABLE dbo.permissions (
+    permission_id   VARCHAR(50) PRIMARY KEY,
+    permission_code VARCHAR(100) NOT NULL UNIQUE,
+    permission_name NVARCHAR(200) NOT NULL,
+    description     NVARCHAR(500) NULL,
+    created_at      DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by      VARCHAR(50) NULL,
+    updated_at      DATETIME NULL,
+    updated_by      VARCHAR(50) NULL
+);
+GO
+
+-- ===========================================
+-- 16. BẢNG ROLE_PERMISSIONS (Liên kết vai trò - quyền)
+-- ===========================================
+IF OBJECT_ID('dbo.role_permissions', 'U') IS NOT NULL DROP TABLE dbo.role_permissions;
+GO
+
+CREATE TABLE dbo.role_permissions (
+    role_id       VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.roles(role_id) ON DELETE CASCADE,
+    permission_id VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.permissions(permission_id) ON DELETE CASCADE,
+    created_at    DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by    VARCHAR(50) NULL,
+    
+    PRIMARY KEY (role_id, permission_id)
+);
+GO
+
+-- Create indexes for optimization
+CREATE NONCLUSTERED INDEX idx_permissions_code ON dbo.permissions(permission_code);
+CREATE NONCLUSTERED INDEX idx_role_permissions_role ON dbo.role_permissions(role_id);
+CREATE NONCLUSTERED INDEX idx_role_permissions_permission ON dbo.role_permissions(permission_id);
+GO
+
+-- ===========================================
+-- 17. BẢNG AUDIT_LOGS (Nhật ký hệ thống)
 -- ===========================================
 IF OBJECT_ID('dbo.audit_logs', 'U') IS NOT NULL DROP TABLE dbo.audit_logs;
 GO
@@ -340,5 +382,5 @@ CREATE TABLE dbo.audit_logs (
 );
 GO
 
-PRINT '✅ Đã tạo xong tất cả các bảng!';
+PRINT '✅ Đã tạo xong tất cả các bảng (bao gồm permissions & role_permissions)!';
 

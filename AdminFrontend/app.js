@@ -1,11 +1,47 @@
 // AngularJS Application Configuration
 var app = angular.module('adminApp', ['ngRoute']);
 
-// API Configuration
+// API Configuration (Microservices Pattern - All via Gateway)
 app.constant('API_CONFIG', {
-    BASE_URL: 'https://localhost:7033/api-edu',
-    GATEWAY_URL: 'https://localhost:7033'
+    BASE_URL: 'http://localhost:5227/api-edu',        // Direct to Admin API (for testing)
+    // BASE_URL: 'https://localhost:7033/api-edu',    // API Gateway URL (production)
+    GATEWAY_URL: 'https://localhost:7033'             // Gateway URL (all requests go through here)
+    // ✅ Avatars cũng load qua Gateway: https://localhost:7033/avatars/...
+    // ✅ Gateway sẽ proxy đến Admin API
 });
+
+// HTTP Interceptor để tự động thêm Authorization token vào mọi request
+app.config(['$httpProvider', function($httpProvider) {
+    $httpProvider.interceptors.push(['$window', '$q', '$location', function($window, $q, $location) {
+        return {
+            request: function(config) {
+                // Lấy token từ localStorage hoặc sessionStorage
+                var token = $window.localStorage.getItem('auth_token') || 
+                           $window.sessionStorage.getItem('auth_token');
+                
+                // Nếu có token, thêm vào header
+                if (token) {
+                    config.headers.Authorization = 'Bearer ' + token;
+                }
+                
+                return config;
+            },
+            
+            responseError: function(rejection) {
+                // Nếu lỗi 401 (Unauthorized), redirect về login
+                if (rejection.status === 401) {
+                    $window.localStorage.removeItem('auth_token');
+                    $window.localStorage.removeItem('user_info');
+                    $window.sessionStorage.removeItem('auth_token');
+                    $window.sessionStorage.removeItem('user_info');
+                    $location.path('/login');
+                }
+                
+                return $q.reject(rejection);
+            }
+        };
+    }]);
+}]);
 
 // Route Configuration
 app.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
@@ -211,5 +247,15 @@ app.factory('AuthInterceptor', ['$q', '$location', '$window', function($q, $loca
 
 app.config(['$httpProvider', function($httpProvider) {
     $httpProvider.interceptors.push('AuthInterceptor');
+}]);
+
+// 🔧 FIX: Close all modals when route changes
+app.run(['$rootScope', function($rootScope) {
+    $rootScope.$on('$routeChangeStart', function() {
+        // Close all modals when navigating to a new page
+        if (typeof ModalUtils !== 'undefined') {
+            ModalUtils.closeAll();
+        }
+    });
 }]);
 

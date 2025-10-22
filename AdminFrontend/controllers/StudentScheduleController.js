@@ -1,7 +1,5 @@
 // Student Schedule Controller
 app.controller('StudentScheduleController', ['$scope', 'AuthService', function($scope, AuthService) {
-    console.log('StudentScheduleController initialized');
-    
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.currentWeekRange = '21/10/2025 - 27/10/2025';
     
@@ -64,7 +62,5 @@ app.controller('StudentScheduleController', ['$scope', 'AuthService', function($
     $scope.nextWeek = function() {
         alert('Chức năng xem tuần sau');
     };
-    
-    console.log('Student Schedule loaded');
 }]);
 

@@ -1,14 +1,17 @@
 // Faculty Service
 app.service('FacultyService', ['ApiService', function(ApiService) {
     
-    this.getAll = function() {
-        return ApiService.get('/faculties').then(function(response) {
-            // Xử lý response format từ backend
-            if (response.data && response.data.data) {
-                response.data = response.data.data;
-            }
-            return response;
-        });
+    this.getAll = function(page, pageSize, search) {
+        var params = {
+            page: page || 1,
+            pageSize: pageSize || 10
+        };
+        
+        if (search) {
+            params.search = search;
+        }
+        
+        return ApiService.get('/faculties', { params: params });
     };
     
     this.getById = function(id) {

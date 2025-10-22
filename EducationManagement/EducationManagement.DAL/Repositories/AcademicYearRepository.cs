@@ -23,11 +23,15 @@ namespace EducationManagement.DAL.Repositories
         // ============================================================
         public async Task<List<AcademicYear>> GetAllAsync()
         {
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAllAcademicYears");
+            var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(_connectionString, "sp_GetAllAcademicYears");
             var list = new List<AcademicYear>();
 
-            foreach (DataRow row in dt.Rows)
-                list.Add(MapToAcademicYear(row));
+            // Table[0] = TotalCount, Table[1] = Data
+            if (ds.Tables.Count > 1 && ds.Tables[1].Rows.Count > 0)
+            {
+                foreach (DataRow row in ds.Tables[1].Rows)
+                    list.Add(MapToAcademicYear(row));
+            }
 
             return list;
         }

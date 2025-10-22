@@ -1,7 +1,5 @@
 // Lecturer Dashboard Controller
 app.controller('LecturerDashboardController', ['$scope', 'AuthService', 'AvatarService', function($scope, AuthService, AvatarService) {
-    console.log('LecturerDashboardController initialized');
-    
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.loading = false;
     $scope.stats = {
@@ -47,7 +45,5 @@ app.controller('LecturerDashboardController', ['$scope', 'AuthService', 'AvatarS
             status: 'pending'
         }
     ];
-    
-    console.log('Lecturer Dashboard loaded with stats:', $scope.stats);
 }]);
 

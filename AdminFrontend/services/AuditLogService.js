@@ -2,28 +2,23 @@
 app.service('AuditLogService', ['ApiService', function(ApiService) {
     
     this.getAll = function(params) {
-        return ApiService.get('/auditlog', params).then(function(response) {
-            if (response.data && response.data.data) {
-                response.data = response.data.data;
-            }
-            return response;
-        });
+        return ApiService.get('/audit-logs', params);
     };
     
     this.getById = function(id) {
-        return ApiService.get('/auditlog/' + id);
+        return ApiService.get('/audit-logs/' + id);
     };
     
-    this.getByUser = function(userId) {
-        return ApiService.get('/auditlog/user/' + userId);
+    this.getByUser = function(userId, params) {
+        return ApiService.get('/audit-logs/user/' + userId, params);
     };
     
-    this.getByEntity = function(entityType, entityId) {
-        return ApiService.get('/auditlog/entity/' + entityType + '/' + entityId);
+    this.getByEntity = function(entityType, entityId, params) {
+        return ApiService.get('/audit-logs/entity/' + entityType + '/' + entityId, params);
     };
     
-    this.search = function(filters) {
-        return ApiService.post('/auditlog/search', filters);
+    this.create = function(auditLog) {
+        return ApiService.post('/audit-logs', auditLog);
     };
 }]);
 

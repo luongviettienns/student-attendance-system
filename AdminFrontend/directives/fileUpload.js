@@ -57,7 +57,7 @@ app.directive('fileUpload', function() {
             dropzone.addEventListener('dragover', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                scope.$apply(function() {
+                scope.$evalAsync(function() {
                     scope.isDragOver = true;
                 });
             });
@@ -65,7 +65,7 @@ app.directive('fileUpload', function() {
             dropzone.addEventListener('dragleave', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                scope.$apply(function() {
+                scope.$evalAsync(function() {
                     scope.isDragOver = false;
                 });
             });
@@ -73,7 +73,7 @@ app.directive('fileUpload', function() {
             dropzone.addEventListener('drop', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                scope.$apply(function() {
+                scope.$evalAsync(function() {
                     scope.isDragOver = false;
                     handleFiles(e.dataTransfer.files);
                 });
@@ -81,7 +81,7 @@ app.directive('fileUpload', function() {
             
             // Handle selected files
             function handleFiles(files) {
-                scope.$apply(function() {
+                scope.$evalAsync(function() {
                     scope.selectedFiles = Array.from(files);
                     scope.onFileSelect({ files: scope.selectedFiles });
                 });

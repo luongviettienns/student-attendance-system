@@ -1,8 +1,8 @@
 // Generic API Service
 app.service('ApiService', ['$http', 'API_CONFIG', function($http, API_CONFIG) {
     
-    this.get = function(endpoint) {
-        return $http.get(API_CONFIG.BASE_URL + endpoint);
+    this.get = function(endpoint, config) {
+        return $http.get(API_CONFIG.BASE_URL + endpoint, config);
     };
     
     this.post = function(endpoint, data) {

@@ -18,12 +18,14 @@ namespace EducationManagement.API.Admin.Controllers
         private readonly RoleRepository _roleRepository;
         private readonly AuthService _authService;
         private readonly string _avatarFolder;
+        private readonly string _gatewayUrl;
 
-        public UserAdminController(UserRepository userRepository, RoleRepository roleRepository, AuthService authService)
+        public UserAdminController(UserRepository userRepository, RoleRepository roleRepository, AuthService authService, IConfiguration configuration)
         {
             _userRepository = userRepository;
             _roleRepository = roleRepository;
             _authService = authService;
+            _gatewayUrl = configuration["GatewayUrl"] ?? "https://localhost:7033";
 
             // ✅ Xác định thư mục Avatar_User ở gốc solution
             var solutionRoot = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), @"..", @".."));
@@ -66,8 +68,8 @@ namespace EducationManagement.API.Admin.Controllers
                 RoleId = u.RoleId,
                 RoleName = u.RoleName,
                 AvatarUrl = string.IsNullOrEmpty(u.AvatarUrl) 
-                    ? $"{Request.Scheme}://{Request.Host}/avatars/default.png"
-                    : $"{Request.Scheme}://{Request.Host}{u.AvatarUrl}",
+                    ? $"{_gatewayUrl}/avatars/default.png"
+                    : $"{_gatewayUrl}{u.AvatarUrl}",
                 IsActive = u.IsActive,
                 LastLoginAt = u.LastLoginAt,
                 CreatedAt = u.CreatedAt,
@@ -115,7 +117,7 @@ namespace EducationManagement.API.Admin.Controllers
                 Phone = user.Phone,
                 RoleId = user.RoleId,
                 RoleName = user.RoleName, // UserRepository đã lấy từ SP
-                AvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), avatarPath),
+                AvatarUrl = FileHelper.BuildFullAvatarUrl(_gatewayUrl, avatarPath),
                 IsActive = user.IsActive,
                 LastLoginAt = user.LastLoginAt,
                 CreatedAt = user.CreatedAt,

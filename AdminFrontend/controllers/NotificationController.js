@@ -18,8 +18,7 @@ app.controller('NotificationController', ['$scope', '$location', 'NotificationSe
     
     // Logout function
     $scope.logout = function() {
-        AuthService.logout();
-        window.location.href = '#!/login';
+        AuthService.logout(); // Will auto-redirect to login
     };
     
     // Pagination

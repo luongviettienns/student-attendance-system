@@ -136,19 +136,15 @@ BEGIN
 END
 GO
 
-IF OBJECT_ID('sp_ToggleUserStatus', 'P') IS NOT NULL DROP PROCEDURE sp_ToggleUserStatus;
+IF OBJECT_ID('sp_UpdateLastLogin', 'P') IS NOT NULL DROP PROCEDURE sp_UpdateLastLogin;
 GO
-CREATE PROCEDURE sp_ToggleUserStatus
-    @UserId VARCHAR(50),
-    @UpdatedBy VARCHAR(50) = 'system'
+CREATE PROCEDURE sp_UpdateLastLogin
+    @UserId VARCHAR(50)
 AS
 BEGIN
     UPDATE dbo.users
-    SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END,
-        updated_at = GETDATE(), updated_by = @UpdatedBy
+    SET last_login_at = GETDATE()
     WHERE user_id = @UserId;
-    
-    SELECT is_active FROM dbo.users WHERE user_id = @UserId;
 END
 GO
 
@@ -156,243 +152,7 @@ PRINT '✅ Users Management SPs created';
 GO
 
 -- ===========================================
--- 2. STUDENTS MANAGEMENT
--- ===========================================
-
-IF OBJECT_ID('sp_GetAllStudents', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllStudents;
-GO
-CREATE PROCEDURE sp_GetAllStudents
-    @Page INT = 1,
-    @PageSize INT = 10,
-    @Search NVARCHAR(255) = NULL,
-    @MajorId VARCHAR(50) = NULL,
-    @AcademicYearId VARCHAR(50) = NULL
-AS
-BEGIN
-    SET NOCOUNT ON;
-    DECLARE @Offset INT = (@Page - 1) * @PageSize;
-    
-    SELECT COUNT(*) as TotalCount
-    FROM dbo.students s
-    WHERE s.deleted_at IS NULL
-        AND (@Search IS NULL OR s.student_code LIKE '%' + @Search + '%' 
-             OR s.full_name LIKE '%' + @Search + '%')
-        AND (@MajorId IS NULL OR s.major_id = @MajorId)
-        AND (@AcademicYearId IS NULL OR s.academic_year_id = @AcademicYearId);
-    
-    SELECT s.student_id, s.student_code, s.full_name, s.date_of_birth, s.gender,
-           s.email, s.phone, s.address, s.major_id, m.major_name,
-           s.academic_year_id, ay.year_name, s.is_active,
-           s.created_at, s.updated_at
-    FROM dbo.students s
-    LEFT JOIN dbo.majors m ON s.major_id = m.major_id
-    LEFT JOIN dbo.academic_years ay ON s.academic_year_id = ay.academic_year_id
-    WHERE s.deleted_at IS NULL
-        AND (@Search IS NULL OR s.student_code LIKE '%' + @Search + '%' 
-             OR s.full_name LIKE '%' + @Search + '%')
-        AND (@MajorId IS NULL OR s.major_id = @MajorId)
-        AND (@AcademicYearId IS NULL OR s.academic_year_id = @AcademicYearId)
-    ORDER BY s.created_at DESC
-    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
-END
-GO
-
-IF OBJECT_ID('sp_GetStudentById', 'P') IS NOT NULL DROP PROCEDURE sp_GetStudentById;
-GO
-CREATE PROCEDURE sp_GetStudentById
-    @StudentId VARCHAR(50)
-AS
-BEGIN
-    SELECT s.*, m.major_name, ay.year_name
-    FROM dbo.students s
-    LEFT JOIN dbo.majors m ON s.major_id = m.major_id
-    LEFT JOIN dbo.academic_years ay ON s.academic_year_id = ay.academic_year_id
-    WHERE s.student_id = @StudentId AND s.deleted_at IS NULL;
-END
-GO
-
-IF OBJECT_ID('sp_GetStudentByUserId', 'P') IS NOT NULL DROP PROCEDURE sp_GetStudentByUserId;
-GO
-CREATE PROCEDURE sp_GetStudentByUserId
-    @UserId VARCHAR(50)
-AS
-BEGIN
-    SELECT s.*, m.major_name, ay.year_name
-    FROM dbo.students s
-    LEFT JOIN dbo.majors m ON s.major_id = m.major_id
-    LEFT JOIN dbo.academic_years ay ON s.academic_year_id = ay.academic_year_id
-    WHERE s.user_id = @UserId AND s.deleted_at IS NULL;
-END
-GO
-
-IF OBJECT_ID('sp_AddStudentFull', 'P') IS NOT NULL DROP PROCEDURE sp_AddStudentFull;
-GO
-CREATE PROCEDURE sp_AddStudentFull
-    @StudentId VARCHAR(50),
-    @StudentCode VARCHAR(20),
-    @FullName NVARCHAR(150),
-    @DateOfBirth DATE = NULL,
-    @Gender NVARCHAR(10) = NULL,
-    @Email VARCHAR(150) = NULL,
-    @Phone VARCHAR(20) = NULL,
-    @Address NVARCHAR(300) = NULL,
-    @MajorId VARCHAR(50) = NULL,
-    @AcademicYearId VARCHAR(50) = NULL,
-    @AdvisorId VARCHAR(50) = NULL,
-    @UserId VARCHAR(50) = NULL,
-    @CreatedBy VARCHAR(50) = 'system'
-AS
-BEGIN
-    INSERT INTO dbo.students (student_id, student_code, full_name, date_of_birth, gender,
-                              email, phone, address, major_id, academic_year_id, advisor_id,
-                              user_id, created_at, created_by)
-    VALUES (@StudentId, @StudentCode, @FullName, @DateOfBirth, @Gender, @Email, @Phone,
-            @Address, @MajorId, @AcademicYearId, @AdvisorId, @UserId, GETDATE(), @CreatedBy);
-END
-GO
-
-IF OBJECT_ID('sp_UpdateStudentFull', 'P') IS NOT NULL DROP PROCEDURE sp_UpdateStudentFull;
-GO
-CREATE PROCEDURE sp_UpdateStudentFull
-    @StudentId VARCHAR(50),
-    @StudentCode VARCHAR(20),
-    @FullName NVARCHAR(150),
-    @DateOfBirth DATE = NULL,
-    @Gender NVARCHAR(10) = NULL,
-    @Email VARCHAR(150) = NULL,
-    @Phone VARCHAR(20) = NULL,
-    @Address NVARCHAR(300) = NULL,
-    @MajorId VARCHAR(50) = NULL,
-    @AcademicYearId VARCHAR(50) = NULL,
-    @UpdatedBy VARCHAR(50) = 'system'
-AS
-BEGIN
-    UPDATE dbo.students
-    SET student_code = @StudentCode, full_name = @FullName, date_of_birth = @DateOfBirth,
-        gender = @Gender, email = @Email, phone = @Phone, address = @Address,
-        major_id = @MajorId, academic_year_id = @AcademicYearId,
-        updated_at = GETDATE(), updated_by = @UpdatedBy
-    WHERE student_id = @StudentId AND deleted_at IS NULL;
-END
-GO
-
-IF OBJECT_ID('sp_DeleteStudentFull', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteStudentFull;
-GO
-CREATE PROCEDURE sp_DeleteStudentFull
-    @StudentId VARCHAR(50),
-    @DeletedBy VARCHAR(50) = 'system'
-AS
-BEGIN
-    UPDATE dbo.students
-    SET deleted_at = GETDATE(), deleted_by = @DeletedBy
-    WHERE student_id = @StudentId;
-END
-GO
-
-PRINT '✅ Students Management SPs created';
-GO
-
--- =========================================== 
--- 3. LECTURERS MANAGEMENT
--- ===========================================
-
-IF OBJECT_ID('sp_GetAllLecturers', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllLecturers;
-GO
-CREATE PROCEDURE sp_GetAllLecturers
-AS
-BEGIN
-    SELECT l.*, d.department_name
-    FROM dbo.lecturers l
-    LEFT JOIN dbo.departments d ON l.department_id = d.department_id
-    WHERE l.deleted_at IS NULL
-    ORDER BY l.created_at DESC;
-END
-GO
-
-IF OBJECT_ID('sp_GetLecturerById', 'P') IS NOT NULL DROP PROCEDURE sp_GetLecturerById;
-GO
-CREATE PROCEDURE sp_GetLecturerById
-    @LecturerId VARCHAR(50)
-AS
-BEGIN
-    SELECT l.*, d.department_name
-    FROM dbo.lecturers l
-    LEFT JOIN dbo.departments d ON l.department_id = d.department_id
-    WHERE l.lecturer_id = @LecturerId AND l.deleted_at IS NULL;
-END
-GO
-
-IF OBJECT_ID('sp_GetLecturerByUserId', 'P') IS NOT NULL DROP PROCEDURE sp_GetLecturerByUserId;
-GO
-CREATE PROCEDURE sp_GetLecturerByUserId
-    @UserId VARCHAR(50)
-AS
-BEGIN
-    SELECT l.*, d.department_name
-    FROM dbo.lecturers l
-    LEFT JOIN dbo.departments d ON l.department_id = d.department_id
-    WHERE l.user_id = @UserId AND l.deleted_at IS NULL;
-END
-GO
-
-IF OBJECT_ID('sp_CreateLecturer', 'P') IS NOT NULL DROP PROCEDURE sp_CreateLecturer;
-GO
-CREATE PROCEDURE sp_CreateLecturer
-    @LecturerId VARCHAR(50),
-    @LecturerCode VARCHAR(20),
-    @FullName NVARCHAR(150),
-    @Email VARCHAR(150) = NULL,
-    @Phone VARCHAR(20) = NULL,
-    @DepartmentId VARCHAR(50) = NULL,
-    @UserId VARCHAR(50) = NULL,
-    @CreatedBy VARCHAR(50) = 'system'
-AS
-BEGIN
-    INSERT INTO dbo.lecturers (lecturer_id, lecturer_code, full_name, email, phone,
-                               department_id, user_id, created_at, created_by)
-    VALUES (@LecturerId, @LecturerCode, @FullName, @Email, @Phone, @DepartmentId,
-            @UserId, GETDATE(), @CreatedBy);
-END
-GO
-
-IF OBJECT_ID('sp_UpdateLecturer', 'P') IS NOT NULL DROP PROCEDURE sp_UpdateLecturer;
-GO
-CREATE PROCEDURE sp_UpdateLecturer
-    @LecturerId VARCHAR(50),
-    @LecturerCode VARCHAR(20),
-    @FullName NVARCHAR(150),
-    @Email VARCHAR(150) = NULL,
-    @Phone VARCHAR(20) = NULL,
-    @DepartmentId VARCHAR(50) = NULL,
-    @UpdatedBy VARCHAR(50) = 'system'
-AS
-BEGIN
-    UPDATE dbo.lecturers
-    SET lecturer_code = @LecturerCode, full_name = @FullName, email = @Email,
-        phone = @Phone, department_id = @DepartmentId,
-        updated_at = GETDATE(), updated_by = @UpdatedBy
-    WHERE lecturer_id = @LecturerId AND deleted_at IS NULL;
-END
-GO
-
-IF OBJECT_ID('sp_DeleteLecturer', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteLecturer;
-GO
-CREATE PROCEDURE sp_DeleteLecturer
-    @LecturerId VARCHAR(50),
-    @DeletedBy VARCHAR(50) = 'system'
-AS
-BEGIN
-    UPDATE dbo.lecturers
-    SET deleted_at = GETDATE(), deleted_by = @DeletedBy
-    WHERE lecturer_id = @LecturerId;
-END
-GO
-
-PRINT '✅ Lecturers Management SPs created';
-GO
-
--- ===========================================
--- 4. FACULTIES MANAGEMENT
+-- 2. FACULTIES MANAGEMENT
 -- ===========================================
 
 IF OBJECT_ID('sp_GetAllFaculties', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllFaculties;
@@ -400,7 +160,9 @@ GO
 CREATE PROCEDURE sp_GetAllFaculties
 AS
 BEGIN
-    SELECT * FROM dbo.faculties
+    SELECT faculty_id, faculty_code, faculty_name, description, 
+           is_active, created_at, created_by, updated_at, updated_by
+    FROM dbo.faculties
     WHERE deleted_at IS NULL
     ORDER BY faculty_name;
 END
@@ -421,13 +183,15 @@ IF OBJECT_ID('sp_CreateFaculty', 'P') IS NOT NULL DROP PROCEDURE sp_CreateFacult
 GO
 CREATE PROCEDURE sp_CreateFaculty
     @FacultyId VARCHAR(50),
+    @FacultyCode VARCHAR(20),
     @FacultyName NVARCHAR(150),
     @Description NVARCHAR(500) = NULL,
+    @IsActive BIT = 1,
     @CreatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
-    INSERT INTO dbo.faculties (faculty_id, faculty_name, description, created_at, created_by)
-    VALUES (@FacultyId, @FacultyName, @Description, GETDATE(), @CreatedBy);
+    INSERT INTO dbo.faculties (faculty_id, faculty_code, faculty_name, description, is_active, created_at, created_by)
+    VALUES (@FacultyId, @FacultyCode, @FacultyName, @Description, @IsActive, GETDATE(), @CreatedBy);
 END
 GO
 
@@ -435,14 +199,16 @@ IF OBJECT_ID('sp_UpdateFaculty', 'P') IS NOT NULL DROP PROCEDURE sp_UpdateFacult
 GO
 CREATE PROCEDURE sp_UpdateFaculty
     @FacultyId VARCHAR(50),
+    @FacultyCode VARCHAR(20),
     @FacultyName NVARCHAR(150),
     @Description NVARCHAR(500) = NULL,
+    @IsActive BIT = 1,
     @UpdatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
     UPDATE dbo.faculties
-    SET faculty_name = @FacultyName, description = @Description,
-        updated_at = GETDATE(), updated_by = @UpdatedBy
+    SET faculty_code = @FacultyCode, faculty_name = @FacultyName, description = @Description,
+        is_active = @IsActive, updated_at = GETDATE(), updated_by = @UpdatedBy
     WHERE faculty_id = @FacultyId AND deleted_at IS NULL;
 END
 GO
@@ -464,7 +230,7 @@ PRINT '✅ Faculties Management SPs created';
 GO
 
 -- ===========================================
--- 5. DEPARTMENTS MANAGEMENT
+-- 3. DEPARTMENTS MANAGEMENT
 -- ===========================================
 
 IF OBJECT_ID('sp_GetAllDepartments', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllDepartments;
@@ -472,7 +238,7 @@ GO
 CREATE PROCEDURE sp_GetAllDepartments
 AS
 BEGIN
-    SELECT d.*, f.faculty_name
+    SELECT d.*, f.faculty_name, f.faculty_code
     FROM dbo.departments d
     LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
     WHERE d.deleted_at IS NULL
@@ -543,7 +309,7 @@ PRINT '✅ Departments Management SPs created';
 GO
 
 -- ===========================================
--- 6. MAJORS MANAGEMENT
+-- 4. MAJORS MANAGEMENT
 -- ===========================================
 
 IF OBJECT_ID('sp_GetAllMajors', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllMajors;
@@ -551,7 +317,7 @@ GO
 CREATE PROCEDURE sp_GetAllMajors
 AS
 BEGIN
-    SELECT m.*, f.faculty_name
+    SELECT m.*, f.faculty_name, f.faculty_code
     FROM dbo.majors m
     LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
     WHERE m.deleted_at IS NULL
@@ -636,7 +402,299 @@ PRINT '✅ Majors Management SPs created';
 GO
 
 -- ===========================================
--- 7. SUBJECTS MANAGEMENT
+-- 5. ACADEMIC YEARS MANAGEMENT
+-- ===========================================
+
+IF OBJECT_ID('sp_GetAllAcademicYears', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllAcademicYears;
+GO
+CREATE PROCEDURE sp_GetAllAcademicYears
+AS
+BEGIN
+    SELECT * FROM dbo.academic_years
+    WHERE deleted_at IS NULL
+    ORDER BY start_year DESC;
+END
+GO
+
+IF OBJECT_ID('sp_GetAcademicYearById', 'P') IS NOT NULL DROP PROCEDURE sp_GetAcademicYearById;
+GO
+CREATE PROCEDURE sp_GetAcademicYearById
+    @AcademicYearId VARCHAR(50)
+AS
+BEGIN
+    SELECT * FROM dbo.academic_years
+    WHERE academic_year_id = @AcademicYearId AND deleted_at IS NULL;
+END
+GO
+
+IF OBJECT_ID('sp_CreateAcademicYear', 'P') IS NOT NULL DROP PROCEDURE sp_CreateAcademicYear;
+GO
+CREATE PROCEDURE sp_CreateAcademicYear
+    @AcademicYearId VARCHAR(50),
+    @YearName NVARCHAR(50),
+    @StartYear INT,
+    @EndYear INT,
+    @IsActive BIT = 0,
+    @CreatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    INSERT INTO dbo.academic_years (academic_year_id, year_name, start_year, end_year,
+                                     is_active, created_at, created_by)
+    VALUES (@AcademicYearId, @YearName, @StartYear, @EndYear, @IsActive, GETDATE(), @CreatedBy);
+END
+GO
+
+IF OBJECT_ID('sp_UpdateAcademicYear', 'P') IS NOT NULL DROP PROCEDURE sp_UpdateAcademicYear;
+GO
+CREATE PROCEDURE sp_UpdateAcademicYear
+    @AcademicYearId VARCHAR(50),
+    @YearName NVARCHAR(50),
+    @StartYear INT,
+    @EndYear INT,
+    @IsActive BIT,
+    @UpdatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    UPDATE dbo.academic_years
+    SET year_name = @YearName, start_year = @StartYear, end_year = @EndYear,
+        is_active = @IsActive, updated_at = GETDATE(), updated_by = @UpdatedBy
+    WHERE academic_year_id = @AcademicYearId AND deleted_at IS NULL;
+END
+GO
+
+IF OBJECT_ID('sp_DeleteAcademicYear', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteAcademicYear;
+GO
+CREATE PROCEDURE sp_DeleteAcademicYear
+    @AcademicYearId VARCHAR(50),
+    @DeletedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    UPDATE dbo.academic_years
+    SET deleted_at = GETDATE(), deleted_by = @DeletedBy
+    WHERE academic_year_id = @AcademicYearId;
+END
+GO
+
+PRINT '✅ Academic Years Management SPs created';
+GO
+
+-- ===========================================
+-- 6. STUDENTS MANAGEMENT
+-- ===========================================
+
+IF OBJECT_ID('sp_GetAllStudents', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllStudents;
+GO
+CREATE PROCEDURE sp_GetAllStudents
+    @Page INT = 1,
+    @PageSize INT = 10,
+    @Search NVARCHAR(255) = NULL,
+    @FacultyId VARCHAR(50) = NULL,
+    @MajorId VARCHAR(50) = NULL,
+    @AcademicYearId VARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    SELECT COUNT(*) as TotalCount
+    FROM dbo.students s
+    LEFT JOIN dbo.majors m ON s.major_id = m.major_id
+    WHERE s.deleted_at IS NULL
+        AND (@Search IS NULL OR s.student_code LIKE '%' + @Search + '%' 
+             OR s.full_name LIKE '%' + @Search + '%')
+        AND (@FacultyId IS NULL OR m.faculty_id = @FacultyId)
+        AND (@MajorId IS NULL OR s.major_id = @MajorId)
+        AND (@AcademicYearId IS NULL OR s.academic_year_id = @AcademicYearId);
+    
+    SELECT s.student_id, s.user_id, s.student_code, s.full_name, s.gender, s.date_of_birth,
+           s.email, s.phone, s.address, s.major_id, m.major_name, m.faculty_id, f.faculty_name,
+           s.academic_year_id, ay.year_name, s.is_active,
+           s.created_at, s.created_by, s.updated_at, s.updated_by
+    FROM dbo.students s
+    LEFT JOIN dbo.majors m ON s.major_id = m.major_id
+    LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
+    LEFT JOIN dbo.academic_years ay ON s.academic_year_id = ay.academic_year_id
+    WHERE s.deleted_at IS NULL
+        AND (@Search IS NULL OR s.student_code LIKE '%' + @Search + '%' 
+             OR s.full_name LIKE '%' + @Search + '%')
+        AND (@FacultyId IS NULL OR m.faculty_id = @FacultyId)
+        AND (@MajorId IS NULL OR s.major_id = @MajorId)
+        AND (@AcademicYearId IS NULL OR s.academic_year_id = @AcademicYearId)
+    ORDER BY s.created_at DESC
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+
+IF OBJECT_ID('sp_GetStudentById', 'P') IS NOT NULL DROP PROCEDURE sp_GetStudentById;
+GO
+CREATE PROCEDURE sp_GetStudentById
+    @StudentId VARCHAR(50)
+AS
+BEGIN
+    SELECT s.*, m.major_name, m.faculty_id, f.faculty_name, ay.year_name
+    FROM dbo.students s
+    LEFT JOIN dbo.majors m ON s.major_id = m.major_id
+    LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
+    LEFT JOIN dbo.academic_years ay ON s.academic_year_id = ay.academic_year_id
+    WHERE s.student_id = @StudentId AND s.deleted_at IS NULL;
+END
+GO
+
+IF OBJECT_ID('sp_CreateStudent', 'P') IS NOT NULL DROP PROCEDURE sp_CreateStudent;
+GO
+CREATE PROCEDURE sp_CreateStudent
+    @StudentId VARCHAR(50),
+    @UserId VARCHAR(50),
+    @StudentCode VARCHAR(20),
+    @FullName NVARCHAR(150),
+    @Gender NVARCHAR(10) = NULL,
+    @Dob DATE = NULL,
+    @Email VARCHAR(150) = NULL,
+    @Phone VARCHAR(20) = NULL,
+    @Address NVARCHAR(300) = NULL,
+    @MajorId VARCHAR(50) = NULL,
+    @AcademicYearId VARCHAR(50) = NULL,
+    @CreatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    INSERT INTO dbo.students (student_id, user_id, student_code, full_name, gender, date_of_birth,
+                              email, phone, address, major_id, academic_year_id,
+                              created_at, created_by)
+    VALUES (@StudentId, @UserId, @StudentCode, @FullName, @Gender, @Dob, @Email, @Phone,
+            @Address, @MajorId, @AcademicYearId, GETDATE(), @CreatedBy);
+    SELECT @StudentId AS student_id;
+END
+GO
+
+IF OBJECT_ID('sp_UpdateStudent', 'P') IS NOT NULL DROP PROCEDURE sp_UpdateStudent;
+GO
+CREATE PROCEDURE sp_UpdateStudent
+    @StudentId VARCHAR(50),
+    @FullName NVARCHAR(150),
+    @Gender NVARCHAR(10) = NULL,
+    @Dob DATE = NULL,
+    @Email VARCHAR(150) = NULL,
+    @Phone VARCHAR(20) = NULL,
+    @Address NVARCHAR(300) = NULL,
+    @MajorId VARCHAR(50) = NULL,
+    @AcademicYearId VARCHAR(50) = NULL,
+    @UpdatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    UPDATE dbo.students
+    SET full_name = @FullName, gender = @Gender, date_of_birth = @Dob,
+        email = @Email, phone = @Phone, address = @Address,
+        major_id = @MajorId, academic_year_id = @AcademicYearId,
+        updated_at = GETDATE(), updated_by = @UpdatedBy
+    WHERE student_id = @StudentId AND deleted_at IS NULL;
+END
+GO
+
+IF OBJECT_ID('sp_DeleteStudent', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteStudent;
+GO
+CREATE PROCEDURE sp_DeleteStudent
+    @StudentId VARCHAR(50),
+    @DeletedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    UPDATE dbo.students
+    SET deleted_at = GETDATE(), deleted_by = @DeletedBy
+    WHERE student_id = @StudentId;
+END
+GO
+
+PRINT '✅ Students Management SPs created';
+GO
+
+-- ===========================================
+-- 7. LECTURERS MANAGEMENT
+-- ===========================================
+
+IF OBJECT_ID('sp_GetAllLecturers', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllLecturers;
+GO
+CREATE PROCEDURE sp_GetAllLecturers
+AS
+BEGIN
+    SELECT l.*, d.department_name, f.faculty_name
+    FROM dbo.lecturers l
+    LEFT JOIN dbo.departments d ON l.department_id = d.department_id
+    LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
+    WHERE l.deleted_at IS NULL
+    ORDER BY l.created_at DESC;
+END
+GO
+
+IF OBJECT_ID('sp_GetLecturerById', 'P') IS NOT NULL DROP PROCEDURE sp_GetLecturerById;
+GO
+CREATE PROCEDURE sp_GetLecturerById
+    @LecturerId VARCHAR(50)
+AS
+BEGIN
+    SELECT l.*, d.department_name
+    FROM dbo.lecturers l
+    LEFT JOIN dbo.departments d ON l.department_id = d.department_id
+    WHERE l.lecturer_id = @LecturerId AND l.deleted_at IS NULL;
+END
+GO
+
+IF OBJECT_ID('sp_CreateLecturer', 'P') IS NOT NULL DROP PROCEDURE sp_CreateLecturer;
+GO
+CREATE PROCEDURE sp_CreateLecturer
+    @LecturerId VARCHAR(50),
+    @LecturerCode VARCHAR(20),
+    @FullName NVARCHAR(150),
+    @Email VARCHAR(150) = NULL,
+    @Phone VARCHAR(20) = NULL,
+    @DepartmentId VARCHAR(50) = NULL,
+    @UserId VARCHAR(50) = NULL,
+    @CreatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    INSERT INTO dbo.lecturers (lecturer_id, lecturer_code, full_name, email, phone,
+                               department_id, user_id, created_at, created_by)
+    VALUES (@LecturerId, @LecturerCode, @FullName, @Email, @Phone, @DepartmentId,
+            @UserId, GETDATE(), @CreatedBy);
+END
+GO
+
+IF OBJECT_ID('sp_UpdateLecturer', 'P') IS NOT NULL DROP PROCEDURE sp_UpdateLecturer;
+GO
+CREATE PROCEDURE sp_UpdateLecturer
+    @LecturerId VARCHAR(50),
+    @LecturerCode VARCHAR(20),
+    @FullName NVARCHAR(150),
+    @Email VARCHAR(150) = NULL,
+    @Phone VARCHAR(20) = NULL,
+    @DepartmentId VARCHAR(50) = NULL,
+    @UpdatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    UPDATE dbo.lecturers
+    SET lecturer_code = @LecturerCode, full_name = @FullName, email = @Email,
+        phone = @Phone, department_id = @DepartmentId,
+        updated_at = GETDATE(), updated_by = @UpdatedBy
+    WHERE lecturer_id = @LecturerId AND deleted_at IS NULL;
+END
+GO
+
+IF OBJECT_ID('sp_DeleteLecturer', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteLecturer;
+GO
+CREATE PROCEDURE sp_DeleteLecturer
+    @LecturerId VARCHAR(50),
+    @DeletedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    UPDATE dbo.lecturers
+    SET deleted_at = GETDATE(), deleted_by = @DeletedBy
+    WHERE lecturer_id = @LecturerId;
+END
+GO
+
+PRINT '✅ Lecturers Management SPs created';
+GO
+
+-- ===========================================
+-- 8. SUBJECTS MANAGEMENT
 -- ===========================================
 
 IF OBJECT_ID('sp_GetAllSubjects', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllSubjects;
@@ -644,9 +702,10 @@ GO
 CREATE PROCEDURE sp_GetAllSubjects
 AS
 BEGIN
-    SELECT s.*, d.department_name
+    SELECT s.*, d.department_name, f.faculty_name
     FROM dbo.subjects s
     LEFT JOIN dbo.departments d ON s.department_id = d.department_id
+    LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
     WHERE s.deleted_at IS NULL
     ORDER BY s.subject_name;
 END
@@ -662,29 +721,6 @@ BEGIN
     FROM dbo.subjects s
     LEFT JOIN dbo.departments d ON s.department_id = d.department_id
     WHERE s.subject_id = @SubjectId AND s.deleted_at IS NULL;
-END
-GO
-
-IF OBJECT_ID('sp_GetSubjectsByDepartment', 'P') IS NOT NULL DROP PROCEDURE sp_GetSubjectsByDepartment;
-GO
-CREATE PROCEDURE sp_GetSubjectsByDepartment
-    @DepartmentId VARCHAR(50)
-AS
-BEGIN
-    SELECT * FROM dbo.subjects
-    WHERE department_id = @DepartmentId AND deleted_at IS NULL
-    ORDER BY subject_name;
-END
-GO
-
-IF OBJECT_ID('sp_CheckSubjectCodeExists', 'P') IS NOT NULL DROP PROCEDURE sp_CheckSubjectCodeExists;
-GO
-CREATE PROCEDURE sp_CheckSubjectCodeExists
-    @SubjectCode VARCHAR(20)
-AS
-BEGIN
-    SELECT COUNT(*) FROM dbo.subjects
-    WHERE subject_code = @SubjectCode AND deleted_at IS NULL;
 END
 GO
 
@@ -744,126 +780,23 @@ PRINT '✅ Subjects Management SPs created';
 GO
 
 -- ===========================================
--- 8. ACADEMIC YEARS MANAGEMENT
+-- 9. CLASSES MANAGEMENT
 -- ===========================================
 
-IF OBJECT_ID('sp_GetAllAcademicYears', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllAcademicYears;
+IF OBJECT_ID('sp_GetAllClasses', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllClasses;
 GO
-CREATE PROCEDURE sp_GetAllAcademicYears
+CREATE PROCEDURE sp_GetAllClasses
 AS
 BEGIN
-    SELECT * FROM dbo.academic_years
-    WHERE deleted_at IS NULL
-    ORDER BY start_year DESC;
+    SELECT c.*, s.subject_name, l.full_name as lecturer_name, ay.year_name
+    FROM dbo.classes c
+    LEFT JOIN dbo.subjects s ON c.subject_id = s.subject_id
+    LEFT JOIN dbo.lecturers l ON c.lecturer_id = l.lecturer_id
+    LEFT JOIN dbo.academic_years ay ON c.academic_year_id = ay.academic_year_id
+    WHERE c.deleted_at IS NULL
+    ORDER BY c.created_at DESC;
 END
 GO
-
-IF OBJECT_ID('sp_GetAcademicYearById', 'P') IS NOT NULL DROP PROCEDURE sp_GetAcademicYearById;
-GO
-CREATE PROCEDURE sp_GetAcademicYearById
-    @AcademicYearId VARCHAR(50)
-AS
-BEGIN
-    SELECT * FROM dbo.academic_years
-    WHERE academic_year_id = @AcademicYearId AND deleted_at IS NULL;
-END
-GO
-
-IF OBJECT_ID('sp_CheckAcademicYearCodeExists', 'P') IS NOT NULL DROP PROCEDURE sp_CheckAcademicYearCodeExists;
-GO
-CREATE PROCEDURE sp_CheckAcademicYearCodeExists
-    @YearName NVARCHAR(50)
-AS
-BEGIN
-    SELECT COUNT(*) FROM dbo.academic_years
-    WHERE year_name = @YearName AND deleted_at IS NULL;
-END
-GO
-
-IF OBJECT_ID('sp_CreateAcademicYear', 'P') IS NOT NULL DROP PROCEDURE sp_CreateAcademicYear;
-GO
-CREATE PROCEDURE sp_CreateAcademicYear
-    @AcademicYearId VARCHAR(50),
-    @YearName NVARCHAR(50),
-    @StartYear INT,
-    @EndYear INT,
-    @IsActive BIT = 0,
-    @CreatedBy VARCHAR(50) = 'system'
-AS
-BEGIN
-    INSERT INTO dbo.academic_years (academic_year_id, year_name, start_year, end_year,
-                                     is_active, created_at, created_by)
-    VALUES (@AcademicYearId, @YearName, @StartYear, @EndYear, @IsActive, GETDATE(), @CreatedBy);
-END
-GO
-
-IF OBJECT_ID('sp_UpdateAcademicYear', 'P') IS NOT NULL DROP PROCEDURE sp_UpdateAcademicYear;
-GO
-CREATE PROCEDURE sp_UpdateAcademicYear
-    @AcademicYearId VARCHAR(50),
-    @YearName NVARCHAR(50),
-    @StartYear INT,
-    @EndYear INT,
-    @IsActive BIT,
-    @UpdatedBy VARCHAR(50) = 'system'
-AS
-BEGIN
-    UPDATE dbo.academic_years
-    SET year_name = @YearName, start_year = @StartYear, end_year = @EndYear,
-        is_active = @IsActive, updated_at = GETDATE(), updated_by = @UpdatedBy
-    WHERE academic_year_id = @AcademicYearId AND deleted_at IS NULL;
-END
-GO
-
-IF OBJECT_ID('sp_DeleteAcademicYear', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteAcademicYear;
-GO
-CREATE PROCEDURE sp_DeleteAcademicYear
-    @AcademicYearId VARCHAR(50),
-    @DeletedBy VARCHAR(50) = 'system'
-AS
-BEGIN
-    UPDATE dbo.academic_years
-    SET deleted_at = GETDATE(), deleted_by = @DeletedBy
-    WHERE academic_year_id = @AcademicYearId;
-END
-GO
-
-PRINT '✅ Academic Years Management SPs created';
-GO
-
--- ===========================================
--- 9. ROLES & PERMISSIONS MANAGEMENT
--- ===========================================
-
-IF OBJECT_ID('sp_GetAllRoles', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllRoles;
-GO
-CREATE PROCEDURE sp_GetAllRoles
-AS
-BEGIN
-    SELECT role_id, role_name, description, is_active, created_at
-    FROM dbo.roles
-    WHERE deleted_at IS NULL
-    ORDER BY role_name;
-END
-GO
-
-IF OBJECT_ID('sp_GetRoleById', 'P') IS NOT NULL DROP PROCEDURE sp_GetRoleById;
-GO
-CREATE PROCEDURE sp_GetRoleById
-    @RoleId VARCHAR(50)
-AS
-BEGIN
-    SELECT * FROM dbo.roles
-    WHERE role_id = @RoleId AND deleted_at IS NULL;
-END
-GO
-
-PRINT '✅ Roles Management SPs created';
-GO
-
--- ===========================================
--- 10. CLASSES MANAGEMENT
--- ===========================================
 
 IF OBJECT_ID('sp_GetClassById', 'P') IS NOT NULL DROP PROCEDURE sp_GetClassById;
 GO
@@ -877,36 +810,6 @@ BEGIN
     LEFT JOIN dbo.lecturers l ON c.lecturer_id = l.lecturer_id
     LEFT JOIN dbo.academic_years ay ON c.academic_year_id = ay.academic_year_id
     WHERE c.class_id = @ClassId AND c.deleted_at IS NULL;
-END
-GO
-
-IF OBJECT_ID('sp_GetClassesByLecturer', 'P') IS NOT NULL DROP PROCEDURE sp_GetClassesByLecturer;
-GO
-CREATE PROCEDURE sp_GetClassesByLecturer
-    @LecturerId VARCHAR(50)
-AS
-BEGIN
-    SELECT c.*, s.subject_name
-    FROM dbo.classes c
-    LEFT JOIN dbo.subjects s ON c.subject_id = s.subject_id
-    WHERE c.lecturer_id = @LecturerId AND c.deleted_at IS NULL
-    ORDER BY c.created_at DESC;
-END
-GO
-
-IF OBJECT_ID('sp_GetClassesByStudent', 'P') IS NOT NULL DROP PROCEDURE sp_GetClassesByStudent;
-GO
-CREATE PROCEDURE sp_GetClassesByStudent
-    @StudentId VARCHAR(50)
-AS
-BEGIN
-    SELECT c.*, s.subject_name, l.full_name as lecturer_name
-    FROM dbo.classes c
-    INNER JOIN dbo.enrollments e ON c.class_id = e.class_id
-    LEFT JOIN dbo.subjects s ON c.subject_id = s.subject_id
-    LEFT JOIN dbo.lecturers l ON c.lecturer_id = l.lecturer_id
-    WHERE e.student_id = @StudentId AND e.deleted_at IS NULL AND c.deleted_at IS NULL
-    ORDER BY c.created_at DESC;
 END
 GO
 
@@ -975,51 +878,8 @@ PRINT '✅ Classes Management SPs created';
 GO
 
 -- ===========================================
--- 11. ENROLLMENTS MANAGEMENT
+-- 10. ENROLLMENTS MANAGEMENT
 -- ===========================================
-
-IF OBJECT_ID('sp_GetAllEnrollments', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllEnrollments;
-GO
-CREATE PROCEDURE sp_GetAllEnrollments
-AS
-BEGIN
-    SELECT e.*, s.student_code, s.full_name as student_name, c.class_code, c.class_name
-    FROM dbo.enrollments e
-    LEFT JOIN dbo.students s ON e.student_id = s.student_id
-    LEFT JOIN dbo.classes c ON e.class_id = c.class_id
-    WHERE e.deleted_at IS NULL
-    ORDER BY e.created_at DESC;
-END
-GO
-
-IF OBJECT_ID('sp_GetEnrollmentById', 'P') IS NOT NULL DROP PROCEDURE sp_GetEnrollmentById;
-GO
-CREATE PROCEDURE sp_GetEnrollmentById
-    @EnrollmentId VARCHAR(50)
-AS
-BEGIN
-    SELECT e.*, s.student_code, s.full_name as student_name, c.class_code, c.class_name
-    FROM dbo.enrollments e
-    LEFT JOIN dbo.students s ON e.student_id = s.student_id
-    LEFT JOIN dbo.classes c ON e.class_id = c.class_id
-    WHERE e.enrollment_id = @EnrollmentId AND e.deleted_at IS NULL;
-END
-GO
-
-IF OBJECT_ID('sp_GetEnrollmentsByStudent', 'P') IS NOT NULL DROP PROCEDURE sp_GetEnrollmentsByStudent;
-GO
-CREATE PROCEDURE sp_GetEnrollmentsByStudent
-    @StudentId VARCHAR(50)
-AS
-BEGIN
-    SELECT e.*, c.class_code, c.class_name, sub.subject_name
-    FROM dbo.enrollments e
-    LEFT JOIN dbo.classes c ON e.class_id = c.class_id
-    LEFT JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
-    WHERE e.student_id = @StudentId AND e.deleted_at IS NULL
-    ORDER BY e.created_at DESC;
-END
-GO
 
 IF OBJECT_ID('sp_GetEnrollmentsByClass', 'P') IS NOT NULL DROP PROCEDURE sp_GetEnrollmentsByClass;
 GO
@@ -1035,41 +895,41 @@ BEGIN
 END
 GO
 
+IF OBJECT_ID('sp_CreateEnrollment', 'P') IS NOT NULL DROP PROCEDURE sp_CreateEnrollment;
+GO
+CREATE PROCEDURE sp_CreateEnrollment
+    @EnrollmentId VARCHAR(50),
+    @StudentId VARCHAR(50),
+    @ClassId VARCHAR(50),
+    @Status NVARCHAR(50) = N'Đang học',
+    @CreatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    INSERT INTO dbo.enrollments (enrollment_id, student_id, class_id, status,
+                                  enrollment_date, created_at, created_by)
+    VALUES (@EnrollmentId, @StudentId, @ClassId, @Status, GETDATE(), GETDATE(), @CreatedBy);
+END
+GO
+
+IF OBJECT_ID('sp_DeleteEnrollment', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteEnrollment;
+GO
+CREATE PROCEDURE sp_DeleteEnrollment
+    @EnrollmentId VARCHAR(50),
+    @DeletedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    UPDATE dbo.enrollments
+    SET deleted_at = GETDATE(), deleted_by = @DeletedBy
+    WHERE enrollment_id = @EnrollmentId;
+END
+GO
+
 PRINT '✅ Enrollments Management SPs created';
 GO
 
 -- ===========================================
--- 12. ATTENDANCES MANAGEMENT
+-- 11. ATTENDANCES MANAGEMENT
 -- ===========================================
-
-IF OBJECT_ID('sp_GetAllAttendances', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllAttendances;
-GO
-CREATE PROCEDURE sp_GetAllAttendances
-AS
-BEGIN
-    SELECT a.*, s.student_code, s.full_name as student_name, c.class_code
-    FROM dbo.attendances a
-    LEFT JOIN dbo.enrollments e ON a.enrollment_id = e.enrollment_id
-    LEFT JOIN dbo.students s ON e.student_id = s.student_id
-    LEFT JOIN dbo.classes c ON a.class_id = c.class_id
-    ORDER BY a.attendance_date DESC;
-END
-GO
-
-IF OBJECT_ID('sp_GetAttendanceById', 'P') IS NOT NULL DROP PROCEDURE sp_GetAttendanceById;
-GO
-CREATE PROCEDURE sp_GetAttendanceById
-    @AttendanceId VARCHAR(50)
-AS
-BEGIN
-    SELECT a.*, s.student_code, s.full_name as student_name, c.class_code
-    FROM dbo.attendances a
-    LEFT JOIN dbo.enrollments e ON a.enrollment_id = e.enrollment_id
-    LEFT JOIN dbo.students s ON e.student_id = s.student_id
-    LEFT JOIN dbo.classes c ON a.class_id = c.class_id
-    WHERE a.attendance_id = @AttendanceId;
-END
-GO
 
 IF OBJECT_ID('sp_GetAttendancesByClass', 'P') IS NOT NULL DROP PROCEDURE sp_GetAttendancesByClass;
 GO
@@ -1085,35 +945,6 @@ BEGIN
     WHERE a.class_id = @ClassId
         AND (@AttendanceDate IS NULL OR CAST(a.attendance_date AS DATE) = @AttendanceDate)
     ORDER BY s.student_code;
-END
-GO
-
-IF OBJECT_ID('sp_GetAttendancesByStudent', 'P') IS NOT NULL DROP PROCEDURE sp_GetAttendancesByStudent;
-GO
-CREATE PROCEDURE sp_GetAttendancesByStudent
-    @StudentId VARCHAR(50)
-AS
-BEGIN
-    SELECT a.*, c.class_code, c.class_name
-    FROM dbo.attendances a
-    INNER JOIN dbo.enrollments e ON a.enrollment_id = e.enrollment_id
-    INNER JOIN dbo.classes c ON a.class_id = c.class_id
-    WHERE e.student_id = @StudentId
-    ORDER BY a.attendance_date DESC;
-END
-GO
-
-IF OBJECT_ID('sp_GetAttendancesBySchedule', 'P') IS NOT NULL DROP PROCEDURE sp_GetAttendancesBySchedule;
-GO
-CREATE PROCEDURE sp_GetAttendancesBySchedule
-    @ScheduleId VARCHAR(50)
-AS
-BEGIN
-    SELECT a.*, s.student_code, s.full_name as student_name
-    FROM dbo.attendances a
-    INNER JOIN dbo.enrollments e ON a.enrollment_id = e.enrollment_id
-    INNER JOIN dbo.students s ON e.student_id = s.student_id
-    ORDER BY a.attendance_date DESC, s.student_code;
 END
 GO
 
@@ -1133,7 +964,6 @@ BEGIN
                                   status, note, created_at, created_by)
     VALUES (@AttendanceId, @EnrollmentId, @ClassId, @AttendanceDate, @Status, @Note,
             GETDATE(), @CreatedBy);
-    SELECT @AttendanceId AS attendance_id;
 END
 GO
 
@@ -1152,69 +982,12 @@ BEGIN
 END
 GO
 
-IF OBJECT_ID('sp_DeleteAttendance', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteAttendance;
-GO
-CREATE PROCEDURE sp_DeleteAttendance
-    @AttendanceId VARCHAR(50)
-AS
-BEGIN
-    DELETE FROM dbo.attendances WHERE attendance_id = @AttendanceId;
-END
-GO
-
 PRINT '✅ Attendances Management SPs created';
 GO
 
 -- ===========================================
--- 13. GRADES MANAGEMENT
+-- 12. GRADES MANAGEMENT
 -- ===========================================
-
-IF OBJECT_ID('sp_GetAllGrades', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllGrades;
-GO
-CREATE PROCEDURE sp_GetAllGrades
-AS
-BEGIN
-    SELECT g.*, s.student_code, s.full_name as student_name, c.class_code, sub.subject_name
-    FROM dbo.grades g
-    LEFT JOIN dbo.enrollments e ON g.enrollment_id = e.enrollment_id
-    LEFT JOIN dbo.students s ON e.student_id = s.student_id
-    LEFT JOIN dbo.classes c ON e.class_id = c.class_id
-    LEFT JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
-    ORDER BY g.created_at DESC;
-END
-GO
-
-IF OBJECT_ID('sp_GetGradeById', 'P') IS NOT NULL DROP PROCEDURE sp_GetGradeById;
-GO
-CREATE PROCEDURE sp_GetGradeById
-    @GradeId VARCHAR(50)
-AS
-BEGIN
-    SELECT g.*, s.student_code, s.full_name as student_name, c.class_code, sub.subject_name
-    FROM dbo.grades g
-    LEFT JOIN dbo.enrollments e ON g.enrollment_id = e.enrollment_id
-    LEFT JOIN dbo.students s ON e.student_id = s.student_id
-    LEFT JOIN dbo.classes c ON e.class_id = c.class_id
-    LEFT JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
-    WHERE g.grade_id = @GradeId;
-END
-GO
-
-IF OBJECT_ID('sp_GetGradesByStudent', 'P') IS NOT NULL DROP PROCEDURE sp_GetGradesByStudent;
-GO
-CREATE PROCEDURE sp_GetGradesByStudent
-    @StudentId VARCHAR(50)
-AS
-BEGIN
-    SELECT g.*, c.class_code, sub.subject_name
-    FROM dbo.grades g
-    INNER JOIN dbo.enrollments e ON g.enrollment_id = e.enrollment_id
-    INNER JOIN dbo.classes c ON e.class_id = c.class_id
-    LEFT JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
-    WHERE e.student_id = @StudentId
-    ORDER BY g.created_at DESC;
-END
-GO
 
 IF OBJECT_ID('sp_GetGradesByClass', 'P') IS NOT NULL DROP PROCEDURE sp_GetGradesByClass;
 GO
@@ -1241,27 +1014,9 @@ CREATE PROCEDURE sp_CreateGrade
     @CreatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
-    DECLARE @TotalScore DECIMAL(4,2);
-    DECLARE @LetterGrade VARCHAR(5);
-    
-    SET @TotalScore = ISNULL(@MidtermScore, 0) * 0.4 + ISNULL(@FinalScore, 0) * 0.6;
-    SET @LetterGrade = CASE
-        WHEN @TotalScore >= 9.0 THEN 'A+'
-        WHEN @TotalScore >= 8.5 THEN 'A'
-        WHEN @TotalScore >= 8.0 THEN 'B+'
-        WHEN @TotalScore >= 7.0 THEN 'B'
-        WHEN @TotalScore >= 6.5 THEN 'C+'
-        WHEN @TotalScore >= 5.5 THEN 'C'
-        WHEN @TotalScore >= 5.0 THEN 'D+'
-        WHEN @TotalScore >= 4.0 THEN 'D'
-        ELSE 'F'
-    END;
-    
     INSERT INTO dbo.grades (grade_id, enrollment_id, midterm_score, final_score,
-                            total_score, letter_grade, created_at, created_by)
-    VALUES (@GradeId, @EnrollmentId, @MidtermScore, @FinalScore, @TotalScore,
-            @LetterGrade, GETDATE(), @CreatedBy);
-    SELECT @GradeId AS grade_id;
+                            created_at, created_by)
+    VALUES (@GradeId, @EnrollmentId, @MidtermScore, @FinalScore, GETDATE(), @CreatedBy);
 END
 GO
 
@@ -1281,51 +1036,42 @@ BEGIN
 END
 GO
 
-IF OBJECT_ID('sp_DeleteGrade', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteGrade;
-GO
-CREATE PROCEDURE sp_DeleteGrade
-    @GradeId VARCHAR(50)
-AS
-BEGIN
-    DELETE FROM dbo.grades WHERE grade_id = @GradeId;
-END
-GO
-
 PRINT '✅ Grades Management SPs created';
 GO
 
 -- ===========================================
--- 14. SCHEDULES & NOTIFICATIONS
+-- 13. ROLES MANAGEMENT
 -- ===========================================
 
-IF OBJECT_ID('sp_GetAllSchedules', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllSchedules;
+IF OBJECT_ID('sp_GetAllRoles', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllRoles;
 GO
-CREATE PROCEDURE sp_GetAllSchedules
+CREATE PROCEDURE sp_GetAllRoles
 AS
 BEGIN
-    SELECT * FROM dbo.schedules ORDER BY created_at DESC;
+    SELECT role_id, role_name, description, is_active, created_at
+    FROM dbo.roles
+    WHERE deleted_at IS NULL
+    ORDER BY role_name;
 END
 GO
 
-IF OBJECT_ID('sp_GetScheduleById', 'P') IS NOT NULL DROP PROCEDURE sp_GetScheduleById;
+IF OBJECT_ID('sp_GetRoleById', 'P') IS NOT NULL DROP PROCEDURE sp_GetRoleById;
 GO
-CREATE PROCEDURE sp_GetScheduleById
-    @ScheduleId VARCHAR(50)
+CREATE PROCEDURE sp_GetRoleById
+    @RoleId VARCHAR(50)
 AS
 BEGIN
-    SELECT * FROM dbo.schedules WHERE schedule_id = @ScheduleId;
+    SELECT * FROM dbo.roles
+    WHERE role_id = @RoleId AND deleted_at IS NULL;
 END
 GO
 
-IF OBJECT_ID('sp_GetSchedulesByClass', 'P') IS NOT NULL DROP PROCEDURE sp_GetSchedulesByClass;
+PRINT '✅ Roles Management SPs created';
 GO
-CREATE PROCEDURE sp_GetSchedulesByClass
-    @ClassId VARCHAR(50)
-AS
-BEGIN
-    SELECT * FROM dbo.schedules WHERE class_id = @ClassId ORDER BY created_at;
-END
-GO
+
+-- ===========================================
+-- 14. NOTIFICATIONS MANAGEMENT
+-- ===========================================
 
 IF OBJECT_ID('sp_GetNotificationsByUser', 'P') IS NOT NULL DROP PROCEDURE sp_GetNotificationsByUser;
 GO
@@ -1339,19 +1085,770 @@ BEGIN
 END
 GO
 
-PRINT '✅ Schedules & Notifications SPs created';
+IF OBJECT_ID('sp_MarkNotificationAsRead', 'P') IS NOT NULL DROP PROCEDURE sp_MarkNotificationAsRead;
+GO
+CREATE PROCEDURE sp_MarkNotificationAsRead
+    @NotificationId VARCHAR(50)
+AS
+BEGIN
+    UPDATE dbo.notifications
+    SET is_read = 1
+    WHERE notification_id = @NotificationId;
+END
+GO
+
+PRINT '✅ Notifications Management SPs created';
+GO
+
+-- ===========================================
+-- 15. AUDIT LOGS MANAGEMENT
+-- ===========================================
+
+IF OBJECT_ID('sp_GetAllAuditLogs', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllAuditLogs;
+GO
+CREATE PROCEDURE sp_GetAllAuditLogs
+    @Page INT = 1,
+    @PageSize INT = 25,
+    @Search NVARCHAR(255) = NULL,
+    @Action VARCHAR(50) = NULL,
+    @EntityType VARCHAR(100) = NULL,
+    @UserId VARCHAR(50) = NULL,
+    @FromDate DATETIME = NULL,
+    @ToDate DATETIME = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    -- Trả về TotalCount
+    SELECT COUNT(*) as TotalCount
+    FROM dbo.audit_logs al
+    LEFT JOIN dbo.users u ON al.user_id = u.user_id
+    WHERE (@Search IS NULL OR u.full_name LIKE '%' + @Search + '%' 
+           OR u.username LIKE '%' + @Search + '%'
+           OR al.entity_type LIKE '%' + @Search + '%'
+           OR al.action LIKE '%' + @Search + '%')
+        AND (@Action IS NULL OR al.action = @Action)
+        AND (@EntityType IS NULL OR al.entity_type = @EntityType)
+        AND (@UserId IS NULL OR al.user_id = @UserId)
+        AND (@FromDate IS NULL OR al.created_at >= @FromDate)
+        AND (@ToDate IS NULL OR al.created_at <= @ToDate);
+    
+    -- Trả về Data với pagination
+    SELECT 
+        al.log_id,
+        al.user_id,
+        ISNULL(u.username, 'System') as user_name,
+        ISNULL(u.full_name, 'System') as user_full_name,
+        al.action,
+        al.entity_type,
+        al.entity_id,
+        al.old_values,
+        al.new_values,
+        al.ip_address,
+        al.user_agent,
+        al.created_at
+    FROM dbo.audit_logs al
+    LEFT JOIN dbo.users u ON al.user_id = u.user_id
+    WHERE (@Search IS NULL OR u.full_name LIKE '%' + @Search + '%' 
+           OR u.username LIKE '%' + @Search + '%'
+           OR al.entity_type LIKE '%' + @Search + '%'
+           OR al.action LIKE '%' + @Search + '%')
+        AND (@Action IS NULL OR al.action = @Action)
+        AND (@EntityType IS NULL OR al.entity_type = @EntityType)
+        AND (@UserId IS NULL OR al.user_id = @UserId)
+        AND (@FromDate IS NULL OR al.created_at >= @FromDate)
+        AND (@ToDate IS NULL OR al.created_at <= @ToDate)
+    ORDER BY al.created_at DESC
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+
+IF OBJECT_ID('sp_GetAuditLogById', 'P') IS NOT NULL DROP PROCEDURE sp_GetAuditLogById;
+GO
+CREATE PROCEDURE sp_GetAuditLogById
+    @LogId BIGINT
+AS
+BEGIN
+    SELECT 
+        al.log_id,
+        al.user_id,
+        ISNULL(u.username, 'System') as user_name,
+        ISNULL(u.full_name, 'System') as user_full_name,
+        al.action,
+        al.entity_type,
+        al.entity_id,
+        al.old_values,
+        al.new_values,
+        al.ip_address,
+        al.user_agent,
+        al.created_at
+    FROM dbo.audit_logs al
+    LEFT JOIN dbo.users u ON al.user_id = u.user_id
+    WHERE al.log_id = @LogId;
+END
+GO
+
+IF OBJECT_ID('sp_GetAuditLogsByUser', 'P') IS NOT NULL DROP PROCEDURE sp_GetAuditLogsByUser;
+GO
+CREATE PROCEDURE sp_GetAuditLogsByUser
+    @UserId VARCHAR(50),
+    @Page INT = 1,
+    @PageSize INT = 25
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    SELECT COUNT(*) as TotalCount
+    FROM dbo.audit_logs
+    WHERE user_id = @UserId;
+    
+    SELECT 
+        al.log_id,
+        al.user_id,
+        u.username as user_name,
+        u.full_name as user_full_name,
+        al.action,
+        al.entity_type,
+        al.entity_id,
+        al.old_values,
+        al.new_values,
+        al.ip_address,
+        al.user_agent,
+        al.created_at
+    FROM dbo.audit_logs al
+    LEFT JOIN dbo.users u ON al.user_id = u.user_id
+    WHERE al.user_id = @UserId
+    ORDER BY al.created_at DESC
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+
+IF OBJECT_ID('sp_GetAuditLogsByEntity', 'P') IS NOT NULL DROP PROCEDURE sp_GetAuditLogsByEntity;
+GO
+CREATE PROCEDURE sp_GetAuditLogsByEntity
+    @EntityType VARCHAR(100),
+    @EntityId VARCHAR(50),
+    @Page INT = 1,
+    @PageSize INT = 25
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    SELECT COUNT(*) as TotalCount
+    FROM dbo.audit_logs
+    WHERE entity_type = @EntityType AND entity_id = @EntityId;
+    
+    SELECT 
+        al.log_id,
+        al.user_id,
+        ISNULL(u.username, 'System') as user_name,
+        ISNULL(u.full_name, 'System') as user_full_name,
+        al.action,
+        al.entity_type,
+        al.entity_id,
+        al.old_values,
+        al.new_values,
+        al.ip_address,
+        al.user_agent,
+        al.created_at
+    FROM dbo.audit_logs al
+    LEFT JOIN dbo.users u ON al.user_id = u.user_id
+    WHERE al.entity_type = @EntityType AND al.entity_id = @EntityId
+    ORDER BY al.created_at DESC
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+
+IF OBJECT_ID('sp_CreateAuditLog', 'P') IS NOT NULL DROP PROCEDURE sp_CreateAuditLog;
+GO
+CREATE PROCEDURE sp_CreateAuditLog
+    @UserId VARCHAR(50) = NULL,
+    @Action VARCHAR(50),
+    @EntityType VARCHAR(100),
+    @EntityId VARCHAR(50) = NULL,
+    @OldValues NVARCHAR(MAX) = NULL,
+    @NewValues NVARCHAR(MAX) = NULL,
+    @IpAddress VARCHAR(50) = NULL,
+    @UserAgent VARCHAR(500) = NULL
+AS
+BEGIN
+    INSERT INTO dbo.audit_logs (user_id, action, entity_type, entity_id, 
+                                 old_values, new_values, ip_address, user_agent, created_at)
+    VALUES (@UserId, @Action, @EntityType, @EntityId, 
+            @OldValues, @NewValues, @IpAddress, @UserAgent, GETDATE());
+    
+    SELECT SCOPE_IDENTITY() AS log_id;
+END
+GO
+
+PRINT '✅ Audit Logs Management SPs created';
 GO
 
 PRINT '';
 PRINT '🎉 HOÀN THÀNH TẠO STORED PROCEDURES!';
-PRINT '✅ Đã tạo tổng cộng 80+ stored procedures';
+PRINT '✅ Đã tạo tổng cộng 90+ stored procedures';
 PRINT '✅ Tất cả SPs đều có DROP trước khi CREATE';
 PRINT '';
 
-EXEC sp_GetAllUsers 
-    @Page = 1,
-    @PageSize = 10,
-    @Search = NULL,
-    @RoleId = NULL,
-    @IsActive = NULL;
+-- ===========================================
+-- ⚡ PAGINATION UPDATE (CHẠY RIÊNG PHẦN NÀY)
+-- ===========================================
+-- 📌 CHÚ Ý: Nếu bạn đã chạy stored procedures trước đó,
+--           chỉ cần chạy RIÊNG phần từ đây đến hết file
+-- 
+-- ✅ Cách chạy:
+--    1. Bôi đen từ dòng "BEGIN PAGINATION UPDATE" 
+--       đến dòng "END PAGINATION UPDATE"
+--    2. Nhấn F5 hoặc Execute
+-- 
+-- ⏱️  Thời gian: ~5 giây
+-- 📊 Sẽ update: 8 stored procedures với pagination
+-- ===========================================
+
+PRINT '';
+PRINT '⚡ BẮT ĐẦU UPDATE PAGINATION...';
+PRINT '================================';
 GO
+
+-- ========================================
+-- BEGIN PAGINATION UPDATE - BẮT ĐẦU TỪ ĐÂY
+-- ========================================
+
+-- ===========================================
+-- 1. UPDATE: sp_GetAllFaculties (THÊM PAGINATION)
+-- ===========================================
+IF OBJECT_ID('sp_GetAllFaculties', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllFaculties;
+GO
+CREATE PROCEDURE sp_GetAllFaculties
+    @Page INT = 1,
+    @PageSize INT = 10,
+    @Search NVARCHAR(255) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    -- Trả về TotalCount
+    SELECT COUNT(*) as TotalCount
+    FROM dbo.faculties
+    WHERE deleted_at IS NULL
+        AND (@Search IS NULL OR faculty_code LIKE '%' + @Search + '%' 
+             OR faculty_name LIKE '%' + @Search + '%');
+    
+    -- Trả về Data với pagination
+    SELECT faculty_id, faculty_code, faculty_name, description, 
+           is_active, created_at, created_by, updated_at, updated_by
+    FROM dbo.faculties
+    WHERE deleted_at IS NULL
+        AND (@Search IS NULL OR faculty_code LIKE '%' + @Search + '%' 
+             OR faculty_name LIKE '%' + @Search + '%')
+    ORDER BY faculty_name
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+PRINT '✅ Updated: sp_GetAllFaculties (với pagination)';
+GO
+
+-- ===========================================
+-- 2. UPDATE: sp_GetAllDepartments (THÊM PAGINATION)
+-- ===========================================
+IF OBJECT_ID('sp_GetAllDepartments', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllDepartments;
+GO
+CREATE PROCEDURE sp_GetAllDepartments
+    @Page INT = 1,
+    @PageSize INT = 10,
+    @Search NVARCHAR(255) = NULL,
+    @FacultyId VARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    -- Trả về TotalCount
+    SELECT COUNT(*) as TotalCount
+    FROM dbo.departments d
+    LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
+    WHERE d.deleted_at IS NULL
+        AND (@Search IS NULL OR d.department_name LIKE '%' + @Search + '%')
+        AND (@FacultyId IS NULL OR d.faculty_id = @FacultyId);
+    
+    -- Trả về Data với pagination
+    SELECT d.*, f.faculty_name, f.faculty_code
+    FROM dbo.departments d
+    LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
+    WHERE d.deleted_at IS NULL
+        AND (@Search IS NULL OR d.department_name LIKE '%' + @Search + '%')
+        AND (@FacultyId IS NULL OR d.faculty_id = @FacultyId)
+    ORDER BY d.department_name
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+PRINT '✅ Updated: sp_GetAllDepartments (với pagination)';
+GO
+
+-- ===========================================
+-- 3. UPDATE: sp_GetAllMajors (THÊM PAGINATION)
+-- ===========================================
+IF OBJECT_ID('sp_GetAllMajors', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllMajors;
+GO
+CREATE PROCEDURE sp_GetAllMajors
+    @Page INT = 1,
+    @PageSize INT = 10,
+    @Search NVARCHAR(255) = NULL,
+    @FacultyId VARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    -- Trả về TotalCount
+    SELECT COUNT(*) as TotalCount
+    FROM dbo.majors m
+    LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
+    WHERE m.deleted_at IS NULL
+        AND (@Search IS NULL OR m.major_name LIKE '%' + @Search + '%' 
+             OR m.major_code LIKE '%' + @Search + '%')
+        AND (@FacultyId IS NULL OR m.faculty_id = @FacultyId);
+    
+    -- Trả về Data với pagination
+    SELECT m.*, f.faculty_name, f.faculty_code
+    FROM dbo.majors m
+    LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
+    WHERE m.deleted_at IS NULL
+        AND (@Search IS NULL OR m.major_name LIKE '%' + @Search + '%' 
+             OR m.major_code LIKE '%' + @Search + '%')
+        AND (@FacultyId IS NULL OR m.faculty_id = @FacultyId)
+    ORDER BY m.major_name
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+PRINT '✅ Updated: sp_GetAllMajors (với pagination)';
+GO
+
+-- ===========================================
+-- 4. UPDATE: sp_GetAllAcademicYears (THÊM PAGINATION)
+-- ===========================================
+IF OBJECT_ID('sp_GetAllAcademicYears', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllAcademicYears;
+GO
+CREATE PROCEDURE sp_GetAllAcademicYears
+    @Page INT = 1,
+    @PageSize INT = 10,
+    @Search NVARCHAR(255) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    -- Trả về TotalCount
+    SELECT COUNT(*) as TotalCount
+    FROM dbo.academic_years
+    WHERE deleted_at IS NULL
+        AND (@Search IS NULL OR year_name LIKE '%' + @Search + '%');
+    
+    -- Trả về Data với pagination
+    SELECT *
+    FROM dbo.academic_years
+    WHERE deleted_at IS NULL
+        AND (@Search IS NULL OR year_name LIKE '%' + @Search + '%')
+    ORDER BY start_year DESC
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+PRINT '✅ Updated: sp_GetAllAcademicYears (với pagination)';
+GO
+
+-- ===========================================
+-- 5. UPDATE: sp_GetAllLecturers (THÊM PAGINATION)
+-- ===========================================
+IF OBJECT_ID('sp_GetAllLecturers', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllLecturers;
+GO
+CREATE PROCEDURE sp_GetAllLecturers
+    @Page INT = 1,
+    @PageSize INT = 10,
+    @Search NVARCHAR(255) = NULL,
+    @DepartmentId VARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    -- Trả về TotalCount
+    SELECT COUNT(*) as TotalCount
+    FROM dbo.lecturers l
+    LEFT JOIN dbo.departments d ON l.department_id = d.department_id
+    LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
+    WHERE l.deleted_at IS NULL
+        AND (@Search IS NULL OR l.lecturer_code LIKE '%' + @Search + '%' 
+             OR l.full_name LIKE '%' + @Search + '%')
+        AND (@DepartmentId IS NULL OR l.department_id = @DepartmentId);
+    
+    -- Trả về Data với pagination
+    SELECT l.*, d.department_name, f.faculty_name
+    FROM dbo.lecturers l
+    LEFT JOIN dbo.departments d ON l.department_id = d.department_id
+    LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
+    WHERE l.deleted_at IS NULL
+        AND (@Search IS NULL OR l.lecturer_code LIKE '%' + @Search + '%' 
+             OR l.full_name LIKE '%' + @Search + '%')
+        AND (@DepartmentId IS NULL OR l.department_id = @DepartmentId)
+    ORDER BY l.created_at DESC
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+PRINT '✅ Updated: sp_GetAllLecturers (với pagination)';
+GO
+
+-- ===========================================
+-- 6. UPDATE: sp_GetAllSubjects (THÊM PAGINATION)
+-- ===========================================
+IF OBJECT_ID('sp_GetAllSubjects', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllSubjects;
+GO
+CREATE PROCEDURE sp_GetAllSubjects
+    @Page INT = 1,
+    @PageSize INT = 10,
+    @Search NVARCHAR(255) = NULL,
+    @DepartmentId VARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    -- Trả về TotalCount
+    SELECT COUNT(*) as TotalCount
+    FROM dbo.subjects s
+    LEFT JOIN dbo.departments d ON s.department_id = d.department_id
+    LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
+    WHERE s.deleted_at IS NULL
+        AND (@Search IS NULL OR s.subject_code LIKE '%' + @Search + '%' 
+             OR s.subject_name LIKE '%' + @Search + '%')
+        AND (@DepartmentId IS NULL OR s.department_id = @DepartmentId);
+    
+    -- Trả về Data với pagination
+    SELECT s.*, d.department_name, f.faculty_name
+    FROM dbo.subjects s
+    LEFT JOIN dbo.departments d ON s.department_id = d.department_id
+    LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
+    WHERE s.deleted_at IS NULL
+        AND (@Search IS NULL OR s.subject_code LIKE '%' + @Search + '%' 
+             OR s.subject_name LIKE '%' + @Search + '%')
+        AND (@DepartmentId IS NULL OR s.department_id = @DepartmentId)
+    ORDER BY s.subject_name
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+PRINT '✅ Updated: sp_GetAllSubjects (với pagination)';
+GO
+
+-- ===========================================
+-- 7. UPDATE: sp_GetAllClasses (THÊM PAGINATION)
+-- ===========================================
+IF OBJECT_ID('sp_GetAllClasses', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllClasses;
+GO
+CREATE PROCEDURE sp_GetAllClasses
+    @Page INT = 1,
+    @PageSize INT = 10,
+    @Search NVARCHAR(255) = NULL,
+    @SubjectId VARCHAR(50) = NULL,
+    @LecturerId VARCHAR(50) = NULL,
+    @AcademicYearId VARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    -- Trả về TotalCount
+    SELECT COUNT(*) as TotalCount
+    FROM dbo.classes c
+    LEFT JOIN dbo.subjects s ON c.subject_id = s.subject_id
+    LEFT JOIN dbo.lecturers l ON c.lecturer_id = l.lecturer_id
+    LEFT JOIN dbo.academic_years ay ON c.academic_year_id = ay.academic_year_id
+    WHERE c.deleted_at IS NULL
+        AND (@Search IS NULL OR c.class_code LIKE '%' + @Search + '%' 
+             OR c.class_name LIKE '%' + @Search + '%')
+        AND (@SubjectId IS NULL OR c.subject_id = @SubjectId)
+        AND (@LecturerId IS NULL OR c.lecturer_id = @LecturerId)
+        AND (@AcademicYearId IS NULL OR c.academic_year_id = @AcademicYearId);
+    
+    -- Trả về Data với pagination
+    SELECT c.*, s.subject_name, l.full_name as lecturer_name, ay.year_name
+    FROM dbo.classes c
+    LEFT JOIN dbo.subjects s ON c.subject_id = s.subject_id
+    LEFT JOIN dbo.lecturers l ON c.lecturer_id = l.lecturer_id
+    LEFT JOIN dbo.academic_years ay ON c.academic_year_id = ay.academic_year_id
+    WHERE c.deleted_at IS NULL
+        AND (@Search IS NULL OR c.class_code LIKE '%' + @Search + '%' 
+             OR c.class_name LIKE '%' + @Search + '%')
+        AND (@SubjectId IS NULL OR c.subject_id = @SubjectId)
+        AND (@LecturerId IS NULL OR c.lecturer_id = @LecturerId)
+        AND (@AcademicYearId IS NULL OR c.academic_year_id = @AcademicYearId)
+    ORDER BY c.created_at DESC
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+PRINT '✅ Updated: sp_GetAllClasses (với pagination)';
+GO
+
+-- ===========================================
+-- 8. UPDATE: sp_GetAllRoles (THÊM PAGINATION)
+-- ===========================================
+IF OBJECT_ID('sp_GetAllRoles', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllRoles;
+GO
+CREATE PROCEDURE sp_GetAllRoles
+    @Page INT = 1,
+    @PageSize INT = 10,
+    @Search NVARCHAR(255) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    -- Trả về TotalCount
+    SELECT COUNT(*) as TotalCount
+    FROM dbo.roles
+    WHERE deleted_at IS NULL
+        AND (@Search IS NULL OR role_name LIKE '%' + @Search + '%');
+    
+    -- Trả về Data với pagination
+    SELECT role_id, role_name, description, is_active, created_at
+    FROM dbo.roles
+    WHERE deleted_at IS NULL
+        AND (@Search IS NULL OR role_name LIKE '%' + @Search + '%')
+    ORDER BY role_name
+    OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
+END
+GO
+PRINT '✅ Updated: sp_GetAllRoles (với pagination)';
+GO
+
+-- ========================================
+-- END PAGINATION UPDATE - KẾT THÚC Ở ĐÂY
+-- ========================================
+
+PRINT '';
+PRINT '================================';
+PRINT '🎉 HOÀN THÀNH UPDATE PAGINATION!';
+PRINT '';
+
+-- ===========================================
+-- PERMISSIONS MANAGEMENT STORED PROCEDURES
+-- ===========================================
+PRINT '';
+PRINT '🔐 Bắt đầu tạo Stored Procedures cho PERMISSIONS...';
+PRINT '';
+
+-- SP 1: Get All Permissions
+IF OBJECT_ID('sp_GetAllPermissions', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllPermissions;
+GO
+CREATE PROCEDURE sp_GetAllPermissions
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        permission_id,
+        permission_code,
+        permission_name,
+        description,
+        created_at,
+        created_by,
+        updated_at,
+        updated_by
+    FROM dbo.permissions
+    ORDER BY permission_code;
+END
+GO
+PRINT '✅ Tạo sp_GetAllPermissions';
+
+-- SP 2: Get Permissions by Role
+IF OBJECT_ID('sp_GetPermissionsByRole', 'P') IS NOT NULL DROP PROCEDURE sp_GetPermissionsByRole;
+GO
+CREATE PROCEDURE sp_GetPermissionsByRole
+    @RoleId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        p.permission_id,
+        p.permission_code,
+        p.permission_name,
+        p.description,
+        CASE WHEN rp.permission_id IS NOT NULL THEN 1 ELSE 0 END AS is_assigned
+    FROM dbo.permissions p
+    LEFT JOIN dbo.role_permissions rp 
+        ON p.permission_id = rp.permission_id 
+        AND rp.role_id = @RoleId
+    ORDER BY p.permission_code;
+END
+GO
+PRINT '✅ Tạo sp_GetPermissionsByRole';
+
+-- SP 3: Get Permission IDs by Role
+IF OBJECT_ID('sp_GetPermissionIdsByRole', 'P') IS NOT NULL DROP PROCEDURE sp_GetPermissionIdsByRole;
+GO
+CREATE PROCEDURE sp_GetPermissionIdsByRole
+    @RoleId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT permission_id
+    FROM dbo.role_permissions
+    WHERE role_id = @RoleId;
+END
+GO
+PRINT '✅ Tạo sp_GetPermissionIdsByRole';
+
+-- SP 4: Assign Permission to Role
+IF OBJECT_ID('sp_AssignPermissionToRole', 'P') IS NOT NULL DROP PROCEDURE sp_AssignPermissionToRole;
+GO
+CREATE PROCEDURE sp_AssignPermissionToRole
+    @RoleId VARCHAR(50),
+    @PermissionId VARCHAR(50),
+    @CreatedBy VARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM dbo.role_permissions 
+        WHERE role_id = @RoleId AND permission_id = @PermissionId
+    )
+    BEGIN
+        INSERT INTO dbo.role_permissions (role_id, permission_id, created_at, created_by)
+        VALUES (@RoleId, @PermissionId, GETDATE(), @CreatedBy);
+    END
+END
+GO
+PRINT '✅ Tạo sp_AssignPermissionToRole';
+
+-- SP 5: Remove Permission from Role
+IF OBJECT_ID('sp_RemovePermissionFromRole', 'P') IS NOT NULL DROP PROCEDURE sp_RemovePermissionFromRole;
+GO
+CREATE PROCEDURE sp_RemovePermissionFromRole
+    @RoleId VARCHAR(50),
+    @PermissionId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DELETE FROM dbo.role_permissions
+    WHERE role_id = @RoleId AND permission_id = @PermissionId;
+END
+GO
+PRINT '✅ Tạo sp_RemovePermissionFromRole';
+
+-- SP 6: Delete All Permissions by Role
+IF OBJECT_ID('sp_DeleteAllPermissionsByRole', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteAllPermissionsByRole;
+GO
+CREATE PROCEDURE sp_DeleteAllPermissionsByRole
+    @RoleId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DELETE FROM dbo.role_permissions
+    WHERE role_id = @RoleId;
+    
+    SELECT @@ROWCOUNT AS DeletedCount;
+END
+GO
+PRINT '✅ Tạo sp_DeleteAllPermissionsByRole';
+
+-- SP 7: Get User Permissions
+IF OBJECT_ID('sp_GetUserPermissions', 'P') IS NOT NULL DROP PROCEDURE sp_GetUserPermissions;
+GO
+CREATE PROCEDURE sp_GetUserPermissions
+    @UserId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT DISTINCT
+        p.permission_id,
+        p.permission_code,
+        p.permission_name,
+        p.description
+    FROM dbo.users u
+    INNER JOIN dbo.roles r ON u.role_id = r.role_id
+    INNER JOIN dbo.role_permissions rp ON r.role_id = rp.role_id
+    INNER JOIN dbo.permissions p ON rp.permission_id = p.permission_id
+    WHERE u.user_id = @UserId
+        AND u.is_active = 1
+        AND u.deleted_at IS NULL
+        AND r.is_active = 1
+        AND r.deleted_at IS NULL
+    ORDER BY p.permission_code;
+END
+GO
+PRINT '✅ Tạo sp_GetUserPermissions';
+
+-- SP 8: Check User Permission
+IF OBJECT_ID('sp_CheckUserPermission', 'P') IS NOT NULL DROP PROCEDURE sp_CheckUserPermission;
+GO
+CREATE PROCEDURE sp_CheckUserPermission
+    @UserId VARCHAR(50),
+    @PermissionCode VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    IF EXISTS (
+        SELECT 1
+        FROM dbo.users u
+        INNER JOIN dbo.roles r ON u.role_id = r.role_id
+        INNER JOIN dbo.role_permissions rp ON r.role_id = rp.role_id
+        INNER JOIN dbo.permissions p ON rp.permission_id = p.permission_id
+        WHERE u.user_id = @UserId
+            AND p.permission_code = @PermissionCode
+            AND u.is_active = 1
+            AND u.deleted_at IS NULL
+            AND r.is_active = 1
+            AND r.deleted_at IS NULL
+    )
+        SELECT 1 AS HasPermission;
+    ELSE
+        SELECT 0 AS HasPermission;
+END
+GO
+PRINT '✅ Tạo sp_CheckUserPermission';
+
+-- SP 9: Get Roles with Permission Count
+IF OBJECT_ID('sp_GetRolesWithPermissionCount', 'P') IS NOT NULL DROP PROCEDURE sp_GetRolesWithPermissionCount;
+GO
+CREATE PROCEDURE sp_GetRolesWithPermissionCount
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        r.role_id,
+        r.role_name,
+        r.description,
+        r.is_active,
+        r.created_at,
+        r.updated_at,
+        COUNT(rp.permission_id) AS permission_count
+    FROM dbo.roles r
+    LEFT JOIN dbo.role_permissions rp ON r.role_id = rp.role_id
+    WHERE r.deleted_at IS NULL
+    GROUP BY 
+        r.role_id,
+        r.role_name,
+        r.description,
+        r.is_active,
+        r.created_at,
+        r.updated_at
+    ORDER BY r.role_name;
+END
+GO
+PRINT '✅ Tạo sp_GetRolesWithPermissionCount';
+
+PRINT '';
+PRINT '================================';
+PRINT '🎉 HOÀN THÀNH TẠO STORED PROCEDURES!';
+PRINT '✅ Đã tạo 9 Permission SPs + Pagination SPs';
+PRINT '';

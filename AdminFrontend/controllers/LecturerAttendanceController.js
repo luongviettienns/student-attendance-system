@@ -1,7 +1,5 @@
 // Lecturer Attendance Controller
 app.controller('LecturerAttendanceController', ['$scope', 'AuthService', function($scope, AuthService) {
-    console.log('LecturerAttendanceController initialized');
-    
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.selectedClass = '';
     $scope.attendanceDate = new Date().toISOString().split('T')[0];
