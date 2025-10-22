@@ -71,6 +71,13 @@
             var tabId = $(this).attr('data-tab');
             TabUtils.switchTab(tabId);
         });
+        
+        // 🔧 FIX: Auto cleanup modal overlay when page loads
+        // Đóng tất cả modal khi trang load để tránh overlay bị stuck
+        // Delay 500ms để đảm bảo AngularJS đã render xong
+        setTimeout(function() {
+            ModalUtils.closeAll();
+        }, 500);
     });
     
 })(jQuery);

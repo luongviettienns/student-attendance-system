@@ -20,17 +20,59 @@ namespace EducationManagement.DAL.Repositories
         }
 
         // ============================================================
-        // 🔹 LẤY DANH SÁCH KHOA (ACTIVE)
+        // 🔹 LẤY DANH SÁCH KHOA (ACTIVE) - KHÔNG PAGINATION
         // ============================================================
         public async Task<List<Faculty>> GetAllAsync()
         {
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAllFaculties");
+            var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(_connectionString, "sp_GetAllFaculties");
             var list = new List<Faculty>();
 
-            foreach (DataRow row in dt.Rows)
-                list.Add(MapToFaculty(row));
+            // Table[0] = TotalCount, Table[1] = Data
+            if (ds.Tables.Count > 1 && ds.Tables[1].Rows.Count > 0)
+            {
+                foreach (DataRow row in ds.Tables[1].Rows)
+                    list.Add(MapToFaculty(row));
+            }
 
             return list;
+        }
+
+        // ============================================================
+        // 🔹 LẤY DANH SÁCH KHOA VỚI PAGINATION
+        // ============================================================
+        public async Task<(List<Faculty> items, int totalCount)> GetAllPagedAsync(
+            int page = 1,
+            int pageSize = 10,
+            string search = null)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@Page", page),
+                new SqlParameter("@PageSize", pageSize),
+                new SqlParameter("@Search", (object?)search ?? DBNull.Value)
+            };
+
+            var dataSet = await DatabaseHelper.ExecuteQueryMultipleAsync(
+                _connectionString, "sp_GetAllFaculties", parameters);
+
+            // Table[0] = TotalCount
+            int totalCount = 0;
+            if (dataSet.Tables[0].Rows.Count > 0)
+            {
+                totalCount = Convert.ToInt32(dataSet.Tables[0].Rows[0]["TotalCount"]);
+            }
+
+            // Table[1] = Data
+            var items = new List<Faculty>();
+            if (dataSet.Tables.Count > 1)
+            {
+                foreach (DataRow row in dataSet.Tables[1].Rows)
+                {
+                    items.Add(MapToFaculty(row));
+                }
+            }
+
+            return (items, totalCount);
         }
 
         // ============================================================
@@ -55,10 +97,11 @@ namespace EducationManagement.DAL.Repositories
             var parameters = new[]
             {
                 new SqlParameter("@FacultyId", faculty.FacultyId),
-                new SqlParameter("@FacultyCode", faculty.FacultyCode),
+                new SqlParameter("@FacultyCode", (object?)faculty.FacultyCode ?? DBNull.Value),
                 new SqlParameter("@FacultyName", faculty.FacultyName),
                 new SqlParameter("@Description", (object?)faculty.Description ?? DBNull.Value),
-                new SqlParameter("@CreatedBy", faculty.CreatedBy)
+                new SqlParameter("@IsActive", faculty.IsActive),
+                new SqlParameter("@CreatedBy", (object?)faculty.CreatedBy ?? DBNull.Value)
             };
 
             await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_CreateFaculty", parameters);
@@ -72,10 +115,11 @@ namespace EducationManagement.DAL.Repositories
             var parameters = new[]
             {
                 new SqlParameter("@FacultyId", faculty.FacultyId),
-                new SqlParameter("@FacultyCode", faculty.FacultyCode),
+                new SqlParameter("@FacultyCode", (object?)faculty.FacultyCode ?? DBNull.Value),
                 new SqlParameter("@FacultyName", faculty.FacultyName),
                 new SqlParameter("@Description", (object?)faculty.Description ?? DBNull.Value),
-                new SqlParameter("@UpdatedBy", faculty.UpdatedBy)
+                new SqlParameter("@IsActive", faculty.IsActive),
+                new SqlParameter("@UpdatedBy", (object?)faculty.UpdatedBy ?? DBNull.Value)
             };
 
             return await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_UpdateFaculty", parameters);

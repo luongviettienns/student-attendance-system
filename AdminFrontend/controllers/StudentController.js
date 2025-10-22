@@ -22,8 +22,7 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
     
     // Logout function
     $scope.logout = function() {
-        AuthService.logout();
-        window.location.href = '#!/login';
+        AuthService.logout(); // Will auto-redirect to login
     };
     
     // Pagination and filters

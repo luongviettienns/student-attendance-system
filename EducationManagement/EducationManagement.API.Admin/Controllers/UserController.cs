@@ -9,16 +9,19 @@ using EducationManagement.Common.Helpers;
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Route("api-edu/users")]
+    [Authorize] // ✅ Yêu cầu authentication cho tất cả endpoints
+    [Route("api-edu/admin/users")]
     public class UserController : ControllerBase
     {
         private readonly IWebHostEnvironment _env;
         private readonly UserRepository _userRepository;
+        private readonly string _gatewayUrl;
 
-        public UserController(IWebHostEnvironment env, UserRepository userRepository)
+        public UserController(IWebHostEnvironment env, UserRepository userRepository, IConfiguration configuration)
         {
             _env = env;
             _userRepository = userRepository;
+            _gatewayUrl = configuration["GatewayUrl"] ?? "https://localhost:7033";
         }
 
         #region 🔹 GET: Lấy thông tin user hiện tại (từ token)
@@ -89,7 +92,7 @@ namespace EducationManagement.API.Admin.Controllers
                     await request.Avatar.CopyToAsync(stream);
                 }
 
-                // ✅ Lưu đường dẫn public (Gateway ánh xạ /avatars → Avatar_User)
+                // ✅ Lưu đường dẫn tương đối (không có /avatars/ prefix)
                 user.AvatarUrl = $"/uploads/avatars/{fileName}";
             }
 
@@ -97,8 +100,7 @@ namespace EducationManagement.API.Admin.Controllers
 
             // ✅ Tạo URL đầy đủ để FE hiển thị qua Gateway
             var fullAvatarUrl = FileHelper.BuildFullAvatarUrl(
-                Request.Scheme,
-                Request.Host.ToString(),
+                _gatewayUrl,
                 user.AvatarUrl ?? "/avatars/default.png"
             );
 
@@ -110,13 +112,96 @@ namespace EducationManagement.API.Admin.Controllers
         }
         #endregion
 
-        #region 📌 DTO nội bộ cho cập nhật hồ sơ
+        #region 🔹 POST: Upload avatar riêng
+        [HttpPost("avatar")]
+        [DisableRequestSizeLimit]
+        public async Task<IActionResult> UploadAvatar([FromForm] AvatarUploadRequest request)
+        {
+            // Lấy userId từ token
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(currentUserId))
+                return Unauthorized(new { message = "Token không hợp lệ" });
+
+            // Nếu không cung cấp userId thì dùng currentUserId
+            var targetUserId = string.IsNullOrEmpty(request.UserId) ? currentUserId : request.UserId;
+
+            var user = await _userRepository.GetByIdAsync(targetUserId);
+            if (user == null || user.DeletedAt != null)
+                return NotFound(new { message = "Không tìm thấy người dùng" });
+
+            if (request.Avatar == null || request.Avatar.Length == 0)
+                return BadRequest(new { message = "Vui lòng chọn file ảnh" });
+
+            // Validate file type
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+            var extension = Path.GetExtension(request.Avatar.FileName).ToLower();
+            if (!allowedExtensions.Contains(extension))
+                return BadRequest(new { message = "Chỉ chấp nhận file ảnh JPG, PNG, GIF" });
+
+            // Validate file size (5MB)
+            if (request.Avatar.Length > 5 * 1024 * 1024)
+                return BadRequest(new { message = "Kích thước file không được vượt quá 5MB" });
+
+            // ✅ Xác định thư mục upload
+            var projectRoot = Directory.GetParent(Directory.GetCurrentDirectory())?.FullName;
+            var avatarRoot = Path.Combine(projectRoot!, "Avatar_User");
+            var uploadPath = Path.Combine(avatarRoot, "uploads", "avatars");
+
+            if (!Directory.Exists(uploadPath))
+                Directory.CreateDirectory(uploadPath);
+
+            // ✅ Tạo tên file unique
+            var fileName = $"{user.UserId}{extension}";
+            var filePath = Path.Combine(uploadPath, fileName);
+
+            // Xóa file cũ nếu tồn tại
+            if (System.IO.File.Exists(filePath))
+            {
+                try { System.IO.File.Delete(filePath); } catch { }
+            }
+
+            // ✅ Lưu file mới
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                await request.Avatar.CopyToAsync(stream);
+            }
+
+            // ✅ Cập nhật DB - LƯU PATH TƯƠNG ĐỐI (không có /avatars/ prefix)
+            user.AvatarUrl = $"/uploads/avatars/{fileName}";
+            user.UpdatedAt = DateTime.UtcNow;
+            user.UpdatedBy = currentUserId;
+            await _userRepository.UpdateAsync(user);
+
+            // ✅ Tạo URL đầy đủ để FE hiển thị
+            var fullAvatarUrl = FileHelper.BuildFullAvatarUrl(_gatewayUrl, user.AvatarUrl);
+
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"✅ Avatar uploaded successfully: {fullAvatarUrl}");
+            Console.WriteLine($"   File saved to: {filePath}");
+            Console.ResetColor();
+
+            return Ok(new
+            {
+                message = "Tải ảnh đại diện thành công",
+                avatarUrl = fullAvatarUrl,
+                data = new { avatarUrl = fullAvatarUrl }
+            });
+        }
+        #endregion
+
+        #region 📌 DTO nội bộ
         public class UserUpdateRequest
         {
             public string? FullName { get; set; }
             public string? Email { get; set; }
             public string? Phone { get; set; }
             public IFormFile? Avatar { get; set; }
+        }
+
+        public class AvatarUploadRequest
+        {
+            public IFormFile Avatar { get; set; } = null!;
+            public string? UserId { get; set; }
         }
         #endregion
 
@@ -160,7 +245,7 @@ namespace EducationManagement.API.Admin.Controllers
                 Phone = user.Phone,
                 RoleId = user.RoleId,
                 RoleName = user.Role?.RoleName,
-                AvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), relativePath)
+                AvatarUrl = FileHelper.BuildFullAvatarUrl(_gatewayUrl, relativePath)
             };
         }
         #endregion

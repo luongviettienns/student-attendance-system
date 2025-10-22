@@ -1,5 +1,5 @@
 // Authentication Service
-app.service('AuthService', ['$http', '$window', 'API_CONFIG', function($http, $window, API_CONFIG) {
+app.service('AuthService', ['$http', '$window', '$location', 'API_CONFIG', function($http, $window, $location, API_CONFIG) {
     var TOKEN_KEY = 'auth_token';
     var USER_KEY = 'user_info';
     
@@ -18,7 +18,6 @@ app.service('AuthService', ['$http', '$window', 'API_CONFIG', function($http, $w
             username: username,
             password: password
         }).then(function(response) {
-            console.log('Login response:', response.data);
             if (response.data && response.data.data) {
                 var loginData = response.data.data;
                 
@@ -35,7 +34,6 @@ app.service('AuthService', ['$http', '$window', 'API_CONFIG', function($http, $w
                 storage.setItem(TOKEN_KEY, loginData.token);
                 storage.setItem(USER_KEY, JSON.stringify(loginData));
                 
-                console.log('Login saved to ' + (rememberMe ? 'localStorage' : 'sessionStorage'));
                 return loginData;
             }
             throw new Error('Invalid response format');
@@ -48,6 +46,9 @@ app.service('AuthService', ['$http', '$window', 'API_CONFIG', function($http, $w
         $window.localStorage.removeItem(USER_KEY);
         $window.sessionStorage.removeItem(TOKEN_KEY);
         $window.sessionStorage.removeItem(USER_KEY);
+        
+        // Redirect to login page
+        $location.path('/login');
     };
     
     this.getToken = function() {
@@ -65,6 +66,11 @@ app.service('AuthService', ['$http', '$window', 'API_CONFIG', function($http, $w
     
     this.isAuthenticated = function() {
         return !!this.getToken();
+    };
+    
+    // Alias for isAuthenticated (used by RouteGuard)
+    this.isLoggedIn = function() {
+        return this.isAuthenticated();
     };
     
     // Forgot Password

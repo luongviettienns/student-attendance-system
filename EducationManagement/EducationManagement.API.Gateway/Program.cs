@@ -96,51 +96,78 @@ var app = builder.Build();
 // 🚀 6️⃣ Middleware Pipeline
 // ============================================================
 
-// 🔹 Log tất cả request qua Gateway
-app.Use(async (context, next) =>
-{
-    Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {context.Request.Method} {context.Request.Path}");
-    await next();
-});
-
-app.UseCors("AllowFrontend");
-app.UseAuthentication();
-app.UseAuthorization();
-
 // ============================================================
-// 🧩 7️⃣ Static Files – phục vụ ảnh avatar
+// 🧩 7️⃣ Static Files – phục vụ ảnh avatar (TRƯỚC OCELOT!)
 // ============================================================
 var projectRoot = Directory.GetParent(Directory.GetCurrentDirectory())?.FullName;
 var avatarFolder = Path.Combine(projectRoot!, "Avatar_User");
 
 // ✅ Đảm bảo thư mục tồn tại
 if (!Directory.Exists(avatarFolder))
+{
     Directory.CreateDirectory(avatarFolder);
+    Console.ForegroundColor = ConsoleColor.Yellow;
+    Console.WriteLine($"⚠️ Created Avatar_User folder at: {avatarFolder}");
+    Console.ResetColor();
+}
 
-// ✅ Log file requests for debugging
+Console.ForegroundColor = ConsoleColor.Cyan;
+Console.WriteLine($"🖼️ Static avatars will be served from: {avatarFolder}");
+Console.WriteLine($"📂 Files in Avatar_User:");
+if (Directory.Exists(avatarFolder))
+{
+    foreach (var file in Directory.GetFiles(avatarFolder))
+    {
+        Console.WriteLine($"   - {Path.GetFileName(file)}");
+    }
+}
+Console.ResetColor();
+
+// 🔹 Log tất cả request qua Gateway
 app.Use(async (context, next) =>
 {
-    if (context.Request.Path.StartsWithSegments("/avatars") || context.Request.Path.StartsWithSegments("/uploads"))
+    Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {context.Request.Method} {context.Request.Path}");
+    
+    // ✅ Log avatar requests specifically
+    if (context.Request.Path.StartsWithSegments("/avatars"))
     {
-        var rawPath = context.Request.Path.Value ?? string.Empty;
         Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine($"📸 Avatar request: {rawPath}");
+        Console.WriteLine($"📸 Avatar request: {context.Request.Path}");
         Console.ResetColor();
     }
-
+    
     await next();
+    
+    // Log response status for avatar requests
+    if (context.Request.Path.StartsWithSegments("/avatars"))
+    {
+        var color = context.Response.StatusCode == 200 ? ConsoleColor.Green : ConsoleColor.Red;
+        Console.ForegroundColor = color;
+        Console.WriteLine($"📸 Avatar response: {context.Response.StatusCode}");
+        Console.ResetColor();
+    }
 });
 
-// ⚙️ Static file middleware
+app.UseCors("AllowFrontend");
+
+// ⚙️ Static file middleware - MUST BE BEFORE Ocelot
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(avatarFolder),
-    RequestPath = "/avatars"
+    RequestPath = "/avatars",
+    OnPrepareResponse = ctx =>
+    {
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"✅ Serving static file: {ctx.File.Name}");
+        Console.ResetColor();
+        
+        // Set cache headers
+        ctx.Context.Response.Headers.Add("Cache-Control", "public,max-age=86400");
+    }
 });
 
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine($"🖼️ Static avatars served from: {avatarFolder}");
-Console.ResetColor();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // ============================================================
 // 🧩 8️⃣ Cuối cùng: Ocelot Middleware

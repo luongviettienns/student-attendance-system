@@ -39,7 +39,7 @@ namespace EducationManagement.DAL.Repositories
         {
             var permissions = new List<Permission>();
             var param = new SqlParameter("@RoleId", roleId);
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetRolePermissions", param);
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetPermissionsByRole", param);
 
             foreach (DataRow row in dt.Rows)
                 permissions.Add(MapToPermission(row));
@@ -69,12 +69,12 @@ namespace EducationManagement.DAL.Repositories
         {
             var permissionIds = new List<string>();
             var param = new SqlParameter("@RoleId", roleId);
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetRolePermissions", param);
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetPermissionIdsByRole", param);
 
-            // SP này chỉ trả về PermissionId
+            // SP này chỉ trả về permission_id
             foreach (DataRow row in dt.Rows)
             {
-                var permId = row["PermissionId"]?.ToString();
+                var permId = row["permission_id"]?.ToString();
                 if (!string.IsNullOrEmpty(permId))
                     permissionIds.Add(permId);
             }
@@ -88,7 +88,7 @@ namespace EducationManagement.DAL.Repositories
         public async Task DeleteAllByRoleAsync(string roleId)
         {
             var param = new SqlParameter("@RoleId", roleId);
-            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_DeleteAllRolePermissions", param);
+            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_DeleteAllPermissionsByRole", param);
         }
 
         // ============================================================
@@ -103,7 +103,7 @@ namespace EducationManagement.DAL.Repositories
                 new SqlParameter("@CreatedBy", createdBy)
             };
 
-            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_AddRolePermission", parameters);
+            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_AssignPermissionToRole", parameters);
         }
 
         // ============================================================
@@ -113,29 +113,18 @@ namespace EducationManagement.DAL.Repositories
         {
             return new Permission
             {
-                PermissionId = row["PermissionId"].ToString()!,
-                PermissionCode = row["PermissionCode"].ToString()!,
-                PermissionName = row["PermissionName"].ToString()!,
-                ParentCode = row["ParentCode"]?.ToString(),
-                Icon = row["Icon"]?.ToString(),
-                Description = row.Table.Columns.Contains("Description") ? row["Description"]?.ToString() : null,
-                SortOrder = row.Table.Columns.Contains("SortOrder") && row["SortOrder"] != DBNull.Value
-                    ? Convert.ToInt32(row["SortOrder"])
-                    : 0,
-                IsActive = row.Table.Columns.Contains("IsActive")
-                    ? Convert.ToBoolean(row["IsActive"])
-                    : true,
-                CreatedAt = row.Table.Columns.Contains("CreatedAt") && row["CreatedAt"] != DBNull.Value
-                    ? Convert.ToDateTime(row["CreatedAt"])
+                PermissionId = row["permission_id"].ToString()!,
+                PermissionCode = row["permission_code"].ToString()!,
+                PermissionName = row["permission_name"].ToString()!,
+                Description = row.Table.Columns.Contains("description") ? row["description"]?.ToString() : null,
+                CreatedAt = row.Table.Columns.Contains("created_at") && row["created_at"] != DBNull.Value
+                    ? Convert.ToDateTime(row["created_at"])
                     : DateTime.Now,
-                CreatedBy = row.Table.Columns.Contains("CreatedBy") ? row["CreatedBy"]?.ToString() : null,
-                UpdatedAt = row.Table.Columns.Contains("UpdatedAt") && row["UpdatedAt"] != DBNull.Value
-                    ? Convert.ToDateTime(row["UpdatedAt"])
+                CreatedBy = row.Table.Columns.Contains("created_by") ? row["created_by"]?.ToString() : null,
+                UpdatedAt = row.Table.Columns.Contains("updated_at") && row["updated_at"] != DBNull.Value
+                    ? Convert.ToDateTime(row["updated_at"])
                     : null,
-                UpdatedBy = row.Table.Columns.Contains("UpdatedBy") ? row["UpdatedBy"]?.ToString() : null,
-                DeletedAt = row.Table.Columns.Contains("DeletedAt") && row["DeletedAt"] != DBNull.Value
-                    ? Convert.ToDateTime(row["DeletedAt"])
-                    : null
+                UpdatedBy = row.Table.Columns.Contains("updated_by") ? row["updated_by"]?.ToString() : null
             };
         }
     }

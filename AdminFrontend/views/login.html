@@ -1,65 +1,92 @@
-<div class="login-container">
-    <div class="login-card">
-        <div class="login-header">
-            <div class="login-logo">
+<!-- Modern Glass Morphism Login Page -->
+<div class="modern-login-page">
+    <!-- Background Container -->
+    <div class="login-background"></div>
+    
+    <!-- Login Container -->
+    <div class="login-glass-container">
+        <!-- Logo & Title -->
+        <div class="login-brand">
+            <div class="login-logo-circle">
                 <i class="fas fa-graduation-cap"></i>
             </div>
-            <h1 class="login-title">Hệ thống Quản lý Điểm danh</h1>
-            <p class="login-subtitle">Đăng nhập vào trang quản trị</p>
+            <h1 class="login-brand-title">Login</h1>
+            <p class="login-brand-subtitle">Hệ thống Quản lý Điểm danh Sinh viên</p>
         </div>
         
-        <div ng-if="error" class="alert alert-danger">
+        <!-- Error Message -->
+        <div ng-if="error" class="login-error-message">
             <i class="fas fa-exclamation-circle"></i>
-            {{error}}
+            <span>{{error}}</span>
         </div>
         
-        <form ng-submit="login()" class="login-form">
-            <div class="form-group">
-                <label class="form-label required">Tên đăng nhập</label>
-                <input 
-                    type="text" 
-                    class="form-control" 
-                    ng-model="credentials.username" 
-                    placeholder="Nhập tên đăng nhập"
-                    required
-                    autofocus>
+        <!-- Login Form -->
+        <form ng-submit="login()" class="login-glass-form">
+            <!-- Username Field -->
+            <div class="login-input-group">
+                <div class="login-input-wrapper">
+                    <i class="fas fa-user login-input-icon"></i>
+                    <input 
+                        type="text" 
+                        class="login-input" 
+                        ng-model="credentials.username" 
+                        placeholder="Username"
+                        required
+                        autofocus>
+                </div>
             </div>
             
-            <div class="form-group">
-                <label class="form-label required">Mật khẩu</label>
-                <input 
-                    type="password" 
-                    class="form-control" 
-                    ng-model="credentials.password" 
-                    placeholder="Nhập mật khẩu"
-                    required>
+            <!-- Password Field -->
+            <div class="login-input-group">
+                <div class="login-input-wrapper">
+                    <i class="fas fa-lock login-input-icon"></i>
+                    <input 
+                        type="{{showPassword ? 'text' : 'password'}}" 
+                        class="login-input login-input-with-toggle" 
+                        ng-model="credentials.password" 
+                        placeholder="Password"
+                        required>
+                    <button 
+                        type="button" 
+                        class="password-toggle-btn"
+                        ng-click="showPassword = !showPassword"
+                        tabindex="-1">
+                        <i class="fas" ng-class="showPassword ? 'fa-eye-slash' : 'fa-eye'"></i>
+                    </button>
+                </div>
             </div>
             
-            <div class="form-group" style="display: flex; justify-content: space-between; align-items: center;">
-                <label class="checkbox-label" style="margin: 0;">
+            <!-- Remember Me & Forgot Password -->
+            <div class="login-options">
+                <label class="login-checkbox">
                     <input 
                         type="checkbox" 
                         ng-model="credentials.rememberMe">
-                    <span>Ghi nhớ đăng nhập</span>
+                    <span class="checkbox-custom"></span>
+                    <span class="checkbox-label">Remember me</span>
                 </label>
-                <a href="#!/forgot-password" style="font-size: 14px; color: #667eea; text-decoration: none;">
-                    Quên mật khẩu?
+                <a href="#!/forgot-password" class="login-link-primary">
+                    Forgot Password?
                 </a>
             </div>
             
-            <button type="submit" class="btn btn-primary btn-block btn-lg" ng-disabled="loading">
-                <span ng-if="!loading">
-                    <i class="fas fa-sign-in-alt"></i> Đăng nhập
-                </span>
+            <!-- Login Button -->
+            <button 
+                type="submit" 
+                class="login-btn-primary" 
+                ng-disabled="loading">
+                <span ng-if="!loading">Login</span>
                 <span ng-if="loading">
-                    <i class="fas fa-spinner fa-spin"></i> Đang đăng nhập...
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Logging in...
                 </span>
             </button>
         </form>
         
-        <div class="login-footer">
-            <p>&copy; 2024 Hệ thống Quản lý Điểm danh Sinh viên</p>
+        <!-- Register Link -->
+        <div class="login-footer-text">
+            Don't have an account? 
+            <a href="#!/register" class="login-link-accent">Register</a>
         </div>
     </div>
 </div>
-

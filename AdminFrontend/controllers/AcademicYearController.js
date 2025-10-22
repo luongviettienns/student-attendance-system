@@ -19,8 +19,7 @@ app.controller('AcademicYearController', ['$scope', '$location', '$routeParams',
     
     // Logout function
     $scope.logout = function() {
-        AuthService.logout();
-        window.location.href = '#!/login';
+        AuthService.logout(); // Will auto-redirect to login
     };
     
     // Load all academic years

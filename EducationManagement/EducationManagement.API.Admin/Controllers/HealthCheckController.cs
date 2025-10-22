@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -9,6 +10,7 @@ namespace EducationManagement.API.Admin.Controllers
     /// Health Check endpoint để kiểm tra trạng thái hệ thống
     /// </summary>
     [ApiController]
+    [AllowAnonymous] // ✅ Public endpoint cho monitoring
     [Route("api-edu/health")]
     public class HealthCheckController : ControllerBase
     {

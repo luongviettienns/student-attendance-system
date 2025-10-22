@@ -1,7 +1,5 @@
 // Login Controller
 app.controller('LoginController', ['$scope', '$location', 'AuthService', function($scope, $location, AuthService) {
-    console.log('LoginController initialized');
-    
     $scope.credentials = {
         username: '',
         password: '',
@@ -10,20 +8,18 @@ app.controller('LoginController', ['$scope', '$location', 'AuthService', functio
     
     $scope.error = null;
     $scope.loading = false;
+    $scope.showPassword = false; // Toggle password visibility
     
     $scope.login = function() {
-        console.log('Login function called with:', $scope.credentials);
         $scope.error = null;
         $scope.loading = true;
         
         AuthService.login($scope.credentials.username, $scope.credentials.password, $scope.credentials.rememberMe)
             .then(function(response) {
-                console.log('Login successful:', response);
                 $scope.loading = false;
                 
                 // Redirect based on user role
                 var roleName = response.roleName || 'Admin';
-                console.log('User role:', roleName);
                 
                 switch(roleName) {
                     case 'Lecturer':
@@ -47,7 +43,5 @@ app.controller('LoginController', ['$scope', '$location', 'AuthService', functio
                 $scope.error = 'Tên đăng nhập hoặc mật khẩu không đúng';
             });
     };
-    
-    console.log('LoginController scope:', $scope);
 }]);
 

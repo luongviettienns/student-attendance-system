@@ -16,18 +16,59 @@ namespace EducationManagement.Common.Helpers
             if (string.IsNullOrEmpty(avatarUrl))
                 return "/avatars/default.png";
 
+            // 🔹 Strip /avatars/ prefix nếu có (vì Gateway sẽ thêm lại)
+            string relativePath = avatarUrl.TrimStart('/');
+            if (relativePath.StartsWith("avatars/", StringComparison.OrdinalIgnoreCase))
+            {
+                relativePath = relativePath.Substring("avatars/".Length);
+            }
+
             // 🔹 Chuẩn hóa đường dẫn tương thích OS
-            string relativePath = avatarUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            relativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
             string physicalPath = Path.Combine(avatarFolder, relativePath);
 
+            Console.WriteLine($"🔍 [NormalizeAvatarUrl] DB: {avatarUrl}");
+            Console.WriteLine($"   Physical check: {physicalPath}");
+            Console.WriteLine($"   File exists: {File.Exists(physicalPath)}");
+
             // 🔹 Nếu file không tồn tại → trả về ảnh mặc định
-            return File.Exists(physicalPath)
-                ? $"/{avatarUrl.TrimStart('/')}"
-                : "/avatars/default.png";
+            if (File.Exists(physicalPath))
+            {
+                // Return với /avatars/ prefix
+                string normalized = "/" + relativePath.Replace(Path.DirectorySeparatorChar, '/');
+                if (!normalized.StartsWith("/avatars/", StringComparison.OrdinalIgnoreCase))
+                {
+                    normalized = "/avatars" + normalized;
+                }
+                Console.WriteLine($"   ✅ Normalized: {normalized}");
+                return normalized;
+            }
+            
+            Console.WriteLine($"   ⚠️ File not found, using default");
+            return "/avatars/default.png";
         }
 
         /// <summary>
-        /// 🔹 Tạo URL đầy đủ cho avatar (qua Gateway)
+        /// 🔹 Tạo URL đầy đủ cho avatar (qua Gateway) - với gateway URL
+        /// </summary>
+        public static string BuildFullAvatarUrl(string gatewayUrl, string? relativePath)
+        {
+            // ✅ Nếu user chưa có ảnh → fallback mặc định
+            if (string.IsNullOrWhiteSpace(relativePath))
+                relativePath = "/avatars/default.png";
+
+            // ✅ Đảm bảo relativePath bắt đầu với /
+            if (!relativePath.StartsWith("/"))
+                relativePath = "/" + relativePath;
+
+            // ✅ Đảm bảo gatewayUrl không kết thúc với /
+            gatewayUrl = gatewayUrl.TrimEnd('/');
+
+            return $"{gatewayUrl}{relativePath}";
+        }
+
+        /// <summary>
+        /// 🔹 Tạo URL đầy đủ cho avatar (qua Gateway) - Legacy với scheme và host
         /// </summary>
         public static string BuildFullAvatarUrl(string scheme, string host, string? relativePath)
         {

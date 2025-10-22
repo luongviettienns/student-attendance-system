@@ -1,7 +1,5 @@
 // Lecturer Grades Controller
 app.controller('LecturerGradesController', ['$scope', 'AuthService', function($scope, AuthService) {
-    console.log('LecturerGradesController initialized');
-    
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.selectedClass = '';
     $scope.gradeType = '';

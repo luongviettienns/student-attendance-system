@@ -33,7 +33,7 @@ app.directive('sortableHeader', function() {
             
             // Click handler
             element.on('click', function() {
-                scope.$apply(function() {
+                scope.$evalAsync(function() {
                     if (scope.pagination.sortField === scope.field) {
                         scope.pagination.sortDirection = scope.pagination.sortDirection === 'asc' ? 'desc' : 'asc';
                     } else {

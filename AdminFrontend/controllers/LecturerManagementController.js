@@ -29,8 +29,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     
     // Logout function
     $scope.logout = function() {
-        AuthService.logout();
-        window.location.href = '#!/login';
+        AuthService.logout(); // Will auto-redirect to login
     };
 
     $scope.init = function() {
@@ -81,7 +80,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     $scope.loadLecturerSubjectCount = function(lecturer) {
         $http.get(API_CONFIG.BASE_URL + '/admin/lecturersubject/lecturer/' + lecturer.lecturerId)
             .then(function(response) {
-                lecturer.subjectCount = response.data.length;
+                lecturer.subjectCount = (response.data.data || []).length;
             })
             .catch(function() {
                 lecturer.subjectCount = 0;
@@ -175,7 +174,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     $scope.loadSubjectLecturers = function(subject) {
         $http.get(API_CONFIG.BASE_URL + '/admin/lecturersubject/subject/' + subject.subjectId)
             .then(function(response) {
-                subject.assignedLecturers = response.data;
+                subject.assignedLecturers = response.data.data || [];
             })
             .catch(function() {
                 subject.assignedLecturers = [];
@@ -189,7 +188,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
         // Load subjects assigned to this lecturer
         $http.get(API_CONFIG.BASE_URL + '/admin/lecturersubject/lecturer/' + lecturer.lecturerId)
             .then(function(response) {
-                $scope.lecturerSubjects = response.data;
+                $scope.lecturerSubjects = response.data.data || [];
                 
                 // Get available subjects (not yet assigned)
                 var assignedSubjectIds = $scope.lecturerSubjects.map(function(ls) {

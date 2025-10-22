@@ -1,70 +1,23 @@
 <!-- Sidebar Component - Dùng chung cho tất cả views -->
 <aside class="sidebar">
     <div class="sidebar-header">
-        <h2><i class="fas fa-graduation-cap"></i> Admin Panel</h2>
-        <p>Xin chào, {{currentUser.fullName || 'Admin'}}</p>
+        <h2><i class="fas fa-graduation-cap"></i> {{currentUser.role || 'Admin'}} Panel</h2>
+        <p>Xin chào, {{currentUser.fullName || 'User'}}</p>
     </div>
     
     <nav class="sidebar-nav">
         <ul class="sidebar-menu">
-            <li class="menu-section-title">TỔNG QUAN</li>
-            <li>
-                <a href="#!/dashboard" ng-class="{'active': isActive('/dashboard')}">
-                    <i class="fas fa-tachometer-alt"></i>
-                    <span>Dashboard</span>
+            <!-- ✅ Menu động theo role từ RoleService -->
+            <li ng-repeat-start="section in menuSections" class="menu-section-title">
+                {{section.section}}
+            </li>
+            <li ng-repeat="item in section.items">
+                <a href="#!{{item.path}}" ng-class="{'active': isActive(item.path)}">
+                    <i class="{{item.icon}}"></i>
+                    <span>{{item.label}}</span>
                 </a>
             </li>
-            
-            <li class="menu-section-title">QUẢN LÝ NGƯỜI DÙNG</li>
-            <li>
-                <a href="#!/users" ng-class="{'active': isActive('/users')}">
-                    <i class="fas fa-users"></i>
-                    <span>Tài khoản</span>
-                </a>
-            </li>
-            <li>
-                <a href="#!/roles" ng-class="{'active': isActive('/roles')}">
-                    <i class="fas fa-shield-alt"></i>
-                    <span>Vai trò & quyền</span>
-                </a>
-            </li>
-            
-            <li class="menu-section-title">DANH MỤC HỌC VỤ</li>
-            <li>
-                <a href="#!/organization" ng-class="{'active': isActive('/organization') || isActive('/faculties') || isActive('/departments') || isActive('/majors') || isActive('/subjects')}">
-                    <i class="fas fa-sitemap"></i>
-                    <span>Quản lý Tổ chức</span>
-                    <small>Khoa · Bộ môn · Ngành · Môn học</small>
-                </a>
-            </li>
-            <li>
-                <a href="#!/academic-years" ng-class="{'active': isActive('/academic-years')}">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Niên khóa</span>
-                </a>
-            </li>
-            
-            <li class="menu-section-title">QUẢN LÝ GIẢNG DẠY</li>
-            <li>
-                <a href="#!/lecturers" ng-class="{'active': isActive('/lecturers')}">
-                    <i class="fas fa-chalkboard-teacher"></i>
-                    <span>Giảng viên & Phân môn</span>
-                </a>
-            </li>
-            <li>
-                <a href="#!/students" ng-class="{'active': isActive('/students')}">
-                    <i class="fas fa-user-graduate"></i>
-                    <span>Sinh viên</span>
-                </a>
-            </li>
-            
-            <li class="menu-section-title">HỆ THỐNG</li>
-            <li>
-                <a href="#!/audit-logs" ng-class="{'active': isActive('/audit-logs')}">
-                    <i class="fas fa-history"></i>
-                    <span>Nhật ký hệ thống</span>
-                </a>
-            </li>
+            <li ng-repeat-end></li>
         </ul>
     </nav>
 </aside>

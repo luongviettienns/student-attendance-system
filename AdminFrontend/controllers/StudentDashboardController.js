@@ -1,7 +1,5 @@
 // Student Dashboard Controller
 app.controller('StudentDashboardController', ['$scope', 'AuthService', 'AvatarService', function($scope, AuthService, AvatarService) {
-    console.log('StudentDashboardController initialized');
-    
     $scope.currentUser = AuthService.getCurrentUser();
     
     // Initialize Avatar Modal Functions
@@ -49,7 +47,5 @@ app.controller('StudentDashboardController', ['$scope', 'AuthService', 'AvatarSe
             status: 'pending'
         }
     ];
-    
-    console.log('Student Dashboard loaded with info:', $scope.studentInfo);
 }]);
 

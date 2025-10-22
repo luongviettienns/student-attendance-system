@@ -15,11 +15,15 @@ namespace EducationManagement.API.Admin.Controllers
         private readonly AuthService _authService;
         private readonly JwtService _jwtService;
         private readonly string _avatarFolder;
+        private readonly string _gatewayUrl;
 
-        public AuthController(AuthService authService, JwtService jwtService)
+        public AuthController(AuthService authService, JwtService jwtService, IConfiguration configuration)
         {
             _authService = authService;
             _jwtService = jwtService;
+            
+            // ✅ Dùng Gateway URL (Microservices pattern)
+            _gatewayUrl = configuration["GatewayUrl"] ?? "https://localhost:7033";
 
             // ✅ Xác định thư mục chứa avatar
             var projectRoot = Directory.GetParent(Directory.GetCurrentDirectory())?.FullName;
@@ -29,6 +33,7 @@ namespace EducationManagement.API.Admin.Controllers
                 Directory.CreateDirectory(_avatarFolder);
 
             Console.WriteLine($"🧭 Avatar folder path: {_avatarFolder}");
+            Console.WriteLine($"🌐 Gateway URL (Microservices): {_gatewayUrl}");
         }
 
         // ============================================================
@@ -56,7 +61,11 @@ namespace EducationManagement.API.Admin.Controllers
 
             // ✅ Chuẩn hóa đường dẫn avatar
             string avatarPath = FileHelper.NormalizeAvatarUrl(user.AvatarUrl, _avatarFolder);
-            string fullAvatarUrl = FileHelper.BuildFullAvatarUrl(Request.Scheme, Request.Host.ToString(), avatarPath);
+            
+            // ✅ Build full URL qua Gateway (Microservices pattern)
+            // Frontend sẽ load từ Gateway: https://localhost:7033/avatars/user-001.jpg
+            // Gateway sẽ proxy request đến Admin API:5227
+            string fullAvatarUrl = $"{_gatewayUrl}{avatarPath}";
 
             // ✅ Tạo response
             var response = new LoginResponse

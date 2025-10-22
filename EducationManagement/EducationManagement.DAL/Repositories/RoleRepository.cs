@@ -24,10 +24,14 @@ namespace EducationManagement.DAL.Repositories
         public async Task<List<Role>> GetAllAsync()
         {
             var roles = new List<Role>();
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAllRoles");
+            var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(_connectionString, "sp_GetAllRoles");
 
-            foreach (DataRow row in dt.Rows)
-                roles.Add(MapToRole(row));
+            // Table[0] = TotalCount, Table[1] = Data
+            if (ds.Tables.Count > 1 && ds.Tables[1].Rows.Count > 0)
+            {
+                foreach (DataRow row in ds.Tables[1].Rows)
+                    roles.Add(MapToRole(row));
+            }
 
             return roles;
         }

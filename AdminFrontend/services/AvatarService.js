@@ -1,5 +1,5 @@
 // Avatar Service - Reusable avatar upload functionality
-app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', function($timeout, ApiService, AuthService) {
+app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastService', function($timeout, ApiService, AuthService, ToastService) {
     
     // Initialize avatar modal functions for a scope
     this.initAvatarModal = function($scope) {
@@ -19,7 +19,7 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', function(
             $scope.avatarModal = {
                 show: true,
                 selectedFile: null,
-                previewUrl: $scope.currentUser.avatarUrl || null,
+                previewUrl: $scope.currentUser ? ($scope.currentUser.avatarUrl || null) : null,
                 error: null,
                 success: null,
                 uploading: false,
@@ -49,33 +49,34 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', function(
             
             // Validate file type
             if (!file.type.match('image.*')) {
-                $scope.avatarModal.error = 'Vui lòng chọn file ảnh (JPG, PNG, GIF)';
-                if (!$scope.$$phase) $scope.$apply();
+                var errorMsg = 'Vui lòng chọn file ảnh (JPG, PNG, GIF)';
+                ToastService.warning(errorMsg);
+                $scope.$evalAsync(function() {
+                    $scope.avatarModal.error = errorMsg;
+                });
                 return;
             }
             
             // Validate file size (5MB)
             if (file.size > 5 * 1024 * 1024) {
-                $scope.avatarModal.error = 'Kích thước file không được vượt quá 5MB';
-                if (!$scope.$$phase) $scope.$apply();
+                var errorMsg = 'Kích thước file không được vượt quá 5MB';
+                ToastService.warning(errorMsg);
+                $scope.$evalAsync(function() {
+                    $scope.avatarModal.error = errorMsg;
+                });
                 return;
             }
-            
-            $scope.avatarModal.selectedFile = file;
-            $scope.avatarModal.error = null;
             
             // Create preview
             var reader = new FileReader();
             reader.onload = function(e) {
-                $scope.$apply(function() {
+                $scope.$evalAsync(function() {
+                    $scope.avatarModal.selectedFile = file;
+                    $scope.avatarModal.error = null;
                     $scope.avatarModal.previewUrl = e.target.result;
                 });
             };
             reader.readAsDataURL(file);
-            
-            if (!$scope.$$phase) {
-                $scope.$apply();
-            }
         };
         
         // Clear Selected File
@@ -121,7 +122,15 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', function(
         
         // Upload Avatar
         $scope.uploadAvatar = function() {
-            if (!$scope.avatarModal.selectedFile) return;
+            if (!$scope.avatarModal.selectedFile) {
+                ToastService.warning('Vui lòng chọn ảnh trước khi tải lên');
+                return;
+            }
+            
+            if (!$scope.currentUser || !$scope.currentUser.userId) {
+                ToastService.error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
+                return;
+            }
             
             $scope.avatarModal.uploading = true;
             $scope.avatarModal.error = null;
@@ -135,24 +144,53 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', function(
             ApiService.uploadFile('/users/avatar', formData)
                 .then(function(response) {
                     $scope.avatarModal.uploading = false;
-                    $scope.avatarModal.success = 'Cập nhật ảnh đại diện thành công!';
+                    
+                    // Show success toast
+                    ToastService.success('Cập nhật ảnh đại diện thành công!');
                     
                     // Update current user avatar
-                    if (response.data && response.data.avatarUrl) {
-                        $scope.currentUser.avatarUrl = response.data.avatarUrl;
-                        AuthService.updateUser($scope.currentUser);
+                    if (response.data) {
+                        var newAvatarUrl = response.data.avatarUrl || 
+                                          (response.data.data && response.data.data.avatarUrl);
+                        if (newAvatarUrl) {
+                            $scope.currentUser.avatarUrl = newAvatarUrl;
+                            AuthService.updateUser($scope.currentUser);
+                        }
                     }
                     
-                    // Close modal after 1.5 seconds
+                    // Close modal after 800ms
                     $timeout(function() {
                         $scope.closeAvatarModal();
-                    }, 1500);
+                    }, 800);
                 })
                 .catch(function(error) {
                     $scope.avatarModal.uploading = false;
-                    $scope.avatarModal.error = error.message || 'Có lỗi xảy ra khi tải ảnh lên';
-                    console.error('Error uploading avatar:', error);
+                    
+                    // Extract error message
+                    var errorMessage = 'Có lỗi xảy ra khi tải ảnh lên';
+                    if (error.data && error.data.message) {
+                        errorMessage = error.data.message;
+                    } else if (error.message) {
+                        errorMessage = error.message;
+                    } else if (error.statusText) {
+                        errorMessage = 'Lỗi: ' + error.statusText;
+                    }
+                    
+                    // Show error toast
+                    ToastService.error(errorMessage, 5000);
+                    
+                    // Also show in modal
+                    $scope.avatarModal.error = errorMessage;
                 });
+        };
+        
+        // Format File Size Helper
+        $scope.formatFileSize = function(bytes) {
+            if (!bytes || bytes === 0) return '0 Bytes';
+            var k = 1024;
+            var sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            var i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
         };
     };
 }]);

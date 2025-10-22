@@ -18,8 +18,7 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
     
     // Logout function
     $scope.logout = function() {
-        AuthService.logout();
-        window.location.href = '#!/login';
+        AuthService.logout(); // Will auto-redirect to login
     };
     
     // Pagination
@@ -60,114 +59,85 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
     // Load audit logs
     $scope.loadLogs = function() {
         $scope.loading = true;
-        AuditLogService.getAll()
+        
+        var params = {
+            page: $scope.pagination.currentPage,
+            pageSize: $scope.pagination.pageSize,
+            search: $scope.pagination.searchTerm || null,
+            action: $scope.filters.action || null,
+            entityType: $scope.filters.entityType || null,
+            userId: $scope.filters.userId || null,
+            fromDate: $scope.filters.dateFrom || null,
+            toDate: $scope.filters.dateTo || null
+        };
+        
+        AuditLogService.getAll(params)
             .then(function(response) {
-                $scope.logs = response.data;
-                $scope.applyFiltersAndSort();
+                if (response.data && response.data.data) {
+                    $scope.logs = response.data.data.map(function(log) {
+                        return {
+                            logId: log.logId,
+                            userId: log.userId,
+                            userName: log.userFullName || log.userName || 'System',
+                            action: log.action,
+                            entityType: log.entityType,
+                            entityId: log.entityId,
+                            entityName: log.entityId, // You can enhance this later
+                            details: log.newValues || log.oldValues || '',
+                            ipAddress: log.ipAddress,
+                            userAgent: log.userAgent,
+                            createdAt: log.createdAt
+                        };
+                    });
+                    
+                    // Update pagination from server response
+                    if (response.data.pagination) {
+                        $scope.pagination.totalItems = response.data.pagination.totalCount;
+                        $scope.pagination = PaginationService.calculate($scope.pagination);
+                    }
+                    
+                    $scope.displayedLogs = $scope.logs;
+                } else {
+                    $scope.logs = [];
+                    $scope.displayedLogs = [];
+                }
                 $scope.loading = false;
             })
             .catch(function(error) {
-                $scope.error = 'Không thể tải audit log';
+                console.error('Error loading audit logs:', error);
+                $scope.error = 'Không thể tải audit log: ' + (error.data?.message || error.message || 'Lỗi không xác định');
                 $scope.loading = false;
             });
     };
     
-    // Apply filters and sorting
+    // Apply filters and sorting (now handled server-side)
     $scope.applyFiltersAndSort = function() {
-        var filtered = $scope.logs;
-        
-        // Apply search
-        if ($scope.pagination.searchTerm) {
-            var searchLower = $scope.pagination.searchTerm.toLowerCase();
-            filtered = filtered.filter(function(log) {
-                return (log.userName && log.userName.toLowerCase().includes(searchLower)) ||
-                       (log.action && log.action.toLowerCase().includes(searchLower)) ||
-                       (log.entityType && log.entityType.toLowerCase().includes(searchLower)) ||
-                       (log.entityName && log.entityName.toLowerCase().includes(searchLower)) ||
-                       (log.details && log.details.toLowerCase().includes(searchLower));
-            });
-        }
-        
-        // Apply filters
-        if ($scope.filters.userId) {
-            filtered = filtered.filter(function(log) {
-                return log.userId == $scope.filters.userId;
-            });
-        }
-        
-        if ($scope.filters.action) {
-            filtered = filtered.filter(function(log) {
-                return log.action === $scope.filters.action;
-            });
-        }
-        
-        if ($scope.filters.entityType) {
-            filtered = filtered.filter(function(log) {
-                return log.entityType === $scope.filters.entityType;
-            });
-        }
-        
-        if ($scope.filters.dateFrom) {
-            var dateFrom = new Date($scope.filters.dateFrom);
-            filtered = filtered.filter(function(log) {
-                return new Date(log.createdAt) >= dateFrom;
-            });
-        }
-        
-        if ($scope.filters.dateTo) {
-            var dateTo = new Date($scope.filters.dateTo);
-            dateTo.setHours(23, 59, 59, 999);
-            filtered = filtered.filter(function(log) {
-                return new Date(log.createdAt) <= dateTo;
-            });
-        }
-        
-        // Apply sorting (default by createdAt DESC)
-        if (!$scope.pagination.sortField) {
-            $scope.pagination.sortField = 'createdAt';
-            $scope.pagination.sortDirection = 'desc';
-        }
-        
-        filtered.sort(function(a, b) {
-            var aVal = a[$scope.pagination.sortField] || '';
-            var bVal = b[$scope.pagination.sortField] || '';
-            
-            if (aVal < bVal) return $scope.pagination.sortDirection === 'asc' ? -1 : 1;
-            if (aVal > bVal) return $scope.pagination.sortDirection === 'asc' ? 1 : -1;
-            return 0;
-        });
-        
-        // Update pagination
-        $scope.pagination.totalItems = filtered.length;
-        $scope.pagination = PaginationService.calculate($scope.pagination);
-        
-        // Apply pagination
-        var start = ($scope.pagination.currentPage - 1) * $scope.pagination.pageSize;
-        var end = start + parseInt($scope.pagination.pageSize);
-        $scope.displayedLogs = filtered.slice(start, end);
+        // Server-side filtering, just reload
+        $scope.loadLogs();
     };
     
     // Event handlers
     $scope.handleSearch = function() {
         $scope.pagination.currentPage = 1;
-        $scope.applyFiltersAndSort();
+        $scope.loadLogs();
     };
     
     $scope.handleSort = function() {
-        $scope.applyFiltersAndSort();
+        $scope.loadLogs();
     };
     
     $scope.handlePageChange = function() {
-        $scope.applyFiltersAndSort();
+        $scope.loadLogs();
     };
     
     $scope.handleFilterChange = function() {
         $scope.pagination.currentPage = 1;
-        $scope.applyFiltersAndSort();
+        $scope.loadLogs();
     };
     
     $scope.resetFilters = function() {
         $scope.pagination.searchTerm = '';
+        $scope.pagination.currentPage = 1;
         $scope.filters = {
             userId: '',
             action: '',
@@ -175,7 +145,7 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
             dateFrom: '',
             dateTo: ''
         };
-        $scope.handleFilterChange();
+        $scope.loadLogs();
     };
     
     // Export to Excel
@@ -212,6 +182,143 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
         if (!dateString) return '';
         var date = new Date(dateString);
         return date.toLocaleString('vi-VN');
+    };
+    
+    // View mode
+    $scope.viewMode = 'timeline'; // 'timeline' or 'table'
+    $scope.showFilters = false;
+    $scope.showDetailsModal = false;
+    $scope.selectedLog = {};
+    
+    // Toggle view mode
+    $scope.toggleViewMode = function() {
+        $scope.viewMode = $scope.viewMode === 'timeline' ? 'table' : 'timeline';
+    };
+    
+    // Clear search
+    $scope.clearSearch = function() {
+        $scope.pagination.searchTerm = '';
+        $scope.handleSearch();
+    };
+    
+    // Check if has active filters
+    $scope.hasActiveFilters = function() {
+        return $scope.filters.action || 
+               $scope.filters.entityType || 
+               $scope.filters.dateFrom || 
+               $scope.filters.dateTo;
+    };
+    
+    // Get active filters count
+    $scope.getActiveFiltersCount = function() {
+        var count = 0;
+        if ($scope.filters.action) count++;
+        if ($scope.filters.entityType) count++;
+        if ($scope.filters.dateFrom) count++;
+        if ($scope.filters.dateTo) count++;
+        return count;
+    };
+    
+    // Apply filters
+    $scope.applyFilters = function() {
+        $scope.showFilters = false;
+        $scope.handleFilterChange();
+    };
+    
+    // Get action count for statistics
+    $scope.getActionCount = function(action) {
+        if (!$scope.logs || $scope.logs.length === 0) return 0;
+        return $scope.logs.filter(function(log) {
+            return log.action === action;
+        }).length;
+    };
+    
+    // Get action icon
+    $scope.getActionIcon = function(action) {
+        var icons = {
+            'CREATE': 'fa-plus-circle',
+            'UPDATE': 'fa-edit',
+            'DELETE': 'fa-trash-alt',
+            'LOGIN': 'fa-sign-in-alt',
+            'LOGOUT': 'fa-sign-out-alt',
+            'EXPORT': 'fa-file-download',
+            'IMPORT': 'fa-file-upload'
+        };
+        return icons[action] || 'fa-circle';
+    };
+    
+    // Get action label
+    $scope.getActionLabel = function(action) {
+        var labels = {
+            'CREATE': 'Thêm mới',
+            'UPDATE': 'Cập nhật',
+            'DELETE': 'Xóa',
+            'LOGIN': 'Đăng nhập',
+            'LOGOUT': 'Đăng xuất',
+            'EXPORT': 'Xuất dữ liệu',
+            'IMPORT': 'Nhập dữ liệu'
+        };
+        return labels[action] || action;
+    };
+    
+    // Get entity label
+    $scope.getEntityLabel = function(entityType) {
+        var labels = {
+            'User': 'Người dùng',
+            'Student': 'Sinh viên',
+            'Lecturer': 'Giảng viên',
+            'Faculty': 'Khoa',
+            'Department': 'Bộ môn',
+            'Major': 'Ngành',
+            'Subject': 'Môn học',
+            'Grade': 'Điểm',
+            'Attendance': 'Điểm danh',
+            'AcademicYear': 'Niên khóa',
+            'Class': 'Lớp học',
+            'users': 'Người dùng',
+            'students': 'Sinh viên',
+            'lecturers': 'Giảng viên',
+            'faculties': 'Khoa',
+            'departments': 'Bộ môn',
+            'majors': 'Ngành',
+            'subjects': 'Môn học',
+            'grades': 'Điểm',
+            'attendances': 'Điểm danh',
+            'academic_years': 'Niên khóa',
+            'classes': 'Lớp học'
+        };
+        return labels[entityType] || entityType;
+    };
+    
+    // Get user agent info (simplified)
+    $scope.getUserAgentInfo = function(userAgent) {
+        if (!userAgent) return 'Unknown';
+        
+        // Detect browser
+        if (userAgent.includes('Chrome')) return 'Chrome';
+        if (userAgent.includes('Firefox')) return 'Firefox';
+        if (userAgent.includes('Safari')) return 'Safari';
+        if (userAgent.includes('Edge')) return 'Edge';
+        if (userAgent.includes('MSIE') || userAgent.includes('Trident')) return 'IE';
+        
+        return 'Browser';
+    };
+    
+    // View details modal
+    $scope.viewDetails = function(log) {
+        $scope.selectedLog = angular.copy(log);
+        $scope.showDetailsModal = true;
+    };
+    
+    // Close details modal
+    $scope.closeDetailsModal = function() {
+        $scope.showDetailsModal = false;
+        $scope.selectedLog = {};
+    };
+    
+    // Refresh logs
+    $scope.refreshLogs = function() {
+        $scope.loadLogs();
     };
     
     // Initialize

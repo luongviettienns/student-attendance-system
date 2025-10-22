@@ -1,0 +1,638 @@
+{
+	"info": {
+		"_postman_id": "education-mgmt-2024",
+		"name": "Education Management API",
+		"description": "API Collection for Education Management System - Student Attendance",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🔐 Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.token) {",
+									"        pm.environment.set(\"jwt_token\", jsonData.token);",
+									"        pm.environment.set(\"refresh_token\", jsonData.refreshToken);",
+									"        console.log(\"✅ Token saved to environment\");",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin@123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["auth", "login"]
+						},
+						"description": "Login to get JWT token. Token will be auto-saved to environment."
+					},
+					"response": []
+				},
+				{
+					"name": "Healthcheck",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": ["{{base_url}}"],
+							"path": ["health"]
+						},
+						"description": "Check if API is running"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📚 Faculties (Khoa) - WITH PAGINATION",
+			"item": [
+				{
+					"name": "Get All Faculties (Default Pagination)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/faculties",
+							"host": ["{{base_url}}"],
+							"path": ["faculties"]
+						},
+						"description": "Get all faculties with default pagination (page=1, pageSize=10)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Faculties - Page 1, Size 5",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/faculties?page=1&pageSize=5",
+							"host": ["{{base_url}}"],
+							"path": ["faculties"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "5"
+								}
+							]
+						},
+						"description": "Get faculties with custom pagination"
+					},
+					"response": []
+				},
+				{
+					"name": "Search Faculties",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/faculties?search=Công nghệ",
+							"host": ["{{base_url}}"],
+							"path": ["faculties"],
+							"query": [
+								{
+									"key": "search",
+									"value": "Công nghệ"
+								}
+							]
+						},
+						"description": "Search faculties by name or code"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Faculty by ID",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/faculties/faculty-001",
+							"host": ["{{base_url}}"],
+							"path": ["faculties", "faculty-001"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Faculty",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"facultyCode\": \"TEST\",\n  \"facultyName\": \"Khoa Test\",\n  \"description\": \"Khoa test pagination\",\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/faculties",
+							"host": ["{{base_url}}"],
+							"path": ["faculties"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Faculty",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"facultyId\": \"faculty-001\",\n  \"facultyCode\": \"CNTT\",\n  \"facultyName\": \"Khoa Công nghệ Thông tin (Updated)\",\n  \"description\": \"Updated description\",\n  \"isActive\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/faculties/faculty-001",
+							"host": ["{{base_url}}"],
+							"path": ["faculties", "faculty-001"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Faculty",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/faculties/faculty-test",
+							"host": ["{{base_url}}"],
+							"path": ["faculties", "faculty-test"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🏢 Departments (Bộ môn)",
+			"item": [
+				{
+					"name": "Get All Departments",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/department",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "department"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Departments by Faculty",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/department/faculty/faculty-001",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "department", "faculty", "faculty-001"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🎓 Majors (Ngành học)",
+			"item": [
+				{
+					"name": "Get All Majors",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/majors",
+							"host": ["{{base_url}}"],
+							"path": ["majors"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Majors by Faculty",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/majors/by-faculty/faculty-001",
+							"host": ["{{base_url}}"],
+							"path": ["majors", "by-faculty", "faculty-001"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📖 Subjects (Môn học)",
+			"item": [
+				{
+					"name": "Get All Subjects",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/subjects",
+							"host": ["{{base_url}}"],
+							"path": ["subjects"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "👨‍🏫 Lecturers (Giảng viên)",
+			"item": [
+				{
+					"name": "Get All Lecturers",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/lecturers",
+							"host": ["{{base_url}}"],
+							"path": ["lecturers"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "👥 Users",
+			"item": [
+				{
+					"name": "Get All Users (With Pagination)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/users?page=1&pageSize=10",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "users"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Search Users",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/admin/users?search=admin",
+							"host": ["{{base_url}}"],
+							"path": ["admin", "users"],
+							"query": [
+								{
+									"key": "search",
+									"value": "admin"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🎒 Students",
+			"item": [
+				{
+					"name": "Get All Students (With Pagination)",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/students?page=1&pageSize=10",
+							"host": ["{{base_url}}"],
+							"path": ["students"],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "pageSize",
+									"value": "10"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📅 Academic Years",
+			"item": [
+				{
+					"name": "Get All Academic Years",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/academic-years",
+							"host": ["{{base_url}}"],
+							"path": ["academic-years"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🏫 Classes",
+			"item": [
+				{
+					"name": "Get All Classes",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/classes",
+							"host": ["{{base_url}}"],
+							"path": ["classes"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🔑 Roles",
+			"item": [
+				{
+					"name": "Get All Roles",
+					"request": {
+						"auth": {
+							"type": "bearer",
+							"bearer": [
+								{
+									"key": "token",
+									"value": "{{jwt_token}}",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/roles",
+							"host": ["{{base_url}}"],
+							"path": ["roles"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:5227/api-edu",
+			"type": "string"
+		},
+		{
+			"key": "jwt_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
+

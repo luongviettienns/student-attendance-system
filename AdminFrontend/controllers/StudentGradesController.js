@@ -1,7 +1,5 @@
 // Student Grades Controller
 app.controller('StudentGradesController', ['$scope', 'AuthService', function($scope, AuthService) {
-    console.log('StudentGradesController initialized');
-    
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.selectedYear = '';
     $scope.selectedSemester = '';
@@ -168,7 +166,5 @@ app.controller('StudentGradesController', ['$scope', 'AuthService', function($sc
             ]
         }
     ];
-    
-    console.log('Student Grades loaded with summary:', $scope.summary);
 }]);
 
