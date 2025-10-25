@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [Route("api-edu/subjects")]
     public class SubjectController : ControllerBase
     {

@@ -42,7 +42,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     // LECTURER FUNCTIONS
     // =========================
     $scope.loadLecturers = function() {
-        $http.get(API_CONFIG.BASE_URL + '/lecturer')
+        $http.get(API_CONFIG.BASE_URL + '/lecturers')
             .then(function(response) {
                 $scope.lecturers = response.data;
                 
@@ -62,7 +62,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
             return;
         }
 
-        $http.get(API_CONFIG.BASE_URL + '/lecturer')
+        $http.get(API_CONFIG.BASE_URL + '/lecturers')
             .then(function(response) {
                 $scope.lecturers = response.data.filter(function(l) {
                     return l.departmentId === $scope.filterByDepartment;
@@ -115,7 +115,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
         }
 
         var method = $scope.lecturerForm.lecturerId ? 'PUT' : 'POST';
-        var url = API_CONFIG.BASE_URL + '/lecturer';
+        var url = API_CONFIG.BASE_URL + '/lecturers';
         if (method === 'PUT') {
             url += '/' + $scope.lecturerForm.lecturerId;
         }
@@ -142,7 +142,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
             return;
         }
 
-        $http.delete(API_CONFIG.BASE_URL + '/lecturer/' + lecturerId)
+        $http.delete(API_CONFIG.BASE_URL + '/lecturers/' + lecturerId)
             .then(function(response) {
                 alert('🗑 Đã xóa Giảng viên!');
                 $scope.loadLecturers();
@@ -157,7 +157,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     // SUBJECT ASSIGNMENT FUNCTIONS
     // =========================
     $scope.loadAllSubjects = function() {
-        $http.get(API_CONFIG.BASE_URL + '/subject')
+        $http.get(API_CONFIG.BASE_URL + '/subjects')
             .then(function(response) {
                 $scope.allSubjects = response.data;
                 
