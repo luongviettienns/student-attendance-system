@@ -8,13 +8,53 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
     $scope.error = null;
     $scope.success = null;
     $scope.isEditMode = false;
+    $scope.currentUser = null;
+    
+    // Initialize page
+    $scope.initPage = function() {
+        $scope.currentUser = AuthService.getCurrentUser();
+        
+        // Initialize sidebar toggle
+        var menuToggle = document.getElementById('menuToggle');
+        if (menuToggle) {
+            menuToggle.addEventListener('click', function() {
+                var sidebar = document.querySelector('.sidebar');
+                var mainContent = document.querySelector('.main-content');
+                if (sidebar && mainContent) {
+                    sidebar.classList.toggle('collapsed');
+                    mainContent.classList.toggle('expanded');
+                }
+            });
+        }
+    };
+    
+    // Get initial for avatar
+    $scope.getInitial = function(user) {
+        if (user && user.fullName) {
+            return user.fullName.charAt(0).toUpperCase();
+        }
+        return 'U';
+    };
+    
+    // Clear messages
+    $scope.clearMessage = function() {
+        $scope.success = null;
+        $scope.error = null;
+    };
     
     // Initialize Avatar Modal Functions
     AvatarService.initAvatarModal($scope);
     
+    // Open Avatar Modal
+    $scope.openAvatarModal = function() {
+        if (AvatarService && AvatarService.openModal) {
+            AvatarService.openModal();
+        }
+    };
+    
     // Get current user for header
     $scope.getCurrentUser = function() {
-        return AuthService.getCurrentUser();
+        return $scope.currentUser || AuthService.getCurrentUser();
     };
     
     // Logout function
@@ -40,11 +80,15 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
     // Load classes
     $scope.loadClasses = function() {
         $scope.loading = true;
+        $scope.error = null;
         
         ClassService.getAll()
             .then(function(response) {
-                if (response.data && response.data.data) {
-                    $scope.classes = response.data.data.map(function(classItem) {
+                console.log('Classes response:', response);
+                console.log('Response data:', response.data);
+                
+                       if (response.data) {
+                           $scope.classes = response.data.map(function(classItem) {
                         return {
                             classId: classItem.classId,
                             classCode: classItem.classCode,
@@ -64,21 +108,17 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
                     });
                     
                     $scope.displayedClasses = $scope.classes;
+                    console.log('Classes loaded:', $scope.classes.length);
                 } else {
                     $scope.classes = [];
                     $scope.displayedClasses = [];
+                    console.log('No classes data found');
                 }
                 $scope.loading = false;
             })
             .catch(function(error) {
                 console.error('Error loading classes:', error);
-                console.error('Error details:', {
-                    status: error.status,
-                    statusText: error.statusText,
-                    data: error.data,
-                    message: error.message
-                });
-                $scope.error = 'Không thể tải danh sách lớp học: ' + (error.data?.message || error.message || 'Lỗi không xác định');
+                $scope.error = 'Không thể tải danh sách lớp học: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
                 $scope.loading = false;
             });
     };
@@ -88,8 +128,8 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
     $scope.loadSubjects = function() {
         SubjectService.getAll()
             .then(function(response) {
-                if (response.data && response.data.data) {
-                    $scope.subjects = response.data.data;
+                       if (response.data) {
+                           $scope.subjects = response.data;
                 }
             })
             .catch(function(error) {
@@ -102,8 +142,8 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
     $scope.loadLecturers = function() {
         LecturerService.getAll()
             .then(function(response) {
-                if (response.data && response.data.data) {
-                    $scope.lecturers = response.data.data;
+                       if (response.data) {
+                           $scope.lecturers = response.data;
                 }
             })
             .catch(function(error) {
@@ -116,8 +156,8 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
     $scope.loadAcademicYears = function() {
         AcademicYearService.getAll()
             .then(function(response) {
-                if (response.data && response.data.data) {
-                    $scope.academicYears = response.data.data;
+                       if (response.data) {
+                           $scope.academicYears = response.data;
                 }
             })
             .catch(function(error) {
@@ -178,7 +218,7 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
             semester: $scope.selectedClass.semester,
             academicYearId: $scope.selectedClass.academicYearId,
             maxStudents: $scope.selectedClass.maxStudents,
-            createdBy: AuthService.getCurrentUser()?.userId || 'system'
+            createdBy: (AuthService.getCurrentUser() && AuthService.getCurrentUser().userId) || 'system'
         };
         
         ClassService.create(classData)
@@ -189,7 +229,7 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
             })
             .catch(function(error) {
                 console.error('Error creating class:', error);
-                $scope.error = 'Không thể tạo lớp học: ' + (error.data?.message || error.message);
+                $scope.error = 'Không thể tạo lớp học: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
             });
     };
     
@@ -203,7 +243,7 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
             semester: $scope.selectedClass.semester,
             academicYearId: $scope.selectedClass.academicYearId,
             maxStudents: $scope.selectedClass.maxStudents,
-            updatedBy: AuthService.getCurrentUser()?.userId || 'system'
+            updatedBy: (AuthService.getCurrentUser() && AuthService.getCurrentUser().userId) || 'system'
         };
         
         ClassService.update($scope.selectedClass.classId, classData)
@@ -214,7 +254,7 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
             })
             .catch(function(error) {
                 console.error('Error updating class:', error);
-                $scope.error = 'Không thể cập nhật lớp học: ' + (error.data?.message || error.message);
+                $scope.error = 'Không thể cập nhật lớp học: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
             });
     };
     
@@ -232,11 +272,7 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
     
     // Delete class
     $scope.deleteClass = function() {
-        var deleteData = {
-            deletedBy: AuthService.getCurrentUser()?.userId || 'system'
-        };
-        
-        ClassService.delete($scope.selectedClass.classId, deleteData)
+        ClassService.delete($scope.selectedClass.classId)
             .then(function(response) {
                 $scope.success = 'Xóa lớp học thành công';
                 $scope.closeDeleteModal();
@@ -244,7 +280,7 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
             })
             .catch(function(error) {
                 console.error('Error deleting class:', error);
-                $scope.error = 'Không thể xóa lớp học: ' + (error.data?.message || error.message);
+                $scope.error = 'Không thể xóa lớp học: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
             });
     };
     

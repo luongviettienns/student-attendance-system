@@ -1,57 +1,47 @@
-<!-- Class Management List View -->
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h2 class="mb-1">
-                        <i class="fas fa-chalkboard-teacher me-2"></i>
-                        Quản lý Lớp học
-                    </h2>
-                    <p class="text-muted mb-0">Quản lý thông tin các lớp học trong hệ thống</p>
-                </div>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-primary" ng-click="openCreateForm()">
-                        <i class="fas fa-plus me-1"></i>
-                        Thêm lớp học
-                    </button>
-                </div>
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <app-sidebar></app-sidebar>
+    
+    <div class="main-content">
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1 class="page-title">Quản lý Lớp học</h1>
             </div>
-        </div>
-    </div>
-
-    <!-- Success/Error Messages -->
-    <div class="row mb-3" ng-if="success || error">
-        <div class="col-12">
-            <div class="alert alert-success" ng-if="success">
-                <i class="fas fa-check-circle me-2"></i>
-                {{success}}
-            </div>
-            <div class="alert alert-danger" ng-if="error">
-                <i class="fas fa-exclamation-triangle me-2"></i>
-                {{error}}
-            </div>
-        </div>
-    </div>
-
-    <!-- Classes Table -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            <i class="fas fa-list me-2"></i>
-                            Danh sách lớp học
-                            <span class="badge bg-primary ms-2">{{classes.length}}</span>
-                        </h5>
-                        <div class="text-muted">
-                            Hiển thị {{displayedClasses.length}} lớp học
-                        </div>
+            <div class="header-right">
+                <div class="user-info" ng-init="currentUser = getCurrentUser()">
+                    <div class="user-avatar" ng-click="openAvatarModal()">
+                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
+                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
+                    </div>
+                    <div class="user-details">
+                        <span class="user-name">{{currentUser.fullName}}</span>
+                        <span class="user-role">{{currentUser.roleName || 'Admin'}}</span>
                     </div>
                 </div>
-                <div class="card-body p-0">
+                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
+            </div>
+        </header>
+        
+        <div class="content-body">
+            <!-- Alerts -->
+            <div ng-if="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{success}}</div>
+            <div ng-if="error" class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> {{error}}</div>
+            
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-chalkboard-teacher me-2"></i>
+                        Danh sách Lớp học
+                    </h3>
+                    <div class="card-actions">
+                        <button class="btn btn-primary btn-sm" ng-click="openCreateForm()">
+                            <i class="fas fa-plus me-1"></i> Thêm lớp học
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-body">
                     <!-- Loading -->
                     <div class="text-center p-4" ng-if="loading">
                         <div class="spinner-border text-primary" role="status">
@@ -60,15 +50,9 @@
                         <p class="mt-2 text-muted">Đang tải dữ liệu...</p>
                     </div>
                     
-                    <!-- Error -->
-                    <div class="alert alert-danger m-3" ng-if="error && !loading">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        {{error}}
-                    </div>
-                    
                     <!-- Table -->
                     <div class="table-responsive" ng-if="!loading && !error">
-                        <table class="table table-hover mb-0">
+                        <table class="table table-hover">
                             <thead class="table-light">
                                 <tr>
                                     <th width="120">Mã lớp</th>
@@ -91,15 +75,15 @@
                                     <td>
                                         <strong>{{classItem.className}}</strong>
                                     </td>
-                                    <td>{{classItem.subjectName}}</td>
-                                    <td>{{classItem.lecturerName}}</td>
+                                    <td>{{classItem.subjectName || 'N/A'}}</td>
+                                    <td>{{classItem.lecturerName || 'N/A'}}</td>
                                     <td>
                                         <span class="badge bg-info">{{getSemesterLabel(classItem.semester)}}</span>
                                     </td>
-                                    <td>{{classItem.academicYearName}}</td>
+                                    <td>{{classItem.academicYearName || 'N/A'}}</td>
                                     <td>
                                         <span class="badge" ng-class="classItem.currentStudents >= classItem.maxStudents ? 'bg-danger' : 'bg-success'">
-                                            {{classItem.currentStudents}}
+                                            {{classItem.currentStudents || 0}}
                                         </span>
                                     </td>
                                     <td>{{classItem.maxStudents}}</td>
@@ -121,7 +105,7 @@
                         </table>
                         
                         <!-- Empty State -->
-                        <div class="text-center p-5" ng-if="displayedClasses.length === 0">
+                        <div class="text-center p-5" ng-if="displayedClasses.length === 0 && !loading">
                             <i class="fas fa-chalkboard-teacher fa-3x text-muted mb-3"></i>
                             <h5 class="text-muted">Chưa có lớp học nào</h5>
                             <p class="text-muted">Hãy tạo lớp học đầu tiên để bắt đầu quản lý</p>
@@ -138,7 +122,8 @@
 </div>
 
 <!-- Class Form Modal -->
-<div class="modal fade" id="classFormModal" tabindex="-1" ng-show="showFormModal">
+<div class="modal fade" id="classFormModal" tabindex="-1" ng-if="showFormModal" style="display: block;" role="dialog">
+    <div class="modal-backdrop fade show" ng-click="closeFormModal()"></div>
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
@@ -180,6 +165,7 @@
                         <div class="col-md-6">
                             <label class="form-label">Học kỳ <span class="text-danger">*</span></label>
                             <select class="form-select" ng-model="selectedClass.semester" required>
+                                <option value="">Chọn học kỳ</option>
                                 <option ng-repeat="semester in semesters" value="{{semester.value}}">
                                     {{semester.label}}
                                 </option>
@@ -213,7 +199,8 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteClassModal" tabindex="-1" ng-show="showDeleteModal">
+<div class="modal fade" id="deleteClassModal" tabindex="-1" ng-if="showDeleteModal" style="display: block;" role="dialog">
+    <div class="modal-backdrop fade show" ng-click="closeDeleteModal()"></div>
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">

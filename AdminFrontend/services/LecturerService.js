@@ -2,7 +2,12 @@
 app.service('LecturerService', ['ApiService', function(ApiService) {
     
     this.getAll = function() {
-        return ApiService.get('/lecturers');
+        return ApiService.get('/lecturers').then(function(response) {
+            if (response.data && response.data.data) {
+                response.data = response.data.data;
+            }
+            return response;
+        });
     };
     
     this.getById = function(id) {

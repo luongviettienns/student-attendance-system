@@ -30,32 +30,32 @@ GO
 PRINT '📋 2/13: Thêm Users...';
 
 -- Password cho tất cả: Admin@123
--- Hash: $2b$12$wQ8PKj60xkkAo7df4YyF5OZiLPG3hAJIMLeKMmxy1g6PUP.pWtUs6
+-- Hash: $2a$10$qtPZ9X2t5XJPO02yra9PT.Byxy9LXa1gN4O2q.HRq1Y6T59.QQfES (BCrypt.Net compatible)
 
 INSERT INTO dbo.users (user_id, username, password_hash, email, full_name, role_id, avatar_url, created_by)
 VALUES
 -- Admin
-('user-001', 'admin', '$2b$12$wQ8PKj60xkkAo7df4YyF5OZiLPG3hAJIMLeKMmxy1g6PUP.pWtUs6', 
+('user-001', 'admin', '$2a$10$qtPZ9X2t5XJPO02yra9PT.Byxy9LXa1gN4O2q.HRq1Y6T59.QQfES', 
  'admin@edu.vn', N'System Administrator', 'role-001', '/avatars/default.png', 'system'),
 
 -- Lecturers
-('user-002', 'gv001', '$2b$12$wQ8PKj60xkkAo7df4YyF5OZiLPG3hAJIMLeKMmxy1g6PUP.pWtUs6',
+('user-002', 'gv001', '$2a$10$qtPZ9X2t5XJPO02yra9PT.Byxy9LXa1gN4O2q.HRq1Y6T59.QQfES',
  'gv001@edu.vn', N'Nguyễn Văn An', 'role-002', '/avatars/default.png', 'system'),
-('user-003', 'gv002', '$2b$12$wQ8PKj60xkkAo7df4YyF5OZiLPG3hAJIMLeKMmxy1g6PUP.pWtUs6',
+('user-003', 'gv002', '$2a$10$qtPZ9X2t5XJPO02yra9PT.Byxy9LXa1gN4O2q.HRq1Y6T59.QQfES',
  'gv002@edu.vn', N'Trần Thị Bình', 'role-002', '/avatars/default.png', 'system'),
-('user-004', 'gv003', '$2b$12$wQ8PKj60xkkAo7df4YyF5OZiLPG3hAJIMLeKMmxy1g6PUP.pWtUs6',
+('user-004', 'gv003', '$2a$10$qtPZ9X2t5XJPO02yra9PT.Byxy9LXa1gN4O2q.HRq1Y6T59.QQfES',
  'gv003@edu.vn', N'Lê Văn Cường', 'role-002', '/avatars/default.png', 'system'),
 
 -- Students  
-('user-005', 'sv2024001', '$2b$12$wQ8PKj60xkkAo7df4YyF5OZiLPG3hAJIMLeKMmxy1g6PUP.pWtUs6',
+('user-005', 'sv2024001', '$2a$10$qtPZ9X2t5XJPO02yra9PT.Byxy9LXa1gN4O2q.HRq1Y6T59.QQfES',
  'sv2024001@edu.vn', N'Phạm Minh Đức', 'role-003', '/avatars/default.png', 'system'),
-('user-006', 'sv2024002', '$2b$12$wQ8PKj60xkkAo7df4YyF5OZiLPG3hAJIMLeKMmxy1g6PUP.pWtUs6',
+('user-006', 'sv2024002', '$2a$10$qtPZ9X2t5XJPO02yra9PT.Byxy9LXa1gN4O2q.HRq1Y6T59.QQfES',
  'sv2024002@edu.vn', N'Hoàng Thị Hoa', 'role-003', '/avatars/default.png', 'system'),
-('user-007', 'sv2024003', '$2b$12$wQ8PKj60xkkAo7df4YyF5OZiLPG3hAJIMLeKMmxy1g6PUP.pWtUs6',
+('user-007', 'sv2024003', '$2a$10$qtPZ9X2t5XJPO02yra9PT.Byxy9LXa1gN4O2q.HRq1Y6T59.QQfES',
  'sv2024003@edu.vn', N'Đặng Văn Kiên', 'role-003', '/avatars/default.png', 'system'),
-('user-008', 'sv2024004', '$2b$12$wQ8PKj60xkkAo7df4YyF5OZiLPG3hAJIMLeKMmxy1g6PUP.pWtUs6',
+('user-008', 'sv2024004', '$2a$10$qtPZ9X2t5XJPO02yra9PT.Byxy9LXa1gN4O2q.HRq1Y6T59.QQfES',
  'sv2024004@edu.vn', N'Vũ Thị Lan', 'role-003', '/avatars/default.png', 'system'),
-('user-009', 'sv2024005', '$2b$12$wQ8PKj60xkkAo7df4YyF5OZiLPG3hAJIMLeKMmxy1g6PUP.pWtUs6',
+('user-009', 'sv2024005', '$2a$10$qtPZ9X2t5XJPO02yra9PT.Byxy9LXa1gN4O2q.HRq1Y6T59.QQfES',
  'sv2024005@edu.vn', N'Bùi Văn Nam', 'role-003', '/avatars/default.png', 'system');
 
 PRINT '✅ Đã thêm 9 users (1 admin, 3 lecturers, 5 students)';
