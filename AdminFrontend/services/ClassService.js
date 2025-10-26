@@ -2,7 +2,12 @@
 app.service('ClassService', ['ApiService', function(ApiService) {
     
     this.getAll = function(params) {
-        return ApiService.get('/classes', params);
+        return ApiService.get('/classes', params).then(function(response) {
+            if (response.data && response.data.data) {
+                response.data = response.data.data;
+            }
+            return response;
+        });
     };
     
     this.getById = function(id) {
@@ -17,8 +22,8 @@ app.service('ClassService', ['ApiService', function(ApiService) {
         return ApiService.put('/classes/' + id, classData);
     };
     
-    this.delete = function(id, deletedBy) {
-        return ApiService.delete('/classes/' + id, { deletedBy: deletedBy });
+    this.delete = function(id) {
+        return ApiService.delete('/classes/' + id);
     };
     
     this.getByLecturer = function(lecturerId) {
@@ -29,3 +34,4 @@ app.service('ClassService', ['ApiService', function(ApiService) {
         return ApiService.get('/classes/student/' + studentId);
     };
 }]);
+

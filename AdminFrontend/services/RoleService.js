@@ -99,7 +99,7 @@ app.service('RoleService', ['AuthService', function(AuthService) {
                 '/dashboard',
                 '/users', '/roles',
                 '/faculties', '/departments', '/majors', '/subjects',
-                '/students', '/lecturers',
+                '/students', '/lecturers', '/classes',
                 '/academic-years',
                 '/audit-logs',
                 '/notifications',
@@ -172,6 +172,7 @@ app.service('RoleService', ['AuthService', function(AuthService) {
                 { section: 'QUẢN LÝ ĐÀO TẠO', items: [
                     { path: '/students', icon: 'fas fa-user-graduate', label: 'Sinh viên' },
                     { path: '/lecturers', icon: 'fas fa-chalkboard-teacher', label: 'Giảng viên' },
+                    { path: '/classes', icon: 'fas fa-chalkboard', label: 'Lớp học' },
                     { path: '/academic-years', icon: 'fas fa-calendar-alt', label: 'Niên khóa' }
                 ]},
                 { section: 'HỆ THỐNG', items: [
