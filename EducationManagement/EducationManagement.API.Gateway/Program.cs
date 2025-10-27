@@ -123,29 +123,16 @@ if (Directory.Exists(avatarFolder))
 }
 Console.ResetColor();
 
-// 🔹 Log tất cả request qua Gateway
+// 🔹 Log tất cả request qua Gateway (TẮT LOG AVATAR để tránh spam)
 app.Use(async (context, next) =>
 {
-    Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {context.Request.Method} {context.Request.Path}");
-    
-    // ✅ Log avatar requests specifically
-    if (context.Request.Path.StartsWithSegments("/avatars"))
+    // Chỉ log các request KHÔNG PHẢI avatar để tránh spam log
+    if (!context.Request.Path.StartsWithSegments("/avatars"))
     {
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine($"📸 Avatar request: {context.Request.Path}");
-        Console.ResetColor();
+        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {context.Request.Method} {context.Request.Path}");
     }
     
     await next();
-    
-    // Log response status for avatar requests
-    if (context.Request.Path.StartsWithSegments("/avatars"))
-    {
-        var color = context.Response.StatusCode == 200 ? ConsoleColor.Green : ConsoleColor.Red;
-        Console.ForegroundColor = color;
-        Console.WriteLine($"📸 Avatar response: {context.Response.StatusCode}");
-        Console.ResetColor();
-    }
 });
 
 app.UseCors("AllowFrontend");
@@ -157,10 +144,7 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/avatars",
     OnPrepareResponse = ctx =>
     {
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"✅ Serving static file: {ctx.File.Name}");
-        Console.ResetColor();
-        
+        // ✅ Tắt log "Serving static file" để tránh spam
         // Set cache headers
         ctx.Context.Response.Headers.Add("Cache-Control", "public,max-age=86400");
     }

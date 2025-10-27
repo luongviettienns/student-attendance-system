@@ -244,6 +244,19 @@ app.UseRateLimiter();
 
 // ⚠️ Không redirect HTTPS (Gateway đã xử lý SSL termination)
 app.UseCors("AllowFrontend");
+
+// ✅ Handle CORS preflight (OPTIONS) requests BEFORE authentication
+app.Use(async (context, next) =>
+{
+    if (context.Request.Method == "OPTIONS")
+    {
+        context.Response.StatusCode = 200;
+        await context.Response.CompleteAsync();
+        return;
+    }
+    await next();
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
 
