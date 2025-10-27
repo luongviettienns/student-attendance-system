@@ -143,6 +143,12 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'LecturerManagementController'
         })
         
+        // Class Management
+        .when('/classes', {
+            templateUrl: 'views/classes/list.html',
+            controller: 'ClassController'
+        })
+        
         // Lecturer Portal
         .when('/lecturer/dashboard', {
             templateUrl: 'views/lecturer/dashboard.html',

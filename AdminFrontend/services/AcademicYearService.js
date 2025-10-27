@@ -2,7 +2,12 @@
 app.service('AcademicYearService', ['ApiService', function(ApiService) {
     
     this.getAll = function() {
-        return ApiService.get('/academic-years');
+        return ApiService.get('/academic-years').then(function(response) {
+            if (response.data && response.data.data) {
+                response.data = response.data.data;
+            }
+            return response;
+        });
     };
     
     this.getById = function(id) {

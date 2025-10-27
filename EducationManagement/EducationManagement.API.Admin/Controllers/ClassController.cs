@@ -122,11 +122,11 @@ namespace EducationManagement.API.Admin.Controllers
         /// Xóa class (soft delete)
         /// </summary>
         [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(string id, [FromBody] DeleteClassRequest request)
+        public async Task<IActionResult> Delete(string id)
         {
             try
             {
-                await _classService.DeleteClassAsync(id, request.DeletedBy ?? "system");
+                await _classService.DeleteClassAsync(id, "system");
                 return Ok(new { message = "Xóa lớp học thành công" });
             }
             catch (Exception ex)

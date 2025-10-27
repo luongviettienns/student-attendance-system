@@ -822,7 +822,7 @@ CREATE PROCEDURE sp_CreateClass
     @SubjectId VARCHAR(50),
     @LecturerId VARCHAR(50) = NULL,
     @AcademicYearId VARCHAR(50) = NULL,
-    @Semester INT = NULL,
+    @Semester VARCHAR(10) = NULL,
     @MaxStudents INT = NULL,
     @Schedule NVARCHAR(500) = NULL,
     @Room NVARCHAR(100) = NULL,
@@ -846,7 +846,8 @@ CREATE PROCEDURE sp_UpdateClass
     @ClassName NVARCHAR(200),
     @SubjectId VARCHAR(50),
     @LecturerId VARCHAR(50) = NULL,
-    @Semester INT = NULL,
+    @Semester VARCHAR(10) = NULL,
+    @AcademicYearId VARCHAR(50) = NULL,
     @MaxStudents INT = NULL,
     @Schedule NVARCHAR(500) = NULL,
     @Room NVARCHAR(100) = NULL,
@@ -855,8 +856,9 @@ AS
 BEGIN
     UPDATE dbo.classes
     SET class_code = @ClassCode, class_name = @ClassName, subject_id = @SubjectId,
-        lecturer_id = @LecturerId, semester = @Semester, max_students = @MaxStudents,
-        schedule = @Schedule, room = @Room, updated_at = GETDATE(), updated_by = @UpdatedBy
+        lecturer_id = @LecturerId, semester = @Semester, academic_year_id = @AcademicYearId,
+        max_students = @MaxStudents, schedule = @Schedule, room = @Room, 
+        updated_at = GETDATE(), updated_by = @UpdatedBy
     WHERE class_id = @ClassId AND deleted_at IS NULL;
 END
 GO

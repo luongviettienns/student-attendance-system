@@ -34,3 +34,4 @@ namespace EducationManagement.Common.DTOs.Student
         public string UpdatedBy { get; set; }
     }
 }
+
