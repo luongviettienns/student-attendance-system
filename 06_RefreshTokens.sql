@@ -6,6 +6,9 @@
 USE EducationManagement;
 GO
 
+SET QUOTED_IDENTIFIER ON;
+GO
+
 PRINT '🔄 Bắt đầu tạo Refresh Tokens table & procedures...';
 GO
 

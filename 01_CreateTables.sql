@@ -385,12 +385,6 @@ CREATE TABLE dbo.role_permissions (
 );
 GO
 
--- Create indexes for optimization
-CREATE NONCLUSTERED INDEX idx_permissions_code ON dbo.permissions(permission_code);
-CREATE NONCLUSTERED INDEX idx_role_permissions_role ON dbo.role_permissions(role_id);
-CREATE NONCLUSTERED INDEX idx_role_permissions_permission ON dbo.role_permissions(permission_id);
-GO
-
 -- ===========================================
 -- 17. BẢNG AUDIT_LOGS (Nhật ký hệ thống)
 -- ===========================================

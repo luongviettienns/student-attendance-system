@@ -31,14 +31,15 @@ GO
 -- ===========================================
 PRINT '👤 Seeding Users...';
 
--- Password: Admin@123 (hashed)
+-- Password hash (BCrypt workFactor 12)
+-- Hash: $2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK
 INSERT INTO dbo.users (user_id, username, password_hash, email, phone, full_name, role_id, is_active) VALUES
-('USER001', 'admin', '$2a$11$rFqk5LoC0jS8.P8jEKwOKewQHqEOIq8xqHzQG5L/qV6vJqBq0qU2i', 'admin@example.com', '0901234567', N'Nguyễn Văn Admin', 'ROLE_ADMIN', 1),
-('USER002', 'lecturer01', '$2a$11$rFqk5LoC0jS8.P8jEKwOKewQHqEOIq8xqHzQG5L/qV6vJqBq0qU2i', 'lecturer01@example.com', '0902222222', N'Trần Thị Hoa', 'ROLE_LECTURER', 1),
-('USER003', 'student01', '$2a$11$rFqk5LoC0jS8.P8jEKwOKewQHqEOIq8xqHzQG5L/qV6vJqBq0qU2i', 'student01@example.com', '0903333333', N'Lê Văn An', 'ROLE_STUDENT', 1),
-('USER004', 'student02', '$2a$11$rFqk5LoC0jS8.P8jEKwOKewQHqEOIq8xqHzQG5L/qV6vJqBq0qU2i', 'student02@example.com', '0904444444', N'Phạm Thị Bình', 'ROLE_STUDENT', 1);
+('USER001', 'admin', '$2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK', 'admin@example.com', '0901234567', N'Nguyễn Văn Admin', 'ROLE_ADMIN', 1),
+('USER002', 'lecturer01', '$2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK', 'lecturer01@example.com', '0902222222', N'Trần Thị Hoa', 'ROLE_LECTURER', 1),
+('USER003', 'student01', '$2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK', 'student01@example.com', '0903333333', N'Lê Văn An', 'ROLE_STUDENT', 1),
+('USER004', 'student02', '$2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK', 'student02@example.com', '0904444444', N'Phạm Thị Bình', 'ROLE_STUDENT', 1);
 
-PRINT '   ✅ 4 users created (Password: Admin@123)';
+PRINT '   ✅ 4 users created (Password hash updated)';
 GO
 
 -- ===========================================
@@ -240,10 +241,10 @@ PRINT '   ✅ 4 Grades';
 PRINT '   ✅ 10 Permissions';
 PRINT '';
 PRINT '🔑 Login Credentials:';
-PRINT '   👤 Admin:    admin@example.com / Admin@123';
-PRINT '   👨‍🏫 Lecturer: lecturer01@example.com / Admin@123';
-PRINT '   👨‍🎓 Student1: student01@example.com / Admin@123';
-PRINT '   👨‍🎓 Student2: student02@example.com / Admin@123';
+PRINT '   👤 Admin:    admin / [password hash đã cập nhật]';
+PRINT '   👨‍🏫 Lecturer: lecturer01 / [password hash đã cập nhật]';
+PRINT '   👨‍🎓 Student1: student01 / [password hash đã cập nhật]';
+PRINT '   👨‍🎓 Student2: student02 / [password hash đã cập nhật]';
 PRINT '';
 PRINT '🎯 Ready for DEMO!';
 PRINT '';

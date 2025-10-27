@@ -6,6 +6,9 @@
 USE EducationManagement;
 GO
 
+SET QUOTED_IDENTIFIER ON;
+GO
+
 PRINT '========================================';
 PRINT '🚀 BẮT ĐẦU TẠO INDEXES CHO PAGINATION';
 PRINT '========================================';
