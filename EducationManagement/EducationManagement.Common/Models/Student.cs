@@ -97,3 +97,4 @@ namespace EducationManagement.Common.Models
         public string? DeletedBy { get; set; }
     }
 }
+
