@@ -14,7 +14,7 @@
                     <i class="fas fa-bars"></i>
                 </button>
                 <h1 class="page-title">
-                    <i class="fas fa-sitemap"></i> Quản lý Tổ chức
+                    Quản lý Tổ chức
                 </h1>
             </div>
             
@@ -82,22 +82,11 @@
                         </div>
                         <div class="card-body">
                             <!-- ✅ Search Box -->
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text">
-                                                <i class="fas fa-search"></i>
-                                            </span>
-                                        </div>
-                                        <input type="text" 
-                                               class="form-control" 
-                                               ng-model="facultyPagination.searchTerm" 
-                                               ng-change="loadFaculties()"
-                                               placeholder="Tìm kiếm theo mã hoặc tên khoa...">
-                                    </div>
-                                </div>
-                            </div>
+                            <search-bar 
+                                search-term="facultyPagination.searchTerm" 
+                                on-search="loadFaculties()" 
+                                placeholder="Tìm kiếm theo mã hoặc tên khoa...">
+                            </search-bar>
                             
                             <div class="table-responsive">
                                 <table class="table table-bordered table-hover">

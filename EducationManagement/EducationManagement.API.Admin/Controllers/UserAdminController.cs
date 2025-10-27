@@ -12,7 +12,7 @@ namespace EducationManagement.API.Admin.Controllers
     [ApiController]
     [Authorize(Roles = "Admin")]
     [Route("api-edu/account-management")]
-    public class UserAdminController : ControllerBase
+    public class UserAdminController : BaseController
     {
         private readonly UserRepository _userRepository;
         private readonly RoleRepository _roleRepository;
@@ -20,7 +20,12 @@ namespace EducationManagement.API.Admin.Controllers
         private readonly string _avatarFolder;
         private readonly string _gatewayUrl;
 
-        public UserAdminController(UserRepository userRepository, RoleRepository roleRepository, AuthService authService, IConfiguration configuration)
+        public UserAdminController(
+            UserRepository userRepository, 
+            RoleRepository roleRepository, 
+            AuthService authService, 
+            IConfiguration configuration,
+            AuditLogService auditLogService) : base(auditLogService)
         {
             _userRepository = userRepository;
             _roleRepository = roleRepository;
@@ -46,16 +51,8 @@ namespace EducationManagement.API.Admin.Controllers
         {
             var (users, totalCount) = await _userRepository.GetAllAsync(page, pageSize, search, roleId, isActive);
 
-            // 🔍 DEBUG LOGGING
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"🐛 DEBUG - GetAll:");
-            Console.WriteLine($"   Total users from repository: {users.Count}");
-            Console.WriteLine($"   Total count: {totalCount}");
-            if (users.Count > 0)
-            {
-                Console.WriteLine($"   First user: {users[0].Username} - {users[0].FullName}");
-            }
-            Console.ResetColor();
+            // DEBUG LOGGING đã tắt để tránh spam console
+            // Console.WriteLine($"🐛 DEBUG - GetAll: {users.Count} users, total {totalCount}");
 
             // ✅ Đơn giản hóa mapping để test
             var result = users.Select(u => new UserListDto
@@ -164,6 +161,15 @@ namespace EducationManagement.API.Admin.Controllers
 
             await _userRepository.CreateAsync(user);
 
+            // ✅ Audit Log: Create User
+            await LogCreateAsync("User", user.UserId, new {
+                username = user.Username,
+                full_name = user.FullName,
+                email = user.Email,
+                role_id = user.RoleId,
+                is_active = user.IsActive
+            });
+
             return Ok(new { message = "Tạo người dùng thành công", userId = user.UserId });
         }
 
@@ -183,6 +189,15 @@ namespace EducationManagement.API.Admin.Controllers
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            // Capture old values for audit
+            var oldValues = new {
+                full_name = user.FullName,
+                email = user.Email,
+                phone = user.Phone,
+                role_id = user.RoleId,
+                is_active = user.IsActive
+            };
+
             user.FullName = request.FullName;
             user.Email = request.Email;
             user.Phone = request.Phone;
@@ -192,6 +207,15 @@ namespace EducationManagement.API.Admin.Controllers
             user.UpdatedBy = currentUserId;
 
             await _userRepository.UpdateAsync(user);
+
+            // ✅ Audit Log: Update User
+            await LogUpdateAsync("User", user.UserId, oldValues, new {
+                full_name = user.FullName,
+                email = user.Email,
+                phone = user.Phone,
+                role_id = user.RoleId,
+                is_active = user.IsActive
+            });
 
             return Ok(new { message = "Cập nhật người dùng thành công" });
         }
@@ -209,6 +233,14 @@ namespace EducationManagement.API.Admin.Controllers
                 return BadRequest(new { message = "Không thể xoá tài khoản của chính bạn" });
 
             await _userRepository.SoftDeleteAsync(id, currentUserId ?? "system");
+
+            // ✅ Audit Log: Delete User
+            await LogDeleteAsync("User", user.UserId, new {
+                username = user.Username,
+                full_name = user.FullName,
+                email = user.Email
+            });
+
             return Ok(new { message = "Đã xoá người dùng thành công" });
         }
         #endregion
@@ -226,14 +258,21 @@ namespace EducationManagement.API.Admin.Controllers
             if (user.UserId == currentUserId)
                 return BadRequest(new { message = "Không thể vô hiệu hóa tài khoản của chính bạn" });
 
+            var oldStatus = user.IsActive;
+            
             await _userRepository.ToggleStatusAsync(id, currentUserId ?? "system");
             
             // Lấy lại để check trạng thái
             var updatedUser = await _userRepository.GetByIdAsync(id);
 
+            // ✅ Audit Log: Toggle Status
+            await LogUpdateAsync("User", user.UserId, 
+                new { is_active = oldStatus }, 
+                new { is_active = updatedUser!.IsActive });
+
             return Ok(new
             {
-                message = $"Tài khoản {(updatedUser!.IsActive ? "đã được kích hoạt" : "đã bị vô hiệu hoá")}",
+                message = $"Tài khoản {(updatedUser.IsActive ? "đã được kích hoạt" : "đã bị vô hiệu hoá")}",
                 isActive = updatedUser.IsActive
             });
         }

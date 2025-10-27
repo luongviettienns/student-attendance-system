@@ -54,7 +54,7 @@ namespace EducationManagement.BLL.Services
             );
 
             string jwt = new JwtSecurityTokenHandler().WriteToken(token);
-            Console.WriteLine($"[JWT] ✅ Token created for user '{user.Username}' (exp: {expireMinutes} mins)");
+            // Console.WriteLine($"[JWT] ✅ Token created for user '{user.Username}' (exp: {expireMinutes} mins)"); // Tắt để tránh spam log
             return jwt;
         }
 

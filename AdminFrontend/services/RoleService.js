@@ -1,57 +1,265 @@
 // Role-based Access Control Service
-app.service('RoleService', ['AuthService', function(AuthService) {
+app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', function(AuthService, $http, $rootScope, API_CONFIG) {
     
-    // Define role-based permissions
-    var ROLE_PERMISSIONS = {
+    // Cache for permissions loaded from API
+    var cachedPermissions = null;
+    var permissionCodesCache = [];
+    
+    // Listen for logout event to clear cache
+    var self = this;
+    $rootScope.$on('user:logout', function() {
+        self.clearCache();
+    });
+    
+    // Permission code mapping to frontend permission names
+    // Map backend permission codes to frontend permission flags
+    var PERMISSION_MAP = {
+        // User Management (Quản lý người dùng)
+        'VIEW_USERS': 'canManageUsers',
+        'CREATE_USERS': 'canManageUsers',
+        'EDIT_USERS': 'canManageUsers',
+        'DELETE_USERS': 'canManageUsers',
+        'TOGGLE_USER_STATUS': 'canManageUsers',
+        'RESET_PASSWORD': 'canManageUsers',
+        
+        // Role & Permission Management (Quản lý vai trò & phân quyền)
+        'VIEW_ROLES': 'canManageRoles',
+        'CREATE_ROLES': 'canManageRoles',
+        'EDIT_ROLES': 'canManageRoles',
+        'DELETE_ROLES': 'canManageRoles',
+        'VIEW_PERMISSIONS': 'canManageRoles',
+        'MANAGE_PERMISSIONS': 'canManageRoles',
+        
+        // Student Management (Quản lý sinh viên)
+        'VIEW_STUDENTS': 'canManageStudents',
+        'VIEW_STUDENT_DETAIL': 'canManageStudents',
+        'CREATE_STUDENTS': 'canManageStudents',
+        'EDIT_STUDENTS': 'canManageStudents',
+        'DELETE_STUDENTS': 'canManageStudents',
+        'IMPORT_STUDENTS': 'canManageStudents',
+        'EXPORT_STUDENTS': 'canExportStudents',
+        
+        // Lecturer Management (Quản lý giảng viên)
+        'VIEW_LECTURERS': 'canManageLecturers',
+        'VIEW_LECTURER_DETAIL': 'canManageLecturers',
+        'CREATE_LECTURERS': 'canManageLecturers',
+        'EDIT_LECTURERS': 'canManageLecturers',
+        'DELETE_LECTURERS': 'canManageLecturers',
+        'ASSIGN_LECTURER_SUBJECTS': 'canManageLecturers',
+        
+        // Organization Management (Quản lý tổ chức)
+        'VIEW_ORGANIZATION': 'canManageOrganization',
+        'MANAGE_FACULTIES': 'canManageOrganization',
+        'MANAGE_DEPARTMENTS': 'canManageOrganization',
+        'MANAGE_MAJORS': 'canManageOrganization',
+        
+        // Subject Management (Quản lý môn học)
+        'VIEW_SUBJECTS': 'canManageSubjects',
+        'CREATE_SUBJECTS': 'canManageSubjects',
+        'EDIT_SUBJECTS': 'canManageSubjects',
+        'DELETE_SUBJECTS': 'canManageSubjects',
+        
+        // Class Management (Quản lý lớp học)
+        'VIEW_ALL_CLASSES': 'canManageClasses',
+        'VIEW_OWN_CLASSES': 'canViewOwnClasses',
+        'CREATE_CLASSES': 'canManageClasses',
+        'EDIT_CLASSES': 'canManageClasses',
+        'DELETE_CLASSES': 'canManageClasses',
+        'MANAGE_CLASS_ENROLLMENT': 'canManageClasses',
+        
+        // Schedule Management (Quản lý lịch học)
+        'VIEW_ALL_SCHEDULES': 'canManageSchedules',
+        'VIEW_OWN_SCHEDULE': 'canViewOwnSchedule',
+        'MANAGE_SCHEDULES': 'canManageSchedules',
+        'EXPORT_SCHEDULES': 'canExportSchedules',
+        
+        // Attendance Management (Điểm danh)
+        'TAKE_ATTENDANCE': 'canTakeAttendance',
+        'VIEW_ALL_ATTENDANCE': 'canViewAllAttendance',
+        'VIEW_OWN_ATTENDANCE': 'canViewOwnAttendance',
+        'EDIT_ATTENDANCE': 'canEditAttendance',
+        'EXPORT_ATTENDANCE': 'canExportAttendance',
+        
+        // Grade Management (Quản lý điểm số)
+        'ENTER_GRADES': 'canEnterGrades',
+        'VIEW_ALL_GRADES': 'canViewAllGrades',
+        'VIEW_OWN_GRADES': 'canViewOwnGrades',
+        'EDIT_GRADES': 'canEditGrades',
+        'APPROVE_GRADES': 'canApproveGrades',
+        'EXPORT_GRADES': 'canExportGrades',
+        
+        // Academic Year Management (Quản lý niên khóa)
+        'VIEW_ACADEMIC_YEARS': 'canViewAcademicYears',
+        'CREATE_ACADEMIC_YEARS': 'canManageAcademicYears',
+        'EDIT_ACADEMIC_YEARS': 'canManageAcademicYears',
+        'DELETE_ACADEMIC_YEARS': 'canManageAcademicYears',
+        'SET_ACTIVE_ACADEMIC_YEAR': 'canManageAcademicYears',
+        
+        // Academic Advisor (Cố vấn học tập)
+        'VIEW_ADVISEES': 'canViewAdvisees',
+        'VIEW_ADVISEE_GRADES': 'canViewAdvisees',
+        'VIEW_ADVISEE_ATTENDANCE': 'canViewAdvisees',
+        'MANAGE_ADVISEES': 'canManageAdvisees',
+        
+        // Reports & Statistics (Báo cáo & thống kê)
+        'VIEW_REPORTS': 'canViewReports',
+        'EXPORT_REPORTS': 'canExportReports',
+        'VIEW_DASHBOARD_STATS': 'canViewDashboard',
+        
+        // Notifications (Thông báo)
+        'VIEW_NOTIFICATIONS': 'canViewNotifications',
+        'CREATE_NOTIFICATIONS': 'canCreateNotifications',
+        'MANAGE_NOTIFICATIONS': 'canManageNotifications',
+        
+        // System Management (Hệ thống)
+        'VIEW_AUDIT_LOGS': 'canViewAuditLogs',
+        'EXPORT_AUDIT_LOGS': 'canExportAuditLogs',
+        'MANAGE_SYSTEM_SETTINGS': 'canManageSystem',
+        'BACKUP_RESTORE': 'canManageSystem',
+        'VIEW_SYSTEM_INFO': 'canViewSystemInfo'
+    };
+    
+    // Fallback permissions (used when API fails)
+    var FALLBACK_PERMISSIONS = {
         'Admin': {
+            // All permissions - Admin có toàn quyền
             canManageUsers: true,
-            canManageOrganization: true,
+            canManageRoles: true,
             canManageStudents: true,
             canManageLecturers: true,
+            canManageOrganization: true,
             canManageSubjects: true,
             canManageClasses: true,
+            canManageSchedules: true,
+            canManageAcademicYears: true,
+            canTakeAttendance: true,
+            canViewAllAttendance: true,
+            canEditAttendance: true,
+            canEnterGrades: true,
+            canViewAllGrades: true,
+            canEditGrades: true,
+            canApproveGrades: true,
+            canViewReports: true,
+            canExportReports: true,
             canViewAuditLogs: true,
-            canManageRoles: true,
+            canManageSystem: true,
+            canViewDashboard: true,
+            canManageNotifications: true,
             canViewAllData: true
         },
         'Lecturer': {
+            // Giảng viên - quyền giảng dạy
             canManageUsers: false,
-            canManageOrganization: false,
-            canManageStudents: false,
-            canManageLecturers: false,
-            canManageSubjects: false,
-            canManageClasses: true,      // Lecturer có thể quản lý lớp của mình
-            canViewAuditLogs: false,
             canManageRoles: false,
-            canViewAllData: false,
-            canTakeAttendance: true,      // Điểm danh
-            canEnterGrades: true          // Nhập điểm
+            canManageStudents: false, // Chỉ xem sinh viên trong lớp mình dạy
+            canManageLecturers: false,
+            canManageOrganization: false,
+            canManageSubjects: false,
+            canManageClasses: false, // Chỉ quản lý lớp mình dạy
+            canViewOwnClasses: true,
+            canManageSchedules: false,
+            canViewOwnSchedule: true,
+            canManageAcademicYears: false,
+            canViewAcademicYears: true,
+            canTakeAttendance: true,
+            canViewAllAttendance: false, // Chỉ xem điểm danh lớp mình dạy
+            canEditAttendance: true,
+            canExportAttendance: true,
+            canEnterGrades: true,
+            canViewAllGrades: false, // Chỉ xem điểm lớp mình dạy
+            canEditGrades: true,
+            canExportGrades: true,
+            canViewReports: true,
+            canExportReports: true,
+            canViewDashboard: true,
+            canCreateNotifications: true,
+            canViewNotifications: true
         },
         'Student': {
+            // Sinh viên - chỉ xem thông tin của mình
             canManageUsers: false,
-            canManageOrganization: false,
+            canManageRoles: false,
             canManageStudents: false,
             canManageLecturers: false,
+            canManageOrganization: false,
             canManageSubjects: false,
             canManageClasses: false,
-            canViewAuditLogs: false,
-            canManageRoles: false,
-            canViewAllData: false,
-            canViewOwnSchedule: true,     // Xem lịch của mình
-            canViewOwnGrades: true        // Xem điểm của mình
+            canViewOwnClasses: true,
+            canManageSchedules: false,
+            canViewOwnSchedule: true,
+            canExportSchedules: true,
+            canManageAcademicYears: false,
+            canViewAcademicYears: true,
+            canTakeAttendance: false,
+            canViewOwnAttendance: true,
+            canEnterGrades: false,
+            canViewOwnGrades: true,
+            canViewDashboard: true,
+            canViewNotifications: true
         },
         'Advisor': {
+            // Cố vấn - quản lý sinh viên được phụ trách
             canManageUsers: false,
-            canManageOrganization: false,
-            canManageStudents: true,      // Cố vấn có thể quản lý sinh viên
+            canManageRoles: false,
+            canManageStudents: true, // Chỉ sinh viên được phụ trách
             canManageLecturers: false,
+            canManageOrganization: false,
             canManageSubjects: false,
             canManageClasses: false,
-            canViewAuditLogs: false,
-            canManageRoles: false,
-            canViewAllData: false,
-            canViewAdvisees: true         // Xem sinh viên được phụ trách
+            canManageSchedules: false,
+            canManageAcademicYears: false,
+            canViewAcademicYears: true,
+            canTakeAttendance: false,
+            canEnterGrades: false,
+            canViewAdvisees: true,
+            canManageAdvisees: true,
+            canViewReports: true,
+            canExportReports: true,
+            canViewDashboard: true,
+            canCreateNotifications: true,
+            canViewNotifications: true
         }
+    };
+    
+    /**
+     * Load permissions from API
+     */
+    this.loadPermissions = function() {
+        var self = this;
+        var role = self.getCurrentRole();
+        
+        if (!role) {
+            return Promise.reject('No role found');
+        }
+        
+        // Return cached if available
+        if (cachedPermissions) {
+            return Promise.resolve(cachedPermissions);
+        }
+        
+        // Load from API
+        return $http.get(API_CONFIG.BASE_URL + '/menu/permissions')
+            .then(function(response) {
+                permissionCodesCache = response.data.permissions || [];
+                
+                // Build permissions object from permission codes
+                var permissions = {};
+                permissionCodesCache.forEach(function(code) {
+                    var frontendPermission = PERMISSION_MAP[code];
+                    if (frontendPermission) {
+                        permissions[frontendPermission] = true;
+                    }
+                });
+                
+                cachedPermissions = permissions;
+                return permissions;
+            })
+            .catch(function(error) {
+                console.error('Failed to load permissions from API:', error);
+                // Fallback to hard-coded permissions
+                cachedPermissions = FALLBACK_PERMISSIONS[role] || {};
+                return cachedPermissions;
+            });
     };
     
     /**
@@ -66,11 +274,17 @@ app.service('RoleService', ['AuthService', function(AuthService) {
      * Check if user has a specific permission
      */
     this.hasPermission = function(permission) {
+        // Use cached permissions if available
+        if (cachedPermissions) {
+            return cachedPermissions[permission] === true;
+        }
+        
+        // Fallback to hard-coded permissions
         var role = this.getCurrentRole();
-        if (!role || !ROLE_PERMISSIONS[role]) {
+        if (!role || !FALLBACK_PERMISSIONS[role]) {
             return false;
         }
-        return ROLE_PERMISSIONS[role][permission] === true;
+        return FALLBACK_PERMISSIONS[role][permission] === true;
     };
     
     /**
@@ -149,6 +363,14 @@ app.service('RoleService', ['AuthService', function(AuthService) {
         }
         
         return false;
+    };
+    
+    /**
+     * Clear cached permissions (useful on logout)
+     */
+    this.clearCache = function() {
+        cachedPermissions = null;
+        permissionCodesCache = [];
     };
     
     /**

@@ -43,37 +43,29 @@ namespace EducationManagement.DAL.Repositories
 
             var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(_connectionString, "sp_GetAllUsers", parameters);
 
-            // 🔍 DEBUG
-            Console.WriteLine($"🔍 DataSet info: Tables count = {ds.Tables.Count}");
-            for (int i = 0; i < ds.Tables.Count; i++)
-            {
-                Console.WriteLine($"   Table[{i}]: {ds.Tables[i].Rows.Count} rows, {ds.Tables[i].Columns.Count} columns");
-                if (ds.Tables[i].Rows.Count > 0)
-                {
-                    Console.WriteLine($"   First column: {ds.Tables[i].Columns[0].ColumnName}");
-                }
-            }
-
+            // DEBUG logs đã tắt để tránh spam console
+            // Console.WriteLine($"🔍 DataSet info: Tables count = {ds.Tables.Count}");
+            
             // First result set: TotalCount
             if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
             {
                 totalCount = Convert.ToInt32(ds.Tables[0].Rows[0]["TotalCount"]);
-                Console.WriteLine($"✅ TotalCount extracted: {totalCount}");
+                // Console.WriteLine($"✅ TotalCount extracted: {totalCount}");
             }
 
             // Second result set: Data
             if (ds.Tables.Count > 1)
             {
-                Console.WriteLine($"🔍 Processing Table[1] with {ds.Tables[1].Rows.Count} rows...");
+                // Console.WriteLine($"🔍 Processing Table[1] with {ds.Tables[1].Rows.Count} rows...");
                 foreach (DataRow row in ds.Tables[1].Rows)
                 {
                     users.Add(MapToUser(row));
                 }
-                Console.WriteLine($"✅ Users mapped: {users.Count}");
+                // Console.WriteLine($"✅ Users mapped: {users.Count}");
             }
             else
             {
-                Console.WriteLine($"❌ No second result set! Tables.Count = {ds.Tables.Count}");
+                // Console.WriteLine($"❌ No second result set! Tables.Count = {ds.Tables.Count}");
             }
 
             return (users, totalCount);

@@ -48,15 +48,12 @@
                 <div class="card-body">
                     <!-- Search and Filter -->
                     <div class="filter-bar">
-                        <div class="filter-group">
-                            <div class="search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" 
-                                       class="form-control" 
-                                       placeholder="Tìm kiếm theo tên, email, username..." 
-                                       ng-model="searchText"
-                                       ng-change="applyFilters()">
-                            </div>
+                        <div class="filter-group" style="flex: 1;">
+                            <search-bar 
+                                search-term="searchText" 
+                                on-search="applyFilters()" 
+                                placeholder="Tìm kiếm theo tên, email, username...">
+                            </search-bar>
                         </div>
                         <div class="filter-group">
                             <select class="form-control" ng-model="filterRole" ng-change="applyFilters()">

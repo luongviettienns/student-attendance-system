@@ -306,6 +306,35 @@ CREATE TABLE dbo.grades (
 GO
 
 -- ===========================================
+-- 13A. BẢNG GPAS (Điểm trung bình)
+-- ===========================================
+IF OBJECT_ID('dbo.gpas', 'U') IS NOT NULL DROP TABLE dbo.gpas;
+GO
+
+CREATE TABLE dbo.gpas (
+    gpa_id           VARCHAR(50) PRIMARY KEY,
+    student_id       VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.students(student_id),
+    academic_year_id VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.academic_years(academic_year_id),
+    semester         INT NULL, -- NULL = cả năm học, 1/2/3 = học kỳ cụ thể
+    gpa10            DECIMAL(4,2) NULL CHECK (gpa10 >= 0 AND gpa10 <= 10),
+    gpa4             DECIMAL(4,2) NULL CHECK (gpa4 >= 0 AND gpa4 <= 4),
+    total_credits    INT NULL DEFAULT 0,
+    accumulated_credits INT NULL DEFAULT 0,
+    rank_text        NVARCHAR(50) NULL, -- Xuất sắc, Giỏi, Khá, Trung bình, Yếu
+    is_active        BIT NOT NULL DEFAULT 1,
+    created_at       DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by       VARCHAR(50) NULL,
+    updated_at       DATETIME NULL,
+    updated_by       VARCHAR(50) NULL,
+    deleted_at       DATETIME NULL,
+    deleted_by       VARCHAR(50) NULL,
+    
+    -- Unique constraint: Mỗi sinh viên chỉ có 1 GPA cho 1 năm học + học kỳ
+    CONSTRAINT uk_gpa_student_year_semester UNIQUE (student_id, academic_year_id, semester)
+);
+GO
+
+-- ===========================================
 -- 14. BẢNG NOTIFICATIONS (Thông báo)
 -- ===========================================
 IF OBJECT_ID('dbo.notifications', 'U') IS NOT NULL DROP TABLE dbo.notifications;
@@ -382,5 +411,22 @@ CREATE TABLE dbo.audit_logs (
 );
 GO
 
-PRINT '✅ Đã tạo xong tất cả các bảng (bao gồm permissions & role_permissions)!';
+-- ===========================================
+-- 19. BẢNG REFRESH_TOKENS (JWT Refresh Tokens)
+-- ===========================================
+IF OBJECT_ID('dbo.refresh_tokens', 'U') IS NOT NULL DROP TABLE dbo.refresh_tokens;
+GO
+
+CREATE TABLE dbo.refresh_tokens (
+    id                  UNIQUEIDENTIFIER PRIMARY KEY DEFAULT NEWID(),
+    user_id             VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.users(user_id) ON DELETE CASCADE,
+    token               VARCHAR(500) NOT NULL UNIQUE,
+    expires_at          DATETIME NOT NULL,
+    created_at          DATETIME NOT NULL DEFAULT(GETDATE()),
+    revoked_at          DATETIME NULL,
+    replaced_by_token   VARCHAR(500) NULL
+);
+GO
+
+PRINT '✅ Đã tạo xong tất cả các bảng (bao gồm permissions, role_permissions, và refresh_tokens)!';
 

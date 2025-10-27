@@ -1,5 +1,5 @@
-// Search Bar Directive
-app.directive('searchBar', ['$timeout', function($timeout) {
+// Search Bar Directive - Unified version with button
+app.directive('searchBar', function() {
     return {
         restrict: 'E',
         scope: {
@@ -8,31 +8,26 @@ app.directive('searchBar', ['$timeout', function($timeout) {
             onSearch: '&'
         },
         template: 
-            '<div class="search-bar">' +
-                '<div class="search-input-group">' +
-                    '<i class="fas fa-search search-icon"></i>' +
+            '<div class="unified-search-bar">' +
+                '<div class="search-input-wrapper">' +
+                    '<i class="fas fa-search search-icon-inside"></i>' +
                     '<input type="text" ' +
                            'ng-model="searchTerm" ' +
-                           'ng-change="handleSearch()" ' +
+                           'ng-keyup="$event.keyCode === 13 && handleSearch()" ' +
                            'placeholder="{{placeholder || \'Tìm kiếm...\'}}" ' +
                            'class="search-input">' +
-                    '<button ng-if="searchTerm" ng-click="clearSearch()" class="search-clear">' +
+                    '<button ng-if="searchTerm" ng-click="clearSearch()" class="search-clear-btn" title="Xóa">' +
                         '<i class="fas fa-times"></i>' +
                     '</button>' +
                 '</div>' +
+                '<button ng-click="handleSearch()" class="search-submit-btn">' +
+                    '<i class="fas fa-search"></i>' +
+                    ' Tìm kiếm' +
+                '</button>' +
             '</div>',
         link: function(scope) {
-            var searchTimeout;
-            
             scope.handleSearch = function() {
-                // Debounce search - wait 500ms after user stops typing
-                if (searchTimeout) {
-                    $timeout.cancel(searchTimeout);
-                }
-                
-                searchTimeout = $timeout(function() {
-                    scope.onSearch();
-                }, 500);
+                scope.onSearch();
             };
             
             scope.clearSearch = function() {
@@ -41,5 +36,5 @@ app.directive('searchBar', ['$timeout', function($timeout) {
             };
         }
     };
-}]);
+});
 

@@ -1,5 +1,5 @@
 // Authentication Service
-app.service('AuthService', ['$http', '$window', '$location', 'API_CONFIG', function($http, $window, $location, API_CONFIG) {
+app.service('AuthService', ['$http', '$window', '$location', '$rootScope', 'API_CONFIG', function($http, $window, $location, $rootScope, API_CONFIG) {
     var TOKEN_KEY = 'auth_token';
     var USER_KEY = 'user_info';
     
@@ -41,6 +41,9 @@ app.service('AuthService', ['$http', '$window', '$location', 'API_CONFIG', funct
     };
     
     this.logout = function() {
+        // Broadcast logout event (for RoleService to clear cache)
+        $rootScope.$broadcast('user:logout');
+        
         // Clear from both storages
         $window.localStorage.removeItem(TOKEN_KEY);
         $window.localStorage.removeItem(USER_KEY);

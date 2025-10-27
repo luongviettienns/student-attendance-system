@@ -2,17 +2,18 @@ using Microsoft.AspNetCore.Mvc;
 using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
 using Microsoft.AspNetCore.Authorization;
+using EducationManagement.BLL.Services;
 
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
     [Authorize(Roles = "Admin")]
     [Route("api-edu/admin/department")]
-    public class DepartmentController : ControllerBase
+    public class DepartmentController : BaseController
     {
         private readonly DepartmentRepository _repository;
 
-        public DepartmentController(DepartmentRepository repository)
+        public DepartmentController(DepartmentRepository repository, AuditLogService auditLogService) : base(auditLogService)
         {
             _repository = repository;
         }
@@ -91,6 +92,14 @@ namespace EducationManagement.API.Admin.Controllers
                 model.CreatedAt = DateTime.Now;
 
                 await _repository.AddAsync(model);
+
+                // ✅ Audit Log: Create Department
+                await LogCreateAsync("Department", model.DepartmentId, new {
+                    department_code = model.DepartmentCode,
+                    department_name = model.DepartmentName,
+                    faculty_id = model.FacultyId
+                });
+
                 return Ok(new { message = "✅ Thêm bộ môn thành công!", data = model });
             }
             catch (Exception ex)
@@ -110,12 +119,22 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
+                var oldDept = await _repository.GetByIdAsync(id);
+                
                 model.UpdatedBy = User.Identity?.Name ?? "system";
                 model.UpdatedAt = DateTime.Now;
 
                 var rowsAffected = await _repository.UpdateAsync(model);
                 if (rowsAffected == 0)
                     return NotFound(new { message = "Không tìm thấy bộ môn" });
+
+                // ✅ Audit Log: Update Department
+                if (oldDept != null)
+                {
+                    await LogUpdateAsync("Department", model.DepartmentId,
+                        new { department_name = oldDept.DepartmentName, faculty_id = oldDept.FacultyId },
+                        new { department_name = model.DepartmentName, faculty_id = model.FacultyId });
+                }
 
                 return Ok(new { message = "✅ Cập nhật bộ môn thành công!" });
             }
@@ -133,7 +152,18 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
+                var dept = await _repository.GetByIdAsync(id);
                 await _repository.DeleteAsync(id);
+
+                // ✅ Audit Log: Delete Department
+                if (dept != null)
+                {
+                    await LogDeleteAsync("Department", id, new {
+                        department_code = dept.DepartmentCode,
+                        department_name = dept.DepartmentName
+                    });
+                }
+
                 return Ok(new { message = "🗑 Xóa bộ môn thành công!" });
             }
             catch (Exception ex)

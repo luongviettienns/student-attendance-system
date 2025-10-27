@@ -10,14 +10,18 @@ namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
     [Route("api-edu/auth")]
-    public class AuthController : ControllerBase
+    public class AuthController : BaseController
     {
         private readonly AuthService _authService;
         private readonly JwtService _jwtService;
         private readonly string _avatarFolder;
         private readonly string _gatewayUrl;
 
-        public AuthController(AuthService authService, JwtService jwtService, IConfiguration configuration)
+        public AuthController(
+            AuthService authService, 
+            JwtService jwtService, 
+            IConfiguration configuration,
+            AuditLogService auditLogService) : base(auditLogService)
         {
             _authService = authService;
             _jwtService = jwtService;
@@ -80,7 +84,14 @@ namespace EducationManagement.API.Admin.Controllers
                 AvatarUrl = fullAvatarUrl
             };
 
-            Console.WriteLine($"[Login] ✅ {user.Username} đăng nhập thành công");
+            // ✅ Audit Log: Login
+            await LogLoginAsync(user.UserId, new { 
+                username = user.Username, 
+                role = user.RoleName,
+                login_time = DateTime.UtcNow 
+            });
+
+            // Console.WriteLine($"[Login] ✅ {user.Username} đăng nhập thành công"); // Tắt để tránh spam log
             return Ok(new { data = response });
         }
 
@@ -129,9 +140,14 @@ namespace EducationManagement.API.Admin.Controllers
 
             var token = await _authService.GetRefreshTokenAsync(request.RefreshToken);
             if (token != null)
+            {
                 await _authService.RevokeRefreshTokenAsync(token.Id);
+                
+                // ✅ Audit Log: Logout
+                await LogLogoutAsync(token.UserId);
+            }
 
-            Console.WriteLine($"[Logout] ✅ Token đã bị thu hồi");
+            // Console.WriteLine($"[Logout] ✅ Token đã bị thu hồi"); // Tắt để tránh spam log
             return Ok(new { message = "Đăng xuất thành công" });
         }
     }

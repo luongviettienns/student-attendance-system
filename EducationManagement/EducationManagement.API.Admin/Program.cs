@@ -1,8 +1,11 @@
 ﻿using System.Reflection;
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
 using Scrutor;
+using System.IO.Compression;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,9 +30,107 @@ builder.Services.Scan(scan => scan
     .WithScopedLifetime()
 );
 
-// ✅ Explicit registration for IRefreshTokenStore (singleton for in-memory store)
-builder.Services.AddSingleton<EducationManagement.BLL.Services.IRefreshTokenStore, 
-    EducationManagement.BLL.Services.InMemoryRefreshTokenStore>();
+// ✅ Explicit registration for IRefreshTokenStore (DATABASE storage - SCALABLE!)
+// ❌ REMOVED: InMemoryRefreshTokenStore (not scalable for production)
+builder.Services.AddScoped<EducationManagement.BLL.Services.IRefreshTokenStore, 
+    EducationManagement.BLL.Services.DatabaseRefreshTokenStore>();
+
+// ============================================================
+// 🔹 2.5️⃣ REDIS CACHING (OPTIONAL - Fallback to Memory Cache if Redis unavailable)
+// ============================================================
+var redisConnectionString = builder.Configuration.GetValue<string>("Redis:ConnectionString") ?? "localhost:6379";
+var useRedis = builder.Configuration.GetValue<bool>("Redis:Enabled");
+
+if (useRedis)
+{
+    try
+    {
+        builder.Services.AddStackExchangeRedisCache(options =>
+        {
+            options.Configuration = redisConnectionString;
+            options.InstanceName = "EduSystem_";
+        });
+        Console.WriteLine("✅ Redis caching enabled");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"⚠️ Redis connection failed, falling back to Memory Cache: {ex.Message}");
+        builder.Services.AddDistributedMemoryCache();
+    }
+}
+else
+{
+    // Fallback to in-memory cache if Redis is disabled
+    builder.Services.AddDistributedMemoryCache();
+    Console.WriteLine("⚠️ Redis disabled, using Memory Cache (not recommended for production)");
+}
+
+// ============================================================
+// 🔹 2.6️⃣ RESPONSE COMPRESSION (Gzip + Brotli)
+// ============================================================
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.Fastest;
+});
+
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+{
+    options.Level = CompressionLevel.Fastest;
+});
+
+// ============================================================
+// 🔹 2.7️⃣ RATE LIMITING (DDoS Protection)
+// ============================================================
+builder.Services.AddRateLimiter(options =>
+{
+    // Global rate limit - 100 requests per minute per user/IP
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        var username = context.User.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: username,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 100,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            });
+    });
+    
+    // Stricter rate limit for login endpoint - 5 requests per 15 minutes per IP
+    options.AddPolicy("login", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(15),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+    
+    // Rejection response
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            error = "Too many requests",
+            message = "Rate limit exceeded. Please try again later.",
+            retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter) 
+                ? (double?)retryAfter.TotalSeconds 
+                : (double?)null
+        }, cancellationToken: token);
+    };
+});
 
 // ============================================================
 // 🔹 3️⃣ Cấu hình Controller, Swagger, CORS
@@ -86,23 +187,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ClockSkew = TimeSpan.Zero
         };
 
-        // ✅ Debug log cho JWT
+        // ✅ JWT Events (chỉ log lỗi, không log mỗi lần validate)
         options.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = context =>
             {
+                // Chỉ log lỗi authentication
                 Console.ForegroundColor = ConsoleColor.Red;
                 Console.WriteLine($"❌ JWT Invalid: {context.Exception.Message}");
                 Console.ResetColor();
                 return Task.CompletedTask;
-            },
-            OnTokenValidated = context =>
-            {
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"✅ Token hợp lệ cho user: {context.Principal?.Identity?.Name}");
-                Console.ResetColor();
-                return Task.CompletedTask;
             }
+            // Tắt OnTokenValidated để tránh log quá nhiều
         };
     });
 
@@ -139,6 +235,12 @@ Console.ResetColor();
 // ============================================================
 // 🔹 7️⃣ Middleware pipeline
 // ============================================================
+
+// ⚠️ Response Compression MUST be FIRST (before any output)
+app.UseResponseCompression();
+
+// ⚠️ Rate Limiting should be early in the pipeline
+app.UseRateLimiter();
 
 // ⚠️ Không redirect HTTPS (Gateway đã xử lý SSL termination)
 app.UseCors("AllowFrontend");

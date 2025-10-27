@@ -8,11 +8,11 @@ namespace EducationManagement.API.Admin.Controllers
     [ApiController]
     [Authorize(Roles = "Admin")]
     [Route("api-edu/faculties")]
-    public class FacultyController : ControllerBase
+    public class FacultyController : BaseController
     {
         private readonly FacultyService _service;
 
-        public FacultyController(FacultyService service)
+        public FacultyController(FacultyService service, AuditLogService auditLogService) : base(auditLogService)
         {
             _service = service;
         }
@@ -58,6 +58,14 @@ namespace EducationManagement.API.Admin.Controllers
             f.FacultyId = Guid.NewGuid().ToString();
             f.CreatedAt = DateTime.Now;
             await _service.AddAsync(f);
+
+            // ✅ Audit Log: Create Faculty
+            await LogCreateAsync("Faculty", f.FacultyId, new {
+                faculty_code = f.FacultyCode,
+                faculty_name = f.FacultyName,
+                description = f.Description
+            });
+
             return Ok(new { message = "✅ Tạo khoa thành công!" });
         }
 
@@ -65,15 +73,37 @@ namespace EducationManagement.API.Admin.Controllers
         public async Task<IActionResult> Update(string id, [FromBody] Faculty f)
         {
             if (id != f.FacultyId) return BadRequest();
+
+            var oldFaculty = await _service.GetByIdAsync(id);
             f.UpdatedAt = DateTime.Now;
             await _service.UpdateAsync(f);
+
+            // ✅ Audit Log: Update Faculty
+            if (oldFaculty != null)
+            {
+                await LogUpdateAsync("Faculty", f.FacultyId, 
+                    new { faculty_name = oldFaculty.FacultyName, description = oldFaculty.Description },
+                    new { faculty_name = f.FacultyName, description = f.Description });
+            }
+
             return Ok(new { message = "✅ Cập nhật khoa thành công!" });
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
+            var faculty = await _service.GetByIdAsync(id);
             await _service.DeleteAsync(id);
+
+            // ✅ Audit Log: Delete Faculty
+            if (faculty != null)
+            {
+                await LogDeleteAsync("Faculty", id, new {
+                    faculty_code = faculty.FacultyCode,
+                    faculty_name = faculty.FacultyName
+                });
+            }
+
             return Ok(new { message = "🗑 Xóa khoa thành công!" });
         }
     }

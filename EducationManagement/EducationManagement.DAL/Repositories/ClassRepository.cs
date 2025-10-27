@@ -25,14 +25,30 @@ namespace EducationManagement.DAL.Repositories
         {
             var classes = new List<Class>();
 
-            var dt = await DatabaseHelper.ExecuteQueryAsync(
+            // sp_GetAllClasses yêu cầu parameters và trả về multiple result sets
+            var parameters = new[]
+            {
+                new SqlParameter("@Page", 1),
+                new SqlParameter("@PageSize", 9999), // Get all
+                new SqlParameter("@Search", DBNull.Value),
+                new SqlParameter("@SubjectId", DBNull.Value),
+                new SqlParameter("@LecturerId", DBNull.Value),
+                new SqlParameter("@AcademicYearId", DBNull.Value)
+            };
+
+            var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(
                 _connectionString,
-                "sp_GetAllClasses"
+                "sp_GetAllClasses",
+                parameters
             );
 
-            foreach (DataRow row in dt.Rows)
+            // Table[0] = TotalCount, Table[1] = Data
+            if (ds.Tables.Count > 1 && ds.Tables[1].Rows.Count > 0)
             {
-                classes.Add(MapToClass(row));
+                foreach (DataRow row in ds.Tables[1].Rows)
+                {
+                    classes.Add(MapToClass(row));
+                }
             }
 
             return classes;

@@ -1,7 +1,9 @@
 // Generic API Service
 app.service('ApiService', ['$http', 'API_CONFIG', function($http, API_CONFIG) {
     
-    this.get = function(endpoint, config) {
+    this.get = function(endpoint, params) {
+        // Wrap params trong { params: ... } để Angular $http convert thành query string
+        var config = params ? { params: params } : {};
         return $http.get(API_CONFIG.BASE_URL + endpoint, config);
     };
     

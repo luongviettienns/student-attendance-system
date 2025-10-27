@@ -91,7 +91,7 @@ namespace EducationManagement.DAL
                     }
                     
                     ds.Tables.Add(dt);
-                    Console.WriteLine($"🔍 Loaded Table[{tableIndex}]: {dt.Rows.Count} rows, {dt.Columns.Count} columns");
+                    // Console.WriteLine($"🔍 Loaded Table[{tableIndex}]: {dt.Rows.Count} rows, {dt.Columns.Count} columns"); // Tắt log để tránh spam
                     tableIndex++;
                 } while (await reader.NextResultAsync());
             }

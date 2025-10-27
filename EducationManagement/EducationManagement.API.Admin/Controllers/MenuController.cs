@@ -129,5 +129,42 @@
 
                 return fullState;
             }
+            
+            /// <summary>
+            /// 🔹 Lấy danh sách quyền (permissions) của user hiện tại
+            /// </summary>
+            [HttpGet("permissions")]
+            public async Task<IActionResult> GetUserPermissions()
+            {
+                try
+                {
+                    // 🔍 Lấy role từ token
+                    var roleName = User.FindFirst("role")?.Value
+                        ?? User.FindFirst(ClaimTypes.Role)?.Value;
+
+                    if (string.IsNullOrEmpty(roleName))
+                    {
+                        return Unauthorized(new { message = "Không xác định được vai trò người dùng." });
+                    }
+
+                    // 🔍 Lấy quyền theo RoleName từ repository
+                    var permissionsFromDb = await _permissionRepository.GetByRoleNameAsync(roleName);
+
+                    // Trả về danh sách permission codes
+                    var permissionCodes = permissionsFromDb
+                        .Select(p => p.PermissionCode)
+                        .ToList();
+
+                    return Ok(new
+                    {
+                        role = roleName,
+                        permissions = permissionCodes
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, new { message = "Đã xảy ra lỗi khi lấy quyền.", error = ex.Message });
+                }
+            }
         }
     }

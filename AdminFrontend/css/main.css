@@ -4,30 +4,92 @@
    ============================================== */
 
 :root {
-    --primary-color: #2563eb;
-    --primary-dark: #1d4ed8;
-    --primary-light: #3b82f6;
-    --secondary-color: #64748b;
-    --success-color: #10b981;
-    --danger-color: #ef4444;
-    --warning-color: #f59e0b;
-    --info-color: #06b6d4;
+    /* === SEMANTIC COLORS - HỆ THỐNG MÀU LOGIC === */
     
+    /* Primary - Màu chính (Blue) */
+    --primary-color: #3b82f6;
+    --primary-dark: #2563eb;
+    --primary-light: #60a5fa;
+    
+    /* Success - Thành công, Thêm mới (Green) */
+    --success-color: #10b981;
+    --success-dark: #059669;
+    --success-light: #34d399;
+    
+    /* Danger - Xóa, Lỗi (Red) */
+    --danger-color: #ef4444;
+    --danger-dark: #dc2626;
+    --danger-light: #f87171;
+    
+    /* Warning - Chỉnh sửa, Cảnh báo (Orange) */
+    --warning-color: #f97316;
+    --warning-dark: #ea580c;
+    --warning-light: #fb923c;
+    
+    /* Info - Thông tin, Xem (Sky Blue) */
+    --info-color: #0ea5e9;
+    --info-dark: #0284c7;
+    --info-light: #38bdf8;
+    
+    /* Purple - Download, Đặc biệt */
+    --purple-color: #8b5cf6;
+    --purple-dark: #7c3aed;
+    --purple-light: #a78bfa;
+    
+    /* Cyan - Upload, Import */
+    --cyan-color: #06b6d4;
+    --cyan-dark: #0891b2;
+    --cyan-light: #22d3ee;
+    
+    /* Secondary - Phụ, Quay lại (Gray) */
+    --secondary-color: #6b7280;
+    --secondary-dark: #4b5563;
+    --secondary-light: #9ca3af;
+    
+    /* === BACKGROUND COLORS === */
     --bg-primary: #ffffff;
     --bg-secondary: #f8fafc;
+    --bg-tertiary: #f1f5f9;
     --bg-dark: #1e293b;
+    --bg-darker: #0f172a;
     
+    /* === TEXT COLORS === */
     --text-primary: #0f172a;
     --text-secondary: #475569;
+    --text-tertiary: #64748b;
     --text-light: #94a3b8;
+    --text-lighter: #cbd5e1;
     
+    /* === BORDER & RADIUS === */
     --border-color: #e2e8f0;
+    --border-color-light: #f1f5f9;
+    --border-color-dark: #cbd5e1;
     --border-radius: 8px;
-    --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    --box-shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
     
+    /* === SHADOWS === */
+    --box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    --box-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --box-shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
+    --box-shadow-xl: 0 20px 40px rgba(0, 0, 0, 0.15);
+    
+    /* === HOVER EFFECTS === */
+    --hover-bg: #f8fafc;
+    --hover-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+    
+    /* === LAYOUT === */
     --sidebar-width: 260px;
     --header-height: 64px;
+    
+    /* === GRADIENTS === */
+    --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    --gradient-warning: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    --gradient-info: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    --gradient-purple: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+    --gradient-dark: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
 }
 
 * {
@@ -117,16 +179,20 @@ body {
 }
 
 .sidebar-menu a.active {
-    background-color: var(--primary-color);
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.25) 0%, rgba(59, 130, 246, 0.05) 100%);
     color: white;
     border-left: 4px solid var(--primary-light);
+    box-shadow: inset 0 0 20px rgba(59, 130, 246, 0.15);
 }
 
 .sidebar-menu a i {
     width: 20px;
     margin-right: 12px;
     font-size: 16px;
+    transition: all 0.2s ease;
 }
+
+/* Icon sidebar sẽ được style bởi semantic-colors.css */
 
 .sidebar-menu a small {
     width: 100%;

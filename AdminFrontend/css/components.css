@@ -22,69 +22,151 @@
     line-height: 1.5;
 }
 
+/* Đảm bảo tất cả icon trong buttons có màu trắng */
+.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i,
+.btn-success:not(.btn-outline):not([class*="btn-outline"]) i,
+.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i,
+.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i,
+.btn-info:not(.btn-outline):not([class*="btn-outline"]) i,
+.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i,
+.btn-sm.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i,
+.btn-sm.btn-success:not(.btn-outline):not([class*="btn-outline"]) i,
+.btn-sm.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i,
+.btn-sm.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i,
+.btn-sm.btn-info:not(.btn-outline):not([class*="btn-outline"]) i,
+.btn-sm.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i {
+    color: white !important;
+}
+
+/* Icon trong outline buttons giữ màu của button type */
+.btn-outline-primary i,
+.btn-outline.btn-primary i {
+    color: var(--primary-color) !important;
+}
+
+.btn-outline-secondary i,
+.btn-outline.btn-secondary i {
+    color: var(--secondary-color) !important;
+}
+
+.btn-outline-success i,
+.btn-outline.btn-success i {
+    color: var(--success-color) !important;
+}
+
+.btn-outline-danger i,
+.btn-outline.btn-danger i {
+    color: var(--danger-color) !important;
+}
+
+.btn-outline-warning i,
+.btn-outline.btn-warning i {
+    color: var(--warning-color) !important;
+}
+
+.btn-outline-info i,
+.btn-outline.btn-info i {
+    color: var(--info-color) !important;
+}
+
+/* Khi hover outline button → icon màu trắng */
+.btn-outline:hover i,
+[class*="btn-outline"]:hover i {
+    color: white !important;
+}
+
 .btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
 .btn-primary {
-    background-color: var(--primary-color);
+    background: var(--gradient-primary);
     color: white;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background-color: var(--primary-dark);
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
 .btn-success {
-    background-color: var(--success-color);
+    background: var(--gradient-success);
     color: white;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .btn-success:hover:not(:disabled) {
-    background-color: #059669;
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
 .btn-danger {
-    background-color: var(--danger-color);
+    background: var(--gradient-danger);
     color: white;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 .btn-danger:hover:not(:disabled) {
-    background-color: #dc2626;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }
 
 .btn-warning {
-    background-color: var(--warning-color);
+    background: var(--gradient-warning);
     color: white;
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
 }
 
 .btn-warning:hover:not(:disabled) {
-    background-color: #d97706;
+    background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+    box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
+}
+
+.btn-info {
+    background: var(--gradient-info);
+    color: white;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+}
+
+.btn-info:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
 }
 
 .btn-secondary {
-    background-color: var(--secondary-color);
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
     color: white;
+    box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
 }
 
 .btn-secondary:hover:not(:disabled) {
-    background-color: #475569;
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+    box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4);
 }
 
 .btn-outline {
     background-color: transparent;
-    border: 1.5px solid var(--border-color);
+    border: 2px solid var(--border-color-dark);
     color: var(--text-primary);
     font-weight: 500;
+    transition: all 0.3s ease;
 }
 
 .btn-outline:hover:not(:disabled) {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-outline-danger:hover:not(:disabled) {
     background-color: var(--danger-color);
     border-color: var(--danger-color);
     color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .btn-sm {
@@ -124,6 +206,12 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+}
+
+/* Icon trong card header với background gradient/màu đậm */
+.card-header[style*="background"] i,
+.card-header[class*="bg-"] i {
+    color: white !important;
 }
 
 .card-title {
@@ -410,6 +498,11 @@ input[type="radio"] {
 .badge-secondary {
     background-color: rgba(100, 116, 139, 0.1);
     color: var(--secondary-color);
+}
+
+/* Đảm bảo icon trong badge với background đậm có màu trắng */
+.badge[style*="background"] i {
+    color: white !important;
 }
 
 /* ==============================================
@@ -1671,5 +1764,339 @@ input[type="radio"] {
 
 .view-all-btn:hover i {
     transform: translateX(4px);
+}
+
+/* ==============================================
+   CUSTOM TABS - KHÔNG DÙNG BOOTSTRAP
+   ============================================== */
+
+.custom-tabs {
+    margin-bottom: 24px;
+}
+
+.custom-tab-nav {
+    display: flex;
+    gap: 8px;
+    border-bottom: 2px solid var(--border-color);
+    padding: 0;
+    margin: 0;
+}
+
+.custom-tab-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    margin-bottom: -2px;
+}
+
+.custom-tab-button i {
+    font-size: 16px;
+}
+
+.custom-tab-button:hover:not(.active) {
+    color: var(--primary-color);
+    background: var(--bg-secondary);
+}
+
+.custom-tab-button.active {
+    color: var(--primary-color);
+    font-weight: 600;
+    border-bottom-color: var(--primary-color);
+    background: linear-gradient(to bottom, var(--bg-secondary) 0%, transparent 100%);
+}
+
+.custom-tab-content {
+    margin-top: 24px;
+}
+
+.custom-tab-panel {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .custom-tab-nav {
+        flex-wrap: wrap;
+    }
+    
+    .custom-tab-button {
+        font-size: 14px;
+        padding: 10px 16px;
+    }
+}
+
+/* ==============================================
+   CUSTOM PAGINATION - KHÔNG DÙNG BOOTSTRAP
+   ============================================== */
+
+.custom-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 24px;
+    padding: 20px 0;
+    flex-wrap: wrap;
+}
+
+.pagination-btn {
+    min-width: 40px;
+    height: 40px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pagination-btn:hover:not(:disabled):not(.active) {
+    background: var(--bg-secondary);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-btn.active {
+    background: var(--gradient-primary);
+    color: white;
+    border-color: var(--primary-color);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: var(--bg-secondary);
+}
+
+.pagination-dots {
+    padding: 0 8px;
+    color: var(--text-light);
+    font-weight: 600;
+    user-select: none;
+}
+
+.pagination-info {
+    margin-left: 16px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+}
+
+/* Responsive pagination */
+@media (max-width: 576px) {
+    .custom-pagination {
+        gap: 6px;
+    }
+    
+    .pagination-btn {
+        min-width: 36px;
+        height: 36px;
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+    
+    .pagination-info {
+        width: 100%;
+        text-align: center;
+        margin: 8px 0 0 0;
+    }
+}
+
+/* ==============================================
+   VIEW DETAIL LINK - Custom Style
+   ============================================== */
+
+.view-detail-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    color: #0284c7;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    border: 1px solid #7dd3fc;
+    border-radius: 6px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.view-detail-link i {
+    font-size: 12px;
+    color: #0284c7;
+    transition: all 0.3s ease;
+}
+
+.view-detail-link:hover {
+    color: white !important;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    border-color: #0284c7;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+.view-detail-link:hover i {
+    transform: scale(1.2);
+    color: white !important;
+}
+
+.view-detail-link:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .view-detail-link {
+        font-size: 12px;
+        padding: 5px 12px;
+    }
+}
+
+/* ==============================================
+   UNIFIED SEARCH BAR - Toàn bộ dự án
+   ============================================== */
+
+.unified-search-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.search-input-wrapper {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon-inside {
+    position: absolute;
+    left: 14px;
+    color: #0ea5e9;
+    font-size: 16px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.unified-search-bar .search-input {
+    width: 100%;
+    padding: 12px 40px 12px 44px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.unified-search-bar .search-input:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.unified-search-bar .search-input::placeholder {
+    color: #94a3b8;
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-clear-btn:hover {
+    background: #f1f5f9;
+    color: #ef4444;
+}
+
+.search-submit-btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
+}
+
+.search-submit-btn:hover {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.search-submit-btn:active {
+    transform: translateY(0);
+}
+
+.search-submit-btn i {
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .unified-search-bar {
+        flex-direction: column;
+    }
+    
+    .search-submit-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 

@@ -1287,6 +1287,288 @@ GO
 PRINT '✅ Audit Logs Management SPs created';
 GO
 
+-- ===========================================
+-- 14. GPAS MANAGEMENT
+-- ===========================================
+
+IF OBJECT_ID('sp_GetGPAsByStudent', 'P') IS NOT NULL DROP PROCEDURE sp_GetGPAsByStudent;
+GO
+CREATE PROCEDURE sp_GetGPAsByStudent
+    @StudentId VARCHAR(50),
+    @AcademicYearId VARCHAR(50) = NULL
+AS
+BEGIN
+    SELECT g.*, s.student_code, s.full_name as student_name,
+           ay.year_name as academic_year_name
+    FROM dbo.gpas g
+    INNER JOIN dbo.students s ON g.student_id = s.student_id
+    INNER JOIN dbo.academic_years ay ON g.academic_year_id = ay.academic_year_id
+    WHERE g.student_id = @StudentId
+        AND (@AcademicYearId IS NULL OR g.academic_year_id = @AcademicYearId)
+        AND g.deleted_at IS NULL
+    ORDER BY ay.start_year DESC, g.semester;
+END
+GO
+
+IF OBJECT_ID('sp_CalculateGPA', 'P') IS NOT NULL DROP PROCEDURE sp_CalculateGPA;
+GO
+CREATE PROCEDURE sp_CalculateGPA
+    @StudentId VARCHAR(50),
+    @AcademicYearId VARCHAR(50),
+    @Semester INT = NULL, -- NULL = cả năm, 1/2/3 = học kỳ cụ thể
+    @CreatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @GpaId VARCHAR(50) = NEWID();
+    DECLARE @Gpa10 DECIMAL(4,2);
+    DECLARE @Gpa4 DECIMAL(4,2);
+    DECLARE @TotalCredits INT;
+    DECLARE @AccumulatedCredits INT;
+    DECLARE @RankText NVARCHAR(50);
+    
+    -- Tính điểm trung bình và tổng tín chỉ
+    SELECT 
+        @Gpa10 = ROUND(SUM(g.total_score * sub.credits) / NULLIF(SUM(sub.credits), 0), 2),
+        @TotalCredits = SUM(sub.credits),
+        @AccumulatedCredits = SUM(CASE WHEN g.total_score >= 4.0 THEN sub.credits ELSE 0 END)
+    FROM dbo.students s
+    INNER JOIN dbo.enrollments e ON s.student_id = e.student_id
+    INNER JOIN dbo.classes c ON e.class_id = c.class_id
+    INNER JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
+    INNER JOIN dbo.grades g ON e.enrollment_id = g.enrollment_id
+    WHERE s.student_id = @StudentId
+        AND c.academic_year_id = @AcademicYearId
+        AND (@Semester IS NULL OR c.semester = @Semester)
+        AND g.total_score IS NOT NULL
+        AND s.deleted_at IS NULL
+        AND e.deleted_at IS NULL;
+    
+    -- Tính GPA hệ 4
+    SELECT 
+        @Gpa4 = ROUND(
+            SUM(
+                CASE 
+                    WHEN g.total_score >= 8.5 THEN 4.0
+                    WHEN g.total_score >= 8.0 THEN 3.7
+                    WHEN g.total_score >= 7.0 THEN 3.0
+                    WHEN g.total_score >= 6.5 THEN 2.5
+                    WHEN g.total_score >= 5.5 THEN 2.0
+                    WHEN g.total_score >= 5.0 THEN 1.5
+                    WHEN g.total_score >= 4.0 THEN 1.0
+                    ELSE 0
+                END * sub.credits
+            ) / NULLIF(SUM(sub.credits), 0),
+            2
+        )
+    FROM dbo.students s
+    INNER JOIN dbo.enrollments e ON s.student_id = e.student_id
+    INNER JOIN dbo.classes c ON e.class_id = c.class_id
+    INNER JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
+    INNER JOIN dbo.grades g ON e.enrollment_id = g.enrollment_id
+    WHERE s.student_id = @StudentId
+        AND c.academic_year_id = @AcademicYearId
+        AND (@Semester IS NULL OR c.semester = @Semester)
+        AND g.total_score IS NOT NULL
+        AND s.deleted_at IS NULL
+        AND e.deleted_at IS NULL;
+    
+    -- Xếp loại
+    SET @RankText = CASE 
+        WHEN @Gpa10 >= 8.5 THEN N'Xuất sắc'
+        WHEN @Gpa10 >= 7.0 THEN N'Giỏi'
+        WHEN @Gpa10 >= 5.5 THEN N'Khá'
+        WHEN @Gpa10 >= 4.0 THEN N'Trung bình'
+        ELSE N'Yếu'
+    END;
+    
+    -- Xóa GPA cũ nếu có (để cập nhật)
+    DELETE FROM dbo.gpas 
+    WHERE student_id = @StudentId 
+        AND academic_year_id = @AcademicYearId 
+        AND ((@Semester IS NULL AND semester IS NULL) OR semester = @Semester);
+    
+    -- Chèn GPA mới
+    INSERT INTO dbo.gpas (
+        gpa_id, student_id, academic_year_id, semester,
+        gpa10, gpa4, total_credits, accumulated_credits, rank_text,
+        created_at, created_by
+    )
+    VALUES (
+        @GpaId, @StudentId, @AcademicYearId, @Semester,
+        @Gpa10, @Gpa4, @TotalCredits, @AccumulatedCredits, @RankText,
+        GETDATE(), @CreatedBy
+    );
+    
+    -- Trả về kết quả
+    SELECT 
+        @GpaId as gpa_id,
+        @StudentId as student_id,
+        @AcademicYearId as academic_year_id,
+        @Semester as semester,
+        @Gpa10 as gpa10,
+        @Gpa4 as gpa4,
+        @TotalCredits as total_credits,
+        @AccumulatedCredits as accumulated_credits,
+        @RankText as rank_text;
+END
+GO
+
+IF OBJECT_ID('sp_CalculateAllStudentGPA', 'P') IS NOT NULL DROP PROCEDURE sp_CalculateAllStudentGPA;
+GO
+CREATE PROCEDURE sp_CalculateAllStudentGPA
+    @AcademicYearId VARCHAR(50),
+    @Semester INT = NULL,
+    @CreatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @StudentId VARCHAR(50);
+    DECLARE student_cursor CURSOR FOR
+        SELECT DISTINCT s.student_id
+        FROM dbo.students s
+        INNER JOIN dbo.enrollments e ON s.student_id = e.student_id
+        INNER JOIN dbo.classes c ON e.class_id = c.class_id
+        WHERE c.academic_year_id = @AcademicYearId
+            AND (@Semester IS NULL OR c.semester = @Semester)
+            AND s.deleted_at IS NULL
+            AND e.deleted_at IS NULL;
+    
+    OPEN student_cursor;
+    FETCH NEXT FROM student_cursor INTO @StudentId;
+    
+    WHILE @@FETCH_STATUS = 0
+    BEGIN
+        EXEC sp_CalculateGPA 
+            @StudentId = @StudentId,
+            @AcademicYearId = @AcademicYearId,
+            @Semester = @Semester,
+            @CreatedBy = @CreatedBy;
+        
+        FETCH NEXT FROM student_cursor INTO @StudentId;
+    END
+    
+    CLOSE student_cursor;
+    DEALLOCATE student_cursor;
+    
+    SELECT 'SUCCESS' as Status, 
+           COUNT(*) as TotalStudentsProcessed
+    FROM dbo.gpas
+    WHERE academic_year_id = @AcademicYearId
+        AND ((@Semester IS NULL AND semester IS NULL) OR semester = @Semester);
+END
+GO
+
+PRINT '✅ GPAs Management SPs created';
+GO
+
+-- ===========================================
+-- 15. ACADEMIC YEAR TRANSITION
+-- ===========================================
+
+IF OBJECT_ID('sp_TransitionToNewAcademicYear', 'P') IS NOT NULL DROP PROCEDURE sp_TransitionToNewAcademicYear;
+GO
+CREATE PROCEDURE sp_TransitionToNewAcademicYear
+    @NewAcademicYearId VARCHAR(50),
+    @ExecutedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    
+    BEGIN TRY
+        -- 1. Kiểm tra năm học mới có tồn tại không
+        IF NOT EXISTS (SELECT 1 FROM dbo.academic_years WHERE academic_year_id = @NewAcademicYearId AND deleted_at IS NULL)
+        BEGIN
+            RAISERROR(N'❌ Năm học mới không tồn tại hoặc đã bị xóa!', 16, 1);
+            RETURN;
+        END
+        
+        -- 2. Lấy năm học hiện tại (đang active)
+        DECLARE @OldAcademicYearId VARCHAR(50);
+        SELECT TOP 1 @OldAcademicYearId = academic_year_id
+        FROM dbo.academic_years
+        WHERE is_active = 1 AND deleted_at IS NULL;
+        
+        IF @OldAcademicYearId IS NOT NULL
+        BEGIN
+            -- 3. Tính GPA cho tất cả sinh viên của năm học cũ
+            EXEC sp_CalculateAllStudentGPA 
+                @AcademicYearId = @OldAcademicYearId,
+                @Semester = NULL, -- Tính GPA cả năm
+                @CreatedBy = @ExecutedBy;
+            
+            -- 4. Đóng năm học cũ
+            UPDATE dbo.academic_years 
+            SET is_active = 0, 
+                updated_at = GETDATE(), 
+                updated_by = @ExecutedBy
+            WHERE academic_year_id = @OldAcademicYearId;
+        END
+        
+        -- 5. Kích hoạt năm học mới
+        UPDATE dbo.academic_years 
+        SET is_active = 1, 
+            updated_at = GETDATE(), 
+            updated_by = @ExecutedBy
+        WHERE academic_year_id = @NewAcademicYearId;
+        
+        -- 6. Ghi log audit
+        INSERT INTO dbo.audit_logs (
+            user_id, action, entity_type, entity_id, 
+            old_values, new_values, created_at
+        )
+        VALUES (
+            @ExecutedBy, 
+            'TRANSITION_ACADEMIC_YEAR', 
+            'academic_years', 
+            @NewAcademicYearId,
+            CONCAT('{"old_year":"', @OldAcademicYearId, '"}'),
+            CONCAT('{"new_year":"', @NewAcademicYearId, '"}'),
+            GETDATE()
+        );
+        
+        COMMIT TRANSACTION;
+        
+        SELECT 
+            'SUCCESS' as Status,
+            @OldAcademicYearId as OldAcademicYearId,
+            @NewAcademicYearId as NewAcademicYearId,
+            GETDATE() as TransitionDate,
+            N'✅ Chuyển năm học thành công!' as Message;
+            
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+        
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
+        DECLARE @ErrorState INT = ERROR_STATE();
+        
+        RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+    END CATCH
+END
+GO
+
+IF OBJECT_ID('sp_GetActiveAcademicYear', 'P') IS NOT NULL DROP PROCEDURE sp_GetActiveAcademicYear;
+GO
+CREATE PROCEDURE sp_GetActiveAcademicYear
+AS
+BEGIN
+    SELECT TOP 1 * 
+    FROM dbo.academic_years
+    WHERE is_active = 1 
+        AND deleted_at IS NULL
+    ORDER BY start_year DESC;
+END
+GO
+
+PRINT '✅ Academic Year Transition SPs created';
+GO
+
 PRINT '';
 PRINT '🎉 HOÀN THÀNH TẠO STORED PROCEDURES!';
 PRINT '✅ Đã tạo tổng cộng 90+ stored procedures';
@@ -1685,6 +1967,35 @@ BEGIN
 END
 GO
 PRINT '✅ Tạo sp_GetPermissionsByRole';
+
+-- SP 2.5: Get Permissions by Role Name (for Menu API)
+IF OBJECT_ID('sp_GetPermissionsByRoleName', 'P') IS NOT NULL DROP PROCEDURE sp_GetPermissionsByRoleName;
+GO
+CREATE PROCEDURE sp_GetPermissionsByRoleName
+    @RoleName NVARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    -- Join roles -> role_permissions -> permissions
+    SELECT 
+        p.permission_id,
+        p.permission_code,
+        p.permission_name,
+        p.description,
+        p.created_at,
+        p.created_by,
+        p.updated_at,
+        p.updated_by
+    FROM dbo.permissions p
+    INNER JOIN dbo.role_permissions rp ON p.permission_id = rp.permission_id
+    INNER JOIN dbo.roles r ON rp.role_id = r.role_id
+    WHERE r.role_name = @RoleName 
+        AND r.deleted_at IS NULL
+    ORDER BY p.permission_code;
+END
+GO
+PRINT '✅ Tạo sp_GetPermissionsByRoleName';
 
 -- SP 3: Get Permission IDs by Role
 IF OBJECT_ID('sp_GetPermissionIdsByRole', 'P') IS NOT NULL DROP PROCEDURE sp_GetPermissionIdsByRole;

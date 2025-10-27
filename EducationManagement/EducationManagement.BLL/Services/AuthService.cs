@@ -29,25 +29,23 @@ namespace EducationManagement.BLL.Services
 
             if (user == null || !user.IsActive)
             {
-                Console.WriteLine($"[Login] ❌ User không tồn tại ({stopwatch.ElapsedMilliseconds} ms)");
+                // Console.WriteLine($"[Login] ❌ User không tồn tại ({stopwatch.ElapsedMilliseconds} ms)"); // Tắt log
                 return null;
             }
 
             // ✅ Kiểm tra mật khẩu (BCrypt)
-            var sw = System.Diagnostics.Stopwatch.StartNew();
             var isValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
-            sw.Stop();
-            Console.WriteLine($"[Login] BCrypt.Verify mất {sw.ElapsedMilliseconds} ms");
+            // Console.WriteLine($"[Login] BCrypt.Verify mất {sw.ElapsedMilliseconds} ms"); // Tắt log timing
 
             stopwatch.Stop();
 
             if (!isValid)
             {
-                Console.WriteLine($"[Login] ❌ Sai mật khẩu ({stopwatch.ElapsedMilliseconds} ms)");
+                // Console.WriteLine($"[Login] ❌ Sai mật khẩu ({stopwatch.ElapsedMilliseconds} ms)"); // Tắt log
                 return null;
             }
 
-            Console.WriteLine($"[Login] ✅ Thành công, tổng {stopwatch.ElapsedMilliseconds} ms");
+            // Console.WriteLine($"[Login] ✅ Thành công, tổng {stopwatch.ElapsedMilliseconds} ms"); // Tắt log
             return user;
         }
 

@@ -38,12 +38,16 @@
         // Toggle sidebar function
         function toggleSidebar() {
             const isCollapsed = sidebar.classList.contains('collapsed');
+            const isMobile = window.innerWidth < 1024;
             
             if (isCollapsed) {
                 // Open sidebar
                 sidebar.classList.remove('collapsed');
                 mainContent.classList.remove('expanded');
-                overlay.classList.add('active');
+                // Only show overlay on mobile
+                if (isMobile) {
+                    overlay.classList.add('active');
+                }
             } else {
                 // Close sidebar
                 sidebar.classList.add('collapsed');

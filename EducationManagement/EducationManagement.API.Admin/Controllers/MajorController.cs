@@ -8,11 +8,11 @@ namespace EducationManagement.API.Admin.Controllers
     [ApiController]
     [Authorize(Roles = "Admin")]
     [Route("api-edu/majors")]
-    public class MajorController : ControllerBase
+    public class MajorController : BaseController
     {
         private readonly MajorService _service;
 
-        public MajorController(MajorService service)
+        public MajorController(MajorService service, AuditLogService auditLogService) : base(auditLogService)
         {
             _service = service;
         }
@@ -45,6 +45,14 @@ namespace EducationManagement.API.Admin.Controllers
             try
             {
                 await _service.AddAsync(model);
+
+                // ✅ Audit Log: Create Major
+                await LogCreateAsync("Major", model.MajorId, new {
+                    major_code = model.MajorCode,
+                    major_name = model.MajorName,
+                    faculty_id = model.FacultyId
+                });
+
                 return Ok(new { message = "✅ Thêm ngành học thành công!" });
             }
             catch (Exception ex)
@@ -59,14 +67,35 @@ namespace EducationManagement.API.Admin.Controllers
             if (id != model.MajorId)
                 return BadRequest(new { message = "ID không khớp!" });
 
+            var oldMajor = await _service.GetByIdAsync(id);
             await _service.UpdateAsync(model);
+
+            // ✅ Audit Log: Update Major
+            if (oldMajor != null)
+            {
+                await LogUpdateAsync("Major", model.MajorId,
+                    new { major_name = oldMajor.MajorName, faculty_id = oldMajor.FacultyId },
+                    new { major_name = model.MajorName, faculty_id = model.FacultyId });
+            }
+
             return Ok(new { message = "✅ Cập nhật ngành học thành công!" });
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
+            var major = await _service.GetByIdAsync(id);
             await _service.DeleteAsync(id);
+
+            // ✅ Audit Log: Delete Major
+            if (major != null)
+            {
+                await LogDeleteAsync("Major", id, new {
+                    major_code = major.MajorCode,
+                    major_name = major.MajorName
+                });
+            }
+
             return Ok(new { message = "🗑 Xóa ngành học thành công!" });
         }
     }
