@@ -4,6 +4,10 @@ app.service('MajorService', ['ApiService', function(ApiService) {
     this.getAll = function() {
         return ApiService.get('/majors');
     };
+
+    this.getByFaculty = function(facultyId) {
+        return ApiService.get('/majors/by-faculty/' + facultyId);
+    };
     
     this.getById = function(id) {
         return ApiService.get('/majors/' + id);

@@ -2,6 +2,7 @@ using EducationManagement.BLL.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using EducationManagement.Common.Helpers;
 using System.Threading.Tasks;
 
 namespace EducationManagement.API.Admin.Controllers
@@ -57,7 +58,7 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
-                var gradeId = "grade-" + Guid.NewGuid().ToString().Substring(0, 8);
+                var gradeId = IdGenerator.Generate("grade");
                 var newId = await _gradeService.CreateGradeAsync(
                     gradeId, request.StudentId, request.ClassId, request.GradeType,
                     request.Score, request.MaxScore, request.Weight, request.Notes,

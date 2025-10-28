@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
+using EducationManagement.Common.Helpers;
 using EducationManagement.Common.DTOs.User;
 using EducationManagement.Common.Helpers;
 using EducationManagement.BLL.Services;
@@ -145,7 +146,8 @@ namespace EducationManagement.API.Admin.Controllers
 
             var user = new User
             {
-                UserId = Guid.NewGuid().ToString(),
+                // user-xxxxxxx
+                UserId = IdGenerator.Generate("user"),
                 Username = request.Username,
                 PasswordHash = _authService.HashPassword(request.Password),
                 FullName = request.FullName,

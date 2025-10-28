@@ -252,8 +252,8 @@ app.controller('RoleController', [
     function openModal(modalId) {
         var modal = document.getElementById(modalId);
         if (modal) {
-            // Add show class to display modal
-            modal.classList.add('show');
+            // Use 'active' class to display modal per CSS rules
+            modal.classList.add('active');
             // Prevent body scroll
             document.body.style.overflow = 'hidden';
         }
@@ -262,8 +262,8 @@ app.controller('RoleController', [
     function closeModal(modalId) {
         var modal = document.getElementById(modalId);
         if (modal) {
-            // Remove show class to hide modal
-            modal.classList.remove('show');
+            // Remove 'active' class to hide modal
+            modal.classList.remove('active');
             // Restore body scroll
             document.body.style.overflow = '';
         }

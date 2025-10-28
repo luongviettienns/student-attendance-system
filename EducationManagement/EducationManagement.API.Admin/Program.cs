@@ -149,6 +149,8 @@ builder.Services.AddCors(options =>
                 "http://localhost:3000",   // FE (HTTP)
                 "https://localhost:7033",  // Gateway (HTTPS)
                 "http://localhost:7034",   // Gateway (HTTP fallback)
+                "http://localhost:5227",   // Admin API (same port as backend)
+                "http://127.0.0.1:5227",   // Admin API (127.0.0.1)
                 "http://localhost:5500",   // Live Server (localhost)
                 "http://127.0.0.1:5500",   // Live Server (127.0.0.1)
                 "http://localhost:5501",   // Live Server port 5501 (localhost)
@@ -244,18 +246,6 @@ app.UseRateLimiter();
 
 // ⚠️ Không redirect HTTPS (Gateway đã xử lý SSL termination)
 app.UseCors("AllowFrontend");
-
-// ✅ Handle CORS preflight (OPTIONS) requests BEFORE authentication
-app.Use(async (context, next) =>
-{
-    if (context.Request.Method == "OPTIONS")
-    {
-        context.Response.StatusCode = 200;
-        await context.Response.CompleteAsync();
-        return;
-    }
-    await next();
-});
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -88,7 +88,17 @@ app.controller('FacultyController', ['$scope', '$location', '$routeParams', 'Fac
             { label: 'Mô tả', field: 'description' }
         ];
         
-        ExportService.exportToExcel($scope.faculties, 'DanhSachKhoa_' + new Date().toISOString().split('T')[0], columns);
+        var exportOptions = {
+            title: '🏛️ DANH SÁCH KHOA',
+            info: [
+                ['Đơn vị:', 'Trường Đại học ABC'],
+                ['Thời gian xuất:', new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN')]
+            ],
+            sheetName: 'Khoa',
+            showSummary: true
+        };
+        
+        ExportService.exportToExcel($scope.faculties, 'DanhSachKhoa', columns, exportOptions);
     };
     
     // Export to CSV

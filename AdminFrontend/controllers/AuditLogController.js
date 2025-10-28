@@ -161,7 +161,7 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
     // Export to Excel
     $scope.exportToExcel = function() {
         var columns = [
-            { label: 'Thời gian', field: 'createdAt' },
+            { label: 'Thời gian', field: 'createdAt', type: 'date' },
             { label: 'Người dùng', field: 'userName' },
             { label: 'Hành động', field: 'action' },
             { label: 'Đối tượng', field: 'entityType' },
@@ -170,7 +170,18 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
             { label: 'IP Address', field: 'ipAddress' }
         ];
         
-        ExportService.exportToExcel($scope.logs, 'AuditLog_' + new Date().toISOString().split('T')[0], columns);
+        var exportOptions = {
+            title: '📋 NHẬT KÝ HỆ THỐNG',
+            info: [
+                ['Hệ thống:', 'Education Management System'],
+                ['Thời gian xuất:', new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN')],
+                ['Tổng số bản ghi:', $scope.logs.length]
+            ],
+            sheetName: 'Audit Log',
+            showSummary: true
+        };
+        
+        ExportService.exportToExcel($scope.logs, 'AuditLog', columns, exportOptions);
     };
     
     // Get action badge class

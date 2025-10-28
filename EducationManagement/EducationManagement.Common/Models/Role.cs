@@ -12,7 +12,7 @@ namespace EducationManagement.Common.Models
     public class Role
     {
         [Column("role_id")]
-        public string RoleId { get; set; }
+        public string? RoleId { get; set; }
 
         [Column("role_name")]
         public string RoleName { get; set; }

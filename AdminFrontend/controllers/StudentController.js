@@ -140,6 +140,11 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
     
     // Filter change handler
     $scope.handleFilterChange = function() {
+        // Khi đổi khoa → nạp lại danh sách ngành và reset ngành
+        if (!$scope.filters.facultyId) {
+            $scope.filters.majorId = '';
+        }
+        $scope.loadMajors();
         $scope.pagination.currentPage = 1;
         $scope.applyFiltersAndSort();
     };
@@ -162,15 +167,29 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
             { label: 'Họ tên', field: 'fullName' },
             { label: 'Email', field: 'email' },
             { label: 'Số điện thoại', field: 'phone' },
+            { label: 'Ngày sinh', field: 'dateOfBirth', type: 'date' },
+            { label: 'Giới tính', field: 'gender' },
             { label: 'Khoa', field: 'facultyName' },
             { label: 'Ngành', field: 'majorName' },
             { label: 'Trạng thái', field: 'isActive' }
         ];
         
         // Use current filtered data or all data
-        var dataToExport = $scope.displayedStudents.length > 0 ? $scope.students : $scope.students;
+        var dataToExport = $scope.students || [];
         
-        ExportService.exportToExcel(dataToExport, 'DanhSachSinhVien_' + new Date().toISOString().split('T')[0], columns);
+        // Export options with professional styling
+        var exportOptions = {
+            title: '📚 DANH SÁCH SINH VIÊN',
+            info: [
+                ['Đơn vị:', 'Trường Đại học ABC'],
+                ['Thời gian xuất:', new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN')],
+                ['Người xuất:', $scope.currentUser ? $scope.currentUser.fullName : 'Admin']
+            ],
+            sheetName: 'Sinh viên',
+            showSummary: true
+        };
+        
+        ExportService.exportToExcel(dataToExport, 'DanhSachSinhVien', columns, exportOptions);
     };
     
     // Export to CSV
@@ -210,12 +229,66 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
     // Download import template
     $scope.downloadTemplate = function() {
         var columns = [
-            { label: 'Mã SV', example: 'SV001' },
-            { label: 'Họ tên', example: 'Nguyễn Văn A' },
-            { label: 'Email', example: 'nva@example.com' },
-            { label: 'Số điện thoại', example: '0123456789' },
-            { label: 'Mã Khoa', example: '1' },
-            { label: 'Mã Ngành', example: '1' }
+            { 
+                label: 'Mã SV', 
+                example: 'SV001',
+                required: true,
+                note: 'Mã sinh viên duy nhất, không trùng lặp. Định dạng: SV + số (VD: SV001, SV002)'
+            },
+            { 
+                label: 'Họ tên', 
+                example: 'Nguyễn Văn A',
+                required: true,
+                note: 'Họ và tên đầy đủ của sinh viên'
+            },
+            { 
+                label: 'Email', 
+                example: 'nva@example.com',
+                required: true,
+                note: 'Email sinh viên, phải đúng định dạng có chứa @'
+            },
+            { 
+                label: 'Số điện thoại', 
+                example: '0912345678',
+                required: false,
+                note: 'Số điện thoại di động, 10-11 chữ số'
+            },
+            { 
+                label: 'Ngày sinh', 
+                example: '2000-01-15',
+                required: false,
+                note: 'Định dạng: YYYY-MM-DD (VD: 2000-01-15)'
+            },
+            { 
+                label: 'Giới tính', 
+                example: 'Nam',
+                required: false,
+                note: 'Giá trị: Nam hoặc Nữ'
+            },
+            { 
+                label: 'Địa chỉ', 
+                example: 'Hà Nội',
+                required: false,
+                note: 'Địa chỉ thường trú hoặc tạm trú'
+            },
+            { 
+                label: 'Mã Khoa', 
+                example: '1',
+                required: true,
+                note: 'Mã ID của khoa. Xem danh sách khoa để biết mã cụ thể'
+            },
+            { 
+                label: 'Mã Ngành', 
+                example: '1',
+                required: true,
+                note: 'Mã ID của ngành học. Xem danh sách ngành để biết mã cụ thể'
+            },
+            { 
+                label: 'Khóa học', 
+                example: '2023',
+                required: false,
+                note: 'Năm nhập học (VD: 2023, 2024)'
+            }
         ];
         
         ImportService.downloadTemplate('MauNhapSinhVien', columns);
@@ -235,12 +308,83 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
             .then(function(data) {
                 // Validate data
                 var schema = [
-                    { name: 'Mã SV', label: 'Mã SV', required: true },
-                    { name: 'Họ tên', label: 'Họ tên', required: true },
-                    { name: 'Email', label: 'Email', required: true, type: 'email' },
-                    { name: 'Số điện thoại', label: 'Số điện thoại', required: false },
-                    { name: 'Mã Khoa', label: 'Mã Khoa', required: true, type: 'number' },
-                    { name: 'Mã Ngành', label: 'Mã Ngành', required: true, type: 'number' }
+                    { 
+                        name: 'Mã SV (*)', 
+                        label: 'Mã SV', 
+                        required: true,
+                        validate: function(value) {
+                            if (!/^SV\d+$/i.test(value)) {
+                                return 'Mã SV phải có định dạng SV + số (VD: SV001)';
+                            }
+                        }
+                    },
+                    { 
+                        name: 'Họ tên (*)', 
+                        label: 'Họ tên', 
+                        required: true 
+                    },
+                    { 
+                        name: 'Email (*)', 
+                        label: 'Email', 
+                        required: true, 
+                        type: 'email' 
+                    },
+                    { 
+                        name: 'Số điện thoại', 
+                        label: 'Số điện thoại', 
+                        required: false,
+                        validate: function(value) {
+                            if (value && !/^\d{10,11}$/.test(value.toString().replace(/\s/g, ''))) {
+                                return 'Số điện thoại phải có 10-11 chữ số';
+                            }
+                        }
+                    },
+                    { 
+                        name: 'Ngày sinh', 
+                        label: 'Ngày sinh', 
+                        required: false,
+                        type: 'date'
+                    },
+                    { 
+                        name: 'Giới tính', 
+                        label: 'Giới tính', 
+                        required: false,
+                        validate: function(value) {
+                            if (value && !['Nam', 'Nữ', 'nam', 'nữ'].includes(value)) {
+                                return 'Giới tính chỉ được là "Nam" hoặc "Nữ"';
+                            }
+                        }
+                    },
+                    { 
+                        name: 'Địa chỉ', 
+                        label: 'Địa chỉ', 
+                        required: false 
+                    },
+                    { 
+                        name: 'Mã Khoa (*)', 
+                        label: 'Mã Khoa', 
+                        required: true, 
+                        type: 'number' 
+                    },
+                    { 
+                        name: 'Mã Ngành (*)', 
+                        label: 'Mã Ngành', 
+                        required: true, 
+                        type: 'number' 
+                    },
+                    { 
+                        name: 'Khóa học', 
+                        label: 'Khóa học', 
+                        required: false,
+                        validate: function(value) {
+                            if (value) {
+                                var year = parseInt(value);
+                                if (isNaN(year) || year < 2000 || year > 2100) {
+                                    return 'Khóa học phải là năm hợp lệ (VD: 2023)';
+                                }
+                            }
+                        }
+                    }
                 ];
                 
                 var result = ImportService.validate(data, schema);
@@ -305,7 +449,8 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
     $scope.loadFaculties = function() {
         FacultyService.getAll()
             .then(function(response) {
-                $scope.faculties = response.data;
+                var list = response.data?.data || response.data || [];
+                $scope.faculties = list;
             })
             .catch(function(error) {
                 console.error('Error loading faculties:', error);
@@ -314,13 +459,18 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
     
     // Load majors for dropdown
     $scope.loadMajors = function() {
-        MajorService.getAll()
-            .then(function(response) {
-                $scope.majors = response.data;
-            })
-            .catch(function(error) {
-                console.error('Error loading majors:', error);
-            });
+        if ($scope.filters.facultyId) {
+            MajorService.getByFaculty($scope.filters.facultyId)
+                .then(function(response) {
+                    var list = response.data?.data || response.data || [];
+                    $scope.majors = list;
+                })
+                .catch(function(error) {
+                    console.error('Error loading majors by faculty:', error);
+                });
+        } else {
+            $scope.majors = [];
+        }
     };
     
     // Load student by ID for editing

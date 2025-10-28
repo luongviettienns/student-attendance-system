@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
+using EducationManagement.Common.Helpers;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -68,7 +69,8 @@ namespace EducationManagement.API.Admin.Controllers
             if (await _roleRepository.ExistsByNameAsync(request.RoleName))
                 return BadRequest(new { message = "Tên vai trò đã tồn tại" });
 
-            request.RoleId = Guid.NewGuid().ToString();
+            // Tạo ID ngắn, có tiền tố role-
+            request.RoleId = IdGenerator.Generate("role");
             request.CreatedAt = DateTime.UtcNow;
             request.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
             request.IsActive = true;

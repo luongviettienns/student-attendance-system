@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using EducationManagement.BLL.Services;
 using EducationManagement.Common.Models;
+using EducationManagement.Common.Helpers;
 using Microsoft.AspNetCore.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
@@ -55,7 +56,7 @@ namespace EducationManagement.API.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] Faculty f)
         {
-            f.FacultyId = Guid.NewGuid().ToString();
+            f.FacultyId = IdGenerator.Generate("fac");
             f.CreatedAt = DateTime.Now;
             await _service.AddAsync(f);
 

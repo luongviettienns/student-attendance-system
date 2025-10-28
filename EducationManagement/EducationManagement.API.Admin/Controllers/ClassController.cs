@@ -2,6 +2,7 @@ using EducationManagement.BLL.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using EducationManagement.Common.Helpers;
 using System.Threading.Tasks;
 
 namespace EducationManagement.API.Admin.Controllers
@@ -66,7 +67,7 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
-                var classId = "class-" + Guid.NewGuid().ToString().Substring(0, 8);
+                var classId = IdGenerator.Generate("class");
                 var newId = await _classService.CreateClassAsync(
                     classId,
                     request.ClassCode,

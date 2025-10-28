@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
+using EducationManagement.Common.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using EducationManagement.BLL.Services;
 
@@ -86,7 +87,7 @@ namespace EducationManagement.API.Admin.Controllers
             {
                 // Generate ID if not provided
                 if (string.IsNullOrEmpty(model.DepartmentId))
-                    model.DepartmentId = "dep-" + Guid.NewGuid().ToString().Substring(0, 8);
+                    model.DepartmentId = IdGenerator.Generate("dep");
 
                 model.CreatedBy = User.Identity?.Name ?? "system";
                 model.CreatedAt = DateTime.Now;

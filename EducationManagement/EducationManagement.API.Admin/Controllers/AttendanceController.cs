@@ -2,6 +2,7 @@ using EducationManagement.BLL.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using EducationManagement.Common.Helpers;
 using System.Threading.Tasks;
 
 namespace EducationManagement.API.Admin.Controllers
@@ -66,7 +67,7 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
-                var attendanceId = "att-" + Guid.NewGuid().ToString().Substring(0, 8);
+                var attendanceId = IdGenerator.Generate("att");
                 var newId = await _attendanceService.CreateAttendanceAsync(
                     attendanceId,
                     request.StudentId,
