@@ -144,7 +144,6 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/avatars",
     OnPrepareResponse = ctx =>
     {
-        // ✅ Tắt log "Serving static file" để tránh spam
         // Set cache headers
         ctx.Context.Response.Headers.Add("Cache-Control", "public,max-age=86400");
     }

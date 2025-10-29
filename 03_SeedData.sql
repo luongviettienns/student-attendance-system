@@ -58,9 +58,9 @@ GO
 -- ===========================================
 PRINT '🏢 Seeding Departments...';
 
-INSERT INTO dbo.departments (department_id, department_name, faculty_id, description) VALUES
-('DEPT001', N'Khoa học Máy tính', 'FAC001', N'Bộ môn Khoa học Máy tính'),
-('DEPT002', N'Hệ thống Thông tin', 'FAC001', N'Bộ môn Hệ thống Thông tin');
+INSERT INTO dbo.departments (department_id, department_code, department_name, faculty_id, description) VALUES
+('DEPT001', 'DEPT001', N'Khoa học Máy tính', 'FAC001', N'Bộ môn Khoa học Máy tính'),
+('DEPT002', 'DEPT002', N'Hệ thống Thông tin', 'FAC001', N'Bộ môn Hệ thống Thông tin');
 
 PRINT '   ✅ 2 departments created';
 GO

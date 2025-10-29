@@ -263,15 +263,16 @@ IF OBJECT_ID('sp_CreateDepartment', 'P') IS NOT NULL DROP PROCEDURE sp_CreateDep
 GO
 CREATE PROCEDURE sp_CreateDepartment
     @DepartmentId VARCHAR(50),
+    @DepartmentCode VARCHAR(20),
     @DepartmentName NVARCHAR(150),
     @FacultyId VARCHAR(50),
     @Description NVARCHAR(500) = NULL,
     @CreatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
-    INSERT INTO dbo.departments (department_id, department_name, faculty_id, description,
+    INSERT INTO dbo.departments (department_id, department_code, department_name, faculty_id, description,
                                   created_at, created_by)
-    VALUES (@DepartmentId, @DepartmentName, @FacultyId, @Description, GETDATE(), @CreatedBy);
+    VALUES (@DepartmentId, @DepartmentCode, @DepartmentName, @FacultyId, @Description, GETDATE(), @CreatedBy);
 END
 GO
 
@@ -279,6 +280,7 @@ IF OBJECT_ID('sp_UpdateDepartment', 'P') IS NOT NULL DROP PROCEDURE sp_UpdateDep
 GO
 CREATE PROCEDURE sp_UpdateDepartment
     @DepartmentId VARCHAR(50),
+    @DepartmentCode VARCHAR(20),
     @DepartmentName NVARCHAR(150),
     @FacultyId VARCHAR(50),
     @Description NVARCHAR(500) = NULL,
@@ -286,8 +288,12 @@ CREATE PROCEDURE sp_UpdateDepartment
 AS
 BEGIN
     UPDATE dbo.departments
-    SET department_name = @DepartmentName, faculty_id = @FacultyId, description = @Description,
-        updated_at = GETDATE(), updated_by = @UpdatedBy
+    SET department_code = @DepartmentCode,
+        department_name = @DepartmentName,
+        faculty_id = @FacultyId,
+        description = @Description,
+        updated_at = GETDATE(),
+        updated_by = @UpdatedBy
     WHERE department_id = @DepartmentId AND deleted_at IS NULL;
 END
 GO
@@ -1656,7 +1662,8 @@ BEGIN
     FROM dbo.departments d
     LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
     WHERE d.deleted_at IS NULL
-        AND (@Search IS NULL OR d.department_name LIKE '%' + @Search + '%')
+        AND (@Search IS NULL OR d.department_code LIKE '%' + @Search + '%' 
+             OR d.department_name LIKE '%' + @Search + '%')
         AND (@FacultyId IS NULL OR d.faculty_id = @FacultyId);
     
     -- Trả về Data với pagination
@@ -1664,7 +1671,8 @@ BEGIN
     FROM dbo.departments d
     LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
     WHERE d.deleted_at IS NULL
-        AND (@Search IS NULL OR d.department_name LIKE '%' + @Search + '%')
+        AND (@Search IS NULL OR d.department_code LIKE '%' + @Search + '%'
+             OR d.department_name LIKE '%' + @Search + '%')
         AND (@FacultyId IS NULL OR d.faculty_id = @FacultyId)
     ORDER BY d.department_name
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
@@ -2160,8 +2168,42 @@ END
 GO
 PRINT '✅ Tạo sp_GetRolesWithPermissionCount';
 
+-- ===========================================
+-- 🔹 FUNCTION: Sinh mã Department Code tự động
+-- ===========================================
+IF OBJECT_ID('fn_GenerateNextDepartmentCode', 'FN') IS NOT NULL
+    DROP FUNCTION fn_GenerateNextDepartmentCode;
+GO
+
+CREATE FUNCTION fn_GenerateNextDepartmentCode()
+RETURNS VARCHAR(20)
+AS
+BEGIN
+    DECLARE @NextNumber INT;
+    DECLARE @NextCode VARCHAR(20);
+    
+    -- Lấy số lớn nhất hiện tại từ các mã có format DEPT###
+    SELECT @NextNumber = ISNULL(MAX(
+        CASE 
+            WHEN department_code LIKE 'DEPT[0-9][0-9][0-9]'
+            THEN CAST(SUBSTRING(department_code, 5, 3) AS INT)
+            ELSE 0
+        END
+    ), 0) + 1
+    FROM dbo.departments
+    WHERE deleted_at IS NULL;
+    
+    -- Format: DEPT001, DEPT002, DEPT003...
+    SET @NextCode = 'DEPT' + RIGHT('000' + CAST(@NextNumber AS VARCHAR), 3);
+    
+    RETURN @NextCode;
+END
+GO
+PRINT '✅ Created: fn_GenerateNextDepartmentCode';
+GO
+
 PRINT '';
 PRINT '================================';
 PRINT '🎉 HOÀN THÀNH TẠO STORED PROCEDURES!';
-PRINT '✅ Đã tạo 9 Permission SPs + Pagination SPs';
+PRINT '✅ Đã tạo 9 Permission SPs + Pagination SPs + Auto Code Function';
 PRINT '';

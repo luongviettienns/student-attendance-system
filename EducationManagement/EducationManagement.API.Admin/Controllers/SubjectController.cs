@@ -45,7 +45,7 @@ namespace EducationManagement.API.Admin.Controllers
             try
             {
                 await _service.AddAsync(model);
-                return Ok(new { message = "✅ Thêm môn học thành công!" });
+                return Ok(new { message = "Thêm môn học thành công!" });
             }
             catch (Exception ex)
             {
@@ -60,14 +60,14 @@ namespace EducationManagement.API.Admin.Controllers
                 return BadRequest(new { message = "ID không khớp!" });
 
             await _service.UpdateAsync(model);
-            return Ok(new { message = "✅ Cập nhật môn học thành công!" });
+            return Ok(new { message = "Cập nhật môn học thành công!" });
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
             await _service.DeleteAsync(id);
-            return Ok(new { message = "🗑 Xóa môn học thành công!" });
+            return Ok(new { message = "Xóa môn học thành công!" });
         }
     }
 }

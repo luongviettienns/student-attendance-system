@@ -988,24 +988,7 @@ input[type="radio"] {
     font-size: 14px;
 }
 
-.btn-remove {
-    background: none;
-    border: none;
-    color: var(--danger-color);
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
-}
-
-.btn-remove:hover {
-    background-color: rgba(239, 68, 68, 0.1);
-}
+/* .btn-remove đã được định nghĩa trong semantic-colors.css */
 
 /* ==============================================
    FILTERS BAR

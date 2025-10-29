@@ -91,6 +91,7 @@ GO
 
 CREATE TABLE dbo.departments (
     department_id   VARCHAR(50) PRIMARY KEY,
+    department_code VARCHAR(20) NOT NULL UNIQUE,
     department_name NVARCHAR(150) NOT NULL,
     faculty_id      VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.faculties(faculty_id),
     description     NVARCHAR(500) NULL,

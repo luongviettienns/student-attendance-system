@@ -89,6 +89,12 @@ namespace EducationManagement.API.Admin.Controllers
                 if (string.IsNullOrEmpty(model.DepartmentId))
                     model.DepartmentId = IdGenerator.Generate("dep");
 
+                // ✅ Tự động sinh mã bộ môn (DEPT001, DEPT002...)
+                if (string.IsNullOrWhiteSpace(model.DepartmentCode))
+                {
+                    model.DepartmentCode = await _repository.GenerateNextCodeAsync();
+                }
+
                 model.CreatedBy = User.Identity?.Name ?? "system";
                 model.CreatedAt = DateTime.Now;
 
@@ -101,7 +107,7 @@ namespace EducationManagement.API.Admin.Controllers
                     faculty_id = model.FacultyId
                 });
 
-                return Ok(new { message = "✅ Thêm bộ môn thành công!", data = model });
+                return Ok(new { message = "Thêm bộ môn thành công!", data = model });
             }
             catch (Exception ex)
             {
@@ -137,7 +143,7 @@ namespace EducationManagement.API.Admin.Controllers
                         new { department_name = model.DepartmentName, faculty_id = model.FacultyId });
                 }
 
-                return Ok(new { message = "✅ Cập nhật bộ môn thành công!" });
+                return Ok(new { message = "Cập nhật bộ môn thành công!" });
             }
             catch (Exception ex)
             {
@@ -165,7 +171,7 @@ namespace EducationManagement.API.Admin.Controllers
                     });
                 }
 
-                return Ok(new { message = "🗑 Xóa bộ môn thành công!" });
+                return Ok(new { message = "Xóa bộ môn thành công!" });
             }
             catch (Exception ex)
             {

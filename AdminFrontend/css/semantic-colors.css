@@ -46,7 +46,6 @@
 
 /* ❌ DANGER - Xóa, Hủy, Từ chối */
 .btn-delete,
-.btn-remove,
 .btn-cancel,
 .btn-reject,
 .btn-danger {
@@ -56,12 +55,33 @@
 }
 
 .btn-delete:hover:not(:disabled),
-.btn-remove:hover:not(:disabled),
 .btn-cancel:hover:not(:disabled),
 .btn-reject:hover:not(:disabled),
 .btn-danger:hover:not(:disabled) {
     background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
     box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* ❌ REMOVE BUTTON - Nền trắng, icon đỏ */
+.btn-remove {
+    background: white !important;
+    color: #ef4444 !important;
+    border: 1px solid #fee2e2 !important;
+}
+
+.btn-remove i {
+    color: #ef4444 !important;
+}
+
+.btn-remove:hover:not(:disabled) {
+    background: #fef2f2 !important;
+    color: #dc2626 !important;
+    border-color: #fecaca !important;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15) !important;
+}
+
+.btn-remove:hover:not(:disabled) i {
+    color: #dc2626 !important;
 }
 
 /* 👁️ INFO - Xem, Chi tiết, Thông tin */

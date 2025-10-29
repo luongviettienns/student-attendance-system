@@ -65,10 +65,10 @@ namespace EducationManagement.API.Admin.Controllers
             user.UpdatedAt = DateTime.UtcNow;
             user.UpdatedBy = userId;
 
-            // ✅ Xác định đúng thư mục EducationManagement\Avatar_User\uploads\avatars
+            // ✅ Xác định đúng thư mục EducationManagement\Avatar_User
             var projectRoot = Directory.GetParent(Directory.GetCurrentDirectory())?.FullName;
             var avatarRoot = Path.Combine(projectRoot!, "Avatar_User");
-            var uploadPath = Path.Combine(avatarRoot, "uploads", "avatars");
+            var uploadPath = avatarRoot;
 
             if (!Directory.Exists(uploadPath))
                 Directory.CreateDirectory(uploadPath);
@@ -77,7 +77,13 @@ namespace EducationManagement.API.Admin.Controllers
             if (request.Avatar != null && request.Avatar.Length > 0)
             {
                 var extension = Path.GetExtension(request.Avatar.FileName).ToLower();
-                var fileName = $"{user.UserId}{extension}";
+                // Convert USER001 → user-001, LEC001 → lec-001
+                var userIdFormatted = System.Text.RegularExpressions.Regex.Replace(
+                    user.UserId.ToLower(), 
+                    @"([a-z]+)(\d+)", 
+                    "$1-$2"
+                );
+                var fileName = $"{userIdFormatted}{extension}";
                 var filePath = Path.Combine(uploadPath, fileName);
 
                 // Xóa file cũ nếu tồn tại
@@ -92,8 +98,8 @@ namespace EducationManagement.API.Admin.Controllers
                     await request.Avatar.CopyToAsync(stream);
                 }
 
-                // ✅ Lưu đường dẫn tương đối (không có /avatars/ prefix)
-                user.AvatarUrl = $"/uploads/avatars/{fileName}";
+                // ✅ Lưu đường dẫn tương đối
+                user.AvatarUrl = $"/avatars/{fileName}";
             }
 
             await _userRepository.UpdateAsync(user);
@@ -145,13 +151,19 @@ namespace EducationManagement.API.Admin.Controllers
             // ✅ Xác định thư mục upload
             var projectRoot = Directory.GetParent(Directory.GetCurrentDirectory())?.FullName;
             var avatarRoot = Path.Combine(projectRoot!, "Avatar_User");
-            var uploadPath = Path.Combine(avatarRoot, "uploads", "avatars");
+            var uploadPath = avatarRoot;
 
             if (!Directory.Exists(uploadPath))
                 Directory.CreateDirectory(uploadPath);
 
-            // ✅ Tạo tên file unique
-            var fileName = $"{user.UserId}{extension}";
+            // ✅ Tạo tên file unique (format: user-001.jpg)
+            // Convert USER001 → user-001, LEC001 → lec-001
+            var userIdFormatted = System.Text.RegularExpressions.Regex.Replace(
+                user.UserId.ToLower(), 
+                @"([a-z]+)(\d+)", 
+                "$1-$2"
+            );
+            var fileName = $"{userIdFormatted}{extension}";
             var filePath = Path.Combine(uploadPath, fileName);
 
             // Xóa file cũ nếu tồn tại
@@ -166,8 +178,8 @@ namespace EducationManagement.API.Admin.Controllers
                 await request.Avatar.CopyToAsync(stream);
             }
 
-            // ✅ Cập nhật DB - LƯU PATH TƯƠNG ĐỐI (không có /avatars/ prefix)
-            user.AvatarUrl = $"/uploads/avatars/{fileName}";
+            // ✅ Cập nhật DB - LƯU PATH TƯƠNG ĐỐI
+            user.AvatarUrl = $"/avatars/{fileName}";
             user.UpdatedAt = DateTime.UtcNow;
             user.UpdatedBy = currentUserId;
             await _userRepository.UpdateAsync(user);

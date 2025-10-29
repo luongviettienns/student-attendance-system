@@ -53,7 +53,7 @@ namespace EducationManagement.API.Admin.Controllers
                     faculty_id = model.FacultyId
                 });
 
-                return Ok(new { message = "✅ Thêm ngành học thành công!" });
+                return Ok(new { message = "Thêm ngành học thành công!" });
             }
             catch (Exception ex)
             {
@@ -78,7 +78,7 @@ namespace EducationManagement.API.Admin.Controllers
                     new { major_name = model.MajorName, faculty_id = model.FacultyId });
             }
 
-            return Ok(new { message = "✅ Cập nhật ngành học thành công!" });
+            return Ok(new { message = "Cập nhật ngành học thành công!" });
         }
 
         [HttpDelete("{id}")]
@@ -96,7 +96,7 @@ namespace EducationManagement.API.Admin.Controllers
                 });
             }
 
-            return Ok(new { message = "🗑 Xóa ngành học thành công!" });
+            return Ok(new { message = "Xóa ngành học thành công!" });
         }
     }
 }

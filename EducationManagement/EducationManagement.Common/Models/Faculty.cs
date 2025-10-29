@@ -9,7 +9,7 @@ namespace EducationManagement.Common.Models
     {
         [Key]
         [Column("faculty_id")]
-        public string FacultyId { get; set; }
+        public string? FacultyId { get; set; }
 
         [Column("faculty_code")]
         [Required]

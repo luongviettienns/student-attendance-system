@@ -141,7 +141,7 @@ app.controller('FacultyController', ['$scope', '$location', '$routeParams', 'Fac
         
         savePromise
             .then(function(response) {
-                $scope.success = 'Lưu khoa thành công';
+                $scope.success = response.data?.message || 'Lưu khoa thành công';
                 $scope.loading = false;
                 setTimeout(function() {
                     $location.path('/faculties');
@@ -149,7 +149,27 @@ app.controller('FacultyController', ['$scope', '$location', '$routeParams', 'Fac
                 }, 1500);
             })
             .catch(function(error) {
-                $scope.error = error.data?.message || 'Không thể lưu khoa';
+                var errorMessage = 'Không thể lưu khoa';
+                
+                // Try to extract error message from different response formats
+                if (error.data) {
+                    if (error.data.message) {
+                        errorMessage = error.data.message;
+                    } else if (error.data.errors) {
+                        // Handle validation errors
+                        var errors = [];
+                        for (var key in error.data.errors) {
+                            if (error.data.errors.hasOwnProperty(key)) {
+                                errors.push(error.data.errors[key].join(', '));
+                            }
+                        }
+                        errorMessage = errors.join('; ');
+                    } else if (typeof error.data === 'string') {
+                        errorMessage = error.data;
+                    }
+                }
+                
+                $scope.error = errorMessage;
                 $scope.loading = false;
             });
     };

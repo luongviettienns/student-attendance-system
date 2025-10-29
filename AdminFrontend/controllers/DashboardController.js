@@ -114,7 +114,7 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
         var formData = new FormData();
         formData.append('avatar', $scope.avatarModal.selectedFile);
         formData.append('userId', $scope.currentUser.userId);
-        ApiService.uploadFile('/users/avatar', formData)
+        ApiService.uploadFile('/admin/users/avatar', formData)
             .then(function(response) {
                 $scope.avatarModal.uploading = false;
                 $scope.avatarModal.success = 'Tải ảnh thành công!';

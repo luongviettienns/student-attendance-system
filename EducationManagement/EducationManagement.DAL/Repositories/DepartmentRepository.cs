@@ -59,10 +59,11 @@ namespace EducationManagement.DAL.Repositories
             var parameters = new[]
             {
                 new SqlParameter("@DepartmentId", department.DepartmentId),
+                new SqlParameter("@DepartmentCode", department.DepartmentCode),
                 new SqlParameter("@DepartmentName", department.DepartmentName),
                 new SqlParameter("@FacultyId", department.FacultyId),
                 new SqlParameter("@Description", (object?)department.Description ?? DBNull.Value),
-                new SqlParameter("@CreatedBy", department.CreatedBy)
+                new SqlParameter("@CreatedBy", department.CreatedBy ?? "system")
             };
 
             await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_CreateDepartment", parameters);
@@ -76,13 +77,30 @@ namespace EducationManagement.DAL.Repositories
             var parameters = new[]
             {
                 new SqlParameter("@DepartmentId", department.DepartmentId),
+                new SqlParameter("@DepartmentCode", department.DepartmentCode),
                 new SqlParameter("@DepartmentName", department.DepartmentName),
                 new SqlParameter("@FacultyId", department.FacultyId),
                 new SqlParameter("@Description", (object?)department.Description ?? DBNull.Value),
-                new SqlParameter("@UpdatedBy", department.UpdatedBy)
+                new SqlParameter("@UpdatedBy", department.UpdatedBy ?? "system")
             };
 
             return await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_UpdateDepartment", parameters);
+        }
+
+        // ============================================================
+        // 🔹 SINH MÃ BỘ MÔN TỰ ĐỘNG (DEPT001, DEPT002...)
+        // ============================================================
+        public async Task<string> GenerateNextCodeAsync()
+        {
+            var sql = "SELECT dbo.fn_GenerateNextDepartmentCode()";
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, sql);
+            
+            if (dt.Rows.Count > 0)
+            {
+                return dt.Rows[0][0].ToString() ?? "DEPT001";
+            }
+            
+            return "DEPT001";
         }
 
         // ============================================================

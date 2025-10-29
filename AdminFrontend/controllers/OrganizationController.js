@@ -119,7 +119,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
 
     $scope.saveFaculty = function() {
         if (!$scope.facultyForm.facultyCode || !$scope.facultyForm.facultyName) {
-            alert('Vui lòng điền đầy đủ thông tin!');
+            ToastService.error('Vui lòng điền đầy đủ thông tin!');
             return;
         }
 
@@ -135,13 +135,33 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
             data: $scope.facultyForm
         })
         .then(function(response) {
-            alert('✅ Lưu thông tin Khoa thành công!');
+            ToastService.success(response.data?.message || 'Lưu thông tin Khoa thành công!');
             window.ModalUtils.close('facultyModal');
             $scope.loadFaculties();
             $scope.facultyForm = {};
         })
         .catch(function(error) {
-            ToastService.error(error.data?.message || 'Không thể lưu thông tin Khoa');
+            var errorMessage = 'Không thể lưu thông tin Khoa';
+            
+            // Try to extract error message from different response formats
+            if (error.data) {
+                if (error.data.message) {
+                    errorMessage = error.data.message;
+                } else if (error.data.errors) {
+                    // Handle validation errors
+                    var errors = [];
+                    for (var key in error.data.errors) {
+                        if (error.data.errors.hasOwnProperty(key)) {
+                            errors.push(error.data.errors[key].join(', '));
+                        }
+                    }
+                    errorMessage = errors.join('; ');
+                } else if (typeof error.data === 'string') {
+                    errorMessage = error.data;
+                }
+            }
+            
+            ToastService.error(errorMessage);
         });
     };
 
@@ -152,7 +172,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
 
         $http.delete(API_CONFIG.BASE_URL + '/faculties/' + facultyId)
             .then(function(response) {
-                alert('🗑 Đã xóa Khoa!');
+                ToastService.success(response.data?.message || 'Đã xóa Khoa thành công!');
                 $scope.loadFaculties();
             })
             .catch(function(error) {
@@ -254,9 +274,8 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
     };
 
     $scope.saveDepartment = function() {
-        if (!$scope.departmentForm.facultyId || !$scope.departmentForm.departmentCode || 
-            !$scope.departmentForm.departmentName) {
-            alert('Vui lòng điền đầy đủ thông tin!');
+        if (!$scope.departmentForm.facultyId || !$scope.departmentForm.departmentName) {
+            ToastService.error('Vui lòng điền đầy đủ thông tin!');
             return;
         }
 
@@ -272,7 +291,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
             data: $scope.departmentForm
         })
         .then(function(response) {
-            alert('✅ Lưu thông tin Bộ môn thành công!');
+            ToastService.success(response.data?.message || 'Lưu thông tin Bộ môn thành công!');
             window.ModalUtils.close('departmentModal');
             $scope.loadDepartments();
             $scope.departmentForm = {};
@@ -289,7 +308,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
 
         $http.delete(API_CONFIG.BASE_URL + '/admin/department/' + departmentId)
             .then(function(response) {
-                alert('🗑 Đã xóa Bộ môn!');
+                ToastService.success(response.data?.message || 'Đã xóa Bộ môn thành công!');
                 $scope.loadDepartments();
             })
             .catch(function(error) {
@@ -359,7 +378,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
     $scope.saveMajor = function() {
         if (!$scope.majorForm.facultyId || !$scope.majorForm.majorCode || 
             !$scope.majorForm.majorName) {
-            alert('Vui lòng điền đầy đủ thông tin!');
+            ToastService.error('Vui lòng điền đầy đủ thông tin!');
             return;
         }
 
@@ -375,7 +394,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
             data: $scope.majorForm
         })
         .then(function(response) {
-            alert('✅ Lưu thông tin Ngành thành công!');
+            ToastService.success(response.data?.message || 'Lưu thông tin Ngành thành công!');
             window.ModalUtils.close('majorModal');
             $scope.loadMajors();
             $scope.majorForm = {};
@@ -392,7 +411,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
 
         $http.delete(API_CONFIG.BASE_URL + '/majors/' + majorId)
             .then(function(response) {
-                alert('🗑 Đã xóa Ngành!');
+                ToastService.success(response.data?.message || 'Đã xóa Ngành thành công!');
                 $scope.loadMajors();
             })
             .catch(function(error) {
@@ -460,7 +479,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
     $scope.saveSubject = function() {
         if (!$scope.subjectForm.subjectCode || !$scope.subjectForm.subjectName || 
             !$scope.subjectForm.departmentId) {
-            alert('Vui lòng điền đầy đủ thông tin!');
+            ToastService.error('Vui lòng điền đầy đủ thông tin!');
             return;
         }
 
@@ -476,7 +495,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
             data: $scope.subjectForm
         })
         .then(function(response) {
-            alert('✅ Lưu thông tin Môn học thành công!');
+            ToastService.success(response.data?.message || 'Lưu thông tin Môn học thành công!');
             window.ModalUtils.close('subjectModal');
             $scope.loadSubjects();
             $scope.subjectForm = {};
@@ -493,7 +512,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
 
         $http.delete(API_CONFIG.BASE_URL + '/subjects/' + subjectId)
             .then(function(response) {
-                alert('🗑 Đã xóa Môn học!');
+                ToastService.success(response.data?.message || 'Đã xóa Môn học thành công!');
                 $scope.loadSubjects();
             })
             .catch(function(error) {
