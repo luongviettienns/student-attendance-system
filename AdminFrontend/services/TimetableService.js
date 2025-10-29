@@ -1,0 +1,31 @@
+app.factory('TimetableApi', ['$http', 'API_CONFIG', function($http, API_CONFIG) {
+  var base = API_CONFIG.BASE_URL;
+  return {
+    getStudentWeek: function(studentId, year, week) {
+      return $http.get(base + '/timetable/student', { params: { studentId: studentId, year: year, week: week } });
+    },
+    getLecturerWeek: function(lecturerId, year, week) {
+      return $http.get(base + '/timetable/lecturer', { params: { lecturerId: lecturerId, year: year, week: week } });
+    },
+    getRooms: function(search, isActive) {
+      return $http.get(base + '/rooms', { params: { search: search, isActive: isActive } });
+    },
+    getAllSessionsByWeek: function(year, week) {
+      return $http.get(base + '/timetable/sessions', { params: { year: year, week: week } });
+    },
+    checkConflicts: function(input) {
+      return $http.post(base + '/timetable/conflicts', input);
+    },
+    createSession: function(input) {
+      return $http.post(base + '/timetable/session', input);
+    },
+    updateSession: function(sessionId, input) {
+      return $http.put(base + '/timetable/session/' + sessionId, input);
+    },
+    deleteSession: function(sessionId) {
+      return $http.delete(base + '/timetable/session/' + sessionId);
+    }
+  };
+}]);
+
+

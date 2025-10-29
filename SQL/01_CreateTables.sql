@@ -919,6 +919,76 @@ PRINT '========================================';
 PRINT '';
 
 -- ===========================================
+-- 18. PHẦN MỞ RỘNG: THỜI KHÓA BIỂU (ROOMS + TIMETABLE_SESSIONS)
+-- ===========================================
+
+-- ROOMS (phòng học)
+IF OBJECT_ID('dbo.rooms', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.rooms (
+        room_id     VARCHAR(50) PRIMARY KEY,
+        room_code   NVARCHAR(50) NOT NULL UNIQUE,
+        building    NVARCHAR(100) NULL,
+        capacity    INT NULL,
+        is_active   BIT NOT NULL DEFAULT 1,
+        created_at  DATETIME NOT NULL DEFAULT(GETDATE()),
+        created_by  VARCHAR(50) NULL,
+        updated_at  DATETIME NULL,
+        updated_by  VARCHAR(50) NULL
+    );
+    PRINT '✓ Table created: rooms';
+END
+ELSE
+    PRINT '✓ Table already exists: rooms';
+GO
+
+-- TIMETABLE_SESSIONS (phiên học cụ thể)
+IF OBJECT_ID('dbo.timetable_sessions', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.timetable_sessions (
+        session_id      VARCHAR(50) PRIMARY KEY,
+        class_id        VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.classes(class_id),
+        subject_id      VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.subjects(subject_id),
+        lecturer_id     VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.lecturers(lecturer_id),
+        room_id         VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.rooms(room_id),
+        school_year_id  VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.school_years(school_year_id),
+        week_no         INT NULL,
+        weekday         INT NOT NULL CHECK (weekday BETWEEN 1 AND 7),
+        start_time      TIME NOT NULL,
+        end_time        TIME NOT NULL,
+        period_from     INT NULL,
+        period_to       INT NULL,
+        recurrence      NVARCHAR(20) NULL, -- once/weekly
+        status          NVARCHAR(20) NULL, -- planned/active/cancelled
+        notes           NVARCHAR(500) NULL,
+        created_at      DATETIME NOT NULL DEFAULT(GETDATE()),
+        created_by      VARCHAR(50) NULL,
+        updated_at      DATETIME NULL,
+        updated_by      VARCHAR(50) NULL,
+        deleted_at      DATETIME NULL,
+        deleted_by      VARCHAR(50) NULL
+    );
+    PRINT '✓ Table created: timetable_sessions';
+END
+ELSE
+    PRINT '✓ Table already exists: timetable_sessions';
+GO
+
+-- Indexes cho tra cứu nhanh & chống trùng cơ bản
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TS_Lecturer_Time' AND object_id = OBJECT_ID('timetable_sessions'))
+    CREATE INDEX IX_TS_Lecturer_Time ON timetable_sessions(lecturer_id, weekday, start_time);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TS_Room_Time' AND object_id = OBJECT_ID('timetable_sessions'))
+    CREATE INDEX IX_TS_Room_Time ON timetable_sessions(room_id, weekday, start_time);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TS_Class' AND object_id = OBJECT_ID('timetable_sessions'))
+    CREATE INDEX IX_TS_Class ON timetable_sessions(class_id, week_no);
+GO
+
+PRINT '========================================';
+PRINT '✅ TIMETABLE TABLES READY';
+PRINT '========================================';
+PRINT '';
+
+-- ===========================================
 -- ALTER TABLES: Add school_year_id to gpas
 -- ===========================================
 -- Add school_year_id column to gpas table if not exists

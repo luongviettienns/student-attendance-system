@@ -162,6 +162,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'views/lecturer/grades.html',
             controller: 'LecturerGradesController'
         })
+        .when('/lecturer/timetable', {
+            templateUrl: 'views/lecturer/timetable.html',
+            controller: 'LecturerTimetableController'
+        })
         
         // Advisor Portal
         .when('/advisor/dashboard', {
@@ -173,6 +177,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/student/dashboard', {
             templateUrl: 'views/student/dashboard.html',
             controller: 'StudentDashboardController'
+        })
+        .when('/student/timetable', {
+            templateUrl: 'views/student/timetable.html',
+            controller: 'StudentTimetableController'
         })
         .when('/student/schedule', {
             templateUrl: 'views/student/schedule.html',
@@ -191,6 +199,12 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/notifications', {
             templateUrl: 'views/notifications/list.html',
             controller: 'NotificationController'
+        })
+        
+        // Admin Timetable Management
+        .when('/admin/timetable', {
+            templateUrl: 'views/admin/timetable.html',
+            controller: 'AdminTimetableController'
         })
         
         // Default route

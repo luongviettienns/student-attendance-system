@@ -103,7 +103,11 @@ app.service('RoleService', ['AuthService', function(AuthService) {
                 '/academic-years',
                 '/audit-logs',
                 '/notifications',
-                '/organization'
+                '/organization',
+                // Cho phép admin truy cập màn timetable để test
+                '/student/timetable',
+                '/lecturer/timetable',
+                '/admin/timetable'
             ],
             'Lecturer': [
                 '/dashboard',
@@ -174,6 +178,9 @@ app.service('RoleService', ['AuthService', function(AuthService) {
                     { path: '/lecturers', icon: 'fas fa-chalkboard-teacher', label: 'Giảng viên' },
                     { path: '/classes', icon: 'fas fa-chalkboard', label: 'Lớp học' },
                     { path: '/academic-years', icon: 'fas fa-calendar-alt', label: 'Niên khóa' }
+                ]},
+                { section: 'QUẢN LÝ THỜI KHÓA BIỂU', items: [
+                    { path: '/admin/timetable', icon: 'fas fa-calendar-alt', label: 'Xếp lịch' }
                 ]},
                 { section: 'HỆ THỐNG', items: [
                     { path: '/audit-logs', icon: 'fas fa-history', label: 'Nhật ký hệ thống' },
