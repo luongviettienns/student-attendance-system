@@ -1,6 +1,19 @@
 {
     "Routes": [
         {
+            "DownstreamPathTemplate": "/api-edu/timetable/{everything}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                { "Host": "localhost", "Port": 5227 }
+            ],
+            "UpstreamPathTemplate": "/api-edu/timetable/{everything}",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+        {
             "DownstreamPathTemplate": "/api-edu/auth/{everything}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
