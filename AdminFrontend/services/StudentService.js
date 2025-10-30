@@ -27,5 +27,9 @@ app.service('StudentService', ['ApiService', function(ApiService) {
     this.delete = function(id) {
         return ApiService.delete('/students/delete', {studentId: id});
     };
+    
+    this.importBatch = function(students) {
+        return ApiService.post('/students/import/batch', students);
+    };
 }]);
 

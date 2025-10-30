@@ -183,6 +183,40 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'StudentGradesController'
         })
         
+        // =============================================
+        // 🔹 PHASE 2: ENROLLMENT SYSTEM
+        // =============================================
+        
+        // Administrative Classes
+        .when('/admin-classes', {
+            templateUrl: 'views/admin-classes/list.html',
+            controller: 'AdministrativeClassController'
+        })
+        
+        // Registration Periods
+        .when('/registration-periods', {
+            templateUrl: 'views/registration-periods/manage.html',
+            controller: 'RegistrationPeriodController'
+        })
+        
+        // Enrollments - Student
+        .when('/student/enrollments', {
+            templateUrl: 'views/enrollments/student-register.html',
+            controller: 'EnrollmentController'
+        })
+        
+        // Enrollments - Admin
+        .when('/enrollments', {
+            templateUrl: 'views/enrollments/admin-manage.html',
+            controller: 'EnrollmentController'
+        })
+        
+        // Subject Prerequisites
+        .when('/subject-prerequisites', {
+            templateUrl: 'views/subject-prerequisites/manage.html',
+            controller: 'SubjectPrerequisiteController'
+        })
+        
         // System Management
         .when('/audit-logs', {
             templateUrl: 'views/audit-logs/list.html',

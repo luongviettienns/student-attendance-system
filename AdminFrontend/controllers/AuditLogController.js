@@ -361,11 +361,23 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
                 'role_id': 'Mã vai trò',
                 'role_name': 'Vai trò',
                 
+                // Auth/Login (tiếng Việt có dấu)
+                'ten_dang_nhap': 'Tên đăng nhập',
+                'vai_tro': 'Vai trò',
+                'thoi_gian_dang_nhap': 'Thời gian đăng nhập',
+                
                 // Lecturers
                 'lecturer_id': 'Mã ID giảng viên',
                 'lecturer_code': 'Mã giảng viên',
                 'department_id': 'Mã bộ môn',
                 'title': 'Học hàm/học vị',
+                
+                // Departments
+                'department_code': 'Mã bộ môn',
+                'department_name': 'Tên bộ môn',
+                'ma_bo_mon': 'Mã bộ môn',
+                'ten_bo_mon': 'Tên bộ môn',
+                'ma_khoa': 'Mã khoa',
                 
                 // Faculties
                 'faculty_name': 'Tên khoa',
@@ -449,7 +461,8 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
         }
         
         // Handle date/time fields
-        if (key.includes('_at') || key === 'date_of_birth' || key.includes('date')) {
+        if (key.includes('_at') || key === 'date_of_birth' || key.includes('date') || 
+            key === 'thoi_gian_dang_nhap' || key === 'login_time') {
             if (value) {
                 var date = new Date(value);
                 return date.toLocaleString('vi-VN', {

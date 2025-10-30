@@ -100,11 +100,11 @@ namespace EducationManagement.API.Admin.Controllers
 
                 await _repository.AddAsync(model);
 
-                // ✅ Audit Log: Create Department
+                // ✅ Audit Log: Create Department (Tiếng Việt)
                 await LogCreateAsync("Department", model.DepartmentId, new {
-                    department_code = model.DepartmentCode,
-                    department_name = model.DepartmentName,
-                    faculty_id = model.FacultyId
+                    ma_bo_mon = model.DepartmentCode,
+                    ten_bo_mon = model.DepartmentName,
+                    ma_khoa = model.FacultyId
                 });
 
                 return Ok(new { message = "Thêm bộ môn thành công!", data = model });
@@ -135,12 +135,12 @@ namespace EducationManagement.API.Admin.Controllers
                 if (rowsAffected == 0)
                     return NotFound(new { message = "Không tìm thấy bộ môn" });
 
-                // ✅ Audit Log: Update Department
+                // ✅ Audit Log: Update Department (Tiếng Việt)
                 if (oldDept != null)
                 {
                     await LogUpdateAsync("Department", model.DepartmentId,
-                        new { department_name = oldDept.DepartmentName, faculty_id = oldDept.FacultyId },
-                        new { department_name = model.DepartmentName, faculty_id = model.FacultyId });
+                        new { ten_bo_mon = oldDept.DepartmentName, ma_khoa = oldDept.FacultyId },
+                        new { ten_bo_mon = model.DepartmentName, ma_khoa = model.FacultyId });
                 }
 
                 return Ok(new { message = "Cập nhật bộ môn thành công!" });
@@ -162,12 +162,12 @@ namespace EducationManagement.API.Admin.Controllers
                 var dept = await _repository.GetByIdAsync(id);
                 await _repository.DeleteAsync(id);
 
-                // ✅ Audit Log: Delete Department
+                // ✅ Audit Log: Delete Department (Tiếng Việt)
                 if (dept != null)
                 {
                     await LogDeleteAsync("Department", id, new {
-                        department_code = dept.DepartmentCode,
-                        department_name = dept.DepartmentName
+                        ma_bo_mon = dept.DepartmentCode,
+                        ten_bo_mon = dept.DepartmentName
                     });
                 }
 

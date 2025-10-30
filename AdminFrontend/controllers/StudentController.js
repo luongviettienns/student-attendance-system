@@ -231,63 +231,57 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
         var columns = [
             { 
                 label: 'Mã SV', 
-                example: 'SV001',
+                example: 'SV2024003',
                 required: true,
-                note: 'Mã sinh viên duy nhất, không trùng lặp. Định dạng: SV + số (VD: SV001, SV002)'
+                note: 'Mã sinh viên duy nhất, không trùng lặp. Định dạng: SV + năm + số (VD: SV2024003, SV2024004)'
             },
             { 
                 label: 'Họ tên', 
-                example: 'Nguyễn Văn A',
+                example: 'Nguyễn Văn Cường',
                 required: true,
                 note: 'Họ và tên đầy đủ của sinh viên'
             },
             { 
                 label: 'Email', 
-                example: 'nva@example.com',
+                example: 'nguyenvancuong@student.edu.vn',
                 required: true,
-                note: 'Email sinh viên, phải đúng định dạng có chứa @'
+                note: 'Email sinh viên, phải đúng định dạng có chứa @. Không trùng lặp'
             },
             { 
                 label: 'Số điện thoại', 
                 example: '0912345678',
                 required: false,
-                note: 'Số điện thoại di động, 10-11 chữ số'
+                note: 'Số điện thoại di động, 10-11 chữ số, bắt đầu bằng 0'
             },
             { 
                 label: 'Ngày sinh', 
-                example: '2000-01-15',
+                example: '2003-03-15',
                 required: false,
-                note: 'Định dạng: YYYY-MM-DD (VD: 2000-01-15)'
+                note: 'Định dạng: YYYY-MM-DD (VD: 2003-03-15, 2003-07-22)'
             },
             { 
                 label: 'Giới tính', 
                 example: 'Nam',
                 required: false,
-                note: 'Giá trị: Nam hoặc Nữ'
+                note: 'Giá trị: Nam hoặc Nữ (phân biệt chữ hoa/thường)'
             },
             { 
                 label: 'Địa chỉ', 
-                example: 'Hà Nội',
+                example: 'Số 10, Đường Lê Lợi, Quận 1, TP.HCM',
                 required: false,
-                note: 'Địa chỉ thường trú hoặc tạm trú'
-            },
-            { 
-                label: 'Mã Khoa', 
-                example: '1',
-                required: true,
-                note: 'Mã ID của khoa. Xem danh sách khoa để biết mã cụ thể'
+                note: 'Địa chỉ thường trú hoặc tạm trú (đầy đủ)'
             },
             { 
                 label: 'Mã Ngành', 
-                example: '1',
+                example: 'MAJ001',
                 required: true,
-                note: 'Mã ID của ngành học. Xem danh sách ngành để biết mã cụ thể'
+                note: 'CHỈ dùng: MAJ001 (Công nghệ Phần mềm) hoặc MAJ002 (Khoa học Dữ liệu). Xem sheet "Mã tham khảo"'
             },
             { 
-                label: 'Khóa học', 
-                example: '2023',
+                label: 'Niên khóa', 
+                example: 'AY2024',
                 required: false,
-                note: 'Năm nhập học (VD: 2023, 2024)'
+                note: 'CHỈ dùng: AY2024 (KHÔNG phải AY2024-2025!). Có thể để trống. Xem sheet "Mã tham khảo"'
             }
         ];
         
@@ -361,29 +355,14 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
                         required: false 
                     },
                     { 
-                        name: 'Mã Khoa (*)', 
-                        label: 'Mã Khoa', 
-                        required: true, 
-                        type: 'number' 
-                    },
-                    { 
                         name: 'Mã Ngành (*)', 
                         label: 'Mã Ngành', 
-                        required: true, 
-                        type: 'number' 
+                        required: true 
                     },
                     { 
-                        name: 'Khóa học', 
-                        label: 'Khóa học', 
-                        required: false,
-                        validate: function(value) {
-                            if (value) {
-                                var year = parseInt(value);
-                                if (isNaN(year) || year < 2000 || year > 2100) {
-                                    return 'Khóa học phải là năm hợp lệ (VD: 2023)';
-                                }
-                            }
-                        }
+                        name: 'Niên khóa', 
+                        label: 'Niên khóa', 
+                        required: false
                     }
                 ];
                 
@@ -413,33 +392,50 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
         
         // Transform data to match API format
         var studentsToImport = $scope.importData.preview.map(function(row) {
+            // Parse date if exists
+            var dob = null;
+            if (row['Ngày sinh']) {
+                dob = new Date(row['Ngày sinh']).toISOString();
+            }
+            
             return {
                 studentCode: row['Mã SV'],
                 fullName: row['Họ tên'],
                 email: row['Email'],
-                phone: row['Số điện thoại'] || '',
-                facultyId: parseInt(row['Mã Khoa']),
-                majorId: parseInt(row['Mã Ngành']),
-                isActive: true
+                phone: row['Số điện thoại'] || null,
+                dateOfBirth: dob,
+                gender: row['Giới tính'] || null,
+                address: row['Địa chỉ'] || null,
+                majorId: row['Mã Ngành'] || row['Mã Ngành (*)'],
+                academicYearId: row['Niên khóa'] || null
             };
         });
         
-        // TODO: Call API to import students in batch
-        // For now, we'll add them one by one (should be optimized with batch API)
-        var importPromises = studentsToImport.map(function(student) {
-            return StudentService.create(student);
-        });
-        
-        Promise.all(importPromises)
-            .then(function() {
-                $scope.success = 'Import thành công ' + studentsToImport.length + ' sinh viên';
+        // ✅ Use BATCH IMPORT API (1 request instead of N requests)
+        StudentService.importBatch(studentsToImport)
+            .then(function(response) {
+                var result = response.data.data;
+                
+                if (result.errorCount > 0) {
+                    // Show partial success with errors
+                    var errorMessages = result.errors.map(function(err) {
+                        return 'Dòng ' + err.rowNumber + ' (' + err.studentCode + '): ' + err.errorMessage;
+                    }).join('\n');
+                    
+                    $scope.error = 'Import thành công ' + result.successCount + '/' + studentsToImport.length + ' sinh viên.\n\n' +
+                                   'Có ' + result.errorCount + ' lỗi:\n' + errorMessages;
+                } else {
+                    // Full success
+                    $scope.success = 'Import thành công ' + result.successCount + ' sinh viên! 🎉';
+                }
+                
                 $scope.loading = false;
                 $scope.closeImportModal();
                 $scope.loadStudents();
                 $scope.$apply();
             })
             .catch(function(error) {
-                $scope.error = 'Lỗi khi import: ' + (error.message || 'Vui lòng thử lại');
+                $scope.error = 'Lỗi khi import: ' + (error.data?.message || error.message || 'Vui lòng thử lại');
                 $scope.loading = false;
                 $scope.$apply();
             });

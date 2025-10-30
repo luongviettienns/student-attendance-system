@@ -168,12 +168,15 @@ app.service('ImportService', ['$q', function($q) {
         
         instructionData.push(['']);
         instructionData.push(['⚠️ LƯU Ý QUAN TRỌNG:']);
-        instructionData.push(['• Email phải đúng định dạng (có @ và domain hợp lệ)']);
-        instructionData.push(['• Số điện thoại: 10-11 chữ số, bắt đầu bằng 0']);
-        instructionData.push(['• Mã SV: Định dạng SV + số (VD: SV001, SV002)']);
-        instructionData.push(['• Mã Khoa, Mã Ngành: Liên hệ quản trị viên để biết mã chính xác']);
-        instructionData.push(['• Ngày sinh: Định dạng YYYY-MM-DD (VD: 2000-01-15)']);
-        instructionData.push(['• Giới tính: Chỉ nhập "Nam" hoặc "Nữ"']);
+        instructionData.push(['• Mã SV: Định dạng SV + năm + số (VD: SV2024003, SV2024004) - Bắt buộc, không trùng lặp']);
+        instructionData.push(['• Họ tên: Họ và tên đầy đủ của sinh viên - Bắt buộc']);
+        instructionData.push(['• Email: Đúng định dạng (có @ và domain hợp lệ) - Bắt buộc, không trùng lặp']);
+        instructionData.push(['• Số điện thoại: 10-11 chữ số, bắt đầu bằng 0 (VD: 0912345678) - Tùy chọn']);
+        instructionData.push(['• Ngày sinh: Định dạng YYYY-MM-DD (VD: 2003-03-15) - Tùy chọn']);
+        instructionData.push(['• Giới tính: Chỉ nhập "Nam" hoặc "Nữ" - Tùy chọn']);
+        instructionData.push(['• Địa chỉ: Địa chỉ thường trú hoặc tạm trú - Tùy chọn']);
+        instructionData.push(['• Mã Ngành: Chỉ dùng MAJ001 hoặc MAJ002 - Bắt buộc, xem sheet "Mã tham khảo"']);
+        instructionData.push(['• Niên khóa: Chỉ dùng AY2024 (KHÔNG phải AY2024-2025!) - Tùy chọn, có thể để trống']);
         instructionData.push(['']);
         instructionData.push(['🆘 HỖ TRỢ:']);
         instructionData.push(['Nếu có thắc mắc, vui lòng liên hệ bộ phận hỗ trợ:']);
@@ -196,21 +199,46 @@ app.service('ImportService', ['$q', function($q) {
             return col.label + (col.required ? ' (*)' : ''); 
         });
         
-        // Create 5 sample rows with more variety
+        // ✅ Create 5 sample rows with REAL DATABASE VALUES (can import immediately!)
         var sampleRows = [];
         var sampleData = [
-            { name: 'Nguyễn Văn An', email: 'an@example.com', phone: '0912345678', gender: 'Nam', address: 'Hà Nội' },
-            { name: 'Trần Thị Bình', email: 'binh@example.com', phone: '0923456789', gender: 'Nữ', address: 'TP.HCM' },
-            { name: 'Lê Văn Cường', email: 'cuong@example.com', phone: '0934567890', gender: 'Nam', address: 'Đà Nẵng' },
-            { name: 'Phạm Thị Dung', email: 'dung@example.com', phone: '0945678901', gender: 'Nữ', address: 'Cần Thơ' },
-            { name: 'Hoàng Văn Em', email: 'em@example.com', phone: '0956789012', gender: 'Nam', address: 'Hải Phòng' }
+            { 
+                code: 'SV2024003', name: 'Nguyễn Văn Cường', email: 'nguyenvancuong@student.edu.vn', 
+                phone: '0912345678', dob: '2003-03-15', gender: 'Nam', 
+                address: 'Số 10, Đường Lê Lợi, Quận 1, TP.HCM',
+                major: 'MAJ001', year: 'AY2024'
+            },
+            { 
+                code: 'SV2024004', name: 'Trần Thị Dung', email: 'tranthidung@student.edu.vn', 
+                phone: '0923456789', dob: '2003-07-22', gender: 'Nữ', 
+                address: 'Số 25, Đường Nguyễn Huệ, Quận Hai Bà Trưng, Hà Nội',
+                major: 'MAJ002', year: 'AY2024'
+            },
+            { 
+                code: 'SV2024005', name: 'Lê Văn Em', email: 'levanem@student.edu.vn', 
+                phone: '0934567890', dob: '2003-11-08', gender: 'Nam', 
+                address: 'Số 45, Đường Trần Phú, Quận Hải Châu, Đà Nẵng',
+                major: 'MAJ001', year: 'AY2024'
+            },
+            { 
+                code: 'SV2024006', name: 'Phạm Thị Hoa', email: 'phamthihoa@student.edu.vn', 
+                phone: '0945678901', dob: '2003-05-19', gender: 'Nữ', 
+                address: 'Số 78, Đường Cách Mạng Tháng 8, Quận Ninh Kiều, Cần Thơ',
+                major: 'MAJ002', year: ''
+            },
+            { 
+                code: 'SV2024007', name: 'Hoàng Văn Khoa', email: 'hoangvankhoa@student.edu.vn', 
+                phone: '0956789012', dob: '2003-09-30', gender: 'Nam', 
+                address: 'Số 120, Đường Lạch Tray, Quận Ngô Quyền, Hải Phòng',
+                major: 'MAJ001', year: 'AY2024'
+            }
         ];
         
         for (var i = 0; i < 5; i++) {
             var row = columns.map(function(col) {
                 var sample = sampleData[i];
                 if (col.label.indexOf('Mã SV') !== -1) {
-                    return 'SV' + ('000' + (i + 1)).slice(-3);
+                    return sample.code;
                 } else if (col.label.indexOf('Họ tên') !== -1) {
                     return sample.name;
                 } else if (col.label.indexOf('Email') !== -1) {
@@ -218,17 +246,15 @@ app.service('ImportService', ['$q', function($q) {
                 } else if (col.label.indexOf('Số điện thoại') !== -1) {
                     return sample.phone;
                 } else if (col.label.indexOf('Ngày sinh') !== -1) {
-                    return '200' + (i + 1) + '-0' + (i + 1) + '-1' + (i + 1);
+                    return sample.dob;
                 } else if (col.label.indexOf('Giới tính') !== -1) {
                     return sample.gender;
                 } else if (col.label.indexOf('Địa chỉ') !== -1) {
                     return sample.address;
-                } else if (col.label.indexOf('Mã Khoa') !== -1) {
-                    return (i % 3) + 1; // 1, 2, 3, 1, 2
                 } else if (col.label.indexOf('Mã Ngành') !== -1) {
-                    return (i % 4) + 1; // 1, 2, 3, 4, 1
-                } else if (col.label.indexOf('Khóa học') !== -1) {
-                    return 2020 + (i % 4); // 2020, 2021, 2022, 2023, 2020
+                    return sample.major;
+                } else if (col.label.indexOf('Niên khóa') !== -1) {
+                    return sample.year;
                 }
                 return '';
             });
@@ -343,41 +369,55 @@ app.service('ImportService', ['$q', function($q) {
         XLSX.utils.book_append_sheet(wb, wsData, '📊 Dữ liệu');
         
         // ========================================
-        // Sheet 3: DANH SÁCH MÃ (Enhanced)
+        // Sheet 3: DANH SÁCH MÃ (✅ REAL DATABASE VALUES ONLY)
         // ========================================
         var codeData = [
-            ['📋 DANH SÁCH MÃ THAM KHẢO'],
+            ['📋 DANH SÁCH MÃ THAM KHẢO (DỮ LIỆU THỰC TẾ TRONG HỆ THỐNG)'],
             [''],
-            ['🏛️ DANH SÁCH KHOA:'],
-            ['Mã', 'Tên Khoa', 'Ghi chú'],
-            ['1', 'Khoa Công nghệ thông tin', 'CNTT'],
-            ['2', 'Khoa Kinh tế', 'KT'],
-            ['3', 'Khoa Ngoại ngữ', 'NN'],
-            ['4', 'Khoa Xây dựng', 'XD'],
-            ['5', 'Khoa Điện tử', 'ĐT'],
+            ['⚠️ CHÚ Ý: Chỉ sử dụng các mã có trong bảng dưới đây. Các mã khác sẽ BỊ LỖI khi import!'],
             [''],
-            ['📚 DANH SÁCH NGÀNH:'],
-            ['Mã', 'Tên Ngành', 'Thuộc Khoa'],
-            ['1', 'Công nghệ thông tin', '1'],
-            ['2', 'Khoa học máy tính', '1'],
-            ['3', 'An toàn thông tin', '1'],
-            ['4', 'Kinh tế học', '2'],
-            ['5', 'Quản trị kinh doanh', '2'],
-            ['6', 'Kế toán', '2'],
-            ['7', 'Tiếng Anh', '3'],
-            ['8', 'Tiếng Nhật', '3'],
             [''],
-            ['💡 LƯU Ý:'],
-            ['• Sử dụng mã số chính xác từ bảng trên'],
-            ['• Liên hệ quản trị viên nếu không tìm thấy mã phù hợp'],
-            ['• Mã có thể thay đổi theo từng năm học']
+            ['📚 DANH SÁCH MÃ NGÀNH (HIỆN CÓ TRONG DATABASE):'],
+            ['Mã Ngành', 'Tên Ngành', 'Mã Code', 'Thuộc Khoa'],
+            ['MAJ001', 'Công nghệ Phần mềm', 'SE', 'FAC001 - Công nghệ Thông tin'],
+            ['MAJ002', 'Khoa học Dữ liệu', 'DS', 'FAC001 - Công nghệ Thông tin'],
+            [''],
+            ['⚠️ LƯU Ý: Hệ thống hiện chỉ có 2 ngành. Vui lòng liên hệ Admin để thêm ngành mới.'],
+            [''],
+            [''],
+            ['🎓 DANH SÁCH NIÊN KHÓA (HIỆN CÓ TRONG DATABASE):'],
+            ['Mã Niên khóa', 'Tên đầy đủ', 'Năm bắt đầu', 'Năm kết thúc', 'Trạng thái'],
+            ['AY2024', 'Niên khóa 2024-2025', '2024', '2025', 'Đang hoạt động'],
+            [''],
+            ['⚠️ LƯU Ý: Hệ thống hiện chỉ có 1 niên khóa. Vui lòng liên hệ Admin để thêm niên khóa mới.'],
+            [''],
+            [''],
+            ['💡 HƯỚNG DẪN SỬ DỤNG:'],
+            [''],
+            ['✅ MÃ NGÀNH:'],
+            ['   • PHẢI sử dụng đúng mã: MAJ001 hoặc MAJ002'],
+            ['   • Không được tự tạo mã mới (VD: MAJ003, MAJ004, ...)'],
+            ['   • Phân biệt chữ hoa/thường: phải viết MAJ001 (không phải maj001 hay Maj001)'],
+            [''],
+            ['✅ NIÊN KHÓA:'],
+            ['   • Sử dụng mã: AY2024 (KHÔNG PHẢI AY2024-2025)'],
+            ['   • Có thể để trống nếu chưa xác định niên khóa'],
+            ['   • Phân biệt chữ hoa/thường: phải viết AY2024 (không phải ay2024)'],
+            [''],
+            [''],
+            ['📞 HỖ TRỢ KỸ THUẬT:'],
+            ['   • Email: admin@university.edu.vn'],
+            ['   • Hotline: 1900-xxxx'],
+            ['   • Để thêm Ngành/Niên khóa mới, vui lòng liên hệ Quản trị viên hệ thống']
         ];
         
         var wsCode = XLSX.utils.aoa_to_sheet(codeData);
         wsCode['!cols'] = [
-            { wch: 8 },   // Mã
-            { wch: 35 },  // Tên
-            { wch: 20 }   // Ghi chú
+            { wch: 18 },  // Mã Ngành / Mã Niên khóa
+            { wch: 30 },  // Tên Ngành / Tên đầy đủ
+            { wch: 15 },  // Mã Code / Năm bắt đầu
+            { wch: 35 },  // Thuộc Khoa / Năm kết thúc
+            { wch: 20 }   // Trạng thái
         ];
         
         XLSX.utils.book_append_sheet(wb, wsCode, '📋 Mã tham khảo');

@@ -84,11 +84,11 @@ namespace EducationManagement.API.Admin.Controllers
                 AvatarUrl = fullAvatarUrl
             };
 
-            // ✅ Audit Log: Login
+            // ✅ Audit Log: Login (Full tiếng Việt)
             await LogLoginAsync(user.UserId, new { 
-                username = user.Username, 
-                role = user.RoleName,
-                login_time = DateTime.UtcNow 
+                ten_dang_nhap = user.Username, 
+                vai_tro = user.RoleName,
+                thoi_gian_dang_nhap = DateTime.UtcNow 
             });
 
             // Console.WriteLine($"[Login] ✅ {user.Username} đăng nhập thành công"); // Tắt để tránh spam log

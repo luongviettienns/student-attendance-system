@@ -17,6 +17,12 @@ var builder = WebApplication.CreateBuilder(args);
 // ============================================================
 // 🔹 2️⃣ Đăng ký toàn bộ Services + Repositories
 // ============================================================
+// ✅ AUTO-REGISTERS ALL SERVICES & REPOSITORIES using Scrutor
+// Including Phase 2 Enrollment System:
+//    - AdministrativeClassService & Repository
+//    - RegistrationPeriodService & Repository
+//    - EnrollmentService & Repository (enhanced)
+//    - SubjectPrerequisiteService & Repository
 builder.Services.Scan(scan => scan
     .FromAssemblies(
         Assembly.Load("EducationManagement.BLL"),

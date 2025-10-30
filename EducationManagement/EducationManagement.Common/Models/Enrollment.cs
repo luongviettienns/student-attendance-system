@@ -51,6 +51,49 @@ namespace EducationManagement.Common.Models
         public string? DroppedReason { get; set; }
 
         // ==================================================
+        // 🔹 PHASE 1: Enrollment Status Enhancement
+        // ==================================================
+        [Column("enrollment_status")]
+        [MaxLength(20)]
+        public string EnrollmentStatus { get; set; } = "APPROVED"; // PENDING, APPROVED, DROPPED, WITHDRAWN
+
+        [Column("drop_deadline")]
+        public DateTime? DropDeadline { get; set; }
+
+        [Column("notes")]
+        [MaxLength(500)]
+        public string? Notes { get; set; }
+
+        [Column("drop_reason")]
+        [MaxLength(500)]
+        public string? DropReason { get; set; }
+
+        // NotMapped properties for display
+        [NotMapped]
+        public bool CanDrop => DropDeadline.HasValue && DateTime.Now <= DropDeadline.Value && EnrollmentStatus == "APPROVED";
+
+        [NotMapped]
+        public int? DaysUntilDropDeadline
+        {
+            get
+            {
+                if (!DropDeadline.HasValue) return null;
+                var days = (DropDeadline.Value - DateTime.Now).Days;
+                return days < 0 ? 0 : days;
+            }
+        }
+
+        [NotMapped]
+        public string StatusDisplay => EnrollmentStatus switch
+        {
+            "PENDING" => "Chờ duyệt",
+            "APPROVED" => "Đã duyệt",
+            "DROPPED" => "Đã hủy",
+            "WITHDRAWN" => "Đã rút",
+            _ => EnrollmentStatus
+        };
+
+        // ==================================================
         // 🔹 Audit fields
         // ==================================================
         [Column("is_active")]

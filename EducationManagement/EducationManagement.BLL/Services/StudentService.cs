@@ -91,6 +91,17 @@ namespace EducationManagement.BLL.Services
 
             return await _studentRepository.GetByUserIdAsync(userId);
         }
+
+        /// <summary>
+        /// Import hàng loạt sinh viên từ Excel
+        /// </summary>
+        public async Task<BatchImportResultDto> ImportStudentsBatchAsync(List<StudentImportDto> students, string createdBy)
+        {
+            if (students == null || students.Count == 0)
+                throw new ArgumentException("Danh sách sinh viên không được rỗng");
+
+            return await _studentRepository.ImportBatchAsync(students, createdBy);
+        }
     }
 }
 

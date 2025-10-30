@@ -70,6 +70,22 @@ namespace EducationManagement.Common.Models
         public string? CohortYear { get; set; }
 
         // ==================================================
+        // 🔹 PHASE 1: Administrative Class (Lớp hành chính)
+        // ==================================================
+        [Column("admin_class_id")]
+        [MaxLength(50)]
+        public string? AdminClassId { get; set; }
+
+        [NotMapped]
+        public string? AdminClassName { get; set; }
+
+        [NotMapped]
+        public string? AdminClassCode { get; set; }
+
+        [NotMapped]
+        public string? AdvisorName { get; set; }
+
+        // ==================================================
         // 🔹 Audit fields
         // ==================================================
         [Column("is_active")]

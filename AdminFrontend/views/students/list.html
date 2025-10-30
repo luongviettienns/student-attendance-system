@@ -204,8 +204,8 @@
 </div>
 
 <!-- Import Modal -->
-<div ng-if="showImportModal" class="modal-overlay" ng-click="closeImportModal()">
-    <div class="modal" ng-click="$event.stopPropagation()" style="width: 800px;">
+<div ng-if="showImportModal" class="modal-overlay" ng-click="closeImportModal()" style="display: flex !important; align-items: center; justify-content: center;">
+    <div class="modal" ng-click="$event.stopPropagation()" style="display: block !important; width: 800px; position: relative; transform: none; top: auto; left: auto;">
         <div class="modal-header">
             <h3 class="modal-title">Import danh sách Sinh viên</h3>
             <button class="modal-close" ng-click="closeImportModal()">
