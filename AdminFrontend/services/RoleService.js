@@ -384,24 +384,21 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         
         var menuMap = {
             'Admin': [
-                { section: 'TỔNG QUAN', items: [
+                { section: 'TỔNG QUAN', singleLink: true, items: [
                     { path: '/dashboard', icon: 'fas fa-tachometer-alt', label: 'Dashboard' }
                 ]},
                 { section: 'QUẢN LÝ NGƯỜI DÙNG', items: [
                     { path: '/users', icon: 'fas fa-users', label: 'Tài khoản' },
                     { path: '/roles', icon: 'fas fa-shield-alt', label: 'Vai trò & quyền' }
                 ]},
-                { section: 'QUẢN LÝ TỔ CHỨC', items: [
-                    { path: '/organization', icon: 'fas fa-sitemap', label: 'Tổ chức' }
-                ]},
                 { section: 'QUẢN LÝ ĐÀO TẠO', items: [
+                    { path: '/organization', icon: 'fas fa-sitemap', label: 'Quản lý đào tạo' },
                     { path: '/students', icon: 'fas fa-user-graduate', label: 'Sinh viên' },
                     { path: '/lecturers', icon: 'fas fa-chalkboard-teacher', label: 'Giảng viên' },
                     { path: '/academic-years', icon: 'fas fa-calendar-alt', label: 'Niên khóa' },
                     { path: '/school-years', icon: 'fas fa-calendar-check', label: 'Năm học' }
                 ]},
                 { section: 'HỌC PHẦN', items: [
-                    { path: '/subjects', icon: 'fas fa-book', label: 'Môn học' },
                     { path: '/subject-prerequisites', icon: 'fas fa-project-diagram', label: 'Tiên quyết' },
                     { path: '/classes', icon: 'fas fa-chalkboard', label: 'Lớp học phần' }
                 ]},

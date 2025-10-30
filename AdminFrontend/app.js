@@ -1,5 +1,5 @@
 // AngularJS Application Configuration
-var app = angular.module('adminApp', ['ngRoute']);
+var app = angular.module('adminApp', ['ngRoute', 'ngAnimate']);
 
 // API Configuration (Microservices Pattern - All via Gateway)
 app.constant('API_CONFIG', {
@@ -45,6 +45,8 @@ app.config(['$httpProvider', function($httpProvider) {
 
 // Route Configuration
 app.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
+    // Đảm bảo sử dụng hashbang kiểu #! để điều hướng đúng
+    $locationProvider.hashPrefix('!');
     $routeProvider
         // Login
         .when('/login', {

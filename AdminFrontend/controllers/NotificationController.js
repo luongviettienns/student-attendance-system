@@ -288,10 +288,23 @@ app.controller('NotificationBellController', ['$scope', 'NotificationService',
     // Initialize
     $scope.loadUnread();
     
-    // Refresh every 60 seconds
-    setInterval(function() {
-        $scope.loadUnread();
-        $scope.$apply();
+    // Refresh every 60 seconds (chỉ khi tab đang hiển thị)
+    var intervalId = setInterval(function() {
+        if (document.visibilityState === 'visible') {
+            $scope.loadUnread();
+            // Chỉ gọi $apply khi ngoài digest
+            if (!$scope.$$phase) {
+                $scope.$apply();
+            }
+        }
     }, 60000);
+
+    // Cleanup interval khi destroy để tránh nhân bản interval khi điều hướng
+    $scope.$on('$destroy', function() {
+        if (intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
+        }
+    });
 }]);
 

@@ -15,16 +15,15 @@ app.controller('SubjectController', ['$scope', '$location', '$routeParams', 'Sub
     // Load all subjects
     $scope.loadSubjects = function() {
         $scope.loading = true;
-        SubjectService.getAll()
+        // Use aggregate endpoint to get lecturerCount in one call
+        SubjectService.getAllWithLecturerCount()
             .then(function(response) {
-                $scope.subjects = response.data;
-                $scope.filteredSubjects = $scope.subjects;
-                
-                // Load lecturer count for each subject
-                $scope.subjects.forEach(function(subject) {
-                    $scope.loadSubjectLecturerCount(subject);
+                $scope.subjects = (response.data || []).map(function(s) {
+                    if (typeof s.lecturerCount === 'undefined') s.lecturerCount = 0;
+                    return s;
                 });
-                
+                $scope.filteredSubjects = $scope.subjects;
+
                 $scope.loading = false;
             })
             .catch(function(error) {
@@ -33,7 +32,7 @@ app.controller('SubjectController', ['$scope', '$location', '$routeParams', 'Sub
             });
     };
     
-    // Load lecturer count for subject
+    // Load lecturer count for subject (legacy - no longer used on list)
     $scope.loadSubjectLecturerCount = function(subject) {
         SubjectService.getLecturersBySubject(subject.subjectId)
             .then(function(response) {

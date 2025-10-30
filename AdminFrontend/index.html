@@ -26,6 +26,7 @@
     <!-- AngularJS -->
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-route.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-animate.min.js"></script>
     
     <!-- SheetJS for Excel Import/Export (Local) -->
     <script src="js/xlsx.full.min.js"></script>
@@ -111,6 +112,7 @@
     <script src="directives/notificationBell.js"></script>
     <script src="directives/dragDrop.js"></script>
     <script src="directives/sidebar.js"></script>
+    <script src="directives/topbar.js"></script>
     <script src="directives/toastContainer.js"></script>
     
     <!-- UI Scripts -->
@@ -121,8 +123,8 @@
     <!-- Toast Notifications Container -->
     <toast-container></toast-container>
     
-    <!-- Main App View -->
-    <div ng-view></div>
+    <!-- Main App View with animation -->
+    <div class="view-container" ng-view></div>
 </body>
 </html>
 

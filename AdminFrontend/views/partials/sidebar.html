@@ -7,17 +7,29 @@
     
     <nav class="sidebar-nav">
         <ul class="sidebar-menu">
-            <!-- ✅ Menu động theo role từ RoleService -->
-            <li ng-repeat-start="section in menuSections" class="menu-section-title">
-                {{section.section}}
-            </li>
-            <li ng-repeat="item in section.items">
-                <a href="#!{{item.path}}" ng-class="{'active': isActive(item.path)}">
-                    <i class="{{item.icon}}"></i>
-                    <span>{{item.label}}</span>
+            <!-- ✅ Menu động theo role từ RoleService với dropdown -->
+            <li class="menu-section" ng-repeat="section in menuSections track by $index">
+                <!-- If section is singleLink (e.g., TỔNG QUAN), render as direct link -->
+                <a ng-if="section.singleLink && section.items && section.items.length > 0"
+                   class="menu-section-toggle"
+                   ng-href="{{buildHref(section.items[0].path)}}">
+                    <span class="section-title">{{section.section}}</span>
                 </a>
+                <div ng-if="!(section.singleLink && section.items && section.items.length > 0)">
+                    <button type="button" class="menu-section-toggle" ng-click="toggleSection($index)">
+                        <span class="section-title">{{section.section}}</span>
+                        <i class="fas fa-chevron-right arrow" ng-class="{'open': isSectionOpen($index)}"></i>
+                    </button>
+                    <ul class="submenu" ng-class="{'open': isSectionOpen($index)}">
+                        <li ng-repeat="item in section.items">
+                            <a ng-href="{{buildHref(item.path)}}" href="#" ng-class="{'active': isActive(item.path)}">
+                                <i class="{{item.icon}}"></i>
+                                <span>{{item.label}}</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </li>
-            <li ng-repeat-end></li>
         </ul>
     </nav>
 </aside>

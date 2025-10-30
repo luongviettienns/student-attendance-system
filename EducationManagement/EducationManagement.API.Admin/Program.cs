@@ -94,6 +94,8 @@ builder.Services.Configure<GzipCompressionProviderOptions>(options =>
 // ============================================================
 // 🔹 2.7️⃣ RATE LIMITING (DDoS Protection)
 // ============================================================
+var isDev = builder.Environment.IsDevelopment();
+
 builder.Services.AddRateLimiter(options =>
 {
     // Global rate limit - 100 requests per minute per user/IP
@@ -104,7 +106,8 @@ builder.Services.AddRateLimiter(options =>
             partitionKey: username,
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 100,
+                // Nới lỏng limit ở môi trường Development để tránh 429 khi FE reload/hot-reload
+                PermitLimit = isDev ? 1000 : 100,
                 Window = TimeSpan.FromMinutes(1),
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0

@@ -9,6 +9,50 @@ app.directive('appSidebar', ['$location', 'AuthService', 'RoleService', function
             
             // ✅ Get menu items based on user role
             scope.menuSections = RoleService.getMenuItems();
+
+            // Trạng thái mở/đóng cho từng section
+            scope.openSections = {};
+
+            // Chuẩn hóa link hashbang, tránh // gây $location:badpath
+            scope.buildHref = function(path) {
+                if (!path) return '#!';
+                var normalized = String(path).replace(/\s+/g, '');
+                if (normalized.charAt(0) !== '/') {
+                    normalized = '/' + normalized;
+                }
+                // Loại bỏ double slash nếu có
+                normalized = normalized.replace(/\/+/g, '/');
+                return '#!' + normalized;
+            };
+
+            // Toggle một section theo index
+            scope.toggleSection = function(sectionIndex) {
+                var willOpen = !scope.openSections[sectionIndex];
+                // Đóng tất cả section khác
+                Object.keys(scope.openSections).forEach(function(key) {
+                    scope.openSections[key] = false;
+                });
+                // Mở section hiện tại nếu cần
+                scope.openSections[sectionIndex] = willOpen;
+            };
+
+            // Kiểm tra section mở
+            scope.isSectionOpen = function(sectionIndex) {
+                return !!scope.openSections[sectionIndex];
+            };
+
+            // Tự động mở section chứa route hiện tại
+            function expandSectionForCurrentPath() {
+                var currentPath = $location.path();
+                if (!Array.isArray(scope.menuSections)) return;
+                scope.menuSections.forEach(function(section, idx) {
+                    var hasActive = (section.items || []).some(function(item) {
+                        return currentPath === item.path || (item.path !== '/' && currentPath.indexOf(item.path) === 0);
+                    });
+                    scope.openSections[idx] = hasActive;
+                });
+            }
+            expandSectionForCurrentPath();
             
             // ✅ Check if user has permission
             scope.hasPermission = function(permission) {
@@ -43,6 +87,8 @@ app.directive('appSidebar', ['$location', 'AuthService', 'RoleService', function
                 scope.currentUser = AuthService.getCurrentUser() || { fullName: 'Admin' };
                 // Update menu items
                 scope.menuSections = RoleService.getMenuItems();
+                // Sync trạng thái mở theo route
+                expandSectionForCurrentPath();
             });
         }
     };

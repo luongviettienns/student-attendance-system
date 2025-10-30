@@ -49,8 +49,9 @@ namespace EducationManagement.API.Admin.Controllers
             try
             {
                 var activePeriod = await _service.GetActiveAsync();
+                // Trả về 200 để FE không báo 404 khi không có đợt mở
                 if (activePeriod == null)
-                    return NotFound(new { success = false, message = "Không có đợt đăng ký nào đang mở" });
+                    return Ok(new { success = false, message = "Không có đợt đăng ký nào đang mở", data = (object?)null });
 
                 return Ok(new { success = true, data = activePeriod });
             }

@@ -3,25 +3,7 @@
     <app-sidebar></app-sidebar>
     
     <div class="main-content">
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
-                <h1 class="page-title">Quản lý Lớp học</h1>
-            </div>
-            <div class="header-right">
-                <div class="user-info" ng-init="currentUser = getCurrentUser()">
-                    <div class="user-avatar" ng-click="openAvatarModal()">
-                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
-                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
-                    </div>
-                    <div class="user-details">
-                        <span class="user-name">{{currentUser.fullName}}</span>
-                        <span class="user-role">{{currentUser.roleName || 'Admin'}}</span>
-                    </div>
-                </div>
-                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
-            </div>
-        </header>
+        <app-topbar page-title="Quản lý Lớp học phần"></app-topbar>
         
         <div class="content-body">
             <!-- Alerts -->
@@ -32,7 +14,7 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h3 class="card-title mb-0">
                         <i class="fas fa-chalkboard-teacher me-2"></i>
-                        Danh sách Lớp học
+                        Danh sách Lớp học phần
                     </h3>
                     <div class="card-actions">
                         <button class="btn btn-primary btn-sm" ng-click="openCreateForm()">
@@ -137,11 +119,11 @@
                 <form ng-submit="saveClass()">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Mã lớp <span class="text-danger">*</span></label>
+                                    <label class="form-label">Mã lớp học phần <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" ng-model="selectedClass.classCode" required>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Tên lớp <span class="text-danger">*</span></label>
+                                    <label class="form-label">Tên lớp học phần <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" ng-model="selectedClass.className" required>
                         </div>
                         <div class="col-md-6">
@@ -206,12 +188,12 @@
             <div class="modal-header">
                 <h5 class="modal-title text-danger">
                     <i class="fas fa-exclamation-triangle me-2"></i>
-                    Xác nhận xóa lớp học
+                    Xác nhận xóa lớp học phần
                 </h5>
                 <button type="button" class="btn-close" ng-click="closeDeleteModal()"></button>
             </div>
             <div class="modal-body">
-                <p>Bạn có chắc chắn muốn xóa lớp học <strong>{{selectedClass.className}}</strong>?</p>
+                <p>Bạn có chắc chắn muốn xóa lớp học phần <strong>{{selectedClass.className}}</strong>?</p>
                 <div class="alert alert-warning">
                     <i class="fas fa-info-circle me-2"></i>
                     Hành động này không thể hoàn tác. Tất cả dữ liệu liên quan đến lớp học sẽ bị xóa.
@@ -221,7 +203,7 @@
                 <button type="button" class="btn btn-secondary" ng-click="closeDeleteModal()">Hủy</button>
                 <button type="button" class="btn btn-danger" ng-click="deleteClass()">
                     <i class="fas fa-trash me-1"></i>
-                    Xóa lớp học
+                    Xóa lớp học phần
                 </button>
             </div>
         </div>

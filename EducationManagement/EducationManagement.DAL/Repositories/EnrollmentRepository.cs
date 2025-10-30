@@ -21,13 +21,20 @@ namespace EducationManagement.DAL.Repositories
 
         public async Task<List<Enrollment>> GetAllAsync()
         {
-            var enrollments = new List<Enrollment>();
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAllEnrollments");
-
-            foreach (DataRow row in dt.Rows)
-                enrollments.Add(MapToEnrollment(row));
-
-            return enrollments;
+            // Fallback: nếu SP tổng hợp toàn bộ chưa có, trả về danh sách rỗng thay vì 500
+            try
+            {
+                var enrollments = new List<Enrollment>();
+                var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAllEnrollments");
+                foreach (DataRow row in dt.Rows)
+                    enrollments.Add(MapToEnrollment(row));
+                return enrollments;
+            }
+            catch
+            {
+                // TODO: thêm SP sp_GetAllEnrollments hoặc chuyển sang paged API
+                return new List<Enrollment>();
+            }
         }
 
         public async Task<Enrollment?> GetByIdAsync(string enrollmentId)
@@ -83,7 +90,7 @@ namespace EducationManagement.DAL.Repositories
             };
 
             var dt = await DatabaseHelper.ExecuteQueryAsync(
-                _connectionString, "sp_GetAvailableClasses", parameters);
+                _connectionString, "sp_GetAvailableClassesForStudent", parameters);
 
             var classes = new List<AvailableClassDto>();
             foreach (DataRow row in dt.Rows)

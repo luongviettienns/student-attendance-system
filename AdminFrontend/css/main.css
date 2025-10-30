@@ -212,6 +212,96 @@ body {
     letter-spacing: 0.5px;
 }
 
+/* Sidebar dropdown sections */
+.menu-section {
+    margin-bottom: 6px;
+}
+
+.menu-section-toggle {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text-lighter);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    opacity: 0.9;
+}
+
+.menu-section-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.06);
+}
+
+.menu-section-toggle .section-title {
+    color: var(--text-light);
+}
+
+.menu-section-toggle .arrow {
+    transition: transform 0.25s ease;
+}
+
+.menu-section-toggle .arrow.open {
+    transform: rotate(90deg);
+}
+
+.submenu {
+    list-style: none;
+    margin: 0;
+    padding: 4px 0 6px 0;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: max-height 0.25s ease, opacity 0.2s ease, transform 0.2s ease;
+}
+
+.submenu.open {
+    max-height: 600px; /* đủ lớn để chứa nhiều item */
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.submenu li a {
+    padding: 10px 20px 10px 36px;
+}
+
+/* =========================
+   VIEW TRANSITION (ngAnimate)
+   ========================= */
+.view-container.ng-enter,
+.view-container.ng-leave {
+    display: block;
+}
+
+.view-container.ng-enter {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.view-container.ng-enter-active {
+    transition: opacity 200ms ease, transform 220ms ease;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.view-container.ng-leave {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.view-container.ng-leave-active {
+    transition: opacity 150ms ease, transform 160ms ease;
+    opacity: 0;
+    transform: translateY(-6px);
+}
+
 /* Main Content Area */
 .main-content {
     flex: 1;

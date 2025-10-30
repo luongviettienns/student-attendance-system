@@ -4,32 +4,7 @@
     
     <!-- Main Content -->
     <div class="main-content">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <h1 class="page-title">Dashboard</h1>
-            </div>
-            
-            <div class="header-right">
-                <notification-bell></notification-bell>
-                <div class="user-info">
-                    <div class="user-avatar" ng-click="openAvatarModal()">
-                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
-                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName.charAt(0)}}</span>
-                    </div>
-                    <div class="user-details">
-                        <span class="user-name">{{currentUser.fullName}}</span>
-                        <span class="user-role">Admin</span>
-                    </div>
-                </div>
-                <button ng-click="logout()" class="btn btn-outline">
-                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                </button>
-            </div>
-        </header>
+        <app-topbar page-title="Dashboard"></app-topbar>
         
         <!-- Content Body -->
         <div class="content-body">
@@ -170,39 +145,29 @@
                     </div>
                 </div>
             </div>
+
             
-            <!-- Recent Activities -->
+            <!-- Recent Audit Logs -->
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Hoạt động gần đây</h3>
+                    <h3 class="card-title">Hoạt động gần đây (Audit Log)</h3>
+                    <div class="card-actions" style="gap:6px; display:flex; align-items:center;">
+                        <button class="btn btn-sm" ng-class="{'btn-primary': auditFilter==='ALL', 'btn-outline': auditFilter!=='ALL'}" ng-click="setAuditFilter('ALL')">Tất cả</button>
+                        <button class="btn btn-sm" ng-class="{'btn-primary': auditFilter==='CREATE', 'btn-outline': auditFilter!=='CREATE'}" ng-click="setAuditFilter('CREATE')">Thêm</button>
+                        <button class="btn btn-sm" ng-class="{'btn-primary': auditFilter==='UPDATE', 'btn-outline': auditFilter!=='UPDATE'}" ng-click="setAuditFilter('UPDATE')">Sửa</button>
+                        <button class="btn btn-sm" ng-class="{'btn-primary': auditFilter==='DELETE', 'btn-outline': auditFilter!=='DELETE'}" ng-click="setAuditFilter('DELETE')">Xóa</button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <ul class="activity-list">
-                        <li class="activity-item">
+                    <div ng-if="!recentAuditLogs || recentAuditLogs.length === 0" class="text-muted">Không có log gần đây.</div>
+                    <ul class="activity-list" ng-if="recentAuditLogs.length > 0">
+                        <li class="activity-item" ng-repeat="log in recentAuditLogs">
                             <div class="activity-icon">
-                                <i class="fas fa-user-plus"></i>
+                                <i class="fas" ng-class="{'fa-plus': log.action==='CREATE', 'fa-edit': log.action==='UPDATE', 'fa-trash': log.action==='DELETE', 'fa-info-circle': log.action!=='CREATE' && log.action!=='UPDATE' && log.action!=='DELETE'}"></i>
                             </div>
                             <div class="activity-content">
-                                <div class="activity-title">Thêm sinh viên mới: Nguyễn Văn A</div>
-                                <div class="activity-time">2 giờ trước</div>
-                            </div>
-                        </li>
-                        <li class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-edit"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Cập nhật thông tin khoa CNTT</div>
-                                <div class="activity-time">5 giờ trước</div>
-                            </div>
-                        </li>
-                        <li class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-book"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Thêm môn học: Lập trình Web</div>
-                                <div class="activity-time">1 ngày trước</div>
+                                <div class="activity-title">{{displayAuditTitle(log)}}</div>
+                                <div class="activity-time">{{timeAgo(log.createdAt)}}</div>
                             </div>
                         </li>
                     </ul>

@@ -24,6 +24,14 @@ namespace EducationManagement.API.Admin.Controllers
             return Ok(list);
         }
 
+        // 🔹 Aggregate endpoint: Subjects with lecturer count
+        [HttpGet("with-lecturer-count")]
+        public async Task<IActionResult> GetAllWithLecturerCount()
+        {
+            var list = await _service.GetAllWithLecturerCountAsync();
+            return Ok(list);
+        }
+
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {

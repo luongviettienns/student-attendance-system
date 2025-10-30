@@ -60,8 +60,9 @@ namespace EducationManagement.DAL.Repositories
         // ============================================================
         public async Task<PeriodDetailDto?> GetActiveAsync()
         {
+            // NOTE: Stored procedure name in SQL scripts is sp_GetActiveRegistrationPeriod
             var dt = await DatabaseHelper.ExecuteQueryAsync(
-                _connectionString, "sp_GetCurrentRegistrationPeriod", Array.Empty<SqlParameter>());
+                _connectionString, "sp_GetActiveRegistrationPeriod", Array.Empty<SqlParameter>());
 
             if (dt.Rows.Count == 0)
                 return null;

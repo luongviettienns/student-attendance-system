@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EducationManagement.Common.Models;
+using EducationManagement.Common.DTOs.Subject;
+using EducationManagement.DAL.Repositories;
 using EducationManagement.DAL.Repositories;
 
 namespace EducationManagement.BLL.Services
@@ -12,11 +14,13 @@ namespace EducationManagement.BLL.Services
     {
         private readonly SubjectRepository _repo;
         private readonly DepartmentRepository _depRepo;
+        private readonly ClassRepository _classRepo;
 
-        public SubjectService(SubjectRepository repo, DepartmentRepository depRepo)
+        public SubjectService(SubjectRepository repo, DepartmentRepository depRepo, ClassRepository classRepo)
         {
             _repo = repo;
             _depRepo = depRepo;
+            _classRepo = classRepo;
         }
 
         public Task<List<Subject>> GetAllAsync() => _repo.GetAllAsync();
@@ -46,5 +50,33 @@ namespace EducationManagement.BLL.Services
         }
 
         public Task DeleteAsync(string id) => _repo.DeleteAsync(id);
+
+        /// <summary>
+        /// Trả về danh sách môn học kèm số lượng giảng viên đang dạy (distinct theo lecturer_id)
+        /// Không cần thay đổi DB: tính toán bằng cách gom nhóm từ bảng classes.
+        /// </summary>
+        public async Task<List<SubjectWithCountDto>> GetAllWithLecturerCountAsync()
+        {
+            var subjects = await _repo.GetAllAsync();
+            var classes = await _classRepo.GetAllAsync();
+
+            // Đếm distinct giảng viên theo môn
+            var subjectIdToLecturerCount = classes
+                .GroupBy(c => c.SubjectId)
+                .ToDictionary(g => g.Key, g => g.Select(c => c.LecturerId).Distinct().Count());
+
+            var result = subjects.Select(s => new SubjectWithCountDto
+            {
+                SubjectId = s.SubjectId,
+                SubjectCode = s.SubjectCode,
+                SubjectName = s.SubjectName,
+                Credits = s.Credits,
+                DepartmentId = s.DepartmentId,
+                DepartmentName = s.DepartmentName,
+                LecturerCount = subjectIdToLecturerCount.TryGetValue(s.SubjectId, out var cnt) ? cnt : 0
+            }).ToList();
+
+            return result;
+        }
     }
 }

@@ -1,6 +1,6 @@
 // Dashboard Controller
-app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService', 'UserService', 'FacultyService', 'StudentService', 'SubjectService', 'LecturerService', 'MajorService', 'AcademicYearService', 'ApiService', 'ToastService',
-    function($scope, $q, $timeout, AuthService, UserService, FacultyService, StudentService, SubjectService, LecturerService, MajorService, AcademicYearService, ApiService, ToastService) {
+app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService', 'UserService', 'FacultyService', 'StudentService', 'SubjectService', 'LecturerService', 'MajorService', 'AcademicYearService', 'ApiService', 'ToastService', 'AuditLogService',
+    function($scope, $q, $timeout, AuthService, UserService, FacultyService, StudentService, SubjectService, LecturerService, MajorService, AcademicYearService, ApiService, ToastService, AuditLogService) {
     
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.stats = {
@@ -15,6 +15,10 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
     
     $scope.loading = true;
     $scope.error = null;
+    $scope.recentAuditLogs = [];
+    $scope.allAuditLogs = [];
+    $scope.filteredAllAuditLogs = [];
+    $scope.auditFilter = 'ALL'; // ALL | CREATE | UPDATE | DELETE
     
     // ============================================
     // 🆕 AVATAR MODAL - CLEAN IMPLEMENTATION
@@ -277,6 +281,92 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
             $scope.loading = false;
         });
     };
+
+    // Load recent audit logs (latest 10)
+    $scope.loadRecentAuditLogs = function() {
+        AuditLogService.getAll({ pageSize: 100, page: 1 })
+            .then(function(response) {
+                var list = response.data?.data || response.data || [];
+                $scope.allAuditLogs = list;
+                $scope.applyAuditFilter();
+            })
+            .catch(function(err) {
+                console.error('Error loading audit logs:', err);
+                $scope.allAuditLogs = [];
+                $scope.recentAuditLogs = [];
+            });
+    };
+
+    // Apply audit filter
+    $scope.applyAuditFilter = function() {
+        var source = ($scope.allAuditLogs || []);
+        $scope.recentAuditLogs = ($scope.auditFilter === 'ALL')
+            ? source
+            : source.filter(function(x){ return x.action === $scope.auditFilter; });
+        // recent widget shows top 5 only
+        $scope.recentAuditLogs = ($scope.recentAuditLogs || []).slice(0, 5);
+        // full list widget
+        $scope.filteredAllAuditLogs = ($scope.auditFilter === 'ALL')
+            ? ($scope.allAuditLogs || [])
+            : ($scope.allAuditLogs || []).filter(function(x){ return x.action === $scope.auditFilter; });
+    };
+
+    // Set filter helper
+    $scope.setAuditFilter = function(filter) {
+        $scope.auditFilter = filter;
+        $scope.applyAuditFilter();
+    };
+
+    // ===== Friendly display helpers =====
+    var actionVerbMap = {
+        'CREATE': 'Thêm',
+        'UPDATE': 'Cập nhật',
+        'DELETE': 'Xóa',
+        'LOGIN': 'Đăng nhập',
+        'LOGOUT': 'Đăng xuất'
+    };
+
+    var entityLabelMap = {
+        'User': 'Người dùng',
+        'Student': 'Sinh viên',
+        'Lecturer': 'Giảng viên',
+        'Faculty': 'Khoa',
+        'Department': 'Bộ môn',
+        'Major': 'Ngành',
+        'Subject': 'Môn học',
+        'Class': 'Lớp học phần',
+        'AcademicYear': 'Niên khóa',
+        'RegistrationPeriod': 'Đợt đăng ký',
+        'Enrollment': 'Đăng ký học phần',
+        'Auth': 'Auth'
+    };
+
+    $scope.displayAuditTitle = function(log) {
+        if (!log) return '';
+        var verb = actionVerbMap[log.action] || log.action;
+        var entity = entityLabelMap[log.entityType] || log.entityType || 'Đối tượng';
+        var who = log.userName || log.userId || 'System';
+        var id = log.entityCode || log.entityName || log.entityId || '';
+        if (log.entityType === 'Auth' && log.action === 'LOGIN') {
+            return 'Đăng nhập thành công: ' + (log.details || (log.userName || log.userId));
+        }
+        return verb + ' ' + entity + (id ? (' #' + id) : '') + ' bởi ' + who;
+    };
+
+    $scope.timeAgo = function(dateString) {
+        if (!dateString) return '';
+        var date = new Date(dateString);
+        var now = new Date();
+        var diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return diff + ' giây trước';
+        var mins = Math.floor(diff/60);
+        if (mins < 60) return mins + ' phút trước';
+        var hours = Math.floor(mins/60);
+        if (hours < 24) return hours + ' giờ trước';
+        var days = Math.floor(hours/24);
+        if (days < 7) return days + ' ngày trước';
+        return date.toLocaleString('vi-VN');
+    };
     
     // Logout
     $scope.logout = function() {
@@ -290,5 +380,6 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
     
     // Initialize
     $scope.loadStats();
+    $scope.loadRecentAuditLogs();
 }]);
 

@@ -372,12 +372,9 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
                 $scope.importData.errors = result.invalid;
                 $scope.importData.validCount = result.valid.length;
                 $scope.importData.errorCount = result.invalid.length;
-                
-                $scope.$apply();
             })
             .catch(function(error) {
                 $scope.error = error;
-                $scope.$apply();
             });
     };
     
@@ -432,12 +429,10 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
                 $scope.loading = false;
                 $scope.closeImportModal();
                 $scope.loadStudents();
-                $scope.$apply();
             })
             .catch(function(error) {
                 $scope.error = 'Lỗi khi import: ' + (error.data?.message || error.message || 'Vui lòng thử lại');
                 $scope.loading = false;
-                $scope.$apply();
             });
     };
     
