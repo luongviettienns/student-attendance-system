@@ -313,8 +313,11 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/dashboard',
                 '/users', '/roles',
                 '/faculties', '/departments', '/majors', '/subjects',
-                '/students', '/lecturers', '/classes',
+                '/students', '/lecturers', '/classes', '/admin-classes',
                 '/academic-years',
+                '/subject-prerequisites',
+                '/registration-periods',
+                '/enrollments',
                 '/audit-logs',
                 '/notifications',
                 '/organization'
@@ -394,8 +397,20 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 { section: 'QUẢN LÝ ĐÀO TẠO', items: [
                     { path: '/students', icon: 'fas fa-user-graduate', label: 'Sinh viên' },
                     { path: '/lecturers', icon: 'fas fa-chalkboard-teacher', label: 'Giảng viên' },
-                    { path: '/classes', icon: 'fas fa-chalkboard', label: 'Lớp học' },
-                    { path: '/academic-years', icon: 'fas fa-calendar-alt', label: 'Niên khóa' }
+                    { path: '/academic-years', icon: 'fas fa-calendar-alt', label: 'Niên khóa' },
+                    { path: '/school-years', icon: 'fas fa-calendar-check', label: 'Năm học' }
+                ]},
+                { section: 'HỌC PHẦN', items: [
+                    { path: '/subjects', icon: 'fas fa-book', label: 'Môn học' },
+                    { path: '/subject-prerequisites', icon: 'fas fa-project-diagram', label: 'Tiên quyết' },
+                    { path: '/classes', icon: 'fas fa-chalkboard', label: 'Lớp học phần' }
+                ]},
+                { section: 'LỚP HỌC', items: [
+                    { path: '/admin-classes', icon: 'fas fa-users-class', label: 'Lớp chính khóa' }
+                ]},
+                { section: 'ĐĂNG KÝ HỌC PHẦN', items: [
+                    { path: '/registration-periods', icon: 'fas fa-clock', label: 'Đợt đăng ký' },
+                    { path: '/enrollments', icon: 'fas fa-clipboard-list', label: 'Quản lý đăng ký' }
                 ]},
                 { section: 'HỆ THỐNG', items: [
                     { path: '/audit-logs', icon: 'fas fa-history', label: 'Nhật ký hệ thống' },

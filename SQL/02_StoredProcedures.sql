@@ -2659,12 +2659,17 @@ PRINT '   - Pagination SPs';
 PRINT '   - Auto Code Function';
 PRINT '';
 
-  
- - -   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
- - -   P H A S E   2 :   E N R O L L M E N T   S Y S T E M   -   S T O R E D   P R O C E D U R E S  
- - -   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #  
  
-  
+ 
+ - -   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+ 
+ - -   P H A S E   2 :   E N R O L L M E N T   S Y S T E M   -   S T O R E D   P R O C E D U R E S 
+ 
+ - -   # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
+ 
+ 
+ 
+ 
  -- =============================================
 -- File: 11_SP_AdministrativeClasses.sql
 -- Description: Stored Procedures for Administrative Classes Management
@@ -5416,5 +5421,581 @@ PRINT '';
 PRINT '========================================';
 PRINT 'Completed: 14_SP_Prerequisites.sql';
 PRINT '========================================';
+GO
+
+PRINT '🔧 Starting Academic Year Automation Setup...';
+GO
+
+-- ===========================================
+-- STEP 1: BỎ HỌC KỲ HÈ - CHỈ GIỮ HK1 VÀ HK2
+-- ===========================================
+PRINT '📋 Step 1: Removing Summer Semester (Semester 3)...';
+GO
+
+-- Update existing registration_periods constraint
+IF EXISTS (
+    SELECT * FROM sys.check_constraints 
+    WHERE name LIKE '%semester%' AND parent_object_id = OBJECT_ID('registration_periods')
+)
+BEGIN
+    DECLARE @ConstraintName NVARCHAR(255);
+    SELECT @ConstraintName = name 
+    FROM sys.check_constraints 
+    WHERE parent_object_id = OBJECT_ID('registration_periods') 
+        AND definition LIKE '%semester%';
+    
+    IF @ConstraintName IS NOT NULL
+    BEGIN
+        EXEC('ALTER TABLE registration_periods DROP CONSTRAINT ' + @ConstraintName);
+        PRINT '   ✅ Dropped old semester constraint on registration_periods';
+    END
+END
+
+-- Add new constraint: Only semester 1 and 2
+ALTER TABLE registration_periods 
+ADD CONSTRAINT CK_RegistrationPeriod_Semester CHECK (semester IN (1, 2));
+PRINT '   ✅ Added new constraint: Semester can only be 1 or 2';
+GO
+
+-- Update GPA constraint if exists
+IF EXISTS (
+    SELECT * FROM sys.check_constraints 
+    WHERE name LIKE '%semester%' AND parent_object_id = OBJECT_ID('gpas')
+)
+BEGIN
+    DECLARE @GpaConstraintName NVARCHAR(255);
+    SELECT @GpaConstraintName = name 
+    FROM sys.check_constraints 
+    WHERE parent_object_id = OBJECT_ID('gpas') 
+        AND definition LIKE '%semester%';
+    
+    IF @GpaConstraintName IS NOT NULL
+    BEGIN
+        EXEC('ALTER TABLE gpas DROP CONSTRAINT ' + @GpaConstraintName);
+        PRINT '   ✅ Dropped old semester constraint on gpas';
+    END
+END
+
+-- GPA: NULL = cả năm, 1 = HK1, 2 = HK2
+ALTER TABLE gpas 
+ADD CONSTRAINT CK_GPA_Semester CHECK (semester IS NULL OR semester IN (1, 2));
+PRINT '   ✅ Added new constraint on gpas: NULL (yearly) or 1, 2';
+GO
+
+-- ===========================================
+-- STEP 2: TẠO BẢNG SCHOOL_YEARS (NĂM HỌC)
+-- ===========================================
+PRINT '📋 Step 2: Creating school_years table...';
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'school_years')
+BEGIN
+    CREATE TABLE dbo.school_years (
+        school_year_id      VARCHAR(50) PRIMARY KEY,
+        
+        -- Basic Info
+        year_code           NVARCHAR(20) NOT NULL UNIQUE,     -- "2024-2025"
+        year_name           NVARCHAR(100) NOT NULL,           -- "Năm học 2024-2025"
+        
+        -- Link to Academic Year (Cohort)
+        academic_year_id    VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.academic_years(academic_year_id),
+        
+        -- Duration
+        start_date          DATE NOT NULL,                     -- 01-Sep-2024
+        end_date            DATE NOT NULL,                     -- 30-Jun-2025
+        
+        -- Semester dates (Auto-calculated)
+        semester1_start     DATE NULL,                         -- 01-Sep-2024
+        semester1_end       DATE NULL,                         -- 31-Jan-2025
+        semester2_start     DATE NULL,                         -- 01-Feb-2025
+        semester2_end       DATE NULL,                         -- 30-Jun-2025
+        
+        -- Status
+        is_active           BIT NOT NULL DEFAULT 0,            -- Only 1 can be active
+        current_semester    INT NULL CHECK (current_semester IN (1, 2)),
+        
+        -- Audit fields
+        created_at          DATETIME NOT NULL DEFAULT GETDATE(),
+        created_by          VARCHAR(50) NULL,
+        updated_at          DATETIME NULL,
+        updated_by          VARCHAR(50) NULL,
+        deleted_at          DATETIME NULL,
+        deleted_by          VARCHAR(50) NULL,
+        
+        -- Constraints
+        CONSTRAINT CK_SchoolYear_Dates CHECK (end_date > start_date),
+        CONSTRAINT CK_SchoolYear_Semester1 CHECK (semester1_end > semester1_start),
+        CONSTRAINT CK_SchoolYear_Semester2 CHECK (semester2_end > semester2_start)
+    );
+    
+    -- Index for performance
+    CREATE INDEX IX_SchoolYear_Active ON school_years(is_active) WHERE is_active = 1;
+    CREATE INDEX IX_SchoolYear_YearCode ON school_years(year_code);
+    CREATE INDEX IX_SchoolYear_AcademicYear ON school_years(academic_year_id);
+    
+    PRINT '   ✅ Table school_years created successfully';
+END
+ELSE
+BEGIN
+    PRINT '   ⚠️  Table school_years already exists';
+END
+GO
+
+-- ===========================================
+-- STEP 3: UPDATE ACADEMIC_YEARS (NIÊN KHÓA)
+-- ===========================================
+PRINT '📋 Step 3: Updating academic_years structure for Cohort (4 years)...';
+GO
+
+-- Add new columns for cohort management
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('academic_years') AND name = 'cohort_code')
+BEGIN
+    ALTER TABLE academic_years ADD cohort_code NVARCHAR(10) NULL;
+    PRINT '   ✅ Added column: cohort_code (K21, K22, K23, K24)';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('academic_years') AND name = 'duration_years')
+BEGIN
+    ALTER TABLE academic_years ADD duration_years INT NULL DEFAULT 4;
+    PRINT '   ✅ Added column: duration_years (default 4 for undergraduate)';
+END
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('academic_years') AND name = 'description')
+BEGIN
+    ALTER TABLE academic_years ADD description NVARCHAR(500) NULL;
+    PRINT '   ✅ Added column: description';
+END
+
+-- Update existing data
+UPDATE academic_years 
+SET 
+    cohort_code = 'K' + CAST(start_year % 100 AS VARCHAR(2)),
+    duration_years = 4,
+    end_year = start_year + 4,
+    description = N'Niên khóa ' + CAST(start_year AS NVARCHAR) + N'-' + CAST(start_year + 4 AS NVARCHAR)
+WHERE cohort_code IS NULL;
+
+PRINT '   ✅ Updated existing academic_years with cohort info';
+GO
+
+-- ===========================================
+-- STEP 4: ADD SCHOOL_YEAR_ID TO CLASSES
+-- ===========================================
+PRINT '📋 Step 4: Adding school_year_id to classes table...';
+GO
+
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('classes') AND name = 'school_year_id')
+BEGIN
+    ALTER TABLE classes ADD school_year_id VARCHAR(50) NULL;
+    -- Will set FK after migrating data
+    PRINT '   ✅ Added column: school_year_id to classes';
+END
+GO
+
+-- ===========================================
+-- STORED PROCEDURES
+-- ===========================================
+
+-- ===========================================
+-- SP 1: AUTO CREATE COHORT (NIÊN KHÓA)
+-- ===========================================
+PRINT '📋 Creating SP: sp_AutoCreateCohort...';
+GO
+
+IF OBJECT_ID('sp_AutoCreateCohort', 'P') IS NOT NULL 
+    DROP PROCEDURE sp_AutoCreateCohort;
+GO
+
+CREATE PROCEDURE sp_AutoCreateCohort
+    @StartYear INT,                    -- 2025
+    @DurationYears INT = 4,            -- Mặc định 4 năm (đại học)
+    @CreatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        -- Validate
+        IF @StartYear < 2020 OR @StartYear > 2050
+            THROW 50001, N'❌ Năm bắt đầu không hợp lệ (2020-2050)', 1;
+        
+        DECLARE @CohortId VARCHAR(50) = 'AY' + CAST(@StartYear AS VARCHAR);
+        DECLARE @CohortCode NVARCHAR(10) = 'K' + RIGHT(CAST(@StartYear AS VARCHAR), 2);
+        DECLARE @EndYear INT = @StartYear + @DurationYears;
+        DECLARE @YearName NVARCHAR(50) = CAST(@StartYear AS NVARCHAR) + N'-' + CAST(@EndYear AS NVARCHAR);
+        DECLARE @Description NVARCHAR(500) = N'Niên khóa ' + @CohortCode + N' (' + CAST(@StartYear AS NVARCHAR) + N'-' + CAST(@EndYear AS NVARCHAR) + N')';
+        
+        -- Check exists
+        IF EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = @CohortId)
+            THROW 50002, N'❌ Niên khóa đã tồn tại!', 1;
+        
+        -- Insert cohort
+        INSERT INTO academic_years (
+            academic_year_id, year_name, start_year, end_year, 
+            cohort_code, duration_years, description,
+            is_active, created_at, created_by
+        )
+        VALUES (
+            @CohortId, @YearName, @StartYear, @EndYear,
+            @CohortCode, @DurationYears, @Description,
+            0, GETDATE(), @CreatedBy
+        );
+        
+        -- Auto-create school years for this cohort
+        DECLARE @i INT = 0;
+        WHILE @i < @DurationYears
+        BEGIN
+            EXEC sp_AutoCreateSchoolYear 
+                @StartYear = @StartYear + @i,
+                @AcademicYearId = @CohortId,
+                @CreatedBy = @CreatedBy;
+            SET @i = @i + 1;
+        END
+        
+        SELECT 
+            'SUCCESS' AS Status,
+            @CohortId AS CohortId,
+            @CohortCode AS CohortCode,
+            @YearName AS YearName,
+            @DurationYears AS DurationYears,
+            N'✅ Đã tạo niên khóa ' + @CohortCode + N' và ' + CAST(@DurationYears AS NVARCHAR) + N' năm học' AS Message;
+            
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+GO
+PRINT '   ✅ Created: sp_AutoCreateCohort';
+GO
+
+-- ===========================================
+-- SP 2: AUTO CREATE SCHOOL YEAR (NĂM HỌC)
+-- ===========================================
+PRINT '📋 Creating SP: sp_AutoCreateSchoolYear...';
+GO
+
+IF OBJECT_ID('sp_AutoCreateSchoolYear', 'P') IS NOT NULL 
+    DROP PROCEDURE sp_AutoCreateSchoolYear;
+GO
+
+CREATE PROCEDURE sp_AutoCreateSchoolYear
+    @StartYear INT,                           -- 2024
+    @AcademicYearId VARCHAR(50) = NULL,       -- Optional link to cohort
+    @CreatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        DECLARE @SchoolYearId VARCHAR(50) = 'SY' + CAST(@StartYear AS VARCHAR);
+        DECLARE @YearCode NVARCHAR(20) = CAST(@StartYear AS NVARCHAR) + N'-' + CAST(@StartYear + 1 AS NVARCHAR);
+        DECLARE @YearName NVARCHAR(100) = N'Năm học ' + @YearCode;
+        
+        -- Dates according to Vietnamese university calendar
+        DECLARE @StartDate DATE = DATEFROMPARTS(@StartYear, 9, 1);      -- 01-Sep
+        DECLARE @EndDate DATE = DATEFROMPARTS(@StartYear + 1, 6, 30);   -- 30-Jun
+        DECLARE @Sem1Start DATE = DATEFROMPARTS(@StartYear, 9, 1);      -- 01-Sep
+        DECLARE @Sem1End DATE = DATEFROMPARTS(@StartYear + 1, 1, 31);   -- 31-Jan
+        DECLARE @Sem2Start DATE = DATEFROMPARTS(@StartYear + 1, 2, 1);  -- 01-Feb
+        DECLARE @Sem2End DATE = DATEFROMPARTS(@StartYear + 1, 6, 30);   -- 30-Jun
+        
+        -- Check exists
+        IF EXISTS (SELECT 1 FROM school_years WHERE school_year_id = @SchoolYearId)
+        BEGIN
+            PRINT '   ⚠️  School year ' + @YearCode + ' already exists';
+            RETURN;
+        END
+        
+        -- Insert school year
+        INSERT INTO school_years (
+            school_year_id, year_code, year_name, academic_year_id,
+            start_date, end_date,
+            semester1_start, semester1_end, semester2_start, semester2_end,
+            is_active, current_semester,
+            created_at, created_by
+        )
+        VALUES (
+            @SchoolYearId, @YearCode, @YearName, @AcademicYearId,
+            @StartDate, @EndDate,
+            @Sem1Start, @Sem1End, @Sem2Start, @Sem2End,
+            0, NULL,
+            GETDATE(), @CreatedBy
+        );
+        
+        PRINT '   ✅ Created school year: ' + @YearCode;
+        
+    END TRY
+    BEGIN CATCH
+        THROW;
+    END CATCH
+END
+GO
+PRINT '   ✅ Created: sp_AutoCreateSchoolYear';
+GO
+
+-- ===========================================
+-- SP 3: GET CURRENT SCHOOL YEAR & SEMESTER
+-- ===========================================
+PRINT '📋 Creating SP: sp_GetCurrentSchoolYearAndSemester...';
+GO
+
+IF OBJECT_ID('sp_GetCurrentSchoolYearAndSemester', 'P') IS NOT NULL 
+    DROP PROCEDURE sp_GetCurrentSchoolYearAndSemester;
+GO
+
+CREATE PROCEDURE sp_GetCurrentSchoolYearAndSemester
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @Today DATE = CAST(GETDATE() AS DATE);
+    DECLARE @SchoolYearId VARCHAR(50);
+    DECLARE @CurrentSemester INT;
+    
+    -- Find school year containing today
+    SELECT TOP 1
+        @SchoolYearId = school_year_id,
+        @CurrentSemester = CASE 
+            WHEN @Today BETWEEN semester1_start AND semester1_end THEN 1
+            WHEN @Today BETWEEN semester2_start AND semester2_end THEN 2
+            ELSE NULL
+        END
+    FROM school_years
+    WHERE @Today BETWEEN start_date AND end_date
+        AND deleted_at IS NULL
+    ORDER BY is_active DESC, created_at DESC;
+    
+    -- Return result
+    SELECT 
+        sy.school_year_id,
+        sy.year_code,
+        sy.year_name,
+        sy.academic_year_id,
+        ay.cohort_code,
+        @CurrentSemester AS current_semester,
+        CASE @CurrentSemester
+            WHEN 1 THEN N'Học kỳ 1'
+            WHEN 2 THEN N'Học kỳ 2'
+            ELSE N'Ngoài học kỳ'
+        END AS semester_name,
+        sy.is_active,
+        sy.start_date,
+        sy.end_date,
+        sy.semester1_start,
+        sy.semester1_end,
+        sy.semester2_start,
+        sy.semester2_end
+    FROM school_years sy
+    LEFT JOIN academic_years ay ON sy.academic_year_id = ay.academic_year_id
+    WHERE sy.school_year_id = @SchoolYearId;
+END
+GO
+PRINT '   ✅ Created: sp_GetCurrentSchoolYearAndSemester';
+GO
+
+-- ===========================================
+-- SP 4: AUTO TRANSITION SEMESTER
+-- ===========================================
+PRINT '📋 Creating SP: sp_AutoTransitionSemester...';
+GO
+
+IF OBJECT_ID('sp_AutoTransitionSemester', 'P') IS NOT NULL 
+    DROP PROCEDURE sp_AutoTransitionSemester;
+GO
+
+CREATE PROCEDURE sp_AutoTransitionSemester
+    @ExecutedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    
+    BEGIN TRY
+        DECLARE @Today DATE = CAST(GETDATE() AS DATE);
+        DECLARE @SchoolYearId VARCHAR(50);
+        DECLARE @CurrentSemester INT;
+        DECLARE @NewSemester INT;
+        
+        -- Get current school year and semester
+        SELECT TOP 1
+            @SchoolYearId = school_year_id,
+            @CurrentSemester = current_semester,
+            @NewSemester = CASE 
+                WHEN @Today BETWEEN semester1_start AND semester1_end THEN 1
+                WHEN @Today BETWEEN semester2_start AND semester2_end THEN 2
+                ELSE NULL
+            END
+        FROM school_years
+        WHERE @Today BETWEEN start_date AND end_date
+            AND deleted_at IS NULL
+        ORDER BY is_active DESC;
+        
+        -- If semester changed, transition
+        IF @NewSemester IS NOT NULL AND (@CurrentSemester IS NULL OR @CurrentSemester <> @NewSemester)
+        BEGIN
+            -- Calculate GPA for previous semester if exists
+            IF @CurrentSemester IS NOT NULL
+            BEGIN
+                PRINT '   📊 Calculating GPA for Semester ' + CAST(@CurrentSemester AS VARCHAR) + '...';
+                EXEC sp_CalculateAllStudentGPA 
+                    @AcademicYearId = @SchoolYearId,
+                    @Semester = @CurrentSemester,
+                    @CreatedBy = @ExecutedBy;
+            END
+            
+            -- Update current semester
+            UPDATE school_years
+            SET current_semester = @NewSemester,
+                updated_at = GETDATE(),
+                updated_by = @ExecutedBy
+            WHERE school_year_id = @SchoolYearId;
+            
+            PRINT '   ✅ Transitioned to Semester ' + CAST(@NewSemester AS VARCHAR);
+            
+            -- Log transition
+            INSERT INTO audit_logs (user_id, action, entity_type, entity_id, new_values, created_at)
+            VALUES (
+                @ExecutedBy, 
+                'AUTO_TRANSITION_SEMESTER', 
+                'school_years', 
+                @SchoolYearId,
+                CONCAT('{"semester":', @NewSemester, '}'),
+                GETDATE()
+            );
+        END
+        ELSE
+        BEGIN
+            PRINT '   ℹ️  No semester transition needed';
+        END
+        
+        COMMIT TRANSACTION;
+        
+        SELECT 
+            'SUCCESS' AS Status,
+            @SchoolYearId AS SchoolYearId,
+            @NewSemester AS CurrentSemester,
+            N'✅ Đã kiểm tra và cập nhật học kỳ' AS Message;
+            
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+PRINT '   ✅ Created: sp_AutoTransitionSemester';
+GO
+
+-- ===========================================
+-- SP 5: AUTO TRANSITION TO NEW SCHOOL YEAR
+-- ===========================================
+PRINT '📋 Creating SP: sp_AutoTransitionToNewSchoolYear...';
+GO
+
+IF OBJECT_ID('sp_AutoTransitionToNewSchoolYear', 'P') IS NOT NULL 
+    DROP PROCEDURE sp_AutoTransitionToNewSchoolYear;
+GO
+
+CREATE PROCEDURE sp_AutoTransitionToNewSchoolYear
+    @NewSchoolYearId VARCHAR(50),
+    @ExecutedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRANSACTION;
+    
+    BEGIN TRY
+        -- Validate new school year exists
+        IF NOT EXISTS (SELECT 1 FROM school_years WHERE school_year_id = @NewSchoolYearId AND deleted_at IS NULL)
+            THROW 50001, N'❌ Năm học mới không tồn tại!', 1;
+        
+        -- Get old school year
+        DECLARE @OldSchoolYearId VARCHAR(50);
+        SELECT @OldSchoolYearId = school_year_id
+        FROM school_years
+        WHERE is_active = 1 AND deleted_at IS NULL;
+        
+        IF @OldSchoolYearId IS NOT NULL
+        BEGIN
+            -- Calculate GPA for entire old school year
+            PRINT '   📊 Calculating yearly GPA for old school year...';
+            EXEC sp_CalculateAllStudentGPA 
+                @AcademicYearId = @OldSchoolYearId,
+                @Semester = NULL,  -- NULL = yearly GPA
+                @CreatedBy = @ExecutedBy;
+            
+            -- Deactivate old school year
+            UPDATE school_years
+            SET is_active = 0,
+                updated_at = GETDATE(),
+                updated_by = @ExecutedBy
+            WHERE school_year_id = @OldSchoolYearId;
+            
+            PRINT '   ✅ Closed old school year: ' + @OldSchoolYearId;
+        END
+        
+        -- Activate new school year
+        UPDATE school_years
+        SET is_active = 1,
+            current_semester = 1,  -- Start with Semester 1
+            updated_at = GETDATE(),
+            updated_by = @ExecutedBy
+        WHERE school_year_id = @NewSchoolYearId;
+        
+        PRINT '   ✅ Activated new school year: ' + @NewSchoolYearId;
+        
+        -- Log transition
+        INSERT INTO audit_logs (user_id, action, entity_type, entity_id, old_values, new_values, created_at)
+        VALUES (
+            @ExecutedBy,
+            'AUTO_TRANSITION_SCHOOL_YEAR',
+            'school_years',
+            @NewSchoolYearId,
+            CONCAT('{"old_school_year":"', @OldSchoolYearId, '"}'),
+            CONCAT('{"new_school_year":"', @NewSchoolYearId, '"}'),
+            GETDATE()
+        );
+        
+        COMMIT TRANSACTION;
+        
+        SELECT 
+            'SUCCESS' AS Status,
+            @OldSchoolYearId AS OldSchoolYearId,
+            @NewSchoolYearId AS NewSchoolYearId,
+            N'✅ Đã chuyển sang năm học mới' AS Message;
+            
+    END TRY
+    BEGIN CATCH
+        ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END
+GO
+PRINT '   ✅ Created: sp_AutoTransitionToNewSchoolYear';
+GO
+
+-- ===========================================
+-- SUMMARY
+-- ===========================================
+PRINT '';
+PRINT '╔════════════════════════════════════════════════╗';
+PRINT '║   ✅ ACADEMIC YEAR AUTOMATION SETUP COMPLETE   ║';
+PRINT '╚════════════════════════════════════════════════╝';
+PRINT '';
+PRINT '📊 Summary:';
+PRINT '   ✅ Removed Summer Semester (only HK1 & HK2)';
+PRINT '   ✅ Created school_years table';
+PRINT '   ✅ Updated academic_years for cohort management';
+PRINT '   ✅ Created 5 automation stored procedures:';
+PRINT '      • sp_AutoCreateCohort';
+PRINT '      • sp_AutoCreateSchoolYear';
+PRINT '      • sp_GetCurrentSchoolYearAndSemester';
+PRINT '      • sp_AutoTransitionSemester';
+PRINT '      • sp_AutoTransitionToNewSchoolYear';
+PRINT '';
+PRINT '🎯 Next Steps:';
+PRINT '   1. Run seed data to create sample cohorts';
+PRINT '   2. Update C# models and services';
+PRINT '   3. Set up background job for auto-transition';
+PRINT '';
 GO
 

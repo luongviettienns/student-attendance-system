@@ -1,0 +1,70 @@
+// School Year Service
+app.service('SchoolYearService', ['ApiService', function(ApiService) {
+    
+    // Get all school years
+    this.getAll = function() {
+        return ApiService.get('/school-years').then(function(response) {
+            if (response.data && response.data.data) {
+                response.data = response.data.data;
+            }
+            return response;
+        });
+    };
+    
+    // Get current school year
+    this.getCurrent = function() {
+        return ApiService.get('/school-years/current');
+    };
+    
+    // Get current semester info
+    this.getCurrentSemesterInfo = function() {
+        return ApiService.get('/school-years/current-semester-info');
+    };
+    
+    // Get school year by ID
+    this.getById = function(id) {
+        return ApiService.get('/school-years/' + id);
+    };
+    
+    // Get school years by academic year (cohort)
+    this.getByAcademicYear = function(academicYearId) {
+        return ApiService.get('/school-years/by-academic-year/' + academicYearId);
+    };
+    
+    // Create school year
+    this.create = function(schoolYear) {
+        return ApiService.post('/school-years', schoolYear);
+    };
+    
+    // Auto-create school years for a cohort (4 years)
+    this.autoCreateForCohort = function(startYear) {
+        return ApiService.post('/school-years/auto-create?startYear=' + startYear);
+    };
+    
+    // Activate school year
+    this.activate = function(id, semester) {
+        var semesterParam = semester || 1;
+        return ApiService.post('/school-years/' + id + '/activate?initialSemester=' + semesterParam);
+    };
+    
+    // Deactivate school year
+    this.deactivate = function(id) {
+        return ApiService.post('/school-years/' + id + '/deactivate');
+    };
+    
+    // Update school year
+    this.update = function(id, schoolYear) {
+        return ApiService.put('/school-years/' + id, schoolYear);
+    };
+    
+    // Transition to next semester (auto)
+    this.transitionToNextSemester = function() {
+        return ApiService.post('/school-years/transition-next-semester');
+    };
+    
+    // Delete school year
+    this.delete = function(id) {
+        return ApiService.delete('/school-years/' + id);
+    };
+}]);
+

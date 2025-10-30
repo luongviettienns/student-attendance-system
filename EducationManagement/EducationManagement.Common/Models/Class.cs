@@ -52,6 +52,13 @@ namespace EducationManagement.Common.Models
         [MaxLength(50)]
         public string AcademicYearId { get; set; } = string.Empty;
 
+        /// <summary>
+        /// NEW: Link to School Year (năm học cụ thể)
+        /// </summary>
+        [Column("school_year_id")]
+        [MaxLength(50)]
+        public string? SchoolYearId { get; set; }
+
         // 🔹 Thêm để map kết quả SP (ay.year_code)
         [NotMapped]
         public string? YearCode { get; set; }

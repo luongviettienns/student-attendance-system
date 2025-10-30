@@ -123,6 +123,20 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'AcademicYearController'
         })
         
+        // School Year Management
+        .when('/school-years', {
+            templateUrl: 'views/school-years/list.html',
+            controller: 'SchoolYearController'
+        })
+        .when('/school-years/create', {
+            templateUrl: 'views/school-years/form.html',
+            controller: 'SchoolYearController'
+        })
+        .when('/school-years/edit/:id', {
+            templateUrl: 'views/school-years/form.html',
+            controller: 'SchoolYearController'
+        })
+        
         // Student Management
         .when('/students', {
             templateUrl: 'views/students/list.html',

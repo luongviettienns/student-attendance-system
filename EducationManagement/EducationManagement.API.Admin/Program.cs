@@ -243,15 +243,24 @@ Console.ResetColor();
 // ============================================================
 // 🔹 7️⃣ Middleware pipeline
 // ============================================================
+// ⚠️ IMPORTANT: Thứ tự middleware rất quan trọng!
+// 1. CORS phải đứng đầu để xử lý preflight requests
+// 2. Response Compression sau CORS
+// 3. Rate Limiting
+// 4. Authentication/Authorization
+// ============================================================
 
-// ⚠️ Response Compression MUST be FIRST (before any output)
+// ✅ CORS MUST BE FIRST! (để xử lý preflight OPTIONS requests)
+app.UseCors("AllowFrontend");
+
+// ⚠️ Response Compression sau CORS
 app.UseResponseCompression();
 
-// ⚠️ Rate Limiting should be early in the pipeline
+// ⚠️ Rate Limiting
 app.UseRateLimiter();
 
 // ⚠️ Không redirect HTTPS (Gateway đã xử lý SSL termination)
-app.UseCors("AllowFrontend");
+// app.UseHttpsRedirection(); // DISABLED
 
 app.UseAuthentication();
 app.UseAuthorization();
