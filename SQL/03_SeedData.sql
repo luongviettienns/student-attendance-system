@@ -20,29 +20,6 @@ PRINT '🌱 Bắt đầu seed data (updated with automation)...';
 GO
 
 -- ===========================================
--- CLEAR OLD DATA (OPTIONAL - Comment out if you want to keep existing data)
--- ===========================================
--- PRINT '🗑️  Clearing old data...';
--- DELETE FROM gpas;
--- DELETE FROM grades;
--- DELETE FROM enrollments;
--- DELETE FROM classes;
--- DELETE FROM school_years;
--- DELETE FROM students;
--- DELETE FROM lecturers;
--- DELETE FROM subjects;
--- DELETE FROM majors;
--- DELETE FROM departments;
--- DELETE FROM faculties;
--- DELETE FROM academic_years;
--- DELETE FROM role_permissions;
--- DELETE FROM permissions;
--- DELETE FROM users;
--- DELETE FROM roles;
--- PRINT '   ✅ Old data cleared';
--- GO
-
--- ===========================================
 -- 1. ROLES (4 roles) - SAME AS BEFORE
 -- ===========================================
 PRINT '👥 Seeding Roles...';
@@ -188,6 +165,31 @@ PRINT '👨‍🎓 Seeding Students (5 students from K21, K22, K23, K24)...';
 
 IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = 'STU001')
 BEGIN
+    -- Verify academic years exist before inserting students
+    IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = 'AY2021')
+    BEGIN
+        INSERT INTO academic_years (academic_year_id, year_name, start_year, end_year, is_active, created_at, created_by)
+        VALUES ('AY2021', '2021-2025', 2021, 2025, 0, GETDATE(), 'system');
+    END
+    
+    IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = 'AY2022')
+    BEGIN
+        INSERT INTO academic_years (academic_year_id, year_name, start_year, end_year, is_active, created_at, created_by)
+        VALUES ('AY2022', '2022-2026', 2022, 2026, 0, GETDATE(), 'system');
+    END
+    
+    IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = 'AY2023')
+    BEGIN
+        INSERT INTO academic_years (academic_year_id, year_name, start_year, end_year, is_active, created_at, created_by)
+        VALUES ('AY2023', '2023-2027', 2023, 2027, 0, GETDATE(), 'system');
+    END
+    
+    IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = 'AY2024')
+    BEGIN
+        INSERT INTO academic_years (academic_year_id, year_name, start_year, end_year, is_active, created_at, created_by)
+        VALUES ('AY2024', '2024-2028', 2024, 2028, 0, GETDATE(), 'system');
+    END
+    
     INSERT INTO dbo.students (student_id, user_id, student_code, full_name, gender, date_of_birth, email, phone, major_id, academic_year_id, is_active) VALUES
     -- K21 students (2021-2025) - Year 4 now
     ('STU001', 'USER003', 'SV2021001', N'Lê Văn An', N'Nam', '2003-05-15', 'student.k21.01@example.com', '0903333333', 'MAJ001', 'AY2021', 1),

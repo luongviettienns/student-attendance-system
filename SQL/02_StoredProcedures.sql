@@ -5631,12 +5631,10 @@ BEGIN
         -- Insert cohort
         INSERT INTO academic_years (
             academic_year_id, year_name, start_year, end_year, 
-            cohort_code, duration_years, description,
             is_active, created_at, created_by
         )
         VALUES (
             @CohortId, @YearName, @StartYear, @EndYear,
-            @CohortCode, @DurationYears, @Description,
             0, GETDATE(), @CreatedBy
         );
         
