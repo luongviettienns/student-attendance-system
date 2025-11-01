@@ -1,0 +1,83 @@
+<div class="admin-layout">
+    <!-- Sidebar -->
+    <app-sidebar></app-sidebar>
+    
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Header -->
+        <app-topbar page-title="Lịch học"></app-topbar>
+        
+        <!-- Content Body -->
+        <div class="content-body">
+            <!-- Loading State -->
+            <div ng-if="loading" class="card">
+                <div class="card-body text-center">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <p>Đang tải lịch học...</p>
+                </div>
+            </div>
+            
+            <!-- Week Range -->
+            <div class="card" ng-if="!loading && currentWeekRange">
+                <div class="card-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>{{currentWeekRange}}</h3>
+                        <div>
+                            <button ng-click="previousWeek()" class="btn btn-outline" style="margin-right: 10px;">
+                                <i class="fas fa-chevron-left"></i> Tuần trước
+                            </button>
+                            <button ng-click="nextWeek()" class="btn btn-outline">
+                                Tuần sau <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Schedule List -->
+            <div class="card" ng-if="!loading && scheduleList.length > 0">
+                <div class="card-header">
+                    <h3><i class="fas fa-list"></i> Danh sách lịch học</h3>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Ngày</th>
+                                    <th>Thứ</th>
+                                    <th>Tiết</th>
+                                    <th>Thời gian</th>
+                                    <th>Môn học</th>
+                                    <th>Giảng viên</th>
+                                    <th>Phòng</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="item in scheduleList">
+                                    <td>{{item.date}}</td>
+                                    <td>{{getDayName(item.dayOfWeek)}}</td>
+                                    <td>{{item.period}}</td>
+                                    <td>{{item.startTime}} - {{item.endTime}}</td>
+                                    <td><strong>{{item.subjectName}}</strong></td>
+                                    <td>{{item.lecturerName}}</td>
+                                    <td>{{item.room}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Empty State -->
+            <div ng-if="!loading && scheduleList.length === 0" class="card">
+                <div class="card-body text-center text-muted">
+                    <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                    <p>Không có lịch học trong tuần này</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
