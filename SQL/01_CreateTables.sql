@@ -17,6 +17,32 @@ USE EducationManagement;
 GO
 
 -- ===========================================
+-- CREATE USER-DEFINED TYPES
+-- ===========================================
+
+-- Create StudentImportType for table-valued parameter
+IF EXISTS (SELECT * FROM sys.types WHERE name = 'StudentImportType' AND is_table_type = 1)
+    DROP TYPE StudentImportType;
+GO
+
+CREATE TYPE StudentImportType AS TABLE
+(
+    StudentCode VARCHAR(20) NOT NULL,
+    FullName NVARCHAR(150) NOT NULL,
+    Email VARCHAR(150) NOT NULL,
+    Phone VARCHAR(20) NULL,
+    DateOfBirth DATE NULL,
+    Gender NVARCHAR(10) NULL,
+    Address NVARCHAR(300) NULL,
+    MajorId VARCHAR(50) NOT NULL,
+    AcademicYearId VARCHAR(50) NULL
+);
+GO
+
+PRINT '✓ Created type: StudentImportType';
+GO
+
+-- ===========================================
 -- 1. BẢNG ROLES (Vai trò người dùng)
 -- ===========================================
 IF OBJECT_ID('dbo.roles', 'U') IS NOT NULL DROP TABLE dbo.roles;
@@ -314,7 +340,9 @@ CREATE TABLE dbo.attendances (
     created_at      DATETIME NOT NULL DEFAULT(GETDATE()),
     created_by      VARCHAR(50) NULL,
     updated_at      DATETIME NULL,
-    updated_by      VARCHAR(50) NULL
+    updated_by      VARCHAR(50) NULL,
+    deleted_at      DATETIME NULL,
+    deleted_by      VARCHAR(50) NULL
 );
 GO
 
@@ -581,6 +609,95 @@ BEGIN
 END
 GO
 
+-- Add faculty_id column to students table
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('students') AND name = 'faculty_id')
+BEGIN
+    ALTER TABLE students ADD faculty_id VARCHAR(50) NULL;
+    PRINT '✓ Added column: students.faculty_id';
+    
+    ALTER TABLE students 
+    ADD CONSTRAINT FK_Student_Faculty 
+    FOREIGN KEY (faculty_id) REFERENCES faculties(faculty_id);
+    PRINT '✓ Added FK: FK_Student_Faculty';
+END
+ELSE
+BEGIN
+    PRINT '✓ Column already exists: students.faculty_id';
+END
+GO
+
+-- Add cohort_year column to students table
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('students') AND name = 'cohort_year')
+BEGIN
+    ALTER TABLE students ADD cohort_year INT NULL;
+    PRINT '✓ Added column: students.cohort_year';
+END
+ELSE
+BEGIN
+    PRINT '✓ Column already exists: students.cohort_year';
+END
+GO
+
+-- Add academic_title column to lecturers table
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lecturers') AND name = 'academic_title')
+BEGIN
+    ALTER TABLE lecturers ADD academic_title NVARCHAR(100) NULL;
+    PRINT '✓ Added column: lecturers.academic_title';
+END
+ELSE
+BEGIN
+    PRINT '✓ Column already exists: lecturers.academic_title';
+END
+GO
+
+-- Add degree column to lecturers table
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lecturers') AND name = 'degree')
+BEGIN
+    ALTER TABLE lecturers ADD degree NVARCHAR(100) NULL;
+    PRINT '✓ Added column: lecturers.degree';
+END
+ELSE
+BEGIN
+    PRINT '✓ Column already exists: lecturers.degree';
+END
+GO
+
+-- Add specialization column to lecturers table
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lecturers') AND name = 'specialization')
+BEGIN
+    ALTER TABLE lecturers ADD specialization NVARCHAR(200) NULL;
+    PRINT '✓ Added column: lecturers.specialization';
+END
+ELSE
+BEGIN
+    PRINT '✓ Column already exists: lecturers.specialization';
+END
+GO
+
+-- Add position column to lecturers table
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lecturers') AND name = 'position')
+BEGIN
+    ALTER TABLE lecturers ADD position NVARCHAR(100) NULL;
+    PRINT '✓ Added column: lecturers.position';
+END
+ELSE
+BEGIN
+    PRINT '✓ Column already exists: lecturers.position';
+END
+GO
+
+-- Add join_date column to lecturers table
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('lecturers') AND name = 'join_date')
+BEGIN
+    ALTER TABLE lecturers ADD join_date DATE NULL;
+    PRINT '✓ Added column: lecturers.join_date';
+END
+ELSE
+BEGIN
+    PRINT '✓ Column already exists: lecturers.join_date';
+END
+GO
+
 -- =============================================
 -- 2. CREATE TABLE: registration_periods
 -- =============================================
@@ -744,6 +861,20 @@ IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('enrollment
 BEGIN
     ALTER TABLE enrollments ADD drop_reason NVARCHAR(500) NULL;
     PRINT '✓ Added column: enrollments.drop_reason';
+END
+
+-- Add updated_at column
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('enrollments') AND name = 'updated_at')
+BEGIN
+    ALTER TABLE enrollments ADD updated_at DATETIME NULL;
+    PRINT '✓ Added column: enrollments.updated_at';
+END
+
+-- Add updated_by column
+IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('enrollments') AND name = 'updated_by')
+BEGIN
+    ALTER TABLE enrollments ADD updated_by VARCHAR(50) NULL;
+    PRINT '✓ Added column: enrollments.updated_by';
 END
 GO
 
