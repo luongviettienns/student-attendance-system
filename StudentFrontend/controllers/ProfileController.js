@@ -18,6 +18,20 @@ app.controller('ProfileController', ['$scope', 'AuthService', 'StudentService', 
         
         $scope.loading = true;
         
+        // Check if studentId is already in currentUser
+        if ($scope.currentUser.studentId) {
+            // Create studentInfo object from currentUser
+            $scope.studentInfo = {
+                studentId: $scope.currentUser.studentId,
+                fullName: $scope.currentUser.fullName,
+                email: $scope.currentUser.email
+            };
+            $scope.profileForm = angular.copy($scope.studentInfo);
+            $scope.loading = false;
+            return;
+        }
+        
+        // Otherwise, fetch from API
         StudentService.getByUserId($scope.currentUser.userId)
             .then(function(response) {
                 if (response.data && response.data.data) {

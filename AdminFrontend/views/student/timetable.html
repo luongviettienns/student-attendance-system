@@ -67,15 +67,20 @@
             <!-- Timetable Content -->
             <div ng-if="!loading && studentId" class="card">
                 <div class="card-header">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h3>Tuần {{week}} / Năm học {{year}}</h3>
-                        <div>
-                            <button ng-click="prevWeek()" class="btn btn-outline" style="margin-right: 10px;">
-                                <i class="fas fa-chevron-left"></i> Tuần trước
-                            </button>
-                            <button ng-click="nextWeek()" class="btn btn-outline">
-                                Tuần sau <i class="fas fa-chevron-right"></i>
-                            </button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-weight: bold; white-space: nowrap;">NĂM HỌC:</label>
+                                <select ng-model="selectedSchoolYearId" ng-change="onSchoolYearChange()" class="form-control" style="min-width: 150px;">
+                                    <option ng-repeat="sy in schoolYears" value="{{sy.schoolYearId}}">{{sy.schoolYearCode}}</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-weight: bold; white-space: nowrap;">TUẦN THỨ:</label>
+                                <select ng-model="selectedWeek" ng-change="onWeekChange()" class="form-control" style="min-width: 300px;">
+                                    <option ng-repeat="w in availableWeeks" value="{{w.weekNo}}">{{w.label}}</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
                     <div style="margin-top:8px;color:#666;font-size:12px;">

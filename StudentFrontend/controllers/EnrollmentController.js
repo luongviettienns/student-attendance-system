@@ -17,6 +17,14 @@ app.controller('EnrollmentController', ['$scope', 'AuthService', 'EnrollmentServ
             return;
         }
         
+        // Check if studentId is already in currentUser
+        if ($scope.currentUser.studentId) {
+            $scope.studentId = $scope.currentUser.studentId;
+            loadData();
+            return;
+        }
+        
+        // Otherwise, fetch from API
         StudentService.getByUserId($scope.currentUser.userId)
             .then(function(response) {
                 if (response.data && response.data.data) {

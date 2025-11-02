@@ -22,15 +22,24 @@
             <!-- Toolbar -->
             <div class="card" style="margin-bottom: 20px;">
                 <div class="card-header">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h3>Tuần {{week}} / Năm học {{year}}</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-weight: bold; white-space: nowrap;">NĂM HỌC:</label>
+                                <select ng-model="selectedSchoolYearId" ng-change="onSchoolYearChange()" class="form-control" style="min-width: 150px;" ng-disabled="schoolYears.length === 0">
+                                    <option value="" ng-if="schoolYears.length === 0">Đang tải...</option>
+                                    <option ng-repeat="sy in schoolYears" ng-value="sy.schoolYearId">{{sy.yearCode || sy.schoolYearCode || sy.yearName}}</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label style="font-weight: bold; white-space: nowrap;">TUẦN THỨ:</label>
+                                <select ng-model="selectedWeek" ng-change="onWeekChange()" class="form-control" style="min-width: 300px;" ng-disabled="availableWeeks.length === 0 || !selectedSchoolYearId">
+                                    <option value="" ng-if="availableWeeks.length === 0 || !selectedSchoolYearId">Đang tải...</option>
+                                    <option ng-repeat="w in availableWeeks" ng-value="w.weekNo">{{w.label}}</option>
+                                </select>
+                            </div>
+                        </div>
                         <div>
-                            <button ng-click="prevWeek()" class="btn btn-outline" style="margin-right: 10px;">
-                                <i class="fas fa-chevron-left"></i> Tuần trước
-                            </button>
-                            <button ng-click="nextWeek()" class="btn btn-outline" style="margin-right: 10px;">
-                                Tuần sau <i class="fas fa-chevron-right"></i>
-                            </button>
                             <button ng-click="openCreateForm()" class="btn btn-primary">
                                 <i class="fas fa-plus"></i> Tạo phiên học
                             </button>
@@ -86,7 +95,8 @@
                             <div>
                                 <label>Năm học</label>
                                 <select ng-model="form.schoolYearId" class="form-control">
-                                    <option ng-repeat="sy in schoolYears" value="{{sy.schoolYearId}}">{{sy.schoolYearCode}}</option>
+                                    <option value="">-- Chọn năm học --</option>
+                                    <option ng-repeat="sy in schoolYears" ng-value="sy.schoolYearId">{{sy.yearCode || sy.schoolYearCode || sy.yearName}}</option>
                                 </select>
                             </div>
                             <div>
@@ -201,7 +211,7 @@
             <!-- Timetable Grid -->
             <div class="card">
                 <div class="card-header">
-                    <h3>Danh sách phiên học tuần {{week}}</h3>
+                    <h3>Danh sách phiên học tuần {{selectedWeek || week}}</h3>
                 </div>
                 <div class="card-body">
                     <div ng-if="allSessions.length === 0" style="text-align: center; padding: 40px; color: #999;">

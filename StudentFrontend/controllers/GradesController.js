@@ -27,6 +27,14 @@ app.controller('GradesController', [
             return;
         }
         
+        // Check if studentId is already in currentUser
+        if ($scope.currentUser.studentId) {
+            $scope.studentId = $scope.currentUser.studentId;
+            $scope.loadSchoolYears();
+            return;
+        }
+        
+        // Otherwise, fetch from API
         StudentService.getByUserId($scope.currentUser.userId).then(function(response) {
             if (response.data && response.data.data) {
                 $scope.studentId = response.data.data.studentId;
@@ -36,6 +44,7 @@ app.controller('GradesController', [
                 $scope.loading = false;
             }
         }).catch(function(error) {
+            console.error('Error loading student info:', error);
             $scope.error = 'Không thể tải thông tin sinh viên';
             $scope.loading = false;
         });

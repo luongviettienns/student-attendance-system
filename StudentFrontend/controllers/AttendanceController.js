@@ -13,6 +13,14 @@ app.controller('AttendanceController', ['$scope', 'AuthService', 'StudentService
             return;
         }
         
+        // Check if studentId is already in currentUser
+        if ($scope.currentUser.studentId) {
+            $scope.studentId = $scope.currentUser.studentId;
+            loadAttendance();
+            return;
+        }
+        
+        // Otherwise, fetch from API
         StudentService.getByUserId($scope.currentUser.userId)
             .then(function(response) {
                 if (response.data && response.data.data) {

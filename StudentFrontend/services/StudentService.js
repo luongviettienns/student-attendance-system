@@ -6,6 +6,7 @@ app.service('StudentService', ['ApiService', function(ApiService) {
     };
     
     this.getByUserId = function(userId) {
+        // Endpoint: /api-edu/students/by-user-id/{userId}
         return ApiService.get('/students/by-user-id/' + userId);
     };
 }]);

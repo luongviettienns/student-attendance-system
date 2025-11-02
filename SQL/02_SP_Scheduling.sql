@@ -2266,21 +2266,27 @@ BEGIN
         ts.status,
         c.class_id, c.class_code, c.class_name,
         s.subject_id, s.subject_name,
+        ts.lecturer_id,
+        l.full_name AS lecturer_name,
         r.room_id, r.room_code,
         sy.school_year_id, sy.year_code
     FROM dbo.timetable_sessions ts
     INNER JOIN dbo.classes c ON c.class_id = ts.class_id
     INNER JOIN dbo.subjects s ON s.subject_id = ts.subject_id
     INNER JOIN dbo.enrollments e ON e.class_id = c.class_id
+    LEFT JOIN dbo.lecturers l ON l.lecturer_id = ts.lecturer_id
     LEFT JOIN dbo.rooms r ON r.room_id = ts.room_id
     LEFT JOIN dbo.school_years sy ON sy.school_year_id = ts.school_year_id
     WHERE e.student_id = @StudentId
       AND e.enrollment_status = 'APPROVED'
       AND e.deleted_at IS NULL
-      AND (ts.week_no = @WeekNo OR ts.week_no IS NULL)
+      AND ts.week_no = @WeekNo
       AND (sy.start_date IS NULL OR YEAR(sy.start_date) = @Year OR YEAR(sy.end_date) = @Year)
       AND ts.deleted_at IS NULL
       AND c.deleted_at IS NULL
+    GROUP BY ts.session_id, ts.week_no, ts.weekday, ts.start_time, ts.end_time, ts.period_from, ts.period_to, ts.status,
+             c.class_id, c.class_code, c.class_name, s.subject_id, s.subject_name, ts.lecturer_id, l.full_name,
+             r.room_id, r.room_code, sy.school_year_id, sy.year_code
     ORDER BY ts.weekday, ts.start_time;
 END
 GO
