@@ -11,9 +11,14 @@ app.service('SchoolYearService', ['ApiService', function(ApiService) {
         });
     };
     
-    // Get current school year
+    // Get current school year (based on current date)
     this.getCurrent = function() {
         return ApiService.get('/school-years/current');
+    };
+    
+    // Get active school year (is_active = 1)
+    this.getActive = function() {
+        return ApiService.get('/school-years/active');
     };
     
     // Get current semester info
@@ -59,7 +64,7 @@ app.service('SchoolYearService', ['ApiService', function(ApiService) {
     
     // Transition to next semester (auto)
     this.transitionToNextSemester = function() {
-        return ApiService.post('/school-years/transition-next-semester');
+        return ApiService.post('/school-years/auto-transition-semester');
     };
     
     // Delete school year

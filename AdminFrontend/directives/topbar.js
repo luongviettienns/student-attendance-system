@@ -1,5 +1,5 @@
 // Topbar Directive - Consistent header across all views
-app.directive('appTopbar', ['AuthService', function(AuthService) {
+app.directive('appTopbar', ['AuthService', 'AvatarService', function(AuthService, AvatarService) {
     return {
         restrict: 'E',
         scope: {
@@ -16,6 +16,14 @@ app.directive('appTopbar', ['AuthService', function(AuthService) {
             scope.$on('$routeChangeSuccess', function() {
                 loadCurrentUser();
             });
+            
+            // ✅ Initialize Avatar Modal
+            AvatarService.initAvatarModal(scope);
+            
+            // ✅ Add logout function
+            scope.logout = function() {
+                AuthService.logout();
+            };
         }
     };
 }]);

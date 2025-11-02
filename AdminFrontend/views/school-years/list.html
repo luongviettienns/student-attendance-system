@@ -98,7 +98,7 @@
                     <div class="mt-2">
                         <small class="text-muted">
                             <i class="fas fa-info-circle"></i> 
-                            <strong>Chuyển học kỳ tự động:</strong> Hệ thống sẽ tự động xác định học kỳ dựa trên ngày hiện tại (HK1: Sep-Jan, HK2: Feb-Jun)
+                            <strong>Chuyển học kỳ tự động:</strong> Hệ thống sẽ tự động xác định học kỳ dựa trên ngày hiện tại (HK1: Tháng 9 - Tháng 1, HK2: Tháng 2 - Tháng 6)
                         </small>
                     </div>
                 </div>
@@ -221,7 +221,7 @@
                             </div>
                             <div class="col-md-3">
                                 <small class="text-muted">
-                                    <i class="fas fa-clock"></i> Cập nhật: {{new Date() | date:'dd/MM/yyyy HH:mm'}}
+                                    <i class="fas fa-clock"></i> Cập nhật: {{getCurrentTime()}}
                                 </small>
                             </div>
                         </div>
@@ -236,7 +236,7 @@
                 </div>
                 <div class="card-body">
                     <ul class="mb-0">
-                        <li><strong>Năm học:</strong> Mỗi năm học kéo dài từ tháng 9 năm X đến tháng 6 năm X+1, gồm 2 học kỳ (HK1: Sep-Jan, HK2: Feb-Jun)</li>
+                        <li><strong>Năm học:</strong> Mỗi năm học kéo dài từ tháng 9 năm X đến tháng 6 năm X+1, gồm 2 học kỳ (HK1: Tháng 9 - Tháng 1, HK2: Tháng 2 - Tháng 6)</li>
                         <li><strong>Niên khóa:</strong> Mỗi niên khóa (VD: K21) gồm 4 năm học liên tiếp</li>
                         <li><strong>Tự động tạo:</strong> Sử dụng nút "Tạo năm học tự động" để tạo 4 năm học cho một khóa mới</li>
                         <li><strong>Chuyển học kỳ:</strong> Hệ thống tự động chuyển học kỳ dựa trên ngày hiện tại khi bạn nhấn nút "Chuyển học kỳ tự động"</li>

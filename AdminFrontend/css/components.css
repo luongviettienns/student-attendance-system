@@ -20,6 +20,7 @@
     cursor: pointer;
     transition: all 0.2s;
     line-height: 1.5;
+    letter-spacing: -0.01em;
 }
 
 /* Đảm bảo tất cả icon trong buttons có màu trắng */
@@ -218,6 +219,7 @@
     font-size: 18px;
     font-weight: 600;
     margin: 0;
+    letter-spacing: -0.01em;
 }
 
 .card-actions {
@@ -308,6 +310,7 @@
     font-weight: 500;
     color: var(--text-primary);
     font-size: 14px;
+    letter-spacing: -0.01em;
 }
 
 .form-label.required::after {
@@ -325,6 +328,7 @@
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
 }
 
 .form-control:focus {
@@ -371,6 +375,7 @@ textarea.form-control {
 
 select.form-control {
     cursor: pointer;
+    font-family: inherit;
 }
 
 .form-text {
@@ -436,7 +441,7 @@ input[type="radio"] {
     border-bottom: 2px solid var(--border-color);
     font-size: 13px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .table tbody td {
@@ -585,6 +590,7 @@ input[type="radio"] {
     font-size: 18px;
     font-weight: 600;
     margin: 0;
+    letter-spacing: -0.01em;
 }
 
 .modal-close {
@@ -1133,6 +1139,7 @@ input[type="radio"] {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
+    letter-spacing: -0.01em;
 }
 
 .notification-item .notification-time {

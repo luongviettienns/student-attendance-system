@@ -25,7 +25,7 @@ namespace EducationManagement.API.Admin.Controllers
         public async Task<IActionResult> GetAll()
         {
             var list = await _service.GetAllAsync();
-            return Ok(list);
+            return Ok(new { data = list });
         }
 
         [HttpGet("{id}")]

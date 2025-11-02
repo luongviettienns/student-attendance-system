@@ -1,6 +1,6 @@
 // Student Controller with Pagination, Search, Sort, Filter, Import/Export
-app.controller('StudentController', ['$scope', '$location', '$routeParams', 'StudentService', 'FacultyService', 'MajorService', 'PaginationService', 'ExportService', 'ImportService', 'AuthService', 'AvatarService',
-    function($scope, $location, $routeParams, StudentService, FacultyService, MajorService, PaginationService, ExportService, ImportService, AuthService, AvatarService) {
+app.controller('StudentController', ['$scope', '$location', '$routeParams', '$timeout', 'StudentService', 'FacultyService', 'MajorService', 'PaginationService', 'ExportService', 'ImportService', 'AuthService', 'AvatarService', 'LoggerService',
+    function($scope, $location, $routeParams, $timeout, StudentService, FacultyService, MajorService, PaginationService, ExportService, ImportService, AuthService, AvatarService, LoggerService) {
     
     $scope.students = [];
     $scope.displayedStudents = []; // For display after filtering/sorting
@@ -43,59 +43,86 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
         errorCount: 0
     };
     
-    // Load all students
+    // Loading states for individual actions
+    $scope.loadingStates = {
+        students: false,
+        faculties: false,
+        majors: false,
+        save: false,
+        export: false,
+        import: false
+    };
+    
+    // Load students with server-side pagination and filtering
     $scope.loadStudents = function() {
-        $scope.loading = true;
-        StudentService.getAll()
+        $scope.loadingStates.students = true;
+        $scope.error = null;
+        
+        // Build query parameters
+        var params = {
+            page: $scope.pagination.currentPage,
+            pageSize: $scope.pagination.pageSize,
+            search: $scope.pagination.searchTerm || null,
+            facultyId: $scope.filters.facultyId || null,
+            majorId: $scope.filters.majorId || null
+        };
+        
+        // Remove empty values
+        Object.keys(params).forEach(function(key) {
+            if (params[key] === null || params[key] === '' || params[key] === undefined) {
+                delete params[key];
+            }
+        });
+        
+        StudentService.getAll(params)
             .then(function(response) {
-                $scope.students = response.data;
-                $scope.applyFiltersAndSort();
-                $scope.loading = false;
+                // Backend trả về {data: [...], pagination: {...}}
+                var result = response.data;
+                
+                // Update displayed students
+                $scope.displayedStudents = result.data || [];
+                
+                // Update pagination info from server
+                if (result.pagination) {
+                    $scope.pagination.totalItems = result.pagination.totalCount;
+                    $scope.pagination.totalPages = result.pagination.totalPages;
+                    $scope.pagination.currentPage = result.pagination.page;
+                    $scope.pagination.pageSize = result.pagination.pageSize;
+                }
+                
+                // Recalculate pagination UI
+                $scope.pagination = PaginationService.calculate($scope.pagination);
+                
+                $scope.loadingStates.students = false;
             })
             .catch(function(error) {
                 $scope.error = 'Không thể tải danh sách sinh viên';
-                $scope.loading = false;
+                $scope.loadingStates.students = false;
+                LoggerService.error('Error loading students', error);
             });
     };
     
-    // Apply filters and sorting
-    $scope.applyFiltersAndSort = function() {
-        var filtered = $scope.students;
-        
-        // Apply search
-        if ($scope.pagination.searchTerm) {
-            var searchLower = $scope.pagination.searchTerm.toLowerCase();
-            filtered = filtered.filter(function(student) {
-                return (student.fullName && student.fullName.toLowerCase().includes(searchLower)) ||
-                       (student.studentCode && student.studentCode.toLowerCase().includes(searchLower)) ||
-                       (student.email && student.email.toLowerCase().includes(searchLower)) ||
-                       (student.phone && student.phone.includes(searchLower));
-            });
+    // Search handler with debounce - reset to page 1 and reload
+    var searchTimeout;
+    $scope.handleSearch = function() {
+        // Clear previous timeout
+        if (searchTimeout) {
+            $timeout.cancel(searchTimeout);
         }
         
-        // Apply filters
-        if ($scope.filters.facultyId) {
-            filtered = filtered.filter(function(student) {
-                return student.facultyId == $scope.filters.facultyId;
-            });
-        }
-        
-        if ($scope.filters.majorId) {
-            filtered = filtered.filter(function(student) {
-                return student.majorId == $scope.filters.majorId;
-            });
-        }
-        
-        if ($scope.filters.status !== '') {
-            var isActive = $scope.filters.status === 'true';
-            filtered = filtered.filter(function(student) {
-                return student.isActive === isActive;
-            });
-        }
-        
-        // Apply sorting
-        if ($scope.pagination.sortField) {
-            filtered.sort(function(a, b) {
+        // Debounce search - wait 400ms after user stops typing
+        searchTimeout = $timeout(function() {
+            $scope.pagination.currentPage = 1;
+            $scope.loadStudents();
+        }, 400);
+    };
+    
+    // Sort handler - reload with current sort
+    // Note: Backend có thể không hỗ trợ sorting, nên giữ client-side sorting cho hiện tại
+    $scope.handleSort = function() {
+        // Client-side sorting cho displayed students
+        if ($scope.pagination.sortField && $scope.displayedStudents.length > 0) {
+            $scope.displayedStudents.sort(function(a, b) {
                 var aVal = getNestedValue(a, $scope.pagination.sortField);
                 var bVal = getNestedValue(b, $scope.pagination.sortField);
                 
@@ -104,15 +131,6 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
                 return 0;
             });
         }
-        
-        // Update pagination
-        $scope.pagination.totalItems = filtered.length;
-        $scope.pagination = PaginationService.calculate($scope.pagination);
-        
-        // Apply pagination
-        var start = ($scope.pagination.currentPage - 1) * $scope.pagination.pageSize;
-        var end = start + parseInt($scope.pagination.pageSize);
-        $scope.displayedStudents = filtered.slice(start, end);
     };
     
     // Helper function to get nested object values
@@ -122,23 +140,12 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
         }, obj);
     }
     
-    // Search handler
-    $scope.handleSearch = function() {
-        $scope.pagination.currentPage = 1;
-        $scope.applyFiltersAndSort();
-    };
-    
-    // Sort handler
-    $scope.handleSort = function() {
-        $scope.applyFiltersAndSort();
-    };
-    
-    // Page change handler
+    // Page change handler - reload from server
     $scope.handlePageChange = function() {
-        $scope.applyFiltersAndSort();
+        $scope.loadStudents();
     };
     
-    // Filter change handler
+    // Filter change handler - reset to page 1 and reload
     $scope.handleFilterChange = function() {
         // Khi đổi khoa → nạp lại danh sách ngành và reset ngành
         if (!$scope.filters.facultyId) {
@@ -146,10 +153,10 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
         }
         $scope.loadMajors();
         $scope.pagination.currentPage = 1;
-        $scope.applyFiltersAndSort();
+        $scope.loadStudents();
     };
     
-    // Reset filters
+    // Reset filters - clear all and reload
     $scope.resetFilters = function() {
         $scope.pagination.searchTerm = '';
         $scope.filters = {
@@ -157,56 +164,126 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
             majorId: '',
             status: ''
         };
-        $scope.handleFilterChange();
+        $scope.pagination.currentPage = 1;
+        $scope.loadStudents();
     };
     
-    // Export to Excel
+    // Export to Excel - Load all data matching current filters
     $scope.exportToExcel = function() {
-        var columns = [
-            { label: 'Mã SV', field: 'studentCode' },
-            { label: 'Họ tên', field: 'fullName' },
-            { label: 'Email', field: 'email' },
-            { label: 'Số điện thoại', field: 'phone' },
-            { label: 'Ngày sinh', field: 'dateOfBirth', type: 'date' },
-            { label: 'Giới tính', field: 'gender' },
-            { label: 'Khoa', field: 'facultyName' },
-            { label: 'Ngành', field: 'majorName' },
-            { label: 'Trạng thái', field: 'isActive' }
-        ];
+        $scope.loadingStates.export = true;
         
-        // Use current filtered data or all data
-        var dataToExport = $scope.students || [];
-        
-        // Export options with professional styling
-        var exportOptions = {
-            title: '📚 DANH SÁCH SINH VIÊN',
-            info: [
-                ['Đơn vị:', 'Trường Đại học ABC'],
-                ['Thời gian xuất:', new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN')],
-                ['Người xuất:', $scope.currentUser ? $scope.currentUser.fullName : 'Admin']
-            ],
-            sheetName: 'Sinh viên',
-            showSummary: true
+        // Load all data with current filters (no pagination for export)
+        var params = {
+            page: 1,
+            pageSize: 10000, // Large number to get all results
+            search: $scope.pagination.searchTerm || null,
+            facultyId: $scope.filters.facultyId || null,
+            majorId: $scope.filters.majorId || null
         };
         
-        ExportService.exportToExcel(dataToExport, 'DanhSachSinhVien', columns, exportOptions);
+        // Remove empty values
+        Object.keys(params).forEach(function(key) {
+            if (params[key] === null || params[key] === '' || params[key] === undefined) {
+                delete params[key];
+            }
+        });
+        
+        // Disable cache for export to ensure fresh data
+        StudentService.getAll(params, false).then(function(response) {
+            var result = response.data;
+            var dataToExport = result.data || [];
+            
+            // Apply status filter if needed (client-side, since backend doesn't support it)
+            if ($scope.filters.status !== '') {
+                var isActive = $scope.filters.status === 'true';
+                dataToExport = dataToExport.filter(function(student) {
+                    return student.isActive === isActive;
+                });
+            }
+            
+            var columns = [
+                { label: 'Mã SV', field: 'studentCode' },
+                { label: 'Họ tên', field: 'fullName' },
+                { label: 'Email', field: 'email' },
+                { label: 'Số điện thoại', field: 'phone' },
+                { label: 'Ngày sinh', field: 'dateOfBirth', type: 'date' },
+                { label: 'Giới tính', field: 'gender' },
+                { label: 'Khoa', field: 'facultyName' },
+                { label: 'Ngành', field: 'majorName' },
+                { label: 'Trạng thái', field: 'isActive' }
+            ];
+            
+            // Export options with professional styling
+            var exportOptions = {
+                title: '📚 DANH SÁCH SINH VIÊN',
+                info: [
+                    ['Đơn vị:', 'Trường Đại học ABC'],
+                    ['Thời gian xuất:', new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN')],
+                    ['Người xuất:', $scope.getCurrentUser() ? $scope.getCurrentUser().fullName : 'Admin']
+                ],
+                sheetName: 'Sinh viên',
+                showSummary: true
+            };
+            
+            ExportService.exportToExcel(dataToExport, 'DanhSachSinhVien', columns, exportOptions);
+            $scope.loadingStates.export = false;
+        }).catch(function(error) {
+            $scope.error = 'Không thể xuất dữ liệu';
+            $scope.loadingStates.export = false;
+            LoggerService.error('Error exporting to Excel', error);
+        });
     };
     
-    // Export to CSV
+    // Export to CSV - Load all data matching current filters
     $scope.exportToCSV = function() {
-        var columns = [
-            { label: 'Mã SV', field: 'studentCode' },
-            { label: 'Họ tên', field: 'fullName' },
-            { label: 'Email', field: 'email' },
-            { label: 'Số điện thoại', field: 'phone' },
-            { label: 'Khoa', field: 'facultyName' },
-            { label: 'Ngành', field: 'majorName' },
-            { label: 'Trạng thái', field: 'isActive' }
-        ];
+        $scope.loadingStates.export = true;
         
-        var dataToExport = $scope.displayedStudents.length > 0 ? $scope.students : $scope.students;
+        // Load all data with current filters (no pagination for export)
+        var params = {
+            page: 1,
+            pageSize: 10000, // Large number to get all results
+            search: $scope.pagination.searchTerm || null,
+            facultyId: $scope.filters.facultyId || null,
+            majorId: $scope.filters.majorId || null
+        };
         
-        ExportService.exportToCSV(dataToExport, 'DanhSachSinhVien_' + new Date().toISOString().split('T')[0], columns);
+        // Remove empty values
+        Object.keys(params).forEach(function(key) {
+            if (params[key] === null || params[key] === '' || params[key] === undefined) {
+                delete params[key];
+            }
+        });
+        
+        // Disable cache for export to ensure fresh data
+        StudentService.getAll(params, false).then(function(response) {
+            var result = response.data;
+            var dataToExport = result.data || [];
+            
+            // Apply status filter if needed (client-side, since backend doesn't support it)
+            if ($scope.filters.status !== '') {
+                var isActive = $scope.filters.status === 'true';
+                dataToExport = dataToExport.filter(function(student) {
+                    return student.isActive === isActive;
+                });
+            }
+            
+            var columns = [
+                { label: 'Mã SV', field: 'studentCode' },
+                { label: 'Họ tên', field: 'fullName' },
+                { label: 'Email', field: 'email' },
+                { label: 'Số điện thoại', field: 'phone' },
+                { label: 'Khoa', field: 'facultyName' },
+                { label: 'Ngành', field: 'majorName' },
+                { label: 'Trạng thái', field: 'isActive' }
+            ];
+            
+            ExportService.exportToCSV(dataToExport, 'DanhSachSinhVien_' + new Date().toISOString().split('T')[0], columns);
+            $scope.loadingStates.export = false;
+        }).catch(function(error) {
+            $scope.error = 'Không thể xuất dữ liệu';
+            $scope.loadingStates.export = false;
+            LoggerService.error('Error exporting to CSV', error);
+        });
     };
     
     // Open import modal
@@ -385,7 +462,7 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
             return;
         }
         
-        $scope.loading = true;
+        $scope.loadingStates.import = true;
         
         // Transform data to match API format
         var studentsToImport = $scope.importData.preview.map(function(row) {
@@ -426,63 +503,73 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
                     $scope.success = 'Import thành công ' + result.successCount + ' sinh viên! 🎉';
                 }
                 
-                $scope.loading = false;
+                $scope.loadingStates.import = false;
                 $scope.closeImportModal();
+                // Reload students after import (will use cache)
                 $scope.loadStudents();
             })
             .catch(function(error) {
                 $scope.error = 'Lỗi khi import: ' + (error.data?.message || error.message || 'Vui lòng thử lại');
-                $scope.loading = false;
+                $scope.loadingStates.import = false;
+                LoggerService.error('Error importing students', error);
             });
     };
     
     // Load faculties for dropdown
     $scope.loadFaculties = function() {
+        $scope.loadingStates.faculties = true;
         FacultyService.getAll()
             .then(function(response) {
                 var list = response.data?.data || response.data || [];
                 $scope.faculties = list;
+                $scope.loadingStates.faculties = false;
             })
             .catch(function(error) {
-                console.error('Error loading faculties:', error);
+                LoggerService.error('Error loading faculties', error);
+                $scope.loadingStates.faculties = false;
             });
     };
     
     // Load majors for dropdown
     $scope.loadMajors = function() {
         if ($scope.filters.facultyId) {
+            $scope.loadingStates.majors = true;
             MajorService.getByFaculty($scope.filters.facultyId)
                 .then(function(response) {
                     var list = response.data?.data || response.data || [];
                     $scope.majors = list;
+                    $scope.loadingStates.majors = false;
                 })
                 .catch(function(error) {
-                    console.error('Error loading majors by faculty:', error);
+                    LoggerService.error('Error loading majors by faculty', error);
+                    $scope.loadingStates.majors = false;
                 });
         } else {
             $scope.majors = [];
+            $scope.loadingStates.majors = false;
         }
     };
     
     // Load student by ID for editing
     $scope.loadStudent = function(id) {
-        $scope.loading = true;
+        $scope.loadingStates.students = true;
         StudentService.getById(id)
             .then(function(response) {
                 $scope.student = response.data;
                 $scope.isEditMode = true;
-                $scope.loading = false;
+                $scope.loadingStates.students = false;
             })
             .catch(function(error) {
                 $scope.error = 'Không thể tải thông tin sinh viên';
-                $scope.loading = false;
+                $scope.loadingStates.students = false;
+                LoggerService.error('Error loading student by ID', error);
             });
     };
     
     // Create or update student
     $scope.saveStudent = function() {
         $scope.error = null;
-        $scope.loading = true;
+        $scope.loadingStates.save = true;
         
         var savePromise;
         if ($scope.isEditMode) {
@@ -494,15 +581,15 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
         savePromise
             .then(function(response) {
                 $scope.success = 'Lưu sinh viên thành công';
-                $scope.loading = false;
-                setTimeout(function() {
+                $scope.loadingStates.save = false;
+                $timeout(function() {
                     $location.path('/students');
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {
                 $scope.error = error.data?.message || 'Không thể lưu sinh viên';
-                $scope.loading = false;
+                $scope.loadingStates.save = false;
+                LoggerService.error('Error saving student', error);
             });
     };
     
@@ -515,6 +602,7 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
         StudentService.delete(studentId)
             .then(function(response) {
                 $scope.success = 'Xóa sinh viên thành công';
+                // Reload students after delete (cache will be invalidated)
                 $scope.loadStudents();
             })
             .catch(function(error) {
@@ -537,9 +625,13 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', 'Stu
     
     // Initialize based on route
     if ($location.path() === '/students') {
-        $scope.loadStudents();
+        // Load dropdown data first, then students
         $scope.loadFaculties();
         $scope.loadMajors();
+        // Load students after a short delay to ensure DOM is ready
+        $timeout(function() {
+            $scope.loadStudents();
+        }, 100);
     } else if ($routeParams.id) {
         $scope.loadStudent($routeParams.id);
         $scope.loadFaculties();

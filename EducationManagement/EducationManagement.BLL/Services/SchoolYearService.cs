@@ -208,14 +208,23 @@ namespace EducationManagement.BLL.Services
 
         /// <summary>
         /// Lấy thông tin học kỳ hiện tại
+        /// Fallback: Nếu không có current, thử lấy active school year
         /// </summary>
         public async Task<(string SchoolYearCode, int? Semester, string SemesterName)> GetCurrentSemesterInfoAsync()
         {
             var current = await _repo.GetCurrentAsync();
             if (current == null)
+            {
+                // Fallback: Try to get active school year
+                var active = await _repo.GetActiveAsync();
+                if (active != null)
+                {
+                    return (active.YearCode, active.CurrentSemester ?? active.DetectedSemester, active.SemesterName);
+                }
                 return ("N/A", null, "Ngoài học kỳ");
+            }
 
-            return (current.YearCode, current.CurrentSemester, current.SemesterName);
+            return (current.YearCode, current.CurrentSemester ?? current.DetectedSemester, current.SemesterName);
         }
     }
 }

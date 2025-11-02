@@ -1,170 +1,112 @@
 // Student Grades Controller
-app.controller('StudentGradesController', ['$scope', 'AuthService', function($scope, AuthService) {
-    $scope.currentUser = AuthService.getCurrentUser();
-    $scope.selectedYear = '';
-    $scope.selectedSemester = '';
+app.controller('StudentGradesController', [
+    '$scope', 'AuthService', 'GradeService', 'SchoolYearService', 'StudentService',
+    function($scope, AuthService, GradeService, SchoolYearService, StudentService) {
     
-    // GPA Summary
+    $scope.currentUser = AuthService.getCurrentUser();
+    $scope.schoolYears = [];
+    $scope.selectedSchoolYear = null;
+    $scope.selectedSemester = null;
+    $scope.grades = [];
     $scope.summary = {
-        currentGPA: 3.45,
-        cumulativeGPA: 3.38,
-        totalCredits: 98,
+        currentGPA: 0,
+        cumulativeGPA: 0,
+        totalCredits: 0,
         requiredCredits: 120,
-        rank: 'Giỏi'
+        rank: 'Chưa có'
+    };
+    $scope.loading = false;
+    $scope.error = null;
+    $scope.studentId = null;
+    
+    // Get student ID from user ID
+    $scope.loadStudentId = function() {
+        if (!$scope.currentUser || !$scope.currentUser.userId) {
+            $scope.error = 'Không tìm thấy thông tin người dùng';
+            $scope.loading = false;
+            return;
+        }
+        
+        StudentService.getByUserId($scope.currentUser.userId).then(function(response) {
+            if (response.data && response.data.data) {
+                $scope.studentId = response.data.data.studentId;
+                $scope.loadSchoolYears();
+            } else {
+                $scope.error = 'Không tìm thấy thông tin sinh viên';
+                $scope.loading = false;
+            }
+        }).catch(function(error) {
+            $scope.error = 'Không thể tải thông tin sinh viên';
+            $scope.loading = false;
+        });
     };
     
-    // Demo semesters with grades
-    $scope.semesters = [
-        {
-            name: 'Học kỳ 1 - Năm học 2023-2024',
-            year: '2023-2024',
-            semester: '1',
-            gpa: 3.52,
-            credits: 18,
-            grades: [
-                {
-                    subjectCode: 'IT301',
-                    subjectName: 'Lập trình Web',
-                    credits: 3,
-                    attendance: 9.0,
-                    assignment: 8.5,
-                    midterm: 8.0,
-                    final: 8.5,
-                    total: 8.4,
-                    letter: 'A'
-                },
-                {
-                    subjectCode: 'IT302',
-                    subjectName: 'Cơ sở dữ liệu',
-                    credits: 3,
-                    attendance: 10.0,
-                    assignment: 9.0,
-                    midterm: 8.5,
-                    final: 9.0,
-                    total: 8.9,
-                    letter: 'A'
-                },
-                {
-                    subjectCode: 'IT303',
-                    subjectName: 'Kiến trúc máy tính',
-                    credits: 3,
-                    attendance: 8.0,
-                    assignment: 7.5,
-                    midterm: 7.0,
-                    final: 7.5,
-                    total: 7.4,
-                    letter: 'B+'
-                },
-                {
-                    subjectCode: 'MA201',
-                    subjectName: 'Toán rời rạc',
-                    credits: 3,
-                    attendance: 9.0,
-                    assignment: 8.0,
-                    midterm: 8.5,
-                    final: 8.0,
-                    total: 8.2,
-                    letter: 'A'
-                },
-                {
-                    subjectCode: 'EN201',
-                    subjectName: 'Tiếng Anh chuyên ngành',
-                    credits: 3,
-                    attendance: 10.0,
-                    assignment: 9.5,
-                    midterm: 9.0,
-                    final: 9.5,
-                    total: 9.4,
-                    letter: 'A'
-                },
-                {
-                    subjectCode: 'PE201',
-                    subjectName: 'Giáo dục thể chất',
-                    credits: 3,
-                    attendance: 10.0,
-                    assignment: null,
-                    midterm: null,
-                    final: 8.0,
-                    total: 8.4,
-                    letter: 'A'
+    // Load available school years
+    $scope.loadSchoolYears = function() {
+        SchoolYearService.getAll().then(function(response) {
+            if (response.data) {
+                $scope.schoolYears = response.data;
+                // Auto-select current school year
+                var current = $scope.schoolYears.find(function(sy) { return sy.isActive; });
+                if (current) {
+                    $scope.selectedSchoolYear = current.schoolYearId;
+                    if (current.currentSemester) {
+                        $scope.selectedSemester = current.currentSemester.toString();
+                    }
+                    $scope.loadGrades();
                 }
-            ]
-        },
-        {
-            name: 'Học kỳ 2 - Năm học 2022-2023',
-            year: '2022-2023',
-            semester: '2',
-            gpa: 3.28,
-            credits: 18,
-            grades: [
-                {
-                    subjectCode: 'IT201',
-                    subjectName: 'Cấu trúc dữ liệu và giải thuật',
-                    credits: 3,
-                    attendance: 8.0,
-                    assignment: 7.5,
-                    midterm: 7.0,
-                    final: 7.5,
-                    total: 7.4,
-                    letter: 'B+'
-                },
-                {
-                    subjectCode: 'IT202',
-                    subjectName: 'Lập trình hướng đối tượng',
-                    credits: 3,
-                    attendance: 9.0,
-                    assignment: 8.5,
-                    midterm: 8.0,
-                    final: 8.5,
-                    total: 8.4,
-                    letter: 'A'
-                },
-                {
-                    subjectCode: 'IT203',
-                    subjectName: 'Hệ điều hành',
-                    credits: 3,
-                    attendance: 7.0,
-                    assignment: 6.5,
-                    midterm: 6.0,
-                    final: 6.5,
-                    total: 6.4,
-                    letter: 'C+'
-                },
-                {
-                    subjectCode: 'IT204',
-                    subjectName: 'Mạng máy tính',
-                    credits: 3,
-                    attendance: 8.0,
-                    assignment: 7.5,
-                    midterm: 8.0,
-                    final: 8.0,
-                    total: 7.9,
-                    letter: 'B+'
-                },
-                {
-                    subjectCode: 'MA101',
-                    subjectName: 'Xác suất thống kê',
-                    credits: 3,
-                    attendance: 7.5,
-                    assignment: 7.0,
-                    midterm: 7.5,
-                    final: 7.0,
-                    total: 7.2,
-                    letter: 'B+'
-                },
-                {
-                    subjectCode: 'PE101',
-                    subjectName: 'Giáo dục thể chất',
-                    credits: 3,
-                    attendance: 10.0,
-                    assignment: null,
-                    midterm: null,
-                    final: 8.5,
-                    total: 8.8,
-                    letter: 'A'
-                }
-            ]
-        }
-    ];
+            }
+        }).catch(function(error) {
+            $scope.error = 'Không thể tải danh sách năm học';
+        });
+    };
+    
+    // Load grades by school year + semester
+    $scope.loadGrades = function() {
+        if (!$scope.selectedSchoolYear || !$scope.studentId) return;
+        
+        $scope.loading = true;
+        $scope.error = null;
+        
+        GradeService.getByStudentSchoolYear(
+            $scope.studentId, 
+            $scope.selectedSchoolYear, 
+            $scope.selectedSemester
+        ).then(function(response) {
+            if (response.data) {
+                $scope.grades = response.data;
+            } else {
+                $scope.grades = [];
+            }
+            // Load summary
+            return GradeService.getGradeSummary(
+                $scope.studentId, 
+                $scope.selectedSchoolYear, 
+                $scope.selectedSemester
+            );
+        }).then(function(response) {
+            if (response.data) {
+                $scope.summary = {
+                    currentGPA: response.data.gpa10 || 0,
+                    cumulativeGPA: response.data.gpa10 || 0, // TODO: Calculate cumulative
+                    totalCredits: response.data.totalCredits || 0,
+                    requiredCredits: 120, // TODO: Get from student profile
+                    rank: response.data.rankText || 'Chưa có'
+                };
+            }
+            $scope.loading = false;
+        }).catch(function(error) {
+            $scope.error = 'Không thể tải điểm';
+            $scope.grades = [];
+            $scope.loading = false;
+        });
+    };
+    
+    // Filter change handler
+    $scope.onFilterChange = function() {
+        $scope.loadGrades();
+    };
+    
+    // Initialize
+    $scope.loadStudentId();
 }]);
-

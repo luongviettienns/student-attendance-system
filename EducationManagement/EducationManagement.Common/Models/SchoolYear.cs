@@ -6,7 +6,7 @@ namespace EducationManagement.Common.Models
 {
     /// <summary>
     /// School Year = NĂM HỌC (1 năm = 2 học kỳ)
-    /// VD: 2024-2025 (HK1: Sep-Jan, HK2: Feb-Jun)
+    /// VD: 2024-2025 (HK1: Tháng 9 - Tháng 1, HK2: Tháng 2 - Tháng 6)
     /// 
     /// MỖI SINH VIÊN sẽ trải qua 4 năm học trong 1 niên khóa (cohort)
     /// </summary>

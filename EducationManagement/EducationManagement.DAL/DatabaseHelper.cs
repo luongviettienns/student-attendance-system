@@ -45,6 +45,39 @@ namespace EducationManagement.DAL
         }
 
         /// <summary>
+        /// Thực thi Raw SQL Query (SELECT) và trả về DataTable.
+        /// </summary>
+        public static async Task<DataTable> ExecuteRawQueryAsync(
+            string connectionString,
+            string sqlQuery,
+            params SqlParameter[] parameters)
+        {
+            var dt = new DataTable();
+
+            try
+            {
+                using var conn = new SqlConnection(connectionString);
+                using var cmd = new SqlCommand(sqlQuery, conn)
+                {
+                    CommandType = CommandType.Text
+                };
+
+                if (parameters?.Length > 0)
+                    cmd.Parameters.AddRange(PrepareParameters(parameters));
+
+                await conn.OpenAsync().ConfigureAwait(false);
+                using var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                dt.Load(reader);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi thực thi SQL Query [{sqlQuery.Substring(0, Math.Min(100, sqlQuery.Length))}...]: {ex.Message}", ex);
+            }
+
+            return dt;
+        }
+
+        /// <summary>
         /// Thực thi Stored Procedure trả về multiple result sets và trả về DataSet.
         /// </summary>
         public static async Task<DataSet> ExecuteQueryMultipleAsync(

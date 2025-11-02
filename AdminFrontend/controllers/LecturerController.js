@@ -1,6 +1,6 @@
 // Lecturer Controller
-app.controller('LecturerController', ['$scope', '$location', '$routeParams', 'LecturerService', 'DepartmentService', 'SubjectService', 'LecturerSubjectService',
-    function($scope, $location, $routeParams, LecturerService, DepartmentService, SubjectService, LecturerSubjectService) {
+app.controller('LecturerController', ['$scope', '$location', '$routeParams', '$timeout', 'LecturerService', 'DepartmentService', 'SubjectService', 'LecturerSubjectService',
+    function($scope, $location, $routeParams, $timeout, LecturerService, DepartmentService, SubjectService, LecturerSubjectService) {
     
     $scope.lecturers = [];
     $scope.lecturer = {};
@@ -63,9 +63,8 @@ app.controller('LecturerController', ['$scope', '$location', '$routeParams', 'Le
             .then(function(response) {
                 $scope.success = 'Lưu giảng viên thành công';
                 $scope.loading = false;
-                setTimeout(function() {
+                $timeout(function() {
                     $location.path('/lecturers');
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {

@@ -105,8 +105,8 @@ namespace EducationManagement.Common.Models
         [NotMapped]
         public string SemesterName => Semester switch
         {
-            1 => "Học kỳ 1 (Sep-Jan)",
-            2 => "Học kỳ 2 (Feb-Jun)",
+            1 => "Học kỳ 1 (Tháng 9 - Tháng 1)",
+            2 => "Học kỳ 2 (Tháng 2 - Tháng 6)",
             _ => $"Học kỳ {Semester}"
         };
     }

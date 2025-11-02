@@ -6,7 +6,7 @@
 -- CẤU TRÚC MỚI:
 -- - ACADEMIC YEARS = NIÊN KHÓA (4 năm): K21, K22, K23, K24
 -- - SCHOOL YEARS = NĂM HỌC (1 năm = 2 học kỳ): 2024-2025
--- - SEMESTERS = HỌC KỲ: CHỈ CÓ HK1 (Sep-Jan) và HK2 (Feb-Jun)
+-- - SEMESTERS = HỌC KỲ: CHỈ CÓ HK1 (Tháng 9 - Tháng 1) và HK2 (Tháng 2 - Tháng 6)
 --
 -- ===========================================
 
@@ -134,13 +134,63 @@ BEGIN CATCH
 END CATCH
 GO
 
--- Activate current school year (2024-2025)
-UPDATE school_years 
-SET is_active = 1, 
-    current_semester = 1  -- Assume we're in Semester 1
-WHERE school_year_id = 'SY2024';
+-- Activate current school year (2024-2025 or nearest future school year)
+DECLARE @CurrentYear INT = YEAR(GETDATE());
+DECLARE @SchoolYearToActivate VARCHAR(50);
+DECLARE @SemesterToSet INT;
 
-PRINT '   ✅ Activated school year 2024-2025 (Semester 1)';
+-- Try to find school year that covers current date or nearest future
+SELECT TOP 1 
+    @SchoolYearToActivate = school_year_id,
+    @SemesterToSet = CASE 
+        WHEN CAST(GETDATE() AS DATE) BETWEEN semester1_start AND semester1_end THEN 1
+        WHEN CAST(GETDATE() AS DATE) BETWEEN semester2_start AND semester2_end THEN 2
+        WHEN CAST(GETDATE() AS DATE) < semester1_start THEN 1  -- Before semester 1, set to 1
+        WHEN CAST(GETDATE() AS DATE) > semester2_end THEN 2   -- After semester 2, set to 2
+        ELSE 1
+    END
+FROM school_years
+WHERE deleted_at IS NULL
+    AND (
+        -- Current date is within school year range
+        (CAST(GETDATE() AS DATE) BETWEEN start_date AND end_date)
+        -- OR current date is before school year starts (nearest future)
+        OR (CAST(GETDATE() AS DATE) < start_date)
+    )
+ORDER BY 
+    CASE WHEN CAST(GETDATE() AS DATE) BETWEEN start_date AND end_date THEN 0 ELSE 1 END,
+    start_date ASC;
+
+-- If no match, activate SY2024 if exists
+IF @SchoolYearToActivate IS NULL
+BEGIN
+    IF EXISTS (SELECT 1 FROM school_years WHERE school_year_id = 'SY2024')
+    BEGIN
+        SET @SchoolYearToActivate = 'SY2024';
+        SET @SemesterToSet = 1;
+    END
+END
+
+-- Activate the school year
+IF @SchoolYearToActivate IS NOT NULL
+BEGIN
+    -- Deactivate all other school years first
+    UPDATE school_years 
+    SET is_active = 0
+    WHERE school_year_id != @SchoolYearToActivate;
+    
+    -- Activate target school year
+    UPDATE school_years 
+    SET is_active = 1, 
+        current_semester = @SemesterToSet
+    WHERE school_year_id = @SchoolYearToActivate;
+    
+    PRINT '   ✅ Activated school year: ' + @SchoolYearToActivate + ' (Semester ' + CAST(@SemesterToSet AS VARCHAR) + ')';
+END
+ELSE
+BEGIN
+    PRINT '   ⚠️  No school year found to activate - ensure school years exist for current/future dates';
+END
 GO
 
 -- ===========================================
@@ -168,26 +218,26 @@ BEGIN
     -- Verify academic years exist before inserting students
     IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = 'AY2021')
     BEGIN
-        INSERT INTO academic_years (academic_year_id, year_name, start_year, end_year, is_active, created_at, created_by)
-        VALUES ('AY2021', '2021-2025', 2021, 2025, 0, GETDATE(), 'system');
+        INSERT INTO academic_years (academic_year_id, year_name, cohort_code, start_year, end_year, duration_years, is_active, created_at, created_by)
+        VALUES ('AY2021', '2021-2025', 'K21', 2021, 2025, 4, 0, GETDATE(), 'system');
     END
     
     IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = 'AY2022')
     BEGIN
-        INSERT INTO academic_years (academic_year_id, year_name, start_year, end_year, is_active, created_at, created_by)
-        VALUES ('AY2022', '2022-2026', 2022, 2026, 0, GETDATE(), 'system');
+        INSERT INTO academic_years (academic_year_id, year_name, cohort_code, start_year, end_year, duration_years, is_active, created_at, created_by)
+        VALUES ('AY2022', '2022-2026', 'K22', 2022, 2026, 4, 0, GETDATE(), 'system');
     END
     
     IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = 'AY2023')
     BEGIN
-        INSERT INTO academic_years (academic_year_id, year_name, start_year, end_year, is_active, created_at, created_by)
-        VALUES ('AY2023', '2023-2027', 2023, 2027, 0, GETDATE(), 'system');
+        INSERT INTO academic_years (academic_year_id, year_name, cohort_code, start_year, end_year, duration_years, is_active, created_at, created_by)
+        VALUES ('AY2023', '2023-2027', 'K23', 2023, 2027, 4, 0, GETDATE(), 'system');
     END
     
     IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = 'AY2024')
     BEGIN
-        INSERT INTO academic_years (academic_year_id, year_name, start_year, end_year, is_active, created_at, created_by)
-        VALUES ('AY2024', '2024-2028', 2024, 2028, 0, GETDATE(), 'system');
+        INSERT INTO academic_years (academic_year_id, year_name, cohort_code, start_year, end_year, duration_years, is_active, created_at, created_by)
+        VALUES ('AY2024', '2024-2028', 'K24', 2024, 2028, 4, 0, GETDATE(), 'system');
     END
     
     INSERT INTO dbo.students (student_id, user_id, student_code, full_name, gender, date_of_birth, email, phone, major_id, academic_year_id, is_active) VALUES
@@ -256,20 +306,20 @@ PRINT '📝 Seeding Enrollments...';
 
 IF NOT EXISTS (SELECT 1 FROM enrollments WHERE enrollment_id = 'ENR001')
 BEGIN
-    INSERT INTO dbo.enrollments (enrollment_id, student_id, class_id, status, enrollment_date) VALUES
+    INSERT INTO dbo.enrollments (enrollment_id, student_id, class_id, status, enrollment_status, enrollment_date) VALUES
     -- K24 student (freshman) takes year 1 courses
-    ('ENR001', 'STU005', 'CLS001', N'Đang học', GETDATE()),  -- CS101
-    ('ENR002', 'STU005', 'CLS002', N'Đang học', GETDATE()),  -- CS102
+    ('ENR001', 'STU005', 'CLS001', N'Đang học', 'APPROVED', GETDATE()),  -- CS101
+    ('ENR002', 'STU005', 'CLS002', N'Đang học', 'APPROVED', GETDATE()),  -- CS102
     
     -- K23 student (year 2) takes year 2 course
-    ('ENR003', 'STU004', 'CLS003', N'Đang học', GETDATE()),  -- CS201
+    ('ENR003', 'STU004', 'CLS003', N'Đang học', 'APPROVED', GETDATE()),  -- CS201
     
     -- K22 student (year 3) takes year 3 course
-    ('ENR004', 'STU003', 'CLS004', N'Đang học', GETDATE()),  -- CS301
+    ('ENR004', 'STU003', 'CLS004', N'Đang học', 'APPROVED', GETDATE()),  -- CS301
     
     -- K21 students (year 4) also take some courses
-    ('ENR005', 'STU001', 'CLS004', N'Đang học', GETDATE()),  -- CS301
-    ('ENR006', 'STU002', 'CLS003', N'Đang học', GETDATE());  -- CS201
+    ('ENR005', 'STU001', 'CLS004', N'Đang học', 'APPROVED', GETDATE()),  -- CS301
+    ('ENR006', 'STU002', 'CLS003', N'Đang học', 'APPROVED', GETDATE());  -- CS201
     
     PRINT '   ✅ 6 enrollments created';
 END
@@ -315,9 +365,13 @@ BEGIN
     ('PERM007', 'CLASS_VIEW', N'Xem lớp học', N'Xem danh sách lớp học'),
     ('PERM008', 'CLASS_MANAGE', N'Quản lý lớp học', N'Thêm/sửa/xóa lớp học'),
     ('PERM009', 'GRADE_VIEW', N'Xem điểm', N'Xem điểm sinh viên'),
-    ('PERM010', 'GRADE_MANAGE', N'Quản lý điểm', N'Nhập/sửa điểm');
+    ('PERM010', 'GRADE_MANAGE', N'Quản lý điểm', N'Nhập/sửa điểm'),
+    ('PERM011', 'VIEW_ACADEMIC_YEARS', N'Xem niên khóa', N'Xem danh sách niên khóa'),
+    ('PERM012', 'MANAGE_ACADEMIC_YEARS', N'Quản lý niên khóa', N'Thêm/sửa/xóa niên khóa'),
+    ('PERM013', 'VIEW_SCHOOL_YEARS', N'Xem năm học', N'Xem danh sách năm học'),
+    ('PERM014', 'MANAGE_SCHOOL_YEARS', N'Quản lý năm học', N'Thêm/sửa/xóa năm học');
     
-    PRINT '   ✅ 10 permissions created';
+    PRINT '   ✅ 14 permissions created';
 END
 ELSE
     PRINT '   ⚠️  Permissions already exist';
@@ -335,7 +389,8 @@ BEGIN
     ('ROLE_ADMIN', 'PERM001'), ('ROLE_ADMIN', 'PERM002'), ('ROLE_ADMIN', 'PERM003'),
     ('ROLE_ADMIN', 'PERM004'), ('ROLE_ADMIN', 'PERM005'), ('ROLE_ADMIN', 'PERM006'),
     ('ROLE_ADMIN', 'PERM007'), ('ROLE_ADMIN', 'PERM008'), ('ROLE_ADMIN', 'PERM009'),
-    ('ROLE_ADMIN', 'PERM010');
+    ('ROLE_ADMIN', 'PERM010'), ('ROLE_ADMIN', 'PERM011'), ('ROLE_ADMIN', 'PERM012'),
+    ('ROLE_ADMIN', 'PERM013'), ('ROLE_ADMIN', 'PERM014');
     
     -- Lecturer: View students, manage grades
     INSERT INTO dbo.role_permissions (role_id, permission_id) VALUES
@@ -388,7 +443,7 @@ PRINT '   ✅ 4 Subjects (year 1-3 courses)';
 PRINT '   ✅ 4 Classes (2024-2025 HK1)';
 PRINT '   ✅ 6 Enrollments';
 PRINT '   ✅ 6 Grades';
-PRINT '   ✅ 10 Permissions';
+PRINT '   ✅ 14 Permissions';
 PRINT '';
 PRINT '🔑 Login Credentials (all use password: password123):';
 PRINT '   👤 Admin:        admin';

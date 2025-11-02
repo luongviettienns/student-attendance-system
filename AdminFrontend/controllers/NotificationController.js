@@ -235,8 +235,8 @@ app.controller('NotificationController', ['$scope', '$location', 'NotificationSe
 }]);
 
 // Notification Bell Controller (for header)
-app.controller('NotificationBellController', ['$scope', 'NotificationService',
-    function($scope, NotificationService) {
+app.controller('NotificationBellController', ['$scope', '$interval', 'NotificationService',
+    function($scope, $interval, NotificationService) {
     
     $scope.unreadNotifications = [];
     $scope.unreadCount = 0;
@@ -251,7 +251,10 @@ app.controller('NotificationBellController', ['$scope', 'NotificationService',
                 NotificationService.setUnreadCount(response.data.length);
             })
             .catch(function(error) {
-                console.error('Error loading unread notifications:', error);
+                // LoggerService may not be available here
+                if (typeof LoggerService !== 'undefined') {
+                    LoggerService.error('Error loading unread notifications', error);
+                }
             });
     };
     
@@ -288,22 +291,18 @@ app.controller('NotificationBellController', ['$scope', 'NotificationService',
     // Initialize
     $scope.loadUnread();
     
-    // Refresh every 60 seconds (chỉ khi tab đang hiển thị)
-    var intervalId = setInterval(function() {
+    // Refresh every 60 seconds (chỉ khi tab đang hiển thị) - Use $interval instead of setInterval
+    var intervalPromise = $interval(function() {
         if (document.visibilityState === 'visible') {
             $scope.loadUnread();
-            // Chỉ gọi $apply khi ngoài digest
-            if (!$scope.$$phase) {
-                $scope.$apply();
-            }
         }
     }, 60000);
 
     // Cleanup interval khi destroy để tránh nhân bản interval khi điều hướng
     $scope.$on('$destroy', function() {
-        if (intervalId) {
-            clearInterval(intervalId);
-            intervalId = null;
+        if (intervalPromise) {
+            $interval.cancel(intervalPromise);
+            intervalPromise = null;
         }
     });
 }]);

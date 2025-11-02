@@ -1,5 +1,5 @@
 // Role-based Access Control Service
-app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', function(AuthService, $http, $rootScope, API_CONFIG) {
+app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 'LoggerService', function(AuthService, $http, $rootScope, API_CONFIG, LoggerService) {
     
     // Cache for permissions loaded from API
     var cachedPermissions = null;
@@ -255,7 +255,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 return permissions;
             })
             .catch(function(error) {
-                console.error('Failed to load permissions from API:', error);
+                LoggerService.error('Failed to load permissions from API', error);
                 // Fallback to hard-coded permissions
                 cachedPermissions = FALLBACK_PERMISSIONS[role] || {};
                 return cachedPermissions;
@@ -267,7 +267,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
      */
     this.getCurrentRole = function() {
         var user = AuthService.getCurrentUser();
-        return user ? user.role : null;
+        return user ? (user.Role || user.role) : null;
     };
     
     /**
@@ -314,7 +314,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/users', '/roles',
                 '/faculties', '/departments', '/majors', '/subjects',
                 '/students', '/lecturers', '/classes', '/admin-classes',
-                '/academic-years',
+                '/academic-years', '/school-years',
                 '/subject-prerequisites',
                 '/registration-periods',
                 '/enrollments',

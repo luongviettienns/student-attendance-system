@@ -1077,13 +1077,132 @@ GO
 -- 12. GRADES MANAGEMENT
 -- ===========================================
 
+IF OBJECT_ID('sp_GetAllGrades', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllGrades;
+GO
+CREATE PROCEDURE sp_GetAllGrades
+AS
+BEGIN
+    SELECT 
+        g.grade_id,
+        g.enrollment_id,
+        g.midterm_score,
+        g.final_score,
+        g.total_score,
+        g.letter_grade,
+        g.created_at,
+        g.created_by,
+        g.updated_at,
+        g.updated_by,
+        e.student_id,
+        e.class_id,
+        s.student_code,
+        s.full_name as student_name,
+        c.class_code,
+        c.class_name,
+        sy.year_code as school_year_code,
+        sub.subject_name
+    FROM dbo.grades g
+    INNER JOIN dbo.enrollments e ON g.enrollment_id = e.enrollment_id
+    INNER JOIN dbo.students s ON e.student_id = s.student_id
+    INNER JOIN dbo.classes c ON e.class_id = c.class_id
+    LEFT JOIN dbo.school_years sy ON c.school_year_id = sy.school_year_id
+    LEFT JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
+    ORDER BY sy.start_date DESC, c.semester;
+END
+GO
+
+IF OBJECT_ID('sp_GetGradeById', 'P') IS NOT NULL DROP PROCEDURE sp_GetGradeById;
+GO
+CREATE PROCEDURE sp_GetGradeById
+    @GradeId VARCHAR(50)
+AS
+BEGIN
+    SELECT 
+        g.grade_id,
+        g.enrollment_id,
+        g.midterm_score,
+        g.final_score,
+        g.total_score,
+        g.letter_grade,
+        g.created_at,
+        g.created_by,
+        g.updated_at,
+        g.updated_by,
+        e.student_id,
+        e.class_id,
+        s.student_code,
+        s.full_name as student_name,
+        c.class_code,
+        c.class_name,
+        sy.year_code as school_year_code,
+        sub.subject_name
+    FROM dbo.grades g
+    INNER JOIN dbo.enrollments e ON g.enrollment_id = e.enrollment_id
+    INNER JOIN dbo.students s ON e.student_id = s.student_id
+    INNER JOIN dbo.classes c ON e.class_id = c.class_id
+    LEFT JOIN dbo.school_years sy ON c.school_year_id = sy.school_year_id
+    LEFT JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
+    WHERE g.grade_id = @GradeId;
+END
+GO
+
+IF OBJECT_ID('sp_GetGradesByStudent', 'P') IS NOT NULL DROP PROCEDURE sp_GetGradesByStudent;
+GO
+CREATE PROCEDURE sp_GetGradesByStudent
+    @StudentId VARCHAR(50)
+AS
+BEGIN
+    SELECT 
+        g.grade_id,
+        g.enrollment_id,
+        g.midterm_score,
+        g.final_score,
+        g.total_score,
+        g.letter_grade,
+        g.created_at,
+        g.created_by,
+        g.updated_at,
+        g.updated_by,
+        e.student_id,
+        e.class_id,
+        s.student_code,
+        s.full_name as student_name,
+        c.class_code,
+        c.class_name,
+        sy.year_code as school_year_code,
+        sub.subject_name
+    FROM dbo.grades g
+    INNER JOIN dbo.enrollments e ON g.enrollment_id = e.enrollment_id
+    INNER JOIN dbo.students s ON e.student_id = s.student_id
+    INNER JOIN dbo.classes c ON e.class_id = c.class_id
+    LEFT JOIN dbo.school_years sy ON c.school_year_id = sy.school_year_id
+    LEFT JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
+    WHERE e.student_id = @StudentId
+    ORDER BY sy.start_date DESC, c.semester;
+END
+GO
+
 IF OBJECT_ID('sp_GetGradesByClass', 'P') IS NOT NULL DROP PROCEDURE sp_GetGradesByClass;
 GO
 CREATE PROCEDURE sp_GetGradesByClass
     @ClassId VARCHAR(50)
 AS
 BEGIN
-    SELECT g.*, s.student_code, s.full_name as student_name
+    SELECT 
+        g.grade_id,
+        g.enrollment_id,
+        g.midterm_score,
+        g.final_score,
+        g.total_score,
+        g.letter_grade,
+        g.created_at,
+        g.created_by,
+        g.updated_at,
+        g.updated_by,
+        e.student_id,
+        e.class_id,
+        s.student_code,
+        s.full_name as student_name
     FROM dbo.grades g
     INNER JOIN dbo.enrollments e ON g.enrollment_id = e.enrollment_id
     INNER JOIN dbo.students s ON e.student_id = s.student_id
@@ -1121,6 +1240,68 @@ BEGIN
     SET midterm_score = @MidtermScore, final_score = @FinalScore,
         updated_at = GETDATE(), updated_by = @UpdatedBy
     WHERE grade_id = @GradeId;
+END
+GO
+
+IF OBJECT_ID('sp_DeleteGrade', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteGrade;
+GO
+CREATE PROCEDURE sp_DeleteGrade
+    @GradeId VARCHAR(50),
+    @DeletedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    DELETE FROM dbo.grades WHERE grade_id = @GradeId;
+END
+GO
+
+-- NEW: Get grades by student + school year + semester
+IF OBJECT_ID('sp_GetGradesByStudentSchoolYear', 'P') IS NOT NULL DROP PROCEDURE sp_GetGradesByStudentSchoolYear;
+GO
+CREATE PROCEDURE sp_GetGradesByStudentSchoolYear
+    @StudentId VARCHAR(50),
+    @SchoolYearId VARCHAR(50) = NULL,
+    @Semester VARCHAR(20) = NULL
+AS
+BEGIN
+    SELECT 
+        g.grade_id,
+        g.enrollment_id,
+        g.midterm_score,
+        g.final_score,
+        g.total_score,
+        g.letter_grade,
+        g.created_at,
+        g.created_by,
+        g.updated_at,
+        g.updated_by,
+        -- From enrollment
+        e.student_id,
+        e.class_id,
+        -- From student
+        s.student_code,
+        s.full_name as student_name,
+        -- From class
+        c.class_code,
+        c.class_name,
+        c.semester,
+        c.school_year_id,
+        c.academic_year_id,
+        -- From school year
+        sy.year_code as school_year_code,
+        -- From subject
+        sub.subject_name,
+        sub.credits
+    FROM dbo.grades g
+    INNER JOIN dbo.enrollments e ON g.enrollment_id = e.enrollment_id
+    INNER JOIN dbo.students s ON e.student_id = s.student_id
+    INNER JOIN dbo.classes c ON e.class_id = c.class_id
+    LEFT JOIN dbo.school_years sy ON c.school_year_id = sy.school_year_id
+    LEFT JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
+    WHERE e.student_id = @StudentId
+        AND (@SchoolYearId IS NULL OR c.school_year_id = @SchoolYearId)
+        AND (@Semester IS NULL OR c.semester = @Semester)
+        AND e.deleted_at IS NULL
+    ORDER BY sy.start_date DESC, c.semester, sub.subject_name;
 END
 GO
 
@@ -1546,6 +1727,122 @@ BEGIN
     FROM dbo.gpas
     WHERE academic_year_id = @AcademicYearId
         AND ((@Semester IS NULL AND semester IS NULL) OR semester = @Semester);
+END
+GO
+
+-- NEW: Calculate GPA by School Year
+IF OBJECT_ID('sp_CalculateGPABySchoolYear', 'P') IS NOT NULL DROP PROCEDURE sp_CalculateGPABySchoolYear;
+GO
+CREATE PROCEDURE sp_CalculateGPABySchoolYear
+    @StudentId VARCHAR(50),
+    @SchoolYearId VARCHAR(50),
+    @Semester VARCHAR(20) = NULL,
+    @CreatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @GpaId VARCHAR(50) = NEWID();
+    DECLARE @Gpa10 DECIMAL(4,2);
+    DECLARE @Gpa4 DECIMAL(4,2);
+    DECLARE @TotalCredits INT = 0;
+    DECLARE @AccumulatedCredits INT = 0;
+    DECLARE @RankText NVARCHAR(50);
+    DECLARE @AcademicYearId VARCHAR(50);
+    
+    -- Get academic_year_id from school_year (may be NULL)
+    SELECT @AcademicYearId = academic_year_id
+    FROM dbo.school_years
+    WHERE school_year_id = @SchoolYearId;
+    
+    -- If academic_year_id is NULL, try to get from student's cohort
+    IF @AcademicYearId IS NULL
+    BEGIN
+        SELECT TOP 1 @AcademicYearId = academic_year_id
+        FROM dbo.students
+        WHERE student_id = @StudentId;
+    END
+    
+    -- Calculate GPA from grades
+    SELECT 
+        @Gpa10 = ROUND(SUM(g.total_score * sub.credits) / NULLIF(SUM(sub.credits), 0), 2),
+        @TotalCredits = SUM(sub.credits),
+        @AccumulatedCredits = SUM(CASE WHEN g.total_score >= 4.0 THEN sub.credits ELSE 0 END)
+    FROM dbo.grades g
+    INNER JOIN dbo.enrollments e ON g.enrollment_id = e.enrollment_id
+    INNER JOIN dbo.classes c ON e.class_id = c.class_id
+    INNER JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
+    WHERE e.student_id = @StudentId
+        AND c.school_year_id = @SchoolYearId
+        AND (@Semester IS NULL OR c.semester = @Semester)
+        AND g.total_score IS NOT NULL
+        AND e.deleted_at IS NULL;
+    
+    -- If no grades found
+    IF @Gpa10 IS NULL
+    BEGIN
+        SET @Gpa10 = 0;
+        SET @Gpa4 = 0;
+    END
+    ELSE
+    BEGIN
+        -- Convert GPA 10 to GPA 4
+        SET @Gpa4 = CASE
+            WHEN @Gpa10 >= 9.0 THEN 4.0
+            WHEN @Gpa10 >= 8.5 THEN 3.7
+            WHEN @Gpa10 >= 8.0 THEN 3.5
+            WHEN @Gpa10 >= 7.0 THEN 3.0
+            WHEN @Gpa10 >= 6.5 THEN 2.5
+            WHEN @Gpa10 >= 6.0 THEN 2.0
+            WHEN @Gpa10 >= 5.5 THEN 1.5
+            WHEN @Gpa10 >= 5.0 THEN 1.0
+            ELSE 0.0
+        END;
+    END
+    
+    -- Determine rank
+    SET @RankText = CASE
+        WHEN @Gpa10 >= 9.0 THEN N'Xuất sắc'
+        WHEN @Gpa10 >= 8.0 THEN N'Giỏi'
+        WHEN @Gpa10 >= 7.0 THEN N'Khá'
+        WHEN @Gpa10 >= 5.5 THEN N'Trung bình'
+        ELSE N'Yếu'
+    END;
+    
+    -- Convert semester string to int (1, 2, or NULL)
+    DECLARE @SemesterInt INT = NULL;
+    IF @Semester IS NOT NULL AND @Semester IN ('1', '2')
+    BEGIN
+        SET @SemesterInt = CAST(@Semester AS INT);
+    END
+    
+    -- Insert or update GPA
+    IF EXISTS (SELECT 1 FROM dbo.gpas 
+               WHERE student_id = @StudentId 
+                 AND school_year_id = @SchoolYearId
+                 AND ((@SemesterInt IS NULL AND semester IS NULL) OR semester = @SemesterInt))
+    BEGIN
+        UPDATE dbo.gpas
+        SET gpa10 = @Gpa10,
+            gpa4 = @Gpa4,
+            total_credits = @TotalCredits,
+            accumulated_credits = @AccumulatedCredits,
+            rank_text = @RankText,
+            updated_at = GETDATE(),
+            updated_by = @CreatedBy
+        WHERE student_id = @StudentId 
+          AND school_year_id = @SchoolYearId
+          AND ((@SemesterInt IS NULL AND semester IS NULL) OR semester = @SemesterInt);
+    END
+    ELSE
+    BEGIN
+        INSERT INTO dbo.gpas (gpa_id, student_id, academic_year_id, school_year_id, semester,
+                              gpa10, gpa4, total_credits, accumulated_credits, rank_text,
+                              is_active, created_at, created_by)
+        VALUES (@GpaId, @StudentId, @AcademicYearId, @SchoolYearId, @SemesterInt,
+                @Gpa10, @Gpa4, @TotalCredits, @AccumulatedCredits, @RankText,
+                1, GETDATE(), @CreatedBy);
+    END
 END
 GO
 
@@ -5630,11 +5927,11 @@ BEGIN
         
         -- Insert cohort
         INSERT INTO academic_years (
-            academic_year_id, year_name, start_year, end_year, 
+            academic_year_id, year_name, cohort_code, start_year, end_year, duration_years,
             is_active, created_at, created_by
         )
         VALUES (
-            @CohortId, @YearName, @StartYear, @EndYear,
+            @CohortId, @YearName, @CohortCode, @StartYear, @EndYear, @DurationYears,
             0, GETDATE(), @CreatedBy
         );
         

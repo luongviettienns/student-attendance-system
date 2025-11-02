@@ -1,6 +1,6 @@
 // Major Controller
-app.controller('MajorController', ['$scope', '$location', '$routeParams', 'MajorService', 'FacultyService',
-    function($scope, $location, $routeParams, MajorService, FacultyService) {
+app.controller('MajorController', ['$scope', '$location', '$routeParams', '$timeout', 'MajorService', 'FacultyService',
+    function($scope, $location, $routeParams, $timeout, MajorService, FacultyService) {
     
     $scope.majors = [];
     $scope.faculties = [];
@@ -66,9 +66,8 @@ app.controller('MajorController', ['$scope', '$location', '$routeParams', 'Major
             .then(function(response) {
                 $scope.success = 'Lưu ngành thành công';
                 $scope.loading = false;
-                setTimeout(function() {
+                $timeout(function() {
                     $location.path('/majors');
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {

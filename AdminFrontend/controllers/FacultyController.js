@@ -1,6 +1,6 @@
 // Faculty Controller with Pagination, Search, Sort, Export
-app.controller('FacultyController', ['$scope', '$location', '$routeParams', 'FacultyService', 'PaginationService', 'ExportService',
-    function($scope, $location, $routeParams, FacultyService, PaginationService, ExportService) {
+app.controller('FacultyController', ['$scope', '$location', '$routeParams', '$timeout', 'FacultyService', 'PaginationService', 'ExportService',
+    function($scope, $location, $routeParams, $timeout, FacultyService, PaginationService, ExportService) {
     
     $scope.faculties = [];
     $scope.displayedFaculties = [];
@@ -143,9 +143,8 @@ app.controller('FacultyController', ['$scope', '$location', '$routeParams', 'Fac
             .then(function(response) {
                 $scope.success = response.data?.message || 'Lưu khoa thành công';
                 $scope.loading = false;
-                setTimeout(function() {
+                $timeout(function() {
                     $location.path('/faculties');
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {

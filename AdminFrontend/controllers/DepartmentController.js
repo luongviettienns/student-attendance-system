@@ -1,6 +1,6 @@
 // Department Controller
-app.controller('DepartmentController', ['$scope', '$location', '$routeParams', 'DepartmentService', 'FacultyService',
-    function($scope, $location, $routeParams, DepartmentService, FacultyService) {
+app.controller('DepartmentController', ['$scope', '$location', '$routeParams', '$timeout', 'DepartmentService', 'FacultyService',
+    function($scope, $location, $routeParams, $timeout, DepartmentService, FacultyService) {
     
     $scope.departments = [];
     $scope.department = {};
@@ -76,9 +76,8 @@ app.controller('DepartmentController', ['$scope', '$location', '$routeParams', '
             .then(function(response) {
                 $scope.success = 'Lưu bộ môn thành công';
                 $scope.loading = false;
-                setTimeout(function() {
+                $timeout(function() {
                     $location.path('/departments');
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {

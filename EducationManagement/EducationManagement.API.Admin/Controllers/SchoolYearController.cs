@@ -104,7 +104,7 @@ namespace EducationManagement.API.Admin.Controllers
         // ============================================================
 
         /// <summary>
-        /// TỰ ĐỘNG tạo năm học theo chuẩn VN (Sep-Jun, 2 học kỳ)
+        /// TỰ ĐỘNG tạo năm học theo chuẩn VN (Tháng 9 - Tháng 6, 2 học kỳ)
         /// </summary>
         /// <param name="startYear">Năm bắt đầu (VD: 2024 → 2024-2025)</param>
         /// <param name="academicYearId">Niên khóa liên kết (optional)</param>
@@ -157,6 +157,7 @@ namespace EducationManagement.API.Admin.Controllers
 
         /// <summary>
         /// Lấy năm học HIỆN TẠI (dựa vào ngày hệ thống)
+        /// Fallback: Nếu không có năm học khớp ngày, trả về năm học đang active
         /// </summary>
         [HttpGet("current")]
         [AllowAnonymous] // Cho phép student/lecturer xem
@@ -164,7 +165,15 @@ namespace EducationManagement.API.Admin.Controllers
         {
             var current = await _service.GetCurrentAsync();
             if (current == null)
-                return NotFound(new { message = "⚠️ Không có năm học nào đang diễn ra!" });
+            {
+                // Fallback: Try to get active school year
+                var active = await _service.GetActiveAsync();
+                if (active != null)
+                {
+                    return Ok(active);
+                }
+                return Ok(new { message = "⚠️ Không có năm học nào đang diễn ra hoặc được kích hoạt!" });
+            }
             
             return Ok(current);
         }
@@ -178,7 +187,7 @@ namespace EducationManagement.API.Admin.Controllers
         {
             var active = await _service.GetActiveAsync();
             if (active == null)
-                return NotFound(new { message = "⚠️ Không có năm học nào được kích hoạt!" });
+                return Ok(new { message = "⚠️ Không có năm học nào được kích hoạt!" });
             
             return Ok(active);
         }

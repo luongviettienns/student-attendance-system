@@ -1,7 +1,7 @@
 <!-- Sidebar Component - Dùng chung cho tất cả views -->
 <aside class="sidebar">
     <div class="sidebar-header">
-        <h2><i class="fas fa-graduation-cap"></i> {{currentUser.role || 'Admin'}} Panel</h2>
+        <h2><i class="fas fa-graduation-cap"></i> {{currentUser.Role || currentUser.role || 'Admin'}} Panel</h2>
         <p>Xin chào, {{currentUser.fullName || 'User'}}</p>
     </div>
     

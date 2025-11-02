@@ -133,6 +133,34 @@ namespace EducationManagement.API.Admin.Controllers
                 return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
             }
         }
+
+        [HttpGet("student/{studentId}/school-year/{schoolYearId}")]
+        public async Task<IActionResult> GetByStudentSchoolYear(string studentId, string schoolYearId, [FromQuery] string? semester = null)
+        {
+            try
+            {
+                var grades = await _gradeService.GetGradesByStudentSchoolYearAsync(studentId, schoolYearId, semester);
+                return Ok(new { data = grades });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        [HttpGet("student/{studentId}/summary")]
+        public async Task<IActionResult> GetGradeSummary(string studentId, [FromQuery] string? schoolYearId = null, [FromQuery] string? semester = null)
+        {
+            try
+            {
+                var summary = await _gradeService.GetGradeSummaryAsync(studentId, schoolYearId, semester);
+                return Ok(new { data = summary });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
     }
 
     public class CreateGradeRequest

@@ -1,5 +1,5 @@
 // Lecturer Attendance Controller
-app.controller('LecturerAttendanceController', ['$scope', 'AuthService', function($scope, AuthService) {
+app.controller('LecturerAttendanceController', ['$scope', '$timeout', 'AuthService', function($scope, $timeout, AuthService) {
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.selectedClass = '';
     $scope.attendanceDate = new Date().toISOString().split('T')[0];
@@ -57,18 +57,14 @@ app.controller('LecturerAttendanceController', ['$scope', 'AuthService', functio
         $scope.error = null;
         
         // Simulate API call
-        setTimeout(function() {
-            $scope.$apply(function() {
-                $scope.saving = false;
-                $scope.success = 'Lưu điểm danh thành công!';
-                
-                // Clear success message after 3 seconds
-                setTimeout(function() {
-                    $scope.$apply(function() {
-                        $scope.success = null;
-                    });
-                }, 3000);
-            });
+        $timeout(function() {
+            $scope.saving = false;
+            $scope.success = 'Lưu điểm danh thành công!';
+            
+            // Clear success message after 3 seconds
+            $timeout(function() {
+                $scope.success = null;
+            }, 3000);
         }, 1000);
     };
 }]);

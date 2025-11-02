@@ -95,14 +95,15 @@
     color: var(--text-secondary);
     margin-bottom: 5px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .stat-value {
     font-size: 28px;
     font-weight: 700;
     color: var(--text-primary);
-    line-height: 1;
+    line-height: 1.2;
+    letter-spacing: -0.02em;
 }
 
 .stat-change {
@@ -138,6 +139,7 @@
     font-weight: 600;
     margin-bottom: 20px;
     color: var(--text-primary);
+    letter-spacing: -0.01em;
 }
 
 /* Recent Activities */

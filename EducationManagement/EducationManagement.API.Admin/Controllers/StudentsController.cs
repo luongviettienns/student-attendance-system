@@ -132,6 +132,26 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         // ============================================================
+        // 🔹 7️⃣ LẤY SINH VIÊN THEO USER ID
+        // ============================================================
+        [HttpGet("by-user-id/{userId}")]
+        public async Task<IActionResult> GetStudentByUserId(string userId)
+        {
+            try
+            {
+                var student = await _studentService.GetStudentByUserIdAsync(userId);
+                if (student == null)
+                    return NotFound(new { message = "Không tìm thấy sinh viên" });
+
+                return Ok(new { data = student });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        // ============================================================
         // 🔹 6️⃣ BATCH IMPORT STUDENTS
         // ============================================================
         [HttpPost("import/batch")]

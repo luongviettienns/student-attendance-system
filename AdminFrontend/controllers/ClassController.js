@@ -17,16 +17,27 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
         // Initialize sidebar toggle
         var menuToggle = document.getElementById('menuToggle');
         if (menuToggle) {
-            menuToggle.addEventListener('click', function() {
+            // Store handler reference for cleanup
+            $scope.menuToggleHandler = function() {
                 var sidebar = document.querySelector('.sidebar');
                 var mainContent = document.querySelector('.main-content');
                 if (sidebar && mainContent) {
                     sidebar.classList.toggle('collapsed');
                     mainContent.classList.toggle('expanded');
                 }
-            });
+            };
+            
+            menuToggle.addEventListener('click', $scope.menuToggleHandler);
         }
     };
+    
+    // Cleanup event listeners on controller destroy
+    $scope.$on('$destroy', function() {
+        var menuToggle = document.getElementById('menuToggle');
+        if (menuToggle && $scope.menuToggleHandler) {
+            menuToggle.removeEventListener('click', $scope.menuToggleHandler);
+        }
+    });
     
     // Get initial for avatar
     $scope.getInitial = function(user) {

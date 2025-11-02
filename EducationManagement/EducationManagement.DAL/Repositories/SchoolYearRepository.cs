@@ -23,20 +23,27 @@ namespace EducationManagement.DAL.Repositories
         // ============================================================
         public async Task<List<SchoolYear>> GetAllAsync()
         {
-            var list = new List<SchoolYear>();
-            var query = @"
-                SELECT sy.*, ay.cohort_code, ay.year_name AS cohort_name
-                FROM school_years sy
-                LEFT JOIN academic_years ay ON sy.academic_year_id = ay.academic_year_id
-                WHERE sy.deleted_at IS NULL
-                ORDER BY sy.start_date DESC";
+            try
+            {
+                var list = new List<SchoolYear>();
+                var query = @"
+                    SELECT sy.*, ay.cohort_code, ay.year_name AS cohort_name
+                    FROM school_years sy
+                    LEFT JOIN academic_years ay ON sy.academic_year_id = ay.academic_year_id
+                    WHERE sy.deleted_at IS NULL
+                    ORDER BY ISNULL(sy.start_date, '1900-01-01') DESC";
 
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, query);
+                var dt = await DatabaseHelper.ExecuteRawQueryAsync(_connectionString, query);
 
-            foreach (DataRow row in dt.Rows)
-                list.Add(MapToSchoolYear(row));
+                foreach (DataRow row in dt.Rows)
+                    list.Add(MapToSchoolYear(row));
 
-            return list;
+                return list;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"❌ Lỗi khi lấy danh sách năm học: {ex.Message}", ex);
+            }
         }
 
         // ============================================================
@@ -51,7 +58,7 @@ namespace EducationManagement.DAL.Repositories
                 WHERE sy.school_year_id = @SchoolYearId AND sy.deleted_at IS NULL";
 
             var param = new SqlParameter("@SchoolYearId", schoolYearId);
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, query, param);
+            var dt = await DatabaseHelper.ExecuteRawQueryAsync(_connectionString, query, param);
 
             if (dt.Rows.Count == 0)
                 return null;
@@ -64,12 +71,54 @@ namespace EducationManagement.DAL.Repositories
         // ============================================================
         public async Task<SchoolYear?> GetCurrentAsync()
         {
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetCurrentSchoolYearAndSemester");
+            try
+            {
+                var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetCurrentSchoolYearAndSemester");
 
-            if (dt.Rows.Count == 0)
-                return null;
+                if (dt.Rows.Count == 0)
+                    return null;
 
-            return MapToSchoolYear(dt.Rows[0]);
+                return MapToSchoolYear(dt.Rows[0]);
+            }
+            catch (Exception ex)
+            {
+                // If stored procedure doesn't exist or fails, try alternative query
+                try
+                {
+                    var today = DateTime.Now.Date;
+                    var query = @"
+                        SELECT TOP 1 sy.*, ay.cohort_code, ay.year_name AS cohort_name
+                        FROM school_years sy
+                        LEFT JOIN academic_years ay ON sy.academic_year_id = ay.academic_year_id
+                        WHERE @Today BETWEEN sy.start_date AND sy.end_date
+                            AND sy.deleted_at IS NULL
+                        ORDER BY sy.is_active DESC, sy.created_at DESC";
+
+                    var param = new SqlParameter("@Today", today);
+                    var dt = await DatabaseHelper.ExecuteRawQueryAsync(_connectionString, query, param);
+
+                    if (dt.Rows.Count == 0)
+                        return null;
+
+                    var schoolYear = MapToSchoolYear(dt.Rows[0]);
+                    
+                    // Auto-detect current semester based on dates
+                    if (schoolYear.Semester1Start.HasValue && schoolYear.Semester1End.HasValue &&
+                        today >= schoolYear.Semester1Start.Value && today <= schoolYear.Semester1End.Value)
+                        schoolYear.CurrentSemester = 1;
+                    else if (schoolYear.Semester2Start.HasValue && schoolYear.Semester2End.HasValue &&
+                             today >= schoolYear.Semester2Start.Value && today <= schoolYear.Semester2End.Value)
+                        schoolYear.CurrentSemester = 2;
+                    else
+                        schoolYear.CurrentSemester = null;
+
+                    return schoolYear;
+                }
+                catch (Exception innerEx)
+                {
+                    throw new Exception($"❌ Lỗi khi lấy năm học hiện tại: {ex.Message}", innerEx);
+                }
+            }
         }
 
         // ============================================================
@@ -84,7 +133,7 @@ namespace EducationManagement.DAL.Repositories
                 WHERE sy.is_active = 1 AND sy.deleted_at IS NULL
                 ORDER BY sy.created_at DESC";
 
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, query);
+            var dt = await DatabaseHelper.ExecuteRawQueryAsync(_connectionString, query);
 
             if (dt.Rows.Count == 0)
                 return null;

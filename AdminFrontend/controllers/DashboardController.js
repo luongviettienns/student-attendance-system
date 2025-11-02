@@ -1,6 +1,6 @@
 // Dashboard Controller
-app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService', 'UserService', 'FacultyService', 'StudentService', 'SubjectService', 'LecturerService', 'MajorService', 'AcademicYearService', 'ApiService', 'ToastService', 'AuditLogService',
-    function($scope, $q, $timeout, AuthService, UserService, FacultyService, StudentService, SubjectService, LecturerService, MajorService, AcademicYearService, ApiService, ToastService, AuditLogService) {
+app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService', 'UserService', 'FacultyService', 'StudentService', 'SubjectService', 'LecturerService', 'MajorService', 'AcademicYearService', 'ApiService', 'ToastService', 'AuditLogService', 'LoggerService',
+    function($scope, $q, $timeout, AuthService, UserService, FacultyService, StudentService, SubjectService, LecturerService, MajorService, AcademicYearService, ApiService, ToastService, AuditLogService, LoggerService) {
     
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.stats = {
@@ -140,7 +140,7 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
                 }, 1000);
             })
             .catch(function(error) {
-                console.error('❌ Upload error:', error);
+                LoggerService.error('Avatar upload error', error);
                 
                 $scope.avatarModal.uploading = false;
                 
@@ -236,31 +236,31 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
         // Create promises for all API calls
         var promises = {
             users: UserService.getAll().catch(function(err) { 
-                console.error('Error loading users:', err);
+                LoggerService.error('Error loading users', err);
                 return {data: []};
             }),
             students: StudentService.getAll().catch(function(err) { 
-                console.error('Error loading students:', err);
+                LoggerService.error('Error loading students', err);
                 return {data: []};
             }),
             lecturers: LecturerService.getAll().catch(function(err) { 
-                console.error('Error loading lecturers:', err);
+                LoggerService.error('Error loading lecturers', err);
                 return {data: []};
             }),
             faculties: FacultyService.getAll().catch(function(err) { 
-                console.error('Error loading faculties:', err);
+                LoggerService.error('Error loading faculties', err);
                 return {data: []};
             }),
             majors: MajorService.getAll().catch(function(err) { 
-                console.error('Error loading majors:', err);
+                LoggerService.error('Error loading majors', err);
                 return {data: []};
             }),
             subjects: SubjectService.getAll().catch(function(err) { 
-                console.error('Error loading subjects:', err);
+                LoggerService.error('Error loading subjects', err);
                 return {data: []};
             }),
             academicYears: AcademicYearService.getAll().catch(function(err) { 
-                console.error('Error loading academic years:', err);
+                LoggerService.error('Error loading academic years', err);
                 return {data: []};
             })
         };
@@ -276,7 +276,7 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
             $scope.stats.totalAcademicYears = getCountFromResponse(results.academicYears);
             $scope.loading = false;
         }).catch(function(error) {
-            console.error('Error loading dashboard stats:', error);
+            LoggerService.error('Error loading dashboard stats', error);
             $scope.error = 'Không thể tải dữ liệu thống kê';
             $scope.loading = false;
         });
@@ -291,7 +291,7 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
                 $scope.applyAuditFilter();
             })
             .catch(function(err) {
-                console.error('Error loading audit logs:', err);
+                LoggerService.error('Error loading audit logs', err);
                 $scope.allAuditLogs = [];
                 $scope.recentAuditLogs = [];
             });

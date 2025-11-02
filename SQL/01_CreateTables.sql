@@ -134,8 +134,11 @@ GO
 CREATE TABLE dbo.academic_years (
     academic_year_id   VARCHAR(50) PRIMARY KEY,
     year_name          NVARCHAR(50) NOT NULL UNIQUE,
+    cohort_code        NVARCHAR(10) NULL,
     start_year         INT NOT NULL,
     end_year           INT NOT NULL,
+    duration_years     INT NOT NULL DEFAULT 4,
+    description        NVARCHAR(500) NULL,
     is_active          BIT NOT NULL DEFAULT 0,
     created_at         DATETIME NOT NULL DEFAULT(GETDATE()),
     created_by         VARCHAR(50) NULL,
@@ -143,6 +146,34 @@ CREATE TABLE dbo.academic_years (
     updated_by         VARCHAR(50) NULL,
     deleted_at         DATETIME NULL,
     deleted_by         VARCHAR(50) NULL
+);
+GO
+
+-- ===========================================
+-- 6A. BẢNG SCHOOL_YEARS (Năm học - 1 năm = 2 học kỳ)
+-- ===========================================
+IF OBJECT_ID('dbo.school_years', 'U') IS NOT NULL DROP TABLE dbo.school_years;
+GO
+
+CREATE TABLE dbo.school_years (
+    school_year_id    VARCHAR(50) PRIMARY KEY,
+    year_code         NVARCHAR(20) NOT NULL UNIQUE,
+    year_name         NVARCHAR(100) NOT NULL,
+    academic_year_id  VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.academic_years(academic_year_id),
+    start_date        DATE NOT NULL,
+    end_date          DATE NOT NULL,
+    semester1_start   DATE NULL,
+    semester1_end     DATE NULL,
+    semester2_start   DATE NULL,
+    semester2_end     DATE NULL,
+    is_active         BIT NOT NULL DEFAULT 0,
+    current_semester  INT NULL,
+    created_at        DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by        VARCHAR(50) NULL,
+    updated_at        DATETIME NULL,
+    updated_by        VARCHAR(50) NULL,
+    deleted_at        DATETIME NULL,
+    deleted_by        VARCHAR(50) NULL
 );
 GO
 
@@ -234,6 +265,7 @@ CREATE TABLE dbo.classes (
     subject_id       VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.subjects(subject_id),
     lecturer_id      VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.lecturers(lecturer_id),
     academic_year_id VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.academic_years(academic_year_id),
+    school_year_id   VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.school_years(school_year_id),
     semester         INT NULL,
     max_students     INT NULL,
     schedule         NVARCHAR(500) NULL,
@@ -868,4 +900,26 @@ PRINT '✓ enrollments (updated)';
 PRINT '✓ subject_prerequisites';
 PRINT '========================================';
 PRINT '';
+
+-- ===========================================
+-- ALTER TABLES: Add school_year_id to gpas
+-- ===========================================
+-- Add school_year_id column to gpas table if not exists
+IF NOT EXISTS (
+    SELECT * FROM sys.columns 
+    WHERE object_id = OBJECT_ID('dbo.gpas') 
+    AND name = 'school_year_id'
+)
+BEGIN
+    ALTER TABLE dbo.gpas 
+    ADD school_year_id VARCHAR(50) NULL 
+        FOREIGN KEY REFERENCES dbo.school_years(school_year_id);
+    
+    PRINT '✅ Added school_year_id to gpas table';
+END
+ELSE
+BEGIN
+    PRINT 'ℹ️  Column school_year_id already exists in gpas table';
+END
+GO
 

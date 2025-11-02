@@ -92,6 +92,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    letter-spacing: -0.01em;
 }
 
 /* ==============================================
@@ -209,6 +210,7 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    letter-spacing: -0.01em;
 }
 
 .btn:hover {
@@ -398,6 +400,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    letter-spacing: -0.01em;
 }
 
 .card-body {

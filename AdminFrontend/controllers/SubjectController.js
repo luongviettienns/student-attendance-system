@@ -1,6 +1,6 @@
 // Subject Controller
-app.controller('SubjectController', ['$scope', '$location', '$routeParams', 'SubjectService', 'DepartmentService',
-    function($scope, $location, $routeParams, SubjectService, DepartmentService) {
+app.controller('SubjectController', ['$scope', '$location', '$routeParams', '$timeout', 'SubjectService', 'DepartmentService',
+    function($scope, $location, $routeParams, $timeout, SubjectService, DepartmentService) {
     
     $scope.subjects = [];
     $scope.filteredSubjects = [];
@@ -85,9 +85,8 @@ app.controller('SubjectController', ['$scope', '$location', '$routeParams', 'Sub
             .then(function(response) {
                 $scope.success = 'Lưu môn học thành công';
                 $scope.loading = false;
-                setTimeout(function() {
+                $timeout(function() {
                     $location.path('/subjects');
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {

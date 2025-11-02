@@ -1,6 +1,6 @@
 // User Controller
-app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserService', 'AuthService',
-    function($scope, $location, $routeParams, UserService, AuthService) {
+app.controller('UserController', ['$scope', '$location', '$routeParams', '$timeout', 'UserService', 'AuthService',
+    function($scope, $location, $routeParams, $timeout, UserService, AuthService) {
     
     $scope.users = [];
     $scope.filteredUsers = [];
@@ -179,9 +179,8 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserSe
                 window.scrollTo(0, 0);
                 
                 // Redirect after 1.5 seconds
-                setTimeout(function() {
+                $timeout(function() {
                     $location.path('/users');
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {
@@ -216,9 +215,8 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserSe
         if (userId === $scope.currentUser.userId) {
             $scope.error = 'Bạn không thể xóa tài khoản của chính mình!';
             window.scrollTo(0, 0);
-            setTimeout(function() {
+            $timeout(function() {
                 $scope.error = null;
-                $scope.$apply();
             }, 3000);
             return;
         }
@@ -238,10 +236,9 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserSe
                 window.scrollTo(0, 0);
                 
                 // Reload users after 1 second
-                setTimeout(function() {
+                $timeout(function() {
                     $scope.loadUsers();
                     $scope.success = null;
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {
@@ -257,9 +254,8 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserSe
                 }
                 
                 // Auto hide error after 5 seconds
-                setTimeout(function() {
+                $timeout(function() {
                     $scope.error = null;
-                    $scope.$apply();
                 }, 5000);
             });
     };

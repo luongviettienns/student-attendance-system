@@ -88,6 +88,7 @@
     font-weight: 700;
     margin: 0 0 5px 0;
     color: #1e293b;
+    letter-spacing: -0.02em;
 }
 
 .stat-label {

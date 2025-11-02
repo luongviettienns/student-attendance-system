@@ -24,7 +24,7 @@ namespace EducationManagement.DAL.Repositories
             var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAllGrades");
 
             foreach (DataRow row in dt.Rows)
-                grades.Add(MapToGrade(row));
+                grades.Add(MapToGradeWithDetails(row));
 
             return grades;
         }
@@ -37,7 +37,7 @@ namespace EducationManagement.DAL.Repositories
             if (dt.Rows.Count == 0)
                 return null;
 
-            return MapToGrade(dt.Rows[0]);
+            return MapToGradeWithDetails(dt.Rows[0]);
         }
 
         public async Task<string> CreateAsync(string gradeId, string studentId, string classId,
@@ -97,7 +97,7 @@ namespace EducationManagement.DAL.Repositories
             var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetGradesByStudent", param);
 
             foreach (DataRow row in dt.Rows)
-                grades.Add(MapToGrade(row));
+                grades.Add(MapToGradeWithDetails(row));
 
             return grades;
         }
@@ -109,8 +109,36 @@ namespace EducationManagement.DAL.Repositories
             var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetGradesByClass", param);
 
             foreach (DataRow row in dt.Rows)
-                grades.Add(MapToGrade(row));
+            {
+                var grade = MapToGrade(row);
+                
+                // Add details from SP
+                grade.StudentId = row.Table.Columns.Contains("student_id") ? row["student_id"]?.ToString() : null;
+                grade.StudentCode = row.Table.Columns.Contains("student_code") ? row["student_code"]?.ToString() : null;
+                grade.StudentName = row.Table.Columns.Contains("student_name") ? row["student_name"]?.ToString() : null;
+                grade.ClassId = row.Table.Columns.Contains("class_id") ? row["class_id"]?.ToString() : null;
+                
+                grades.Add(grade);
+            }
 
+            return grades;
+        }
+
+        public async Task<List<Grade>> GetByStudentSchoolYearAsync(string studentId, string? schoolYearId = null, string? semester = null)
+        {
+            var grades = new List<Grade>();
+            var parameters = new List<SqlParameter>
+            {
+                new SqlParameter("@StudentId", studentId),
+                new SqlParameter("@SchoolYearId", (object?)schoolYearId ?? DBNull.Value),
+                new SqlParameter("@Semester", (object?)semester ?? DBNull.Value)
+            };
+            
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetGradesByStudentSchoolYear", parameters.ToArray());
+            
+            foreach (DataRow row in dt.Rows)
+                grades.Add(MapToGradeWithDetails(row));
+            
             return grades;
         }
 
@@ -119,17 +147,14 @@ namespace EducationManagement.DAL.Repositories
             return new Grade
             {
                 GradeId = row["grade_id"].ToString()!,
-                StudentId = row["student_id"].ToString()!,
-                ClassId = row["class_id"].ToString()!,
-                GradeType = row["grade_type"].ToString()!,
-                Score = row.Table.Columns.Contains("score") ? Convert.ToDecimal(row["score"]) : 0,
-                MaxScore = row.Table.Columns.Contains("max_score") ? Convert.ToDecimal(row["max_score"]) : 0,
-                Weight = row.Table.Columns.Contains("weight") ? Convert.ToDecimal(row["weight"]) : 0,
-                Notes = row.Table.Columns.Contains("notes") ? row["notes"]?.ToString() : null,
-                GradedBy = row.Table.Columns.Contains("graded_by") ? row["graded_by"]?.ToString() : null,
-                IsActive = row.Table.Columns.Contains("is_active") && row["is_active"] != DBNull.Value
-                    ? Convert.ToBoolean(row["is_active"])
-                    : true,
+                EnrollmentId = row.Table.Columns.Contains("enrollment_id") ? row["enrollment_id"].ToString()! : string.Empty,
+                MidtermScore = row.Table.Columns.Contains("midterm_score") && row["midterm_score"] != DBNull.Value 
+                    ? Convert.ToDecimal(row["midterm_score"]) : null,
+                FinalScore = row.Table.Columns.Contains("final_score") && row["final_score"] != DBNull.Value 
+                    ? Convert.ToDecimal(row["final_score"]) : null,
+                TotalScore = row.Table.Columns.Contains("total_score") && row["total_score"] != DBNull.Value 
+                    ? Convert.ToDecimal(row["total_score"]) : null,
+                LetterGrade = row.Table.Columns.Contains("letter_grade") ? row["letter_grade"]?.ToString() : null,
                 CreatedAt = row.Table.Columns.Contains("created_at") && row["created_at"] != DBNull.Value 
                     ? Convert.ToDateTime(row["created_at"]) 
                     : DateTime.Now,
@@ -137,12 +162,29 @@ namespace EducationManagement.DAL.Repositories
                 UpdatedAt = row.Table.Columns.Contains("updated_at") && row["updated_at"] != DBNull.Value 
                     ? Convert.ToDateTime(row["updated_at"]) 
                     : (DateTime?)null,
-                UpdatedBy = row.Table.Columns.Contains("updated_by") ? row["updated_by"]?.ToString() : null,
-                DeletedAt = row.Table.Columns.Contains("deleted_at") && row["deleted_at"] != DBNull.Value
-                    ? Convert.ToDateTime(row["deleted_at"])
-                    : null,
-                DeletedBy = row.Table.Columns.Contains("deleted_by") ? row["deleted_by"]?.ToString() : null
+                UpdatedBy = row.Table.Columns.Contains("updated_by") ? row["updated_by"]?.ToString() : null
             };
+        }
+
+        private static Grade MapToGradeWithDetails(DataRow row)
+        {
+            var grade = MapToGrade(row);
+            
+            // Map additional NotMapped properties from SP
+            grade.StudentId = row.Table.Columns.Contains("student_id") ? row["student_id"]?.ToString() : null;
+            grade.StudentCode = row.Table.Columns.Contains("student_code") ? row["student_code"]?.ToString() : null;
+            grade.StudentName = row.Table.Columns.Contains("student_name") ? row["student_name"]?.ToString() : null;
+            grade.ClassId = row.Table.Columns.Contains("class_id") ? row["class_id"]?.ToString() : null;
+            grade.ClassName = row.Table.Columns.Contains("class_name") ? row["class_name"]?.ToString() : null;
+            grade.ClassCode = row.Table.Columns.Contains("class_code") ? row["class_code"]?.ToString() : null;
+            grade.SchoolYearId = row.Table.Columns.Contains("school_year_id") ? row["school_year_id"]?.ToString() : null;
+            grade.SchoolYearCode = row.Table.Columns.Contains("school_year_code") ? row["school_year_code"]?.ToString() : null;
+            grade.Semester = row.Table.Columns.Contains("semester") ? row["semester"]?.ToString() : null;
+            grade.SubjectName = row.Table.Columns.Contains("subject_name") ? row["subject_name"]?.ToString() : null;
+            grade.Credits = row.Table.Columns.Contains("credits") && row["credits"] != DBNull.Value 
+                ? Convert.ToInt32(row["credits"]) : null;
+            
+            return grade;
         }
     }
 }

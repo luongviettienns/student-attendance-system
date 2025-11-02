@@ -10,39 +10,6 @@ app.constant('API_CONFIG', {
     // ✅ Gateway sẽ proxy đến Admin API
 });
 
-// HTTP Interceptor để tự động thêm Authorization token vào mọi request
-app.config(['$httpProvider', function($httpProvider) {
-    $httpProvider.interceptors.push(['$window', '$q', '$location', function($window, $q, $location) {
-        return {
-            request: function(config) {
-                // Lấy token từ localStorage hoặc sessionStorage
-                var token = $window.localStorage.getItem('auth_token') || 
-                           $window.sessionStorage.getItem('auth_token');
-                
-                // Nếu có token, thêm vào header
-                if (token) {
-                    config.headers.Authorization = 'Bearer ' + token;
-                }
-                
-                return config;
-            },
-            
-            responseError: function(rejection) {
-                // Nếu lỗi 401 (Unauthorized), redirect về login
-                if (rejection.status === 401) {
-                    $window.localStorage.removeItem('auth_token');
-                    $window.localStorage.removeItem('user_info');
-                    $window.sessionStorage.removeItem('auth_token');
-                    $window.sessionStorage.removeItem('user_info');
-                    $location.path('/login');
-                }
-                
-                return $q.reject(rejection);
-            }
-        };
-    }]);
-}]);
-
 // Route Configuration
 app.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
     // Đảm bảo sử dụng hashbang kiểu #! để điều hướng đúng
@@ -250,10 +217,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
 }]);
 
 // Run block - Check authentication and add global logout
-app.run(['$rootScope', '$location', 'AuthService', function($rootScope, $location, AuthService) {
+app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', function($rootScope, $location, AuthService, LoggerService) {
     // Global logout function available in all views
     $rootScope.logout = function() {
-        console.log('Logging out...');
+        LoggerService.log('Logging out...');
         AuthService.logout();
         $location.path('/login');
     };
