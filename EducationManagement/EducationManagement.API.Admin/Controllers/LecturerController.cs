@@ -32,6 +32,19 @@ namespace EducationManagement.API.Admin.Controllers
             return Ok(lecturer);
         }
 
+        [HttpGet("by-user-id/{userId}")]
+        public async Task<IActionResult> GetByUserId(string userId)
+        {
+            if (string.IsNullOrWhiteSpace(userId))
+                return BadRequest(new { message = "User ID không được để trống" });
+
+            var lecturer = await _service.GetByUserIdAsync(userId);
+            if (lecturer == null)
+                return NotFound(new { message = "Không tìm thấy giảng viên" });
+
+            return Ok(new { data = lecturer });
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] Lecturer model)
         {

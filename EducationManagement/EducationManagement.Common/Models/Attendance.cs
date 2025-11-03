@@ -12,11 +12,19 @@ namespace EducationManagement.Common.Models
         public string AttendanceId { get; set; } = string.Empty;
 
         [Required]
-        [Column("student_id")]
+        [Column("enrollment_id")]
         [MaxLength(50)]
-        public string StudentId { get; set; } = string.Empty;
+        public string EnrollmentId { get; set; } = string.Empty;
 
-        // 🔹 Thêm để map kết quả SP (s.student_code, s.full_name)
+        [Required]
+        [Column("class_id")]
+        [MaxLength(50)]
+        public string ClassId { get; set; } = string.Empty;
+
+        // 🔹 Map thông tin bổ sung từ các SP
+        [NotMapped]
+        public string? StudentId { get; set; }
+
         [NotMapped]
         public string? StudentCode { get; set; }
 
@@ -24,39 +32,17 @@ namespace EducationManagement.Common.Models
         public string? StudentName { get; set; }
 
         [Required]
-        [Column("schedule_id")]
-        [MaxLength(50)]
-        public string ScheduleId { get; set; } = string.Empty;
-
-        // 🔹 Thêm để map kết quả SP (sch.start_time, sch.room, c.class_name)
-        [NotMapped]
-        public DateTime? ScheduleStartTime { get; set; }
-
-        [NotMapped]
-        public string? Room { get; set; }
-
-        [NotMapped]
-        public string? ClassName { get; set; }
-
         [Column("attendance_date")]
         public DateTime AttendanceDate { get; set; } = DateTime.Now;
 
         [Required]
         [Column("status")]
         [MaxLength(20)]
-        public string Status { get; set; } = "Present"; // Present, Absent, Late, Excused
+        public string Status { get; set; } = "PRESENT"; // PRESENT, ABSENT, LATE, EXCUSED
 
-        [Column("notes")]
+        [Column("note")]
         [MaxLength(500)]
-        public string? Notes { get; set; }
-
-        [Column("marked_by")]
-        [MaxLength(50)]
-        public string? MarkedBy { get; set; }
-
-        // 🔹 Thêm để map kết quả SP (u.full_name)
-        [NotMapped]
-        public string? MarkedByName { get; set; }
+        public string? Note { get; set; }
 
         // ==================================================
         // 🔹 Audit fields
@@ -84,5 +70,27 @@ namespace EducationManagement.Common.Models
         [Column("deleted_by")]
         [MaxLength(50)]
         public string? DeletedBy { get; set; }
+
+        // 🔹 Thông tin bổ sung (map từ view / SP)
+        [NotMapped]
+        public string? ClassName { get; set; }
+
+        [NotMapped]
+        public string? SubjectName { get; set; }
+
+        [NotMapped]
+        public DateTime? ScheduleStartTime { get; set; }
+
+        [NotMapped]
+        public string? ScheduleId { get; set; }
+
+        [NotMapped]
+        public string? Room { get; set; }
+
+        [NotMapped]
+        public string? MarkedBy { get; set; }
+
+        [NotMapped]
+        public string? MarkedByName { get; set; }
     }
 }

@@ -70,6 +70,8 @@ namespace EducationManagement.DAL.Repositories
             {
                 EnrollmentId = row["enrollment_id"].ToString()!,
                 StudentId = row["student_id"].ToString()!,
+                StudentCode = row.Table.Columns.Contains("student_code") ? row["student_code"]?.ToString() : null,
+                StudentName = row.Table.Columns.Contains("student_name") ? row["student_name"]?.ToString() : null,
                 ClassId = row["class_id"].ToString()!,
                 EnrollmentDate = Convert.ToDateTime(row["enrollment_date"]),
                 Status = row["status"]?.ToString() ?? "Active",

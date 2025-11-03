@@ -2,6 +2,7 @@ using EducationManagement.Common.Models;
 using EducationManagement.DAL.Repositories;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace EducationManagement.BLL.Services
@@ -37,31 +38,32 @@ namespace EducationManagement.BLL.Services
         /// <summary>
         /// Tạo attendance record mới
         /// </summary>
-        public async Task<string> CreateAttendanceAsync(string attendanceId, string studentId, string scheduleId,
-            DateTime attendanceDate, string status, string? notes, string? markedBy, string createdBy)
+        public async Task<string> CreateAttendanceAsync(string attendanceId, string enrollmentId, string classId,
+            DateTime attendanceDate, string status, string? note, string? scheduleId, string createdBy)
         {
-            if (string.IsNullOrWhiteSpace(studentId))
-                throw new ArgumentException("Student ID không được để trống");
+            if (string.IsNullOrWhiteSpace(enrollmentId))
+                throw new ArgumentException("Enrollment ID không được để trống");
 
-            if (string.IsNullOrWhiteSpace(scheduleId))
-                throw new ArgumentException("Schedule ID không được để trống");
+            if (string.IsNullOrWhiteSpace(classId))
+                throw new ArgumentException("Class ID không được để trống");
 
             if (string.IsNullOrWhiteSpace(status))
                 throw new ArgumentException("Status không được để trống");
 
-            // Validate status
-            var validStatuses = new[] { "Present", "Absent", "Late", "Excused" };
-            if (!Array.Exists(validStatuses, s => s.Equals(status, StringComparison.OrdinalIgnoreCase)))
-                throw new ArgumentException($"Status phải là một trong: {string.Join(", ", validStatuses)}");
+            // Validate: Không cho phép điểm danh ngày tương lai
+            if (attendanceDate.Date > DateTime.Now.Date)
+                throw new ArgumentException("Không thể điểm danh cho ngày tương lai");
 
-            return await _attendanceRepository.CreateAsync(attendanceId, studentId, scheduleId,
-                attendanceDate, status, notes, markedBy, createdBy);
+            var normalizedStatus = NormalizeStatus(status);
+
+            return await _attendanceRepository.CreateAsync(attendanceId, enrollmentId, classId,
+                attendanceDate, normalizedStatus, note, scheduleId, createdBy);
         }
 
         /// <summary>
         /// Cập nhật attendance
         /// </summary>
-        public async Task UpdateAttendanceAsync(string attendanceId, string status, string? notes, string updatedBy)
+        public async Task UpdateAttendanceAsync(string attendanceId, string status, string? note, string updatedBy)
         {
             if (string.IsNullOrWhiteSpace(attendanceId))
                 throw new ArgumentException("Attendance ID không được để trống");
@@ -69,12 +71,9 @@ namespace EducationManagement.BLL.Services
             if (string.IsNullOrWhiteSpace(status))
                 throw new ArgumentException("Status không được để trống");
 
-            // Validate status
-            var validStatuses = new[] { "Present", "Absent", "Late", "Excused" };
-            if (!Array.Exists(validStatuses, s => s.Equals(status, StringComparison.OrdinalIgnoreCase)))
-                throw new ArgumentException($"Status phải là một trong: {string.Join(", ", validStatuses)}");
+            var normalizedStatus = NormalizeStatus(status);
 
-            await _attendanceRepository.UpdateAsync(attendanceId, status, notes, updatedBy);
+            await _attendanceRepository.UpdateAsync(attendanceId, normalizedStatus, note, updatedBy);
         }
 
         /// <summary>
@@ -113,12 +112,22 @@ namespace EducationManagement.BLL.Services
         /// <summary>
         /// Lấy attendances theo class ID
         /// </summary>
-        public async Task<List<Attendance>> GetAttendancesByClassAsync(string classId)
+        public async Task<List<Attendance>> GetAttendancesByClassAsync(string classId, DateTime? attendanceDate = null)
         {
             if (string.IsNullOrWhiteSpace(classId))
                 throw new ArgumentException("Class ID không được để trống");
 
-            return await _attendanceRepository.GetByClassIdAsync(classId);
+            return await _attendanceRepository.GetByClassIdAsync(classId, attendanceDate);
+        }
+
+        private static readonly string[] ValidStatuses = { "PRESENT", "ABSENT", "LATE", "EXCUSED" };
+
+        private static string NormalizeStatus(string status)
+        {
+            var normalized = status.Trim().ToUpperInvariant();
+            if (!ValidStatuses.Contains(normalized))
+                throw new ArgumentException($"Status phải là một trong: {string.Join(", ", ValidStatuses)}");
+            return normalized;
         }
     }
 }

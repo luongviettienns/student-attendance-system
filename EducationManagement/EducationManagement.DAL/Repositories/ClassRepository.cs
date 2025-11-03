@@ -176,9 +176,15 @@ namespace EducationManagement.DAL.Repositories
                 ClassCode = row["class_code"].ToString()!,
                 ClassName = row["class_name"].ToString()!,
                 SubjectId = row["subject_id"].ToString()!,
+                SubjectName = row.Table.Columns.Contains("subject_name") ? row["subject_name"]?.ToString() : null,
+                Credits = row.Table.Columns.Contains("credits") && row["credits"] != DBNull.Value
+                    ? Convert.ToInt32(row["credits"])
+                    : null,
                 LecturerId = row["lecturer_id"].ToString()!,
+                LecturerName = row.Table.Columns.Contains("lecturer_name") ? row["lecturer_name"]?.ToString() : null,
                 Semester = row["semester"].ToString()!,
                 AcademicYearId = row["academic_year_id"].ToString()!,
+                YearCode = row.Table.Columns.Contains("year_code") ? row["year_code"]?.ToString() : null,
                 MaxStudents = row.Table.Columns.Contains("max_students") ? Convert.ToInt32(row["max_students"]) : 0,
                 IsActive = row.Table.Columns.Contains("is_active") && row["is_active"] != DBNull.Value
                     ? Convert.ToBoolean(row["is_active"])
