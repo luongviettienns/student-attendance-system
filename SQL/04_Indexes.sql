@@ -503,6 +503,68 @@ END
 ELSE
     PRINT '   ⏭️  Skipped: IX_RefreshTokens_ExpiresAt (already exists)';
 
+-- =============================================
+-- 13. TIMETABLE_SESSIONS INDEXES (NEW!)
+-- =============================================
+PRINT '';
+PRINT '📊 Creating Timetable Sessions indexes...';
+
+-- Index cho lookup by class_id
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TimetableSessions_ClassId')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_TimetableSessions_ClassId
+    ON dbo.timetable_sessions(class_id, weekday, start_time)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_TimetableSessions_ClassId';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_TimetableSessions_ClassId (already exists)';
+
+-- Index cho lookup by lecturer_id
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TimetableSessions_LecturerId')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_TimetableSessions_LecturerId
+    ON dbo.timetable_sessions(lecturer_id, weekday, start_time)
+    WHERE deleted_at IS NULL AND lecturer_id IS NOT NULL;
+    PRINT '   ✅ Created: IX_TimetableSessions_LecturerId';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_TimetableSessions_LecturerId (already exists)';
+
+-- Index cho lookup by room_id
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TimetableSessions_RoomId')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_TimetableSessions_RoomId
+    ON dbo.timetable_sessions(room_id, weekday, start_time)
+    WHERE deleted_at IS NULL AND room_id IS NOT NULL;
+    PRINT '   ✅ Created: IX_TimetableSessions_RoomId';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_TimetableSessions_RoomId (already exists)';
+
+-- Index cho lookup by school_year_id and week_no
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TimetableSessions_SchoolYear_Week')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_TimetableSessions_SchoolYear_Week
+    ON dbo.timetable_sessions(school_year_id, week_no, weekday, start_time)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_TimetableSessions_SchoolYear_Week';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_TimetableSessions_SchoolYear_Week (already exists)';
+
+-- Index cho conflict checking (weekday + time range)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TimetableSessions_ConflictCheck')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_TimetableSessions_ConflictCheck
+    ON dbo.timetable_sessions(weekday, start_time, end_time, school_year_id, week_no)
+    INCLUDE (class_id, lecturer_id, room_id)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_TimetableSessions_ConflictCheck';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_TimetableSessions_ConflictCheck (already exists)';
+
 PRINT '';
 PRINT '========================================';
 PRINT '✅ HOÀN THÀNH TẠO INDEXES!';

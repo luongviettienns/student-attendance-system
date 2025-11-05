@@ -6642,13 +6642,6 @@ BEGIN
 END
 GO
 
-PRINT '🔄 Bắt đầu tạo Stored Procedures...';
-GO
-
--- ===========================================
--- 1. USERS MANAGEMENT
--- ===========================================
-
 IF OBJECT_ID('sp_GetAllUsers', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllUsers;
 GO
 CREATE PROCEDURE sp_GetAllUsers
