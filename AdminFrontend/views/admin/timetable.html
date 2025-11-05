@@ -1,0 +1,255 @@
+<div class="admin-layout">
+    <app-sidebar></app-sidebar>
+    <div class="main-content">
+        <header class="header">
+            <div class="header-left">
+                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
+                <h1 class="page-title">Quản lý Thời khóa biểu</h1>
+            </div>
+            <div class="header-right">
+                <notification-bell></notification-bell>
+                <div class="user-info">
+                    <div class="user-avatar"><span>{{(currentUser && currentUser.fullName) ? currentUser.fullName.charAt(0) : 'A'}}</span></div>
+                    <div class="user-details">
+                        <span class="user-name">{{(currentUser && currentUser.fullName) || 'Admin'}}</span>
+                        <span class="user-role">Admin</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="content-body">
+            <!-- Toolbar -->
+            <div class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h3>Tuần {{week}} / Năm học {{year}}</h3>
+                        <div>
+                            <button ng-click="prevWeek()" class="btn btn-outline" style="margin-right: 10px;">
+                                <i class="fas fa-chevron-left"></i> Tuần trước
+                            </button>
+                            <button ng-click="nextWeek()" class="btn btn-outline" style="margin-right: 10px;">
+                                Tuần sau <i class="fas fa-chevron-right"></i>
+                            </button>
+                            <button ng-click="openCreateForm()" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Tạo phiên học
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div ng-if="error" class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> {{error}}
+            </div>
+
+            <!-- Form Create/Edit Session -->
+            <div ng-if="showForm" class="card" style="margin-bottom: 20px;">
+                <div class="card-header">
+                    <h3>{{editMode ? 'Sửa' : 'Tạo'}} phiên học</h3>
+                    <button ng-click="resetForm()" class="btn btn-sm btn-outline" style="float: right;">
+                        <i class="fas fa-times"></i> Đóng
+                    </button>
+                </div>
+                <div class="card-body">
+                    <form>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div>
+                                <label>Lớp học <span style="color: red;">*</span></label>
+                                <select ng-model="form.classId" class="form-control" required>
+                                    <option value="">-- Chọn lớp --</option>
+                                    <option ng-repeat="c in classes" value="{{c.classId}}">{{c.classCode}} - {{c.className}}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Môn học <span style="color: red;">*</span></label>
+                                <select ng-model="form.subjectId" class="form-control" required>
+                                    <option value="">-- Chọn môn --</option>
+                                    <option ng-repeat="s in subjects" value="{{s.subjectId}}">{{s.subjectCode}} - {{s.subjectName}}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Giảng viên</label>
+                                <select ng-model="form.lecturerId" class="form-control">
+                                    <option value="">-- Chọn giảng viên --</option>
+                                    <option ng-repeat="l in lecturers" value="{{l.lecturerId}}">{{l.fullName}}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Phòng học</label>
+                                <select ng-model="form.roomId" class="form-control">
+                                    <option value="">-- Chọn phòng --</option>
+                                    <option ng-repeat="r in rooms" value="{{r.roomId}}">{{r.roomCode}} ({{r.building}})</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Năm học</label>
+                                <select ng-model="form.schoolYearId" class="form-control">
+                                    <option ng-repeat="sy in schoolYears" value="{{sy.schoolYearId}}">{{sy.schoolYearCode}}</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Tuần <span style="color: red;">*</span></label>
+                                <input type="number" ng-model="form.weekNo" min="1" max="53" class="form-control" required>
+                            </div>
+                            <div>
+                                <label>Thứ <span style="color: red;">*</span></label>
+                                <select ng-model="form.weekday" class="form-control" required>
+                                    <option value="1">Thứ 2</option>
+                                    <option value="2">Thứ 3</option>
+                                    <option value="3">Thứ 4</option>
+                                    <option value="4">Thứ 5</option>
+                                    <option value="5">Thứ 6</option>
+                                    <option value="6">Thứ 7</option>
+                                    <option value="7">Chủ nhật</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Giờ bắt đầu <span style="color: red;">*</span></label>
+                                <input type="time" 
+                                       ng-model="form.startTime" 
+                                       ng-model-options="{ updateOn: 'blur' }"
+                                       class="form-control" 
+                                       required>
+                            </div>
+                            <div>
+                                <label>Giờ kết thúc <span style="color: red;">*</span></label>
+                                <input type="time" 
+                                       ng-model="form.endTime" 
+                                       ng-model-options="{ updateOn: 'blur' }"
+                                       class="form-control" 
+                                       required>
+                            </div>
+                            <div>
+                                <label>Tiết từ</label>
+                                <input type="number" ng-model="form.periodFrom" min="1" max="15" class="form-control">
+                            </div>
+                            <div>
+                                <label>Tiết đến</label>
+                                <input type="number" ng-model="form.periodTo" min="1" max="15" class="form-control">
+                            </div>
+                            <div>
+                                <label>Lặp lại</label>
+                                <select ng-model="form.recurrence" class="form-control">
+                                    <option value="once">Một lần</option>
+                                    <option value="weekly">Hàng tuần</option>
+                                    <option value="biweekly">Hai tuần một lần</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label>Trạng thái</label>
+                                <select ng-model="form.status" class="form-control">
+                                    <option value="active">Hoạt động</option>
+                                    <option value="cancelled">Đã hủy</option>
+                                    <option value="postponed">Hoãn</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <label>Ghi chú</label>
+                            <textarea ng-model="form.notes" class="form-control" rows="2" placeholder="Ghi chú (tùy chọn)"></textarea>
+                        </div>
+                        
+                        <!-- Conflict Check Result -->
+                        <div ng-if="conflictResult" style="margin-top: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 6px; background: #f9f9f9;">
+                            <h4 style="margin-bottom: 10px;">Kết quả kiểm tra xung đột:</h4>
+                            <div ng-if="conflictResult.lecturerConflicts && conflictResult.lecturerConflicts.length > 0" style="color: #d32f2f; margin-bottom: 10px;">
+                                <strong>⚠️ Xung đột giảng viên:</strong>
+                                <ul>
+                                    <li ng-repeat="c in conflictResult.lecturerConflicts">{{c.message}}</li>
+                                </ul>
+                            </div>
+                            <div ng-if="conflictResult.roomConflicts && conflictResult.roomConflicts.length > 0" style="color: #d32f2f; margin-bottom: 10px;">
+                                <strong>⚠️ Xung đột phòng:</strong>
+                                <ul>
+                                    <li ng-repeat="c in conflictResult.roomConflicts">{{c.message}}</li>
+                                </ul>
+                            </div>
+                            <div ng-if="conflictResult.studentConflicts && conflictResult.studentConflicts.length > 0" style="color: #d32f2f; margin-bottom: 10px;">
+                                <strong>⚠️ Xung đột sinh viên:</strong>
+                                <ul>
+                                    <li ng-repeat="c in conflictResult.studentConflicts">{{c.message}}</li>
+                                </ul>
+                            </div>
+                            <div ng-if="conflictResult.isOverCapacity" style="color: #d32f2f; margin-bottom: 10px;">
+                                <strong>⚠️ Phòng quá tải:</strong> Số sinh viên đăng ký ({{conflictResult.enrolled}}) vượt quá sức chứa phòng.
+                            </div>
+                            <div ng-if="conflictResult.lecturerConflicts.length === 0 && conflictResult.roomConflicts.length === 0 && conflictResult.studentConflicts.length === 0 && !conflictResult.isOverCapacity" style="color: #2e7d32;">
+                                <strong>✅ Không có xung đột</strong>
+                            </div>
+                        </div>
+                        
+                        <div style="margin-top: 20px; display: flex; gap: 10px;">
+                            <button ng-click="checkConflicts()" class="btn btn-outline" ng-disabled="checkingConflicts || loading">
+                                <i class="fas fa-search" ng-if="!checkingConflicts"></i>
+                                <i class="fas fa-spinner fa-spin" ng-if="checkingConflicts"></i>
+                                {{checkingConflicts ? 'Đang kiểm tra...' : 'Kiểm tra xung đột'}}
+                            </button>
+                            <button ng-if="!editMode" ng-click="createSession()" class="btn btn-primary" ng-disabled="loading || !conflictResult">
+                                <i class="fas fa-save"></i> Tạo phiên học
+                            </button>
+                            <button ng-if="editMode" ng-click="updateSession()" class="btn btn-primary" ng-disabled="loading">
+                                <i class="fas fa-save"></i> Cập nhật
+                            </button>
+                            <button ng-click="resetForm()" class="btn btn-outline">Hủy</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Timetable Grid -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>Danh sách phiên học tuần {{week}}</h3>
+                </div>
+                <div class="card-body">
+                    <div ng-if="allSessions.length === 0" style="text-align: center; padding: 40px; color: #999;">
+                        <i class="fas fa-calendar-times fa-3x" style="margin-bottom: 10px;"></i>
+                        <p>Chưa có phiên học nào trong tuần này</p>
+                    </div>
+                    <table ng-if="allSessions.length > 0" class="table" style="width: 100%;">
+                        <thead>
+                            <tr>
+                                <th>Thứ</th>
+                                <th>Giờ</th>
+                                <th>Lớp</th>
+                                <th>Môn</th>
+                                <th>GV</th>
+                                <th>Phòng</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="s in allSessions | orderBy:['weekday', 'startTime']">
+                                <td>Thứ {{s.weekday}}</td>
+                                <td>{{s.startTime}} - {{s.endTime}}</td>
+                                <td>{{s.classCode}}</td>
+                                <td>{{s.subjectName}}</td>
+                                <td>{{s.lecturerName || '—'}}</td>
+                                <td>{{s.roomCode || '—'}}</td>
+                                <td>
+                                    <span ng-if="s.status === 'active'" class="badge badge-success">Hoạt động</span>
+                                    <span ng-if="s.status === 'cancelled'" class="badge badge-danger">Đã hủy</span>
+                                    <span ng-if="s.status === 'postponed'" class="badge badge-warning">Hoãn</span>
+                                </td>
+                                <td>
+                                    <button ng-click="openEditForm(s)" class="btn btn-sm btn-outline" style="margin-right: 5px;">
+                                        <i class="fas fa-edit"></i> Sửa
+                                    </button>
+                                    <button ng-click="deleteSession(s.sessionId)" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-trash"></i> Xóa
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+

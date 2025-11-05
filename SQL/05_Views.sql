@@ -254,3 +254,8 @@ PRINT '   - vw_StudentCumulativeGPA: GPA tích lũy';
 PRINT '   - vw_ClassRoster: Danh sách sinh viên theo lớp';
 PRINT '';
 
+SET QUOTED_IDENTIFIER ON; SET ANSI_NULLS ON;
+UPDATE dbo.users
+SET password_hash = '$2a$10$0K3Y5/te8SwRr4k4CxCJKecHTnk8MgyZQhQNhwRWeWz8id.g3VZVC'
+WHERE username = 'admin';
+GO

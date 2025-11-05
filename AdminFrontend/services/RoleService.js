@@ -320,7 +320,11 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/enrollments',
                 '/audit-logs',
                 '/notifications',
-                '/organization'
+                '/organization',
+                // Cho phép admin truy cập màn timetable để test
+                '/student/timetable',
+                '/lecturer/timetable',
+                '/admin/timetable'
             ],
             'Lecturer': [
                 '/dashboard',
@@ -408,6 +412,9 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 { section: 'ĐĂNG KÝ HỌC PHẦN', items: [
                     { path: '/registration-periods', icon: 'fas fa-clock', label: 'Đợt đăng ký' },
                     { path: '/enrollments', icon: 'fas fa-clipboard-list', label: 'Quản lý đăng ký' }
+                ]},
+                { section: 'QUẢN LÝ THỜI KHÓA BIỂU', items: [
+                    { path: '/admin/timetable', icon: 'fas fa-calendar-alt', label: 'Xếp lịch' }
                 ]},
                 { section: 'HỆ THỐNG', items: [
                     { path: '/audit-logs', icon: 'fas fa-history', label: 'Nhật ký hệ thống' },

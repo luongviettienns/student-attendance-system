@@ -114,24 +114,52 @@ GO
 PRINT '📅 Seeding Academic Years (Cohorts - 4 years each)...';
 
 -- Use stored procedure to auto-create cohorts
-BEGIN TRY
-    -- K21: 2021-2025
-    EXEC sp_AutoCreateCohort @StartYear = 2021, @DurationYears = 4, @CreatedBy = 'system';
-    
-    -- K22: 2022-2026
-    EXEC sp_AutoCreateCohort @StartYear = 2022, @DurationYears = 4, @CreatedBy = 'system';
-    
-    -- K23: 2023-2027
-    EXEC sp_AutoCreateCohort @StartYear = 2023, @DurationYears = 4, @CreatedBy = 'system';
-    
-    -- K24: 2024-2028
-    EXEC sp_AutoCreateCohort @StartYear = 2024, @DurationYears = 4, @CreatedBy = 'system';
-    
-    PRINT '   ✅ 4 cohorts created (K21, K22, K23, K24) with 16 school years total';
-END TRY
-BEGIN CATCH
-    PRINT '   ⚠️  Cohorts may already exist: ' + ERROR_MESSAGE();
-END CATCH
+-- Prefer using SP if exists; otherwise fallback to inline creation
+IF OBJECT_ID('sp_AutoCreateCohort','P') IS NOT NULL
+BEGIN
+    BEGIN TRY
+        EXEC sp_AutoCreateCohort @StartYear = 2021, @DurationYears = 4, @CreatedBy = 'system';
+        EXEC sp_AutoCreateCohort @StartYear = 2022, @DurationYears = 4, @CreatedBy = 'system';
+        EXEC sp_AutoCreateCohort @StartYear = 2023, @DurationYears = 4, @CreatedBy = 'system';
+        EXEC sp_AutoCreateCohort @StartYear = 2024, @DurationYears = 4, @CreatedBy = 'system';
+        PRINT '   ✅ 4 cohorts created (K21..K24) via sp_AutoCreateCohort';
+    END TRY
+    BEGIN CATCH
+        PRINT '   ⚠️  Cohorts may already exist (SP): ' + ERROR_MESSAGE();
+    END CATCH
+END
+ELSE
+BEGIN
+    PRINT '   ℹ️  sp_AutoCreateCohort not found, using inline creation...';
+    DECLARE @y INT = 2021;
+    WHILE @y <= 2024
+    BEGIN
+        DECLARE @ayId VARCHAR(50) = CONCAT('AY', @y);
+        IF NOT EXISTS (SELECT 1 FROM dbo.academic_years WHERE academic_year_id=@ayId)
+        BEGIN
+            INSERT INTO dbo.academic_years (academic_year_id, year_name, start_year, end_year, duration_years, is_active, created_at, created_by)
+            VALUES (@ayId, CONCAT(@y,'-',@y+1), @y, @y+1, 4, CASE WHEN @y=2021 THEN 1 ELSE 0 END, GETDATE(), 'system');
+        END
+        DECLARE @syId VARCHAR(50) = CONCAT('SY', @y);
+        IF NOT EXISTS (SELECT 1 FROM dbo.school_years WHERE school_year_id=@syId)
+        BEGIN
+            INSERT INTO dbo.school_years (
+                school_year_id, year_code, year_name, academic_year_id,
+                start_date, end_date,
+                semester1_start, semester1_end,
+                semester2_start, semester2_end,
+                is_active, current_semester, created_at)
+            VALUES (
+                @syId, CONCAT('SY', @y), CONCAT(@y,'-',@y+1,' - HK1/HK2'), @ayId,
+                DATEFROMPARTS(@y, 9, 1), DATEFROMPARTS(@y+1, 8, 31),
+                DATEFROMPARTS(@y, 9, 1), DATEFROMPARTS(@y, 12, 31),
+                DATEFROMPARTS(@y+1, 1, 1), DATEFROMPARTS(@y+1, 5, 31),
+                CASE WHEN @y=2021 THEN 1 ELSE 0 END, 1, GETDATE()
+            );
+        END
+        SET @y += 1;
+    END
+END
 GO
 
 -- Activate current school year (2024-2025 or nearest future school year)
