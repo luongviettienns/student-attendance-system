@@ -1,12 +1,12 @@
--- ===========================================
--- 🎓 HỆ THỐNG QUẢN LÝ ĐIỂM DANH SINH VIÊN
--- 📋 File 2/4: STORED PROCEDURES (ĐẦY ĐỦ)
+﻿-- ===========================================
+-- đŸ“ Há»† THá»NG QUáº¢N LĂ ÄIá»‚M DANH SINH VIĂN
+-- đŸ“‹ File 2/4: STORED PROCEDURES (Äáº¦Y Äá»¦)
 -- ===========================================
 
 USE EducationManagement;
 GO
 
-PRINT '🔄 Bắt đầu tạo Stored Procedures...';
+PRINT 'đŸ”„ Báº¯t Ä‘áº§u táº¡o Stored Procedures...';
 GO
 
 -- ===========================================
@@ -101,21 +101,21 @@ BEGIN
         -- Validation: Check duplicate username
         IF EXISTS (SELECT 1 FROM users WHERE username = @Username AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'Username đã tồn tại: %s', 16, 1, @Username);
+            RAISERROR(N'Username Ä‘Ă£ tá»“n táº¡i: %s', 16, 1, @Username);
             RETURN;
         END
         
         -- Validation: Check duplicate email
         IF EXISTS (SELECT 1 FROM users WHERE email = @Email AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'Email đã tồn tại: %s', 16, 1, @Email);
+            RAISERROR(N'Email Ä‘Ă£ tá»“n táº¡i: %s', 16, 1, @Email);
             RETURN;
         END
         
         -- Validation: Check role exists
         IF NOT EXISTS (SELECT 1 FROM roles WHERE role_id = @RoleId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'Role không tồn tại: %s', 16, 1, @RoleId);
+            RAISERROR(N'Role khĂ´ng tá»“n táº¡i: %s', 16, 1, @RoleId);
             RETURN;
         END
         
@@ -162,21 +162,21 @@ BEGIN
         -- Validation: Check user exists
         IF NOT EXISTS (SELECT 1 FROM users WHERE user_id = @UserId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'User không tồn tại: %s', 16, 1, @UserId);
+            RAISERROR(N'User khĂ´ng tá»“n táº¡i: %s', 16, 1, @UserId);
             RETURN;
         END
         
         -- Validation: Check duplicate email (except current user)
         IF EXISTS (SELECT 1 FROM users WHERE email = @Email AND user_id != @UserId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'Email đã được sử dụng bởi user khác: %s', 16, 1, @Email);
+            RAISERROR(N'Email Ä‘Ă£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi user khĂ¡c: %s', 16, 1, @Email);
             RETURN;
         END
         
         -- Validation: Check role exists
         IF NOT EXISTS (SELECT 1 FROM roles WHERE role_id = @RoleId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'Role không tồn tại: %s', 16, 1, @RoleId);
+            RAISERROR(N'Role khĂ´ng tá»“n táº¡i: %s', 16, 1, @RoleId);
             RETURN;
         END
         
@@ -228,7 +228,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Users Management SPs created';
+PRINT 'âœ… Users Management SPs created';
 GO
 
 -- ===========================================
@@ -306,7 +306,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Faculties Management SPs created';
+PRINT 'âœ… Faculties Management SPs created';
 GO
 
 -- ===========================================
@@ -391,7 +391,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Departments Management SPs created';
+PRINT 'âœ… Departments Management SPs created';
 GO
 
 -- ===========================================
@@ -484,7 +484,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Majors Management SPs created';
+PRINT 'âœ… Majors Management SPs created';
 GO
 
 -- ===========================================
@@ -561,7 +561,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Academic Years Management SPs created';
+PRINT 'âœ… Academic Years Management SPs created';
 GO
 
 -- ===========================================
@@ -689,7 +689,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Students Management SPs created';
+PRINT 'âœ… Students Management SPs created';
 GO
 
 -- ===========================================
@@ -776,7 +776,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Lecturers Management SPs created';
+PRINT 'âœ… Lecturers Management SPs created';
 GO
 
 -- ===========================================
@@ -862,7 +862,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Subjects Management SPs created';
+PRINT 'âœ… Subjects Management SPs created';
 GO
 
 -- ===========================================
@@ -962,7 +962,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Classes Management SPs created';
+PRINT 'âœ… Classes Management SPs created';
 GO
 
 -- ===========================================
@@ -989,7 +989,7 @@ CREATE PROCEDURE sp_CreateEnrollment
     @EnrollmentId VARCHAR(50),
     @StudentId VARCHAR(50),
     @ClassId VARCHAR(50),
-    @Status NVARCHAR(50) = N'Đang học',
+    @Status NVARCHAR(50) = N'Äang há»c',
     @CreatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
@@ -1012,7 +1012,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Enrollments Management SPs created';
+PRINT 'âœ… Enrollments Management SPs created';
 GO
 
 -- ===========================================
@@ -1070,7 +1070,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Attendances Management SPs created';
+PRINT 'âœ… Attendances Management SPs created';
 GO
 
 -- ===========================================
@@ -1305,7 +1305,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Grades Management SPs created';
+PRINT 'âœ… Grades Management SPs created';
 GO
 
 -- ===========================================
@@ -1335,7 +1335,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Roles Management SPs created';
+PRINT 'âœ… Roles Management SPs created';
 GO
 
 -- ===========================================
@@ -1366,7 +1366,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Notifications Management SPs created';
+PRINT 'âœ… Notifications Management SPs created';
 GO
 
 -- ===========================================
@@ -1389,7 +1389,7 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.audit_logs al
     LEFT JOIN dbo.users u ON al.user_id = u.user_id
@@ -1403,7 +1403,7 @@ BEGIN
         AND (@FromDate IS NULL OR al.created_at >= @FromDate)
         AND (@ToDate IS NULL OR al.created_at <= @ToDate);
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT 
         al.log_id,
         al.user_id,
@@ -1553,7 +1553,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Audit Logs Management SPs created';
+PRINT 'âœ… Audit Logs Management SPs created';
 GO
 
 -- ===========================================
@@ -1584,7 +1584,7 @@ GO
 CREATE PROCEDURE sp_CalculateGPA
     @StudentId VARCHAR(50),
     @AcademicYearId VARCHAR(50),
-    @Semester INT = NULL, -- NULL = cả năm, 1/2/3 = học kỳ cụ thể
+    @Semester INT = NULL, -- NULL = cáº£ nÄƒm, 1/2/3 = há»c ká»³ cá»¥ thá»ƒ
     @CreatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
@@ -1597,7 +1597,7 @@ BEGIN
     DECLARE @AccumulatedCredits INT;
     DECLARE @RankText NVARCHAR(50);
     
-    -- Tính điểm trung bình và tổng tín chỉ
+    -- TĂ­nh Ä‘iá»ƒm trung bĂ¬nh vĂ  tá»•ng tĂ­n chá»‰
     SELECT 
         @Gpa10 = ROUND(SUM(g.total_score * sub.credits) / NULLIF(SUM(sub.credits), 0), 2),
         @TotalCredits = SUM(sub.credits),
@@ -1614,7 +1614,7 @@ BEGIN
         AND s.deleted_at IS NULL
         AND e.deleted_at IS NULL;
     
-    -- Tính GPA hệ 4
+    -- TĂ­nh GPA há»‡ 4
     SELECT 
         @Gpa4 = ROUND(
             SUM(
@@ -1643,22 +1643,22 @@ BEGIN
         AND s.deleted_at IS NULL
         AND e.deleted_at IS NULL;
     
-    -- Xếp loại
+    -- Xáº¿p loáº¡i
     SET @RankText = CASE 
-        WHEN @Gpa10 >= 8.5 THEN N'Xuất sắc'
-        WHEN @Gpa10 >= 7.0 THEN N'Giỏi'
-        WHEN @Gpa10 >= 5.5 THEN N'Khá'
-        WHEN @Gpa10 >= 4.0 THEN N'Trung bình'
-        ELSE N'Yếu'
+        WHEN @Gpa10 >= 8.5 THEN N'Xuáº¥t sáº¯c'
+        WHEN @Gpa10 >= 7.0 THEN N'Giá»i'
+        WHEN @Gpa10 >= 5.5 THEN N'KhĂ¡'
+        WHEN @Gpa10 >= 4.0 THEN N'Trung bĂ¬nh'
+        ELSE N'Yáº¿u'
     END;
     
-    -- Xóa GPA cũ nếu có (để cập nhật)
+    -- XĂ³a GPA cÅ© náº¿u cĂ³ (Ä‘á»ƒ cáº­p nháº­t)
     DELETE FROM dbo.gpas 
     WHERE student_id = @StudentId 
         AND academic_year_id = @AcademicYearId 
         AND ((@Semester IS NULL AND semester IS NULL) OR semester = @Semester);
     
-    -- Chèn GPA mới
+    -- ChĂ¨n GPA má»›i
     INSERT INTO dbo.gpas (
         gpa_id, student_id, academic_year_id, semester,
         gpa10, gpa4, total_credits, accumulated_credits, rank_text,
@@ -1670,7 +1670,7 @@ BEGIN
         GETDATE(), @CreatedBy
     );
     
-    -- Trả về kết quả
+    -- Tráº£ vá» káº¿t quáº£
     SELECT 
         @GpaId as gpa_id,
         @StudentId as student_id,
@@ -1802,11 +1802,11 @@ BEGIN
     
     -- Determine rank
     SET @RankText = CASE
-        WHEN @Gpa10 >= 9.0 THEN N'Xuất sắc'
-        WHEN @Gpa10 >= 8.0 THEN N'Giỏi'
-        WHEN @Gpa10 >= 7.0 THEN N'Khá'
-        WHEN @Gpa10 >= 5.5 THEN N'Trung bình'
-        ELSE N'Yếu'
+        WHEN @Gpa10 >= 9.0 THEN N'Xuáº¥t sáº¯c'
+        WHEN @Gpa10 >= 8.0 THEN N'Giá»i'
+        WHEN @Gpa10 >= 7.0 THEN N'KhĂ¡'
+        WHEN @Gpa10 >= 5.5 THEN N'Trung bĂ¬nh'
+        ELSE N'Yáº¿u'
     END;
     
     -- Convert semester string to int (1, 2, or NULL)
@@ -1846,7 +1846,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ GPAs Management SPs created';
+PRINT 'âœ… GPAs Management SPs created';
 GO
 
 -- ===========================================
@@ -1864,14 +1864,14 @@ BEGIN
     BEGIN TRANSACTION;
     
     BEGIN TRY
-        -- 1. Kiểm tra năm học mới có tồn tại không
+        -- 1. Kiá»ƒm tra nÄƒm há»c má»›i cĂ³ tá»“n táº¡i khĂ´ng
         IF NOT EXISTS (SELECT 1 FROM dbo.academic_years WHERE academic_year_id = @NewAcademicYearId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'❌ Năm học mới không tồn tại hoặc đã bị xóa!', 16, 1);
+            RAISERROR(N'âŒ NÄƒm há»c má»›i khĂ´ng tá»“n táº¡i hoáº·c Ä‘Ă£ bá»‹ xĂ³a!', 16, 1);
             RETURN;
         END
         
-        -- 2. Lấy năm học hiện tại (đang active)
+        -- 2. Láº¥y nÄƒm há»c hiá»‡n táº¡i (Ä‘ang active)
         DECLARE @OldAcademicYearId VARCHAR(50);
         SELECT TOP 1 @OldAcademicYearId = academic_year_id
         FROM dbo.academic_years
@@ -1879,13 +1879,13 @@ BEGIN
         
         IF @OldAcademicYearId IS NOT NULL
         BEGIN
-            -- 3. Tính GPA cho tất cả sinh viên của năm học cũ
+            -- 3. TĂ­nh GPA cho táº¥t cáº£ sinh viĂªn cá»§a nÄƒm há»c cÅ©
             EXEC sp_CalculateAllStudentGPA 
                 @AcademicYearId = @OldAcademicYearId,
-                @Semester = NULL, -- Tính GPA cả năm
+                @Semester = NULL, -- TĂ­nh GPA cáº£ nÄƒm
                 @CreatedBy = @ExecutedBy;
             
-            -- 4. Đóng năm học cũ
+            -- 4. ÄĂ³ng nÄƒm há»c cÅ©
             UPDATE dbo.academic_years 
             SET is_active = 0, 
                 updated_at = GETDATE(), 
@@ -1893,7 +1893,7 @@ BEGIN
             WHERE academic_year_id = @OldAcademicYearId;
         END
         
-        -- 5. Kích hoạt năm học mới
+        -- 5. KĂ­ch hoáº¡t nÄƒm há»c má»›i
         UPDATE dbo.academic_years 
         SET is_active = 1, 
             updated_at = GETDATE(), 
@@ -1922,7 +1922,7 @@ BEGIN
             @OldAcademicYearId as OldAcademicYearId,
             @NewAcademicYearId as NewAcademicYearId,
             GETDATE() as TransitionDate,
-            N'✅ Chuyển năm học thành công!' as Message;
+            N'âœ… Chuyá»ƒn nÄƒm há»c thĂ nh cĂ´ng!' as Message;
             
     END TRY
     BEGIN CATCH
@@ -1951,41 +1951,41 @@ BEGIN
 END
 GO
 
-PRINT '✅ Academic Year Transition SPs created';
+PRINT 'âœ… Academic Year Transition SPs created';
 GO
 
 PRINT '';
-PRINT '🎉 HOÀN THÀNH TẠO STORED PROCEDURES!';
-PRINT '✅ Đã tạo tổng cộng 90+ stored procedures';
-PRINT '✅ Tất cả SPs đều có DROP trước khi CREATE';
+PRINT 'đŸ‰ HOĂ€N THĂ€NH Táº O STORED PROCEDURES!';
+PRINT 'âœ… ÄĂ£ táº¡o tá»•ng cá»™ng 90+ stored procedures';
+PRINT 'âœ… Táº¥t cáº£ SPs Ä‘á»u cĂ³ DROP trÆ°á»›c khi CREATE';
 PRINT '';
 
 -- ===========================================
--- ⚡ PAGINATION UPDATE (CHẠY RIÊNG PHẦN NÀY)
+-- â¡ PAGINATION UPDATE (CHáº Y RIĂNG PHáº¦N NĂ€Y)
 -- ===========================================
--- 📌 CHÚ Ý: Nếu bạn đã chạy stored procedures trước đó,
---           chỉ cần chạy RIÊNG phần từ đây đến hết file
+-- đŸ“Œ CHĂ Ă: Náº¿u báº¡n Ä‘Ă£ cháº¡y stored procedures trÆ°á»›c Ä‘Ă³,
+--           chá»‰ cáº§n cháº¡y RIĂNG pháº§n tá»« Ä‘Ă¢y Ä‘áº¿n háº¿t file
 -- 
--- ✅ Cách chạy:
---    1. Bôi đen từ dòng "BEGIN PAGINATION UPDATE" 
---       đến dòng "END PAGINATION UPDATE"
---    2. Nhấn F5 hoặc Execute
+-- âœ… CĂ¡ch cháº¡y:
+--    1. BĂ´i Ä‘en tá»« dĂ²ng "BEGIN PAGINATION UPDATE" 
+--       Ä‘áº¿n dĂ²ng "END PAGINATION UPDATE"
+--    2. Nháº¥n F5 hoáº·c Execute
 -- 
--- ⏱️  Thời gian: ~5 giây
--- 📊 Sẽ update: 8 stored procedures với pagination
+-- â±ï¸  Thá»i gian: ~5 giĂ¢y
+-- đŸ“ Sáº½ update: 8 stored procedures vá»›i pagination
 -- ===========================================
 
 PRINT '';
-PRINT '⚡ BẮT ĐẦU UPDATE PAGINATION...';
+PRINT 'â¡ Báº®T Äáº¦U UPDATE PAGINATION...';
 PRINT '================================';
 GO
 
 -- ========================================
--- BEGIN PAGINATION UPDATE - BẮT ĐẦU TỪ ĐÂY
+-- BEGIN PAGINATION UPDATE - Báº®T Äáº¦U Tá»ª ÄĂ‚Y
 -- ========================================
 
 -- ===========================================
--- 1. UPDATE: sp_GetAllFaculties (THÊM PAGINATION)
+-- 1. UPDATE: sp_GetAllFaculties (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllFaculties', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllFaculties;
 GO
@@ -1998,14 +1998,14 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.faculties
     WHERE deleted_at IS NULL
         AND (@Search IS NULL OR faculty_code LIKE '%' + @Search + '%' 
              OR faculty_name LIKE '%' + @Search + '%');
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT faculty_id, faculty_code, faculty_name, description, 
            is_active, created_at, created_by, updated_at, updated_by
     FROM dbo.faculties
@@ -2016,11 +2016,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllFaculties (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllFaculties (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 2. UPDATE: sp_GetAllDepartments (THÊM PAGINATION)
+-- 2. UPDATE: sp_GetAllDepartments (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllDepartments', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllDepartments;
 GO
@@ -2034,7 +2034,7 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.departments d
     LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
@@ -2043,7 +2043,7 @@ BEGIN
              OR d.department_name LIKE '%' + @Search + '%')
         AND (@FacultyId IS NULL OR d.faculty_id = @FacultyId);
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT d.*, f.faculty_name, f.faculty_code
     FROM dbo.departments d
     LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
@@ -2055,11 +2055,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllDepartments (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllDepartments (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 3. UPDATE: sp_GetAllMajors (THÊM PAGINATION)
+-- 3. UPDATE: sp_GetAllMajors (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllMajors', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllMajors;
 GO
@@ -2073,7 +2073,7 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.majors m
     LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
@@ -2082,7 +2082,7 @@ BEGIN
              OR m.major_code LIKE '%' + @Search + '%')
         AND (@FacultyId IS NULL OR m.faculty_id = @FacultyId);
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT m.*, f.faculty_name, f.faculty_code
     FROM dbo.majors m
     LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
@@ -2094,11 +2094,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllMajors (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllMajors (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 4. UPDATE: sp_GetAllAcademicYears (THÊM PAGINATION)
+-- 4. UPDATE: sp_GetAllAcademicYears (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllAcademicYears', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllAcademicYears;
 GO
@@ -2111,13 +2111,13 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.academic_years
     WHERE deleted_at IS NULL
         AND (@Search IS NULL OR year_name LIKE '%' + @Search + '%');
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT *
     FROM dbo.academic_years
     WHERE deleted_at IS NULL
@@ -2126,11 +2126,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllAcademicYears (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllAcademicYears (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 5. UPDATE: sp_GetAllLecturers (THÊM PAGINATION)
+-- 5. UPDATE: sp_GetAllLecturers (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllLecturers', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllLecturers;
 GO
@@ -2144,7 +2144,7 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.lecturers l
     LEFT JOIN dbo.departments d ON l.department_id = d.department_id
@@ -2154,7 +2154,7 @@ BEGIN
              OR l.full_name LIKE '%' + @Search + '%')
         AND (@DepartmentId IS NULL OR l.department_id = @DepartmentId);
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT l.*, d.department_name, f.faculty_name
     FROM dbo.lecturers l
     LEFT JOIN dbo.departments d ON l.department_id = d.department_id
@@ -2167,11 +2167,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllLecturers (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllLecturers (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 6. UPDATE: sp_GetAllSubjects (THÊM PAGINATION)
+-- 6. UPDATE: sp_GetAllSubjects (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllSubjects', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllSubjects;
 GO
@@ -2185,7 +2185,7 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.subjects s
     LEFT JOIN dbo.departments d ON s.department_id = d.department_id
@@ -2195,7 +2195,7 @@ BEGIN
              OR s.subject_name LIKE '%' + @Search + '%')
         AND (@DepartmentId IS NULL OR s.department_id = @DepartmentId);
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT s.*, d.department_name, f.faculty_name
     FROM dbo.subjects s
     LEFT JOIN dbo.departments d ON s.department_id = d.department_id
@@ -2208,11 +2208,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllSubjects (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllSubjects (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 7. UPDATE: sp_GetAllClasses (THÊM PAGINATION)
+-- 7. UPDATE: sp_GetAllClasses (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllClasses', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllClasses;
 GO
@@ -2228,7 +2228,7 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.classes c
     LEFT JOIN dbo.subjects s ON c.subject_id = s.subject_id
@@ -2241,7 +2241,7 @@ BEGIN
         AND (@LecturerId IS NULL OR c.lecturer_id = @LecturerId)
         AND (@AcademicYearId IS NULL OR c.academic_year_id = @AcademicYearId);
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT c.*, s.subject_name, l.full_name as lecturer_name, ay.year_name
     FROM dbo.classes c
     LEFT JOIN dbo.subjects s ON c.subject_id = s.subject_id
@@ -2257,11 +2257,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllClasses (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllClasses (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 8. UPDATE: sp_GetAllRoles (THÊM PAGINATION)
+-- 8. UPDATE: sp_GetAllRoles (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllRoles', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllRoles;
 GO
@@ -2274,13 +2274,13 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.roles
     WHERE deleted_at IS NULL
         AND (@Search IS NULL OR role_name LIKE '%' + @Search + '%');
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT role_id, role_name, description, is_active, created_at
     FROM dbo.roles
     WHERE deleted_at IS NULL
@@ -2289,23 +2289,23 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllRoles (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllRoles (vá»›i pagination)';
 GO
 
 -- ========================================
--- END PAGINATION UPDATE - KẾT THÚC Ở ĐÂY
+-- END PAGINATION UPDATE - Káº¾T THĂC á» ÄĂ‚Y
 -- ========================================
 
 PRINT '';
 PRINT '================================';
-PRINT '🎉 HOÀN THÀNH UPDATE PAGINATION!';
+PRINT 'đŸ‰ HOĂ€N THĂ€NH UPDATE PAGINATION!';
 PRINT '';
 
 -- ===========================================
 -- PERMISSIONS MANAGEMENT STORED PROCEDURES
 -- ===========================================
 PRINT '';
-PRINT '🔐 Bắt đầu tạo Stored Procedures cho PERMISSIONS...';
+PRINT 'đŸ” Báº¯t Ä‘áº§u táº¡o Stored Procedures cho PERMISSIONS...';
 PRINT '';
 
 -- SP 1: Get All Permissions
@@ -2329,7 +2329,7 @@ BEGIN
     ORDER BY permission_code;
 END
 GO
-PRINT '✅ Tạo sp_GetAllPermissions';
+PRINT 'âœ… Táº¡o sp_GetAllPermissions';
 
 -- SP 2: Get Permissions by Role
 IF OBJECT_ID('sp_GetPermissionsByRole', 'P') IS NOT NULL DROP PROCEDURE sp_GetPermissionsByRole;
@@ -2353,7 +2353,7 @@ BEGIN
     ORDER BY p.permission_code;
 END
 GO
-PRINT '✅ Tạo sp_GetPermissionsByRole';
+PRINT 'âœ… Táº¡o sp_GetPermissionsByRole';
 
 -- SP 2.5: Get Permissions by Role Name (for Menu API)
 IF OBJECT_ID('sp_GetPermissionsByRoleName', 'P') IS NOT NULL DROP PROCEDURE sp_GetPermissionsByRoleName;
@@ -2382,7 +2382,7 @@ BEGIN
     ORDER BY p.permission_code;
 END
 GO
-PRINT '✅ Tạo sp_GetPermissionsByRoleName';
+PRINT 'âœ… Táº¡o sp_GetPermissionsByRoleName';
 
 -- SP 3: Get Permission IDs by Role
 IF OBJECT_ID('sp_GetPermissionIdsByRole', 'P') IS NOT NULL DROP PROCEDURE sp_GetPermissionIdsByRole;
@@ -2398,7 +2398,7 @@ BEGIN
     WHERE role_id = @RoleId;
 END
 GO
-PRINT '✅ Tạo sp_GetPermissionIdsByRole';
+PRINT 'âœ… Táº¡o sp_GetPermissionIdsByRole';
 
 -- SP 4: Assign Permission to Role
 IF OBJECT_ID('sp_AssignPermissionToRole', 'P') IS NOT NULL DROP PROCEDURE sp_AssignPermissionToRole;
@@ -2421,7 +2421,7 @@ BEGIN
     END
 END
 GO
-PRINT '✅ Tạo sp_AssignPermissionToRole';
+PRINT 'âœ… Táº¡o sp_AssignPermissionToRole';
 
 -- SP 5: Remove Permission from Role
 IF OBJECT_ID('sp_RemovePermissionFromRole', 'P') IS NOT NULL DROP PROCEDURE sp_RemovePermissionFromRole;
@@ -2437,7 +2437,7 @@ BEGIN
     WHERE role_id = @RoleId AND permission_id = @PermissionId;
 END
 GO
-PRINT '✅ Tạo sp_RemovePermissionFromRole';
+PRINT 'âœ… Táº¡o sp_RemovePermissionFromRole';
 
 -- SP 6: Delete All Permissions by Role
 IF OBJECT_ID('sp_DeleteAllPermissionsByRole', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteAllPermissionsByRole;
@@ -2454,7 +2454,7 @@ BEGIN
     SELECT @@ROWCOUNT AS DeletedCount;
 END
 GO
-PRINT '✅ Tạo sp_DeleteAllPermissionsByRole';
+PRINT 'âœ… Táº¡o sp_DeleteAllPermissionsByRole';
 
 -- SP 7: Get User Permissions
 IF OBJECT_ID('sp_GetUserPermissions', 'P') IS NOT NULL DROP PROCEDURE sp_GetUserPermissions;
@@ -2482,7 +2482,7 @@ BEGIN
     ORDER BY p.permission_code;
 END
 GO
-PRINT '✅ Tạo sp_GetUserPermissions';
+PRINT 'âœ… Táº¡o sp_GetUserPermissions';
 
 -- SP 8: Check User Permission
 IF OBJECT_ID('sp_CheckUserPermission', 'P') IS NOT NULL DROP PROCEDURE sp_CheckUserPermission;
@@ -2512,7 +2512,7 @@ BEGIN
         SELECT 0 AS HasPermission;
 END
 GO
-PRINT '✅ Tạo sp_CheckUserPermission';
+PRINT 'âœ… Táº¡o sp_CheckUserPermission';
 
 -- SP 9: Get Roles with Permission Count
 IF OBJECT_ID('sp_GetRolesWithPermissionCount', 'P') IS NOT NULL DROP PROCEDURE sp_GetRolesWithPermissionCount;
@@ -2543,10 +2543,10 @@ BEGIN
     ORDER BY r.role_name;
 END
 GO
-PRINT '✅ Tạo sp_GetRolesWithPermissionCount';
+PRINT 'âœ… Táº¡o sp_GetRolesWithPermissionCount';
 
 -- ===========================================
--- 🔹 FUNCTION: Sinh mã Department Code tự động
+-- đŸ”¹ FUNCTION: Sinh mĂ£ Department Code tá»± Ä‘á»™ng
 -- ===========================================
 IF OBJECT_ID('fn_GenerateNextDepartmentCode', 'FN') IS NOT NULL
     DROP FUNCTION fn_GenerateNextDepartmentCode;
@@ -2559,7 +2559,7 @@ BEGIN
     DECLARE @NextNumber INT;
     DECLARE @NextCode VARCHAR(20);
     
-    -- Lấy số lớn nhất hiện tại từ các mã có format DEPT###
+    -- Láº¥y sá»‘ lá»›n nháº¥t hiá»‡n táº¡i tá»« cĂ¡c mĂ£ cĂ³ format DEPT###
     SELECT @NextNumber = ISNULL(MAX(
         CASE 
             WHEN department_code LIKE 'DEPT[0-9][0-9][0-9]'
@@ -2576,14 +2576,14 @@ BEGIN
     RETURN @NextCode;
 END
 GO
-PRINT '✅ Created: fn_GenerateNextDepartmentCode';
+PRINT 'âœ… Created: fn_GenerateNextDepartmentCode';
 GO
 
 -- ===========================================
 -- 16. REFRESH TOKENS MANAGEMENT
 -- ===========================================
 PRINT '';
-PRINT '🔐 Bắt đầu tạo Stored Procedures cho REFRESH TOKENS...';
+PRINT 'đŸ” Báº¯t Ä‘áº§u táº¡o Stored Procedures cho REFRESH TOKENS...';
 PRINT '';
 
 -- SP 1: Save Refresh Token
@@ -2604,7 +2604,7 @@ BEGIN
         -- Check if user exists
         IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE user_id = @UserId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'User không tồn tại: %s', 16, 1, @UserId);
+            RAISERROR(N'User khĂ´ng tá»“n táº¡i: %s', 16, 1, @UserId);
             RETURN;
         END
         
@@ -2627,7 +2627,7 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '✅ Tạo sp_SaveRefreshToken';
+PRINT 'âœ… Táº¡o sp_SaveRefreshToken';
 GO
 
 -- SP 2: Get Refresh Token by Token String
@@ -2657,7 +2657,7 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '✅ Tạo sp_GetRefreshTokenByToken';
+PRINT 'âœ… Táº¡o sp_GetRefreshTokenByToken';
 GO
 
 -- SP 3: Revoke Refresh Token
@@ -2680,7 +2680,7 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '✅ Tạo sp_RevokeRefreshToken';
+PRINT 'âœ… Táº¡o sp_RevokeRefreshToken';
 GO
 
 -- SP 4: Clean Expired Tokens (Maintenance Job)
@@ -2705,7 +2705,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        PRINT CONCAT('✅ Cleaned ', @DeletedCount, ' expired/revoked refresh tokens');
+        PRINT CONCAT('âœ… Cleaned ', @DeletedCount, ' expired/revoked refresh tokens');
         SELECT @DeletedCount AS DeletedCount;
         
     END TRY
@@ -2718,7 +2718,7 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '✅ Tạo sp_CleanExpiredRefreshTokens';
+PRINT 'âœ… Táº¡o sp_CleanExpiredRefreshTokens';
 GO
 
 -- SP 5: Revoke All User Tokens (Logout from all devices)
@@ -2753,24 +2753,24 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '✅ Tạo sp_RevokeAllUserTokens';
+PRINT 'âœ… Táº¡o sp_RevokeAllUserTokens';
 GO
 
-PRINT '✅ Refresh Tokens Management SPs created (5 procedures)';
+PRINT 'âœ… Refresh Tokens Management SPs created (5 procedures)';
 GO
 
 -- ===========================================
 -- 17. BATCH IMPORT STUDENTS
 -- ===========================================
 PRINT '';
-PRINT '🚀 Bắt đầu tạo Batch Import Stored Procedures...';
+PRINT 'đŸ€ Báº¯t Ä‘áº§u táº¡o Batch Import Stored Procedures...';
 PRINT '';
 
 -- Create TYPE for Student Table Parameter
 IF EXISTS (SELECT * FROM sys.types WHERE name = 'StudentImportType' AND is_table_type = 1)
 BEGIN
     DROP TYPE StudentImportType;
-    PRINT '🗑️  Dropped existing type: StudentImportType';
+    PRINT 'đŸ—‘ï¸  Dropped existing type: StudentImportType';
 END
 GO
 
@@ -2786,7 +2786,7 @@ CREATE TYPE StudentImportType AS TABLE (
     AcademicYearId VARCHAR(50) NULL
 );
 GO
-PRINT '✅ Created type: StudentImportType';
+PRINT 'âœ… Created type: StudentImportType';
 GO
 
 -- BATCH IMPORT STORED PROCEDURE
@@ -2845,7 +2845,7 @@ BEGIN
                 IF EXISTS (SELECT 1 FROM students WHERE student_code = @StudentCode AND deleted_at IS NULL)
                 BEGIN
                     INSERT INTO @Errors (RowNumber, StudentCode, ErrorMessage)
-                    VALUES (@RowNumber, @StudentCode, N'Mã sinh viên đã tồn tại');
+                    VALUES (@RowNumber, @StudentCode, N'MĂ£ sinh viĂªn Ä‘Ă£ tá»“n táº¡i');
                     
                     SET @ErrorCount = @ErrorCount + 1;
                 END
@@ -2853,7 +2853,7 @@ BEGIN
                 ELSE IF EXISTS (SELECT 1 FROM students WHERE email = @Email AND deleted_at IS NULL)
                 BEGIN
                     INSERT INTO @Errors (RowNumber, StudentCode, ErrorMessage)
-                    VALUES (@RowNumber, @StudentCode, N'Email đã tồn tại: ' + @Email);
+                    VALUES (@RowNumber, @StudentCode, N'Email Ä‘Ă£ tá»“n táº¡i: ' + @Email);
                     
                     SET @ErrorCount = @ErrorCount + 1;
                 END
@@ -2861,7 +2861,7 @@ BEGIN
                 ELSE IF NOT EXISTS (SELECT 1 FROM majors WHERE major_id = @MajorId AND deleted_at IS NULL)
                 BEGIN
                     INSERT INTO @Errors (RowNumber, StudentCode, ErrorMessage)
-                    VALUES (@RowNumber, @StudentCode, N'Ngành không tồn tại: ' + @MajorId);
+                    VALUES (@RowNumber, @StudentCode, N'NgĂ nh khĂ´ng tá»“n táº¡i: ' + @MajorId);
                     
                     SET @ErrorCount = @ErrorCount + 1;
                 END
@@ -2938,16 +2938,16 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '✅ Created procedure: sp_ImportStudentsBatch';
+PRINT 'âœ… Created procedure: sp_ImportStudentsBatch';
 GO
 
-PRINT '✅ Batch Import Students SPs created (1 procedure + 1 type)';
+PRINT 'âœ… Batch Import Students SPs created (1 procedure + 1 type)';
 GO
 
 PRINT '';
 PRINT '================================';
-PRINT '🎉 HOÀN THÀNH TẠO STORED PROCEDURES!';
-PRINT '✅ Đã tạo:';
+PRINT 'đŸ‰ HOĂ€N THĂ€NH Táº O STORED PROCEDURES!';
+PRINT 'âœ… ÄĂ£ táº¡o:';
 PRINT '   - 90+ Core Management SPs';
 PRINT '   - 9 Permission SPs';
 PRINT '   - 5 Refresh Token SPs';
@@ -3117,7 +3117,7 @@ BEGIN
         
         IF @@ROWCOUNT = 0
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
         END
         
     END TRY
@@ -3161,13 +3161,13 @@ BEGIN
         -- Validate: Check duplicate class code
         IF EXISTS (SELECT 1 FROM administrative_classes WHERE class_code = @ClassCode AND deleted_at IS NULL)
         BEGIN
-            THROW 50003, N'Mã lớp đã tồn tại', 1;
+            THROW 50003, N'MĂ£ lá»›p Ä‘Ă£ tá»“n táº¡i', 1;
         END
         
         -- Validate: Check major exists
         IF NOT EXISTS (SELECT 1 FROM majors WHERE major_id = @MajorId AND is_active = 1 AND deleted_at IS NULL)
         BEGIN
-            THROW 50004, N'Ngành học không tồn tại', 1;
+            THROW 50004, N'NgĂ nh há»c khĂ´ng tá»“n táº¡i', 1;
         END
         
         -- Validate: Check advisor exists (if provided)
@@ -3175,7 +3175,7 @@ BEGIN
         BEGIN
             IF NOT EXISTS (SELECT 1 FROM lecturers WHERE lecturer_id = @AdvisorId AND is_active = 1 AND deleted_at IS NULL)
             BEGIN
-                THROW 50005, N'Giảng viên chủ nhiệm không tồn tại', 1;
+                THROW 50005, N'Giáº£ng viĂªn chá»§ nhiá»‡m khĂ´ng tá»“n táº¡i', 1;
             END
         END
         
@@ -3184,7 +3184,7 @@ BEGIN
         BEGIN
             IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = @AcademicYearId AND deleted_at IS NULL)
             BEGIN
-                THROW 50006, N'Năm học không tồn tại', 1;
+                THROW 50006, N'NÄƒm há»c khĂ´ng tá»“n táº¡i', 1;
             END
         END
         
@@ -3269,7 +3269,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
         END
         
         -- Validate: Check duplicate class code (if changing)
@@ -3282,7 +3282,7 @@ BEGIN
                 AND deleted_at IS NULL
             )
             BEGIN
-                THROW 50003, N'Mã lớp đã tồn tại', 1;
+                THROW 50003, N'MĂ£ lá»›p Ä‘Ă£ tá»“n táº¡i', 1;
             END
         END
         
@@ -3296,7 +3296,7 @@ BEGIN
             
             IF @MaxStudents < @CurrentStudents
             BEGIN
-                THROW 50007, N'Sĩ số tối đa không được nhỏ hơn sĩ số hiện tại', 1;
+                THROW 50007, N'SÄ© sá»‘ tá»‘i Ä‘a khĂ´ng Ä‘Æ°á»£c nhá» hÆ¡n sÄ© sá»‘ hiá»‡n táº¡i', 1;
             END
         END
         
@@ -3356,7 +3356,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
         END
         
         -- Check if class has students
@@ -3367,7 +3367,7 @@ BEGIN
         
         IF @StudentCount > 0
         BEGIN
-            THROW 50008, N'Không thể xóa lớp đang có sinh viên', 1;
+            THROW 50008, N'KhĂ´ng thá»ƒ xĂ³a lá»›p Ä‘ang cĂ³ sinh viĂªn', 1;
         END
         
         -- Soft delete
@@ -3380,7 +3380,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Xóa lớp hành chính thành công' AS Message;
+        SELECT 1 AS Success, N'XĂ³a lá»›p hĂ nh chĂ­nh thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -3415,7 +3415,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
         END
         
         SELECT 
@@ -3471,13 +3471,13 @@ BEGIN
         -- Check if student exists
         IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = @StudentId AND deleted_at IS NULL)
         BEGIN
-            THROW 50009, N'Không tìm thấy sinh viên', 1;
+            THROW 50009, N'KhĂ´ng tĂ¬m tháº¥y sinh viĂªn', 1;
         END
         
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
         END
         
         -- Check if class is full
@@ -3488,7 +3488,7 @@ BEGIN
         
         IF @CurrentStudents >= @MaxStudents
         BEGIN
-            THROW 50010, N'Lớp đã đầy', 1;
+            THROW 50010, N'Lá»›p Ä‘Ă£ Ä‘áº§y', 1;
         END
         
         -- Check if student already has a class
@@ -3522,7 +3522,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Phân sinh viên vào lớp thành công' AS Message;
+        SELECT 1 AS Success, N'PhĂ¢n sinh viĂªn vĂ o lá»›p thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -3560,7 +3560,7 @@ BEGIN
         -- Check if student exists
         IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = @StudentId AND deleted_at IS NULL)
         BEGIN
-            THROW 50009, N'Không tìm thấy sinh viên', 1;
+            THROW 50009, N'KhĂ´ng tĂ¬m tháº¥y sinh viĂªn', 1;
         END
         
         -- Get student's current class
@@ -3569,7 +3569,7 @@ BEGIN
         
         IF @AdminClassId IS NULL
         BEGIN
-            THROW 50011, N'Sinh viên chưa có lớp hành chính', 1;
+            THROW 50011, N'Sinh viĂªn chÆ°a cĂ³ lá»›p hĂ nh chĂ­nh', 1;
         END
         
         -- Remove student from class
@@ -3586,7 +3586,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Xóa sinh viên khỏi lớp thành công' AS Message;
+        SELECT 1 AS Success, N'XĂ³a sinh viĂªn khá»i lá»›p thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -3623,7 +3623,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
         END
         
         -- Get class basic info
@@ -3736,9 +3736,9 @@ WHERE name IN (
 PRINT 'Stored Procedures created: ' + CAST(@SPCount AS VARCHAR(10)) + '/10';
 
 IF @SPCount = 10
-    PRINT '✓ All Administrative Class SPs created successfully'
+    PRINT 'âœ“ All Administrative Class SPs created successfully'
 ELSE
-    PRINT '✗ Some SPs missing';
+    PRINT 'âœ— Some SPs missing';
 
 PRINT '';
 PRINT '========================================';
@@ -3854,7 +3854,7 @@ BEGIN
         
         IF @@ROWCOUNT = 0
         BEGIN
-            SELECT NULL AS period_id, N'Không có đợt đăng ký nào đang mở' AS message;
+            SELECT NULL AS period_id, N'KhĂ´ng cĂ³ Ä‘á»£t Ä‘Äƒng kĂ½ nĂ o Ä‘ang má»Ÿ' AS message;
         END
         
     END TRY
@@ -3912,7 +3912,7 @@ BEGIN
         
         IF @@ROWCOUNT = 0
         BEGIN
-            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
+            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
         END
         
     END TRY
@@ -3954,19 +3954,19 @@ BEGIN
         -- Validate: Start date < End date
         IF @StartDate >= @EndDate
         BEGIN
-            THROW 50013, N'Ngày bắt đầu phải nhỏ hơn ngày kết thúc', 1;
+            THROW 50013, N'NgĂ y báº¯t Ä‘áº§u pháº£i nhá» hÆ¡n ngĂ y káº¿t thĂºc', 1;
         END
         
         -- Validate: Semester is 1, 2, or 3
         IF @Semester NOT IN (1, 2, 3)
         BEGIN
-            THROW 50014, N'Học kỳ không hợp lệ (phải là 1, 2, hoặc 3)', 1;
+            THROW 50014, N'Há»c ká»³ khĂ´ng há»£p lá»‡ (pháº£i lĂ  1, 2, hoáº·c 3)', 1;
         END
         
         -- Validate: Academic year exists
         IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = @AcademicYearId AND deleted_at IS NULL)
         BEGIN
-            THROW 50006, N'Năm học không tồn tại', 1;
+            THROW 50006, N'NÄƒm há»c khĂ´ng tá»“n táº¡i', 1;
         END
         
         -- Validate: Check for overlapping periods (same academic year and semester)
@@ -3983,7 +3983,7 @@ BEGIN
             )
         )
         BEGIN
-            THROW 50015, N'Đã có đợt đăng ký trùng thời gian cho học kỳ này', 1;
+            THROW 50015, N'ÄĂ£ cĂ³ Ä‘á»£t Ä‘Äƒng kĂ½ trĂ¹ng thá»i gian cho há»c ká»³ nĂ y', 1;
         END
         
         -- Insert new period
@@ -4059,7 +4059,7 @@ BEGIN
         -- Check if period exists
         IF NOT EXISTS (SELECT 1 FROM registration_periods WHERE period_id = @PeriodId AND deleted_at IS NULL)
         BEGIN
-            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
+            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
         END
         
         -- Get current values
@@ -4078,13 +4078,13 @@ BEGIN
         -- Validate: Start date < End date
         IF @StartDate >= @EndDate
         BEGIN
-            THROW 50013, N'Ngày bắt đầu phải nhỏ hơn ngày kết thúc', 1;
+            THROW 50013, N'NgĂ y báº¯t Ä‘áº§u pháº£i nhá» hÆ¡n ngĂ y káº¿t thĂºc', 1;
         END
         
         -- Don't allow editing if status is CLOSED
         IF @CurrentStatus = 'CLOSED'
         BEGIN
-            THROW 50016, N'Không thể sửa đợt đăng ký đã đóng', 1;
+            THROW 50016, N'KhĂ´ng thá»ƒ sá»­a Ä‘á»£t Ä‘Äƒng kĂ½ Ä‘Ă£ Ä‘Ă³ng', 1;
         END
         
         -- Update period
@@ -4139,7 +4139,7 @@ BEGIN
         -- Check if period exists
         IF NOT EXISTS (SELECT 1 FROM registration_periods WHERE period_id = @PeriodId AND deleted_at IS NULL)
         BEGIN
-            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
+            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
         END
         
         -- Check if period is OPEN
@@ -4148,7 +4148,7 @@ BEGIN
         
         IF @Status = 'OPEN'
         BEGIN
-            THROW 50017, N'Không thể xóa đợt đăng ký đang mở', 1;
+            THROW 50017, N'KhĂ´ng thá»ƒ xĂ³a Ä‘á»£t Ä‘Äƒng kĂ½ Ä‘ang má»Ÿ', 1;
         END
         
         -- Soft delete
@@ -4161,7 +4161,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Xóa đợt đăng ký thành công' AS Message;
+        SELECT 1 AS Success, N'XĂ³a Ä‘á»£t Ä‘Äƒng kĂ½ thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -4199,7 +4199,7 @@ BEGIN
         -- Check if period exists
         IF NOT EXISTS (SELECT 1 FROM registration_periods WHERE period_id = @PeriodId AND deleted_at IS NULL)
         BEGIN
-            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
+            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
         END
         
         -- Validate: Period dates are valid
@@ -4214,12 +4214,12 @@ BEGIN
         
         IF GETDATE() < @StartDate
         BEGIN
-            THROW 50018, N'Chưa đến thời gian mở đợt đăng ký', 1;
+            THROW 50018, N'ChÆ°a Ä‘áº¿n thá»i gian má»Ÿ Ä‘á»£t Ä‘Äƒng kĂ½', 1;
         END
         
         IF GETDATE() > @EndDate
         BEGIN
-            THROW 50019, N'Đã quá thời gian đăng ký', 1;
+            THROW 50019, N'ÄĂ£ quĂ¡ thá»i gian Ä‘Äƒng kĂ½', 1;
         END
         
         -- Close all other OPEN periods for the same academic year and semester
@@ -4283,7 +4283,7 @@ BEGIN
         -- Check if period exists
         IF NOT EXISTS (SELECT 1 FROM registration_periods WHERE period_id = @PeriodId AND deleted_at IS NULL)
         BEGIN
-            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
+            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
         END
         
         -- Close the period
@@ -4339,9 +4339,9 @@ WHERE name IN (
 PRINT 'Stored Procedures created: ' + CAST(@SPCount AS VARCHAR(10)) + '/8';
 
 IF @SPCount = 8
-    PRINT '✓ All Registration Period SPs created successfully'
+    PRINT 'âœ“ All Registration Period SPs created successfully'
 ELSE
-    PRINT '✗ Some SPs missing';
+    PRINT 'âœ— Some SPs missing';
 
 PRINT '';
 PRINT '========================================';
@@ -4417,14 +4417,14 @@ BEGIN
             END AS is_enrolled,
             -- Eligibility check (basic - detailed check in sp_CheckEnrollmentEligibility)
             CASE 
-                WHEN c.current_enrollment >= c.max_students THEN N'Lớp đã đầy'
+                WHEN c.current_enrollment >= c.max_students THEN N'Lá»›p Ä‘Ă£ Ä‘áº§y'
                 WHEN EXISTS (
                     SELECT 1 FROM enrollments e
                     WHERE e.student_id = @StudentId
                     AND e.class_id = c.class_id
                     AND e.deleted_at IS NULL
                     AND e.enrollment_status IN ('PENDING', 'APPROVED')
-                ) THEN N'Đã đăng ký lớp này'
+                ) THEN N'ÄĂ£ Ä‘Äƒng kĂ½ lá»›p nĂ y'
                 ELSE NULL
             END AS ineligible_reason
         FROM classes c
@@ -4470,14 +4470,14 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = @StudentId AND deleted_at IS NULL)
         BEGIN
             SET @IsEligible = 0;
-            SET @ErrorMessage = N'Sinh viên không tồn tại';
+            SET @ErrorMessage = N'Sinh viĂªn khĂ´ng tá»“n táº¡i';
         END
         
         -- Check 2: Class exists
         ELSE IF NOT EXISTS (SELECT 1 FROM classes WHERE class_id = @ClassId AND deleted_at IS NULL)
         BEGIN
             SET @IsEligible = 0;
-            SET @ErrorMessage = N'Lớp học không tồn tại';
+            SET @ErrorMessage = N'Lá»›p há»c khĂ´ng tá»“n táº¡i';
         END
         
         -- Check 3: Registration period is OPEN
@@ -4491,7 +4491,7 @@ BEGIN
         )
         BEGIN
             SET @IsEligible = 0;
-            SET @ErrorMessage = N'Không trong thời gian đăng ký';
+            SET @ErrorMessage = N'KhĂ´ng trong thá»i gian Ä‘Äƒng kĂ½';
         END
         
         -- Check 4: Class not full
@@ -4504,7 +4504,7 @@ BEGIN
             IF @CurrentEnrollment >= @MaxStudents
             BEGIN
                 SET @IsEligible = 0;
-                SET @ErrorMessage = N'Lớp đã đầy';
+                SET @ErrorMessage = N'Lá»›p Ä‘Ă£ Ä‘áº§y';
             END
         END
         
@@ -4520,7 +4520,7 @@ BEGIN
             )
             BEGIN
                 SET @IsEligible = 0;
-                SET @ErrorMessage = N'Đã đăng ký lớp này';
+                SET @ErrorMessage = N'ÄĂ£ Ä‘Äƒng kĂ½ lá»›p nĂ y';
             END
         END
         
@@ -4541,7 +4541,7 @@ BEGIN
             )
             BEGIN
                 SET @IsEligible = 0;
-                SET @ErrorMessage = N'Trùng lịch học';
+                SET @ErrorMessage = N'TrĂ¹ng lá»‹ch há»c';
             END
         END
         
@@ -4602,7 +4602,7 @@ BEGIN
         
         IF @CurrentEnrollment >= @MaxStudents
         BEGIN
-            THROW 50020, N'Lớp đã đầy', 1;
+            THROW 50020, N'Lá»›p Ä‘Ă£ Ä‘áº§y', 1;
         END
         
         -- Check not already enrolled
@@ -4614,7 +4614,7 @@ BEGIN
             AND deleted_at IS NULL
         )
         BEGIN
-            THROW 50021, N'Đã đăng ký lớp này', 1;
+            THROW 50021, N'ÄĂ£ Ä‘Äƒng kĂ½ lá»›p nĂ y', 1;
         END
         
         -- Calculate drop deadline (enrollment_date + 2 weeks)
@@ -4665,7 +4665,7 @@ BEGIN
             e.enrollment_status,
             e.drop_deadline,
             1 AS success,
-            N'Đăng ký thành công' AS message
+            N'ÄÄƒng kĂ½ thĂ nh cĂ´ng' AS message
         FROM enrollments e
         INNER JOIN students s ON e.student_id = s.student_id
         INNER JOIN classes c ON e.class_id = c.class_id
@@ -4709,7 +4709,7 @@ BEGIN
         -- Check if enrollment exists
         IF NOT EXISTS (SELECT 1 FROM enrollments WHERE enrollment_id = @EnrollmentId AND deleted_at IS NULL)
         BEGIN
-            THROW 50022, N'Không tìm thấy đăng ký', 1;
+            THROW 50022, N'KhĂ´ng tĂ¬m tháº¥y Ä‘Äƒng kĂ½', 1;
         END
         
         -- Get enrollment info
@@ -4724,13 +4724,13 @@ BEGIN
         -- Check if already dropped
         IF @EnrollmentStatus = 'DROPPED'
         BEGIN
-            THROW 50023, N'Đã hủy đăng ký trước đó', 1;
+            THROW 50023, N'ÄĂ£ há»§y Ä‘Äƒng kĂ½ trÆ°á»›c Ä‘Ă³', 1;
         END
         
         -- Check deadline
         IF @DropDeadline IS NOT NULL AND GETDATE() > @DropDeadline
         BEGIN
-            THROW 50024, N'Đã quá hạn hủy đăng ký', 1;
+            THROW 50024, N'ÄĂ£ quĂ¡ háº¡n há»§y Ä‘Äƒng kĂ½', 1;
         END
         
         -- Update enrollment status
@@ -4749,7 +4749,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Hủy đăng ký thành công' AS Message;
+        SELECT 1 AS Success, N'Há»§y Ä‘Äƒng kĂ½ thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -4820,7 +4820,7 @@ BEGIN
                     SET @SuccessCount = @SuccessCount + 1;
                     
                     INSERT INTO @Results
-                    SELECT @ClassId, class_code, 1, N'Thành công'
+                    SELECT @ClassId, class_code, 1, N'ThĂ nh cĂ´ng'
                     FROM classes WHERE class_id = @ClassId;
                     
                 END TRY
@@ -5173,13 +5173,13 @@ BEGIN
         -- Validate status
         IF @NewStatus NOT IN ('PENDING', 'APPROVED', 'DROPPED', 'WITHDRAWN')
         BEGIN
-            THROW 50025, N'Trạng thái không hợp lệ', 1;
+            THROW 50025, N'Tráº¡ng thĂ¡i khĂ´ng há»£p lá»‡', 1;
         END
         
         -- Check if enrollment exists
         IF NOT EXISTS (SELECT 1 FROM enrollments WHERE enrollment_id = @EnrollmentId AND deleted_at IS NULL)
         BEGIN
-            THROW 50022, N'Không tìm thấy đăng ký', 1;
+            THROW 50022, N'KhĂ´ng tĂ¬m tháº¥y Ä‘Äƒng kĂ½', 1;
         END
         
         -- Get old status
@@ -5207,7 +5207,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Cập nhật trạng thái thành công' AS Message;
+        SELECT 1 AS Success, N'Cáº­p nháº­t tráº¡ng thĂ¡i thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -5314,9 +5314,9 @@ WHERE name IN (
 PRINT 'Stored Procedures created: ' + CAST(@SPCount AS VARCHAR(10)) + '/12';
 
 IF @SPCount = 12
-    PRINT '✓ All Enrollment SPs created successfully'
+    PRINT 'âœ“ All Enrollment SPs created successfully'
 ELSE
-    PRINT '✗ Some SPs missing';
+    PRINT 'âœ— Some SPs missing';
 
 PRINT '';
 PRINT '========================================';
@@ -5416,18 +5416,18 @@ BEGIN
         -- Validate: Subject cannot be prerequisite of itself
         IF @SubjectId = @PrerequisiteSubjectId
         BEGIN
-            THROW 50026, N'Môn học không thể là điều kiện tiên quyết của chính nó', 1;
+            THROW 50026, N'MĂ´n há»c khĂ´ng thá»ƒ lĂ  Ä‘iá»u kiá»‡n tiĂªn quyáº¿t cá»§a chĂ­nh nĂ³', 1;
         END
         
         -- Validate: Both subjects exist
         IF NOT EXISTS (SELECT 1 FROM subjects WHERE subject_id = @SubjectId AND deleted_at IS NULL)
         BEGIN
-            THROW 50027, N'Môn học không tồn tại', 1;
+            THROW 50027, N'MĂ´n há»c khĂ´ng tá»“n táº¡i', 1;
         END
         
         IF NOT EXISTS (SELECT 1 FROM subjects WHERE subject_id = @PrerequisiteSubjectId AND deleted_at IS NULL)
         BEGIN
-            THROW 50028, N'Môn học điều kiện tiên quyết không tồn tại', 1;
+            THROW 50028, N'MĂ´n há»c Ä‘iá»u kiá»‡n tiĂªn quyáº¿t khĂ´ng tá»“n táº¡i', 1;
         END
         
         -- Validate: No duplicate prerequisite
@@ -5438,13 +5438,13 @@ BEGIN
             AND deleted_at IS NULL
         )
         BEGIN
-            THROW 50029, N'Điều kiện tiên quyết đã tồn tại', 1;
+            THROW 50029, N'Äiá»u kiá»‡n tiĂªn quyáº¿t Ä‘Ă£ tá»“n táº¡i', 1;
         END
         
         -- Validate: Minimum grade is valid (0-10)
         IF @MinimumGrade < 0 OR @MinimumGrade > 10
         BEGIN
-            THROW 50030, N'Điểm tối thiểu phải từ 0 đến 10', 1;
+            THROW 50030, N'Äiá»ƒm tá»‘i thiá»ƒu pháº£i tá»« 0 Ä‘áº¿n 10', 1;
         END
         
         -- Insert prerequisite
@@ -5516,7 +5516,7 @@ BEGIN
             AND deleted_at IS NULL
         )
         BEGIN
-            THROW 50031, N'Không tìm thấy điều kiện tiên quyết', 1;
+            THROW 50031, N'KhĂ´ng tĂ¬m tháº¥y Ä‘iá»u kiá»‡n tiĂªn quyáº¿t', 1;
         END
         
         -- Soft delete
@@ -5529,7 +5529,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Xóa điều kiện tiên quyết thành công' AS Message;
+        SELECT 1 AS Success, N'XĂ³a Ä‘iá»u kiá»‡n tiĂªn quyáº¿t thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -5615,8 +5615,8 @@ BEGIN
             SELECT @MissingPrerequisites = STRING_AGG(
                 prerequisite_name + 
                 CASE 
-                    WHEN student_grade = 0 THEN N' (chưa học)'
-                    ELSE N' (điểm ' + CAST(student_grade AS NVARCHAR(10)) + N' < ' + CAST(minimum_grade AS NVARCHAR(10)) + N')'
+                    WHEN student_grade = 0 THEN N' (chÆ°a há»c)'
+                    ELSE N' (Ä‘iá»ƒm ' + CAST(student_grade AS NVARCHAR(10)) + N' < ' + CAST(minimum_grade AS NVARCHAR(10)) + N')'
                 END,
                 ', '
             )
@@ -5710,9 +5710,9 @@ WHERE name IN (
 PRINT 'Stored Procedures created: ' + CAST(@SPCount AS VARCHAR(10)) + '/5';
 
 IF @SPCount = 5
-    PRINT '✓ All Prerequisites SPs created successfully'
+    PRINT 'âœ“ All Prerequisites SPs created successfully'
 ELSE
-    PRINT '✗ Some SPs missing';
+    PRINT 'âœ— Some SPs missing';
 
 PRINT '';
 PRINT '========================================';
@@ -5720,13 +5720,13 @@ PRINT 'Completed: 14_SP_Prerequisites.sql';
 PRINT '========================================';
 GO
 
-PRINT '🔧 Starting Academic Year Automation Setup...';
+PRINT 'đŸ”§ Starting Academic Year Automation Setup...';
 GO
 
 -- ===========================================
--- STEP 1: BỎ HỌC KỲ HÈ - CHỈ GIỮ HK1 VÀ HK2
+-- STEP 1: Bá» Há»ŒC Ká»² HĂˆ - CHá»ˆ GIá»® HK1 VĂ€ HK2
 -- ===========================================
-PRINT '📋 Step 1: Removing Summer Semester (Semester 3)...';
+PRINT 'đŸ“‹ Step 1: Removing Summer Semester (Semester 3)...';
 GO
 
 -- Update existing registration_periods constraint
@@ -5744,14 +5744,14 @@ BEGIN
     IF @ConstraintName IS NOT NULL
     BEGIN
         EXEC('ALTER TABLE registration_periods DROP CONSTRAINT ' + @ConstraintName);
-        PRINT '   ✅ Dropped old semester constraint on registration_periods';
+        PRINT '   âœ… Dropped old semester constraint on registration_periods';
     END
 END
 
 -- Add new constraint: Only semester 1 and 2
 ALTER TABLE registration_periods 
 ADD CONSTRAINT CK_RegistrationPeriod_Semester CHECK (semester IN (1, 2));
-PRINT '   ✅ Added new constraint: Semester can only be 1 or 2';
+PRINT '   âœ… Added new constraint: Semester can only be 1 or 2';
 GO
 
 -- Update GPA constraint if exists
@@ -5769,20 +5769,20 @@ BEGIN
     IF @GpaConstraintName IS NOT NULL
     BEGIN
         EXEC('ALTER TABLE gpas DROP CONSTRAINT ' + @GpaConstraintName);
-        PRINT '   ✅ Dropped old semester constraint on gpas';
+        PRINT '   âœ… Dropped old semester constraint on gpas';
     END
 END
 
--- GPA: NULL = cả năm, 1 = HK1, 2 = HK2
+-- GPA: NULL = cáº£ nÄƒm, 1 = HK1, 2 = HK2
 ALTER TABLE gpas 
 ADD CONSTRAINT CK_GPA_Semester CHECK (semester IS NULL OR semester IN (1, 2));
-PRINT '   ✅ Added new constraint on gpas: NULL (yearly) or 1, 2';
+PRINT '   âœ… Added new constraint on gpas: NULL (yearly) or 1, 2';
 GO
 
 -- ===========================================
--- STEP 2: TẠO BẢNG SCHOOL_YEARS (NĂM HỌC)
+-- STEP 2: Táº O Báº¢NG SCHOOL_YEARS (NÄ‚M Há»ŒC)
 -- ===========================================
-PRINT '📋 Step 2: Creating school_years table...';
+PRINT 'đŸ“‹ Step 2: Creating school_years table...';
 GO
 
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'school_years')
@@ -5792,7 +5792,7 @@ BEGIN
         
         -- Basic Info
         year_code           NVARCHAR(20) NOT NULL UNIQUE,     -- "2024-2025"
-        year_name           NVARCHAR(100) NOT NULL,           -- "Năm học 2024-2025"
+        year_name           NVARCHAR(100) NOT NULL,           -- "NÄƒm há»c 2024-2025"
         
         -- Link to Academic Year (Cohort)
         academic_year_id    VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.academic_years(academic_year_id),
@@ -5830,37 +5830,37 @@ BEGIN
     CREATE INDEX IX_SchoolYear_YearCode ON school_years(year_code);
     CREATE INDEX IX_SchoolYear_AcademicYear ON school_years(academic_year_id);
     
-    PRINT '   ✅ Table school_years created successfully';
+    PRINT '   âœ… Table school_years created successfully';
 END
 ELSE
 BEGIN
-    PRINT '   ⚠️  Table school_years already exists';
+    PRINT '   â ï¸  Table school_years already exists';
 END
 GO
 
 -- ===========================================
--- STEP 3: UPDATE ACADEMIC_YEARS (NIÊN KHÓA)
+-- STEP 3: UPDATE ACADEMIC_YEARS (NIĂN KHĂ“A)
 -- ===========================================
-PRINT '📋 Step 3: Updating academic_years structure for Cohort (4 years)...';
+PRINT 'đŸ“‹ Step 3: Updating academic_years structure for Cohort (4 years)...';
 GO
 
 -- Add new columns for cohort management
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('academic_years') AND name = 'cohort_code')
 BEGIN
     ALTER TABLE academic_years ADD cohort_code NVARCHAR(10) NULL;
-    PRINT '   ✅ Added column: cohort_code (K21, K22, K23, K24)';
+    PRINT '   âœ… Added column: cohort_code (K21, K22, K23, K24)';
 END
 
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('academic_years') AND name = 'duration_years')
 BEGIN
     ALTER TABLE academic_years ADD duration_years INT NULL DEFAULT 4;
-    PRINT '   ✅ Added column: duration_years (default 4 for undergraduate)';
+    PRINT '   âœ… Added column: duration_years (default 4 for undergraduate)';
 END
 
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('academic_years') AND name = 'description')
 BEGIN
     ALTER TABLE academic_years ADD description NVARCHAR(500) NULL;
-    PRINT '   ✅ Added column: description';
+    PRINT '   âœ… Added column: description';
 END
 
 -- Update existing data
@@ -5869,23 +5869,23 @@ SET
     cohort_code = 'K' + CAST(start_year % 100 AS VARCHAR(2)),
     duration_years = 4,
     end_year = start_year + 4,
-    description = N'Niên khóa ' + CAST(start_year AS NVARCHAR) + N'-' + CAST(start_year + 4 AS NVARCHAR)
+    description = N'NiĂªn khĂ³a ' + CAST(start_year AS NVARCHAR) + N'-' + CAST(start_year + 4 AS NVARCHAR)
 WHERE cohort_code IS NULL;
 
-PRINT '   ✅ Updated existing academic_years with cohort info';
+PRINT '   âœ… Updated existing academic_years with cohort info';
 GO
 
 -- ===========================================
 -- STEP 4: ADD SCHOOL_YEAR_ID TO CLASSES
 -- ===========================================
-PRINT '📋 Step 4: Adding school_year_id to classes table...';
+PRINT 'đŸ“‹ Step 4: Adding school_year_id to classes table...';
 GO
 
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('classes') AND name = 'school_year_id')
 BEGIN
     ALTER TABLE classes ADD school_year_id VARCHAR(50) NULL;
     -- Will set FK after migrating data
-    PRINT '   ✅ Added column: school_year_id to classes';
+    PRINT '   âœ… Added column: school_year_id to classes';
 END
 GO
 
@@ -5894,9 +5894,9 @@ GO
 -- ===========================================
 
 -- ===========================================
--- SP 1: AUTO CREATE COHORT (NIÊN KHÓA)
+-- SP 1: AUTO CREATE COHORT (NIĂN KHĂ“A)
 -- ===========================================
-PRINT '📋 Creating SP: sp_AutoCreateCohort...';
+PRINT 'đŸ“‹ Creating SP: sp_AutoCreateCohort...';
 GO
 
 IF OBJECT_ID('sp_AutoCreateCohort', 'P') IS NOT NULL 
@@ -5905,7 +5905,7 @@ GO
 
 CREATE PROCEDURE sp_AutoCreateCohort
     @StartYear INT,                    -- 2025
-    @DurationYears INT = 4,            -- Mặc định 4 năm (đại học)
+    @DurationYears INT = 4,            -- Máº·c Ä‘á»‹nh 4 nÄƒm (Ä‘áº¡i há»c)
     @CreatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
@@ -5913,17 +5913,17 @@ BEGIN
     BEGIN TRY
         -- Validate
         IF @StartYear < 2020 OR @StartYear > 2050
-            THROW 50001, N'❌ Năm bắt đầu không hợp lệ (2020-2050)', 1;
+            THROW 50001, N'âŒ NÄƒm báº¯t Ä‘áº§u khĂ´ng há»£p lá»‡ (2020-2050)', 1;
         
         DECLARE @CohortId VARCHAR(50) = 'AY' + CAST(@StartYear AS VARCHAR);
         DECLARE @CohortCode NVARCHAR(10) = 'K' + RIGHT(CAST(@StartYear AS VARCHAR), 2);
         DECLARE @EndYear INT = @StartYear + @DurationYears;
         DECLARE @YearName NVARCHAR(50) = CAST(@StartYear AS NVARCHAR) + N'-' + CAST(@EndYear AS NVARCHAR);
-        DECLARE @Description NVARCHAR(500) = N'Niên khóa ' + @CohortCode + N' (' + CAST(@StartYear AS NVARCHAR) + N'-' + CAST(@EndYear AS NVARCHAR) + N')';
+        DECLARE @Description NVARCHAR(500) = N'NiĂªn khĂ³a ' + @CohortCode + N' (' + CAST(@StartYear AS NVARCHAR) + N'-' + CAST(@EndYear AS NVARCHAR) + N')';
         
         -- Check exists
         IF EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = @CohortId)
-            THROW 50002, N'❌ Niên khóa đã tồn tại!', 1;
+            THROW 50002, N'âŒ NiĂªn khĂ³a Ä‘Ă£ tá»“n táº¡i!', 1;
         
         -- Insert cohort
         INSERT INTO academic_years (
@@ -5952,7 +5952,7 @@ BEGIN
             @CohortCode AS CohortCode,
             @YearName AS YearName,
             @DurationYears AS DurationYears,
-            N'✅ Đã tạo niên khóa ' + @CohortCode + N' và ' + CAST(@DurationYears AS NVARCHAR) + N' năm học' AS Message;
+            N'âœ… ÄĂ£ táº¡o niĂªn khĂ³a ' + @CohortCode + N' vĂ  ' + CAST(@DurationYears AS NVARCHAR) + N' nÄƒm há»c' AS Message;
             
     END TRY
     BEGIN CATCH
@@ -5960,13 +5960,13 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '   ✅ Created: sp_AutoCreateCohort';
+PRINT '   âœ… Created: sp_AutoCreateCohort';
 GO
 
 -- ===========================================
--- SP 2: AUTO CREATE SCHOOL YEAR (NĂM HỌC)
+-- SP 2: AUTO CREATE SCHOOL YEAR (NÄ‚M Há»ŒC)
 -- ===========================================
-PRINT '📋 Creating SP: sp_AutoCreateSchoolYear...';
+PRINT 'đŸ“‹ Creating SP: sp_AutoCreateSchoolYear...';
 GO
 
 IF OBJECT_ID('sp_AutoCreateSchoolYear', 'P') IS NOT NULL 
@@ -5983,7 +5983,7 @@ BEGIN
     BEGIN TRY
         DECLARE @SchoolYearId VARCHAR(50) = 'SY' + CAST(@StartYear AS VARCHAR);
         DECLARE @YearCode NVARCHAR(20) = CAST(@StartYear AS NVARCHAR) + N'-' + CAST(@StartYear + 1 AS NVARCHAR);
-        DECLARE @YearName NVARCHAR(100) = N'Năm học ' + @YearCode;
+        DECLARE @YearName NVARCHAR(100) = N'NÄƒm há»c ' + @YearCode;
         
         -- Dates according to Vietnamese university calendar
         DECLARE @StartDate DATE = DATEFROMPARTS(@StartYear, 9, 1);      -- 01-Sep
@@ -5996,7 +5996,7 @@ BEGIN
         -- Check exists
         IF EXISTS (SELECT 1 FROM school_years WHERE school_year_id = @SchoolYearId)
         BEGIN
-            PRINT '   ⚠️  School year ' + @YearCode + ' already exists';
+            PRINT '   â ï¸  School year ' + @YearCode + ' already exists';
             RETURN;
         END
         
@@ -6016,7 +6016,7 @@ BEGIN
             GETDATE(), @CreatedBy
         );
         
-        PRINT '   ✅ Created school year: ' + @YearCode;
+        PRINT '   âœ… Created school year: ' + @YearCode;
         
     END TRY
     BEGIN CATCH
@@ -6024,13 +6024,13 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '   ✅ Created: sp_AutoCreateSchoolYear';
+PRINT '   âœ… Created: sp_AutoCreateSchoolYear';
 GO
 
 -- ===========================================
 -- SP 3: GET CURRENT SCHOOL YEAR & SEMESTER
 -- ===========================================
-PRINT '📋 Creating SP: sp_GetCurrentSchoolYearAndSemester...';
+PRINT 'đŸ“‹ Creating SP: sp_GetCurrentSchoolYearAndSemester...';
 GO
 
 IF OBJECT_ID('sp_GetCurrentSchoolYearAndSemester', 'P') IS NOT NULL 
@@ -6068,9 +6068,9 @@ BEGIN
         ay.cohort_code,
         @CurrentSemester AS current_semester,
         CASE @CurrentSemester
-            WHEN 1 THEN N'Học kỳ 1'
-            WHEN 2 THEN N'Học kỳ 2'
-            ELSE N'Ngoài học kỳ'
+            WHEN 1 THEN N'Há»c ká»³ 1'
+            WHEN 2 THEN N'Há»c ká»³ 2'
+            ELSE N'NgoĂ i há»c ká»³'
         END AS semester_name,
         sy.is_active,
         sy.start_date,
@@ -6084,13 +6084,13 @@ BEGIN
     WHERE sy.school_year_id = @SchoolYearId;
 END
 GO
-PRINT '   ✅ Created: sp_GetCurrentSchoolYearAndSemester';
+PRINT '   âœ… Created: sp_GetCurrentSchoolYearAndSemester';
 GO
 
 -- ===========================================
 -- SP 4: AUTO TRANSITION SEMESTER
 -- ===========================================
-PRINT '📋 Creating SP: sp_AutoTransitionSemester...';
+PRINT 'đŸ“‹ Creating SP: sp_AutoTransitionSemester...';
 GO
 
 IF OBJECT_ID('sp_AutoTransitionSemester', 'P') IS NOT NULL 
@@ -6130,7 +6130,7 @@ BEGIN
             -- Calculate GPA for previous semester if exists
             IF @CurrentSemester IS NOT NULL
             BEGIN
-                PRINT '   📊 Calculating GPA for Semester ' + CAST(@CurrentSemester AS VARCHAR) + '...';
+                PRINT '   đŸ“ Calculating GPA for Semester ' + CAST(@CurrentSemester AS VARCHAR) + '...';
                 EXEC sp_CalculateAllStudentGPA 
                     @AcademicYearId = @SchoolYearId,
                     @Semester = @CurrentSemester,
@@ -6144,7 +6144,7 @@ BEGIN
                 updated_by = @ExecutedBy
             WHERE school_year_id = @SchoolYearId;
             
-            PRINT '   ✅ Transitioned to Semester ' + CAST(@NewSemester AS VARCHAR);
+            PRINT '   âœ… Transitioned to Semester ' + CAST(@NewSemester AS VARCHAR);
             
             -- Log transition
             INSERT INTO audit_logs (user_id, action, entity_type, entity_id, new_values, created_at)
@@ -6159,7 +6159,7 @@ BEGIN
         END
         ELSE
         BEGIN
-            PRINT '   ℹ️  No semester transition needed';
+            PRINT '   â„¹ï¸  No semester transition needed';
         END
         
         COMMIT TRANSACTION;
@@ -6168,7 +6168,7 @@ BEGIN
             'SUCCESS' AS Status,
             @SchoolYearId AS SchoolYearId,
             @NewSemester AS CurrentSemester,
-            N'✅ Đã kiểm tra và cập nhật học kỳ' AS Message;
+            N'âœ… ÄĂ£ kiá»ƒm tra vĂ  cáº­p nháº­t há»c ká»³' AS Message;
             
     END TRY
     BEGIN CATCH
@@ -6177,13 +6177,13 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '   ✅ Created: sp_AutoTransitionSemester';
+PRINT '   âœ… Created: sp_AutoTransitionSemester';
 GO
 
 -- ===========================================
 -- SP 5: AUTO TRANSITION TO NEW SCHOOL YEAR
 -- ===========================================
-PRINT '📋 Creating SP: sp_AutoTransitionToNewSchoolYear...';
+PRINT 'đŸ“‹ Creating SP: sp_AutoTransitionToNewSchoolYear...';
 GO
 
 IF OBJECT_ID('sp_AutoTransitionToNewSchoolYear', 'P') IS NOT NULL 
@@ -6201,7 +6201,7 @@ BEGIN
     BEGIN TRY
         -- Validate new school year exists
         IF NOT EXISTS (SELECT 1 FROM school_years WHERE school_year_id = @NewSchoolYearId AND deleted_at IS NULL)
-            THROW 50001, N'❌ Năm học mới không tồn tại!', 1;
+            THROW 50001, N'âŒ NÄƒm há»c má»›i khĂ´ng tá»“n táº¡i!', 1;
         
         -- Get old school year
         DECLARE @OldSchoolYearId VARCHAR(50);
@@ -6212,7 +6212,7 @@ BEGIN
         IF @OldSchoolYearId IS NOT NULL
         BEGIN
             -- Calculate GPA for entire old school year
-            PRINT '   📊 Calculating yearly GPA for old school year...';
+            PRINT '   đŸ“ Calculating yearly GPA for old school year...';
             EXEC sp_CalculateAllStudentGPA 
                 @AcademicYearId = @OldSchoolYearId,
                 @Semester = NULL,  -- NULL = yearly GPA
@@ -6225,7 +6225,7 @@ BEGIN
                 updated_by = @ExecutedBy
             WHERE school_year_id = @OldSchoolYearId;
             
-            PRINT '   ✅ Closed old school year: ' + @OldSchoolYearId;
+            PRINT '   âœ… Closed old school year: ' + @OldSchoolYearId;
         END
         
         -- Activate new school year
@@ -6236,7 +6236,7 @@ BEGIN
             updated_by = @ExecutedBy
         WHERE school_year_id = @NewSchoolYearId;
         
-        PRINT '   ✅ Activated new school year: ' + @NewSchoolYearId;
+        PRINT '   âœ… Activated new school year: ' + @NewSchoolYearId;
         
         -- Log transition
         INSERT INTO audit_logs (user_id, action, entity_type, entity_id, old_values, new_values, created_at)
@@ -6256,7 +6256,7 @@ BEGIN
             'SUCCESS' AS Status,
             @OldSchoolYearId AS OldSchoolYearId,
             @NewSchoolYearId AS NewSchoolYearId,
-            N'✅ Đã chuyển sang năm học mới' AS Message;
+            N'âœ… ÄĂ£ chuyá»ƒn sang nÄƒm há»c má»›i' AS Message;
             
     END TRY
     BEGIN CATCH
@@ -6265,29 +6265,29 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '   ✅ Created: sp_AutoTransitionToNewSchoolYear';
+PRINT '   âœ… Created: sp_AutoTransitionToNewSchoolYear';
 GO
 
 -- ===========================================
 -- SUMMARY
 -- ===========================================
 PRINT '';
-PRINT '╔════════════════════════════════════════════════╗';
-PRINT '║   ✅ ACADEMIC YEAR AUTOMATION SETUP COMPLETE   ║';
-PRINT '╚════════════════════════════════════════════════╝';
+PRINT 'â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—';
+PRINT 'â•‘   âœ… ACADEMIC YEAR AUTOMATION SETUP COMPLETE   â•‘';
+PRINT 'â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•';
 PRINT '';
-PRINT '📊 Summary:';
-PRINT '   ✅ Removed Summer Semester (only HK1 & HK2)';
-PRINT '   ✅ Created school_years table';
-PRINT '   ✅ Updated academic_years for cohort management';
-PRINT '   ✅ Created 5 automation stored procedures:';
-PRINT '      • sp_AutoCreateCohort';
-PRINT '      • sp_AutoCreateSchoolYear';
-PRINT '      • sp_GetCurrentSchoolYearAndSemester';
-PRINT '      • sp_AutoTransitionSemester';
-PRINT '      • sp_AutoTransitionToNewSchoolYear';
+PRINT 'đŸ“ Summary:';
+PRINT '   âœ… Removed Summer Semester (only HK1 & HK2)';
+PRINT '   âœ… Created school_years table';
+PRINT '   âœ… Updated academic_years for cohort management';
+PRINT '   âœ… Created 5 automation stored procedures:';
+PRINT '      â€¢ sp_AutoCreateCohort';
+PRINT '      â€¢ sp_AutoCreateSchoolYear';
+PRINT '      â€¢ sp_GetCurrentSchoolYearAndSemester';
+PRINT '      â€¢ sp_AutoTransitionSemester';
+PRINT '      â€¢ sp_AutoTransitionToNewSchoolYear';
 PRINT '';
-PRINT '🎯 Next Steps:';
+PRINT 'đŸ¯ Next Steps:';
 PRINT '   1. Run seed data to create sample cohorts';
 PRINT '   2. Update C# models and services';
 PRINT '   3. Set up background job for auto-transition';
@@ -6295,8 +6295,357 @@ PRINT '';
 GO
 
 -- ===========================================
--- 🎓 HỆ THỐNG QUẢN LÝ ĐIỂM DANH SINH VIÊN
--- 📋 File 2/4: STORED PROCEDURES (ĐẦY ĐỦ)
+-- đŸ“ Há»† THá»NG QUáº¢N LĂ ÄIá»‚M DANH SINH VIĂN
+-- đŸ“‹ File 2/4: STORED PROCEDURES (Äáº¦Y Äá»¦)
+-- ===========================================
+
+USE EducationManagement;
+GO
+
+-- =====================================================================
+-- FIX/OVERRIDE: Administrative Classes & Prerequisites & Cohort SPs
+-- Place at end to ensure final definitions take effect
+-- =====================================================================
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+GO
+
+-- 1) sp_GetAdministrativeClassById: remove phone_number usage
+IF OBJECT_ID('dbo.sp_GetAdministrativeClassById','P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_GetAdministrativeClassById;
+GO
+CREATE PROCEDURE dbo.sp_GetAdministrativeClassById
+    @AdminClassId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        ac.admin_class_id,
+        ac.class_code,
+        ac.class_name,
+        ac.major_id,
+        ac.advisor_id,
+        ac.academic_year_id,
+        ac.cohort_year,
+        ac.max_students,
+        ac.current_students,
+        ac.description,
+        ac.is_active,
+        ac.created_at,
+        ac.created_by,
+        ac.updated_at,
+        ac.updated_by,
+        ac.deleted_at,
+        ac.deleted_by,
+        m.major_name,
+        l.full_name AS advisor_name,
+        l.phone     AS advisor_phone
+    FROM dbo.administrative_classes ac
+    LEFT JOIN dbo.majors m ON m.major_id = ac.major_id
+    LEFT JOIN dbo.lecturers l ON l.lecturer_id = ac.advisor_id
+    WHERE ac.admin_class_id = @AdminClassId;
+END
+GO
+
+-- 2) sp_CreateAdministrativeClass: ensure is_active is handled
+IF OBJECT_ID('dbo.sp_CreateAdministrativeClass','P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_CreateAdministrativeClass;
+GO
+CREATE PROCEDURE dbo.sp_CreateAdministrativeClass
+    @AdminClassId    VARCHAR(50),
+    @ClassCode       VARCHAR(20),
+    @ClassName       NVARCHAR(150),
+    @MajorId         VARCHAR(50) = NULL,
+    @AdvisorId       VARCHAR(50) = NULL,
+    @AcademicYearId  VARCHAR(50) = NULL,
+    @CohortYear      INT,
+    @MaxStudents     INT = 50,
+    @Description     NVARCHAR(500) = NULL,
+    @IsActive        BIT = 1,
+    @CreatedBy       VARCHAR(50) = 'System'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    INSERT INTO dbo.administrative_classes (
+        admin_class_id, class_code, class_name,
+        major_id, advisor_id, academic_year_id,
+        cohort_year, max_students, current_students,
+        description, is_active, created_at, created_by
+    ) VALUES (
+        @AdminClassId, @ClassCode, @ClassName,
+        @MajorId, @AdvisorId, @AcademicYearId,
+        @CohortYear, @MaxStudents, 0,
+        @Description, ISNULL(@IsActive,1), GETDATE(), @CreatedBy
+    );
+    SELECT @AdminClassId AS admin_class_id;
+END
+GO
+
+-- 3) sp_CheckStudentPrerequisites: align to current schema
+IF OBJECT_ID('dbo.sp_CheckStudentPrerequisites','P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_CheckStudentPrerequisites;
+GO
+CREATE PROCEDURE dbo.sp_CheckStudentPrerequisites
+    @StudentId VARCHAR(50),
+    @SubjectId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    ;WITH Required AS (
+        SELECT sp.prerequisite_id, sp.subject_id, sp.prerequisite_subject_id
+        FROM dbo.subject_prerequisites sp
+        WHERE sp.subject_id = @SubjectId
+    ),
+    StudentPassed AS (
+        SELECT DISTINCT s.subject_id
+        FROM dbo.enrollments e
+        INNER JOIN dbo.classes c ON c.class_id = e.class_id
+        INNER JOIN dbo.subjects s ON s.subject_id = c.subject_id
+        LEFT  JOIN dbo.grades g ON g.enrollment_id = e.enrollment_id
+        WHERE e.student_id = @StudentId
+          AND e.deleted_at IS NULL
+          AND (g.final_score IS NULL OR g.final_score >= 4)
+    )
+    SELECT r.prerequisite_subject_id AS MissingSubjectId
+    FROM Required r
+    LEFT JOIN StudentPassed p ON p.subject_id = r.prerequisite_subject_id
+    WHERE p.subject_id IS NULL;
+END
+GO
+
+-- 4) sp_AutoCreateCohort: ensure created for seed
+IF OBJECT_ID('dbo.sp_AutoCreateCohort','P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_AutoCreateCohort;
+GO
+
+-- =====================================================================
+-- TIMETABLE QUERIES (READ-ONLY)
+-- =====================================================================
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+GO
+
+-- =====================================================================
+-- TIMETABLE CONFLICT CHECKS
+-- =====================================================================
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_NULLS ON;
+GO
+
+-- Overlap helper explained in comments: two intervals [a,b) & [c,d) overlap if a < d AND c < b
+IF OBJECT_ID('dbo.sp_CheckTimetableConflicts','P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_CheckTimetableConflicts;
+GO
+CREATE PROCEDURE dbo.sp_CheckTimetableConflicts
+    @SessionId      VARCHAR(50) = NULL, -- nullable when creating
+    @ClassId        VARCHAR(50),
+    @SubjectId      VARCHAR(50),
+    @LecturerId     VARCHAR(50) = NULL,
+    @RoomId         VARCHAR(50) = NULL,
+    @SchoolYearId   VARCHAR(50) = NULL,
+    @WeekNo         INT = NULL,
+    @Weekday        INT,
+    @StartTime      TIME,
+    @EndTime        TIME
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    -- 1) Lecturer conflicts
+    SELECT TOP 100
+        'LECTURER' AS conflict_type,
+        ts.session_id AS existing_session_id,
+        ts.week_no, ts.weekday, ts.start_time, ts.end_time,
+        c.class_id, c.class_code, c.class_name,
+        r.room_code
+    FROM dbo.timetable_sessions ts
+    INNER JOIN dbo.classes c ON c.class_id = ts.class_id
+    LEFT JOIN dbo.rooms r ON r.room_id = ts.room_id
+    WHERE @LecturerId IS NOT NULL
+      AND ts.lecturer_id = @LecturerId
+      AND ts.weekday = @Weekday
+      AND (ts.week_no = @WeekNo OR ts.week_no IS NULL OR @WeekNo IS NULL)
+      AND (ts.end_time > @StartTime AND @EndTime > ts.start_time)
+      AND (ts.deleted_at IS NULL)
+      AND (@SessionId IS NULL OR ts.session_id <> @SessionId);
+
+    -- 2) Room conflicts
+    SELECT TOP 100
+        'ROOM' AS conflict_type,
+        ts.session_id AS existing_session_id,
+        ts.week_no, ts.weekday, ts.start_time, ts.end_time,
+        c.class_id, c.class_code, c.class_name,
+        r.room_code
+    FROM dbo.timetable_sessions ts
+    INNER JOIN dbo.classes c ON c.class_id = ts.class_id
+    LEFT JOIN dbo.rooms r ON r.room_id = ts.room_id
+    WHERE @RoomId IS NOT NULL
+      AND ts.room_id = @RoomId
+      AND ts.weekday = @Weekday
+      AND (ts.week_no = @WeekNo OR ts.week_no IS NULL OR @WeekNo IS NULL)
+      AND (ts.end_time > @StartTime AND @EndTime > ts.start_time)
+      AND (ts.deleted_at IS NULL)
+      AND (@SessionId IS NULL OR ts.session_id <> @SessionId);
+
+    -- 3) Student conflicts (students of target class colliding other sessions)
+    SELECT TOP 200
+        'STUDENT' AS conflict_type,
+        ts.session_id AS existing_session_id,
+        e2.student_id,
+        s2.student_code,
+        s2.full_name AS student_name,
+        ts.week_no, ts.weekday, ts.start_time, ts.end_time,
+        c2.class_id, c2.class_code, c2.class_name
+    FROM dbo.enrollments e -- students in the target class
+    INNER JOIN dbo.students s2 ON s2.student_id = e.student_id
+    INNER JOIN dbo.enrollments e2 ON e2.student_id = e.student_id AND e2.deleted_at IS NULL
+    INNER JOIN dbo.timetable_sessions ts ON ts.class_id = e2.class_id AND ts.deleted_at IS NULL
+    INNER JOIN dbo.classes c2 ON c2.class_id = ts.class_id
+    WHERE e.class_id = @ClassId AND e.deleted_at IS NULL
+      AND ts.weekday = @Weekday
+      AND (ts.week_no = @WeekNo OR ts.week_no IS NULL OR @WeekNo IS NULL)
+      AND (ts.end_time > @StartTime AND @EndTime > ts.start_time)
+      AND (@SessionId IS NULL OR ts.session_id <> @SessionId)
+      AND (e2.class_id <> @ClassId);
+
+    -- 4) Capacity check
+    DECLARE @capacity INT = NULL, @enrolled INT = NULL;
+    IF @RoomId IS NOT NULL
+        SELECT @capacity = capacity FROM dbo.rooms WHERE room_id = @RoomId;
+    SELECT @enrolled = COUNT(1) FROM dbo.enrollments WHERE class_id = @ClassId AND deleted_at IS NULL;
+    SELECT @capacity AS room_capacity, @enrolled AS enrolled, CASE WHEN @capacity IS NOT NULL AND @enrolled > @capacity THEN 1 ELSE 0 END AS is_over_capacity;
+END
+GO
+
+-- Student timetable by year-week
+IF OBJECT_ID('dbo.sp_GetStudentTimetableByWeek','P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_GetStudentTimetableByWeek;
+GO
+CREATE PROCEDURE dbo.sp_GetStudentTimetableByWeek
+    @StudentId VARCHAR(50),
+    @Year INT,
+    @WeekNo INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        ts.session_id,
+        ts.week_no,
+        ts.weekday,
+        ts.start_time,
+        ts.end_time,
+        ts.period_from,
+        ts.period_to,
+        ts.status,
+        c.class_id, c.class_code, c.class_name,
+        s.subject_id, s.subject_name,
+        l.lecturer_id, l.full_name AS lecturer_name,
+        r.room_id, r.room_code,
+        sy.school_year_id, sy.year_code
+    FROM dbo.timetable_sessions ts
+    INNER JOIN dbo.classes c ON c.class_id = ts.class_id
+    INNER JOIN dbo.subjects s ON s.subject_id = ts.subject_id
+    LEFT JOIN dbo.lecturers l ON l.lecturer_id = ts.lecturer_id
+    LEFT JOIN dbo.rooms r ON r.room_id = ts.room_id
+    LEFT JOIN dbo.school_years sy ON sy.school_year_id = ts.school_year_id
+    INNER JOIN dbo.enrollments e ON e.class_id = ts.class_id AND e.student_id = @StudentId AND e.deleted_at IS NULL
+    WHERE (ts.week_no = @WeekNo OR ts.week_no IS NULL)
+      AND (sy.start_date IS NULL OR YEAR(sy.start_date) = @Year OR YEAR(sy.end_date) = @Year)
+      AND (ts.deleted_at IS NULL)
+    ORDER BY ts.weekday, ts.start_time;
+END
+GO
+
+-- Lecturer timetable by year-week
+IF OBJECT_ID('dbo.sp_GetLecturerTimetableByWeek','P') IS NOT NULL
+    DROP PROCEDURE dbo.sp_GetLecturerTimetableByWeek;
+GO
+CREATE PROCEDURE dbo.sp_GetLecturerTimetableByWeek
+    @LecturerId VARCHAR(50),
+    @Year INT,
+    @WeekNo INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    SELECT 
+        ts.session_id,
+        ts.week_no,
+        ts.weekday,
+        ts.start_time,
+        ts.end_time,
+        ts.period_from,
+        ts.period_to,
+        ts.status,
+        c.class_id, c.class_code, c.class_name,
+        s.subject_id, s.subject_name,
+        r.room_id, r.room_code,
+        sy.school_year_id, sy.year_code
+    FROM dbo.timetable_sessions ts
+    INNER JOIN dbo.classes c ON c.class_id = ts.class_id
+    INNER JOIN dbo.subjects s ON s.subject_id = ts.subject_id
+    LEFT JOIN dbo.rooms r ON r.room_id = ts.room_id
+    LEFT JOIN dbo.school_years sy ON sy.school_year_id = ts.school_year_id
+    WHERE ts.lecturer_id = @LecturerId
+      AND (ts.week_no = @WeekNo OR ts.week_no IS NULL)
+      AND (sy.start_date IS NULL OR YEAR(sy.start_date) = @Year OR YEAR(sy.end_date) = @Year)
+      AND (ts.deleted_at IS NULL)
+    ORDER BY ts.weekday, ts.start_time;
+END
+GO
+CREATE PROCEDURE dbo.sp_AutoCreateCohort
+    @StartYear INT,
+    @DurationYears INT = 4,
+    @CreatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    DECLARE @i INT = 0;
+    WHILE @i < @DurationYears
+    BEGIN
+        DECLARE @yearName NVARCHAR(50) = CONCAT(@StartYear + @i, '-', @StartYear + @i + 1);
+        DECLARE @ayId VARCHAR(50) = CONCAT('AY', @StartYear + @i);
+
+        IF NOT EXISTS (SELECT 1 FROM dbo.academic_years WHERE academic_year_id = @ayId)
+        BEGIN
+            INSERT INTO dbo.academic_years (academic_year_id, year_name, start_year, end_year, duration_years, is_active, created_at, created_by)
+            VALUES (@ayId, @yearName, @StartYear + @i, @StartYear + @i + 1, @DurationYears, CASE WHEN @i=0 THEN 1 ELSE 0 END, GETDATE(), @CreatedBy);
+        END
+
+        -- create single school_year_id per academic year to match SeedData (SY{StartYear})
+        DECLARE @syId VARCHAR(50) = CONCAT('SY', @StartYear + @i);
+        IF NOT EXISTS (SELECT 1 FROM dbo.school_years WHERE school_year_id=@syId)
+        BEGIN
+            INSERT INTO dbo.school_years (
+                school_year_id, year_code, year_name, academic_year_id,
+                start_date, end_date,
+                semester1_start, semester1_end,
+                semester2_start, semester2_end,
+                is_active, current_semester, created_at)
+            VALUES (
+                @syId,
+                CONCAT('SY', @StartYear + @i),
+                CONCAT(@yearName, ' - HK1/HK2'),
+                @ayId,
+                DATEFROMPARTS(@StartYear + @i, 9, 1),
+                DATEFROMPARTS(@StartYear + @i + 1, 8, 31),
+                DATEFROMPARTS(@StartYear + @i, 9, 1), DATEFROMPARTS(@StartYear + @i, 12, 31),
+                DATEFROMPARTS(@StartYear + @i + 1, 1, 1), DATEFROMPARTS(@StartYear + @i + 1, 5, 31),
+                CASE WHEN @i=0 THEN 1 ELSE 0 END,
+                1,
+                GETDATE()
+            );
+        END
+
+        SET @i += 1;
+    END
+END
+GO
+
+
+-- ===========================================
+-- đŸ“ Há»† THá»NG QUáº¢N LĂ ÄIá»‚M DANH SINH VIĂN
+-- đŸ“‹ File 2/4: STORED PROCEDURES (Äáº¦Y Äá»¦)
 -- ===========================================
 
 USE EducationManagement;
@@ -6730,21 +7079,21 @@ BEGIN
         -- Validation: Check duplicate username
         IF EXISTS (SELECT 1 FROM users WHERE username = @Username AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'Username đã tồn tại: %s', 16, 1, @Username);
+            RAISERROR(N'Username Ä‘Ă£ tá»“n táº¡i: %s', 16, 1, @Username);
             RETURN;
         END
         
         -- Validation: Check duplicate email
         IF EXISTS (SELECT 1 FROM users WHERE email = @Email AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'Email đã tồn tại: %s', 16, 1, @Email);
+            RAISERROR(N'Email Ä‘Ă£ tá»“n táº¡i: %s', 16, 1, @Email);
             RETURN;
         END
         
         -- Validation: Check role exists
         IF NOT EXISTS (SELECT 1 FROM roles WHERE role_id = @RoleId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'Role không tồn tại: %s', 16, 1, @RoleId);
+            RAISERROR(N'Role khĂ´ng tá»“n táº¡i: %s', 16, 1, @RoleId);
             RETURN;
         END
         
@@ -6791,21 +7140,21 @@ BEGIN
         -- Validation: Check user exists
         IF NOT EXISTS (SELECT 1 FROM users WHERE user_id = @UserId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'User không tồn tại: %s', 16, 1, @UserId);
+            RAISERROR(N'User khĂ´ng tá»“n táº¡i: %s', 16, 1, @UserId);
             RETURN;
         END
         
         -- Validation: Check duplicate email (except current user)
         IF EXISTS (SELECT 1 FROM users WHERE email = @Email AND user_id != @UserId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'Email đã được sử dụng bởi user khác: %s', 16, 1, @Email);
+            RAISERROR(N'Email Ä‘Ă£ Ä‘Æ°á»£c sá»­ dá»¥ng bá»Ÿi user khĂ¡c: %s', 16, 1, @Email);
             RETURN;
         END
         
         -- Validation: Check role exists
         IF NOT EXISTS (SELECT 1 FROM roles WHERE role_id = @RoleId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'Role không tồn tại: %s', 16, 1, @RoleId);
+            RAISERROR(N'Role khĂ´ng tá»“n táº¡i: %s', 16, 1, @RoleId);
             RETURN;
         END
         
@@ -6857,7 +7206,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Users Management SPs created';
+PRINT 'âœ… Users Management SPs created';
 GO
 
 -- ===========================================
@@ -6935,7 +7284,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Faculties Management SPs created';
+PRINT 'âœ… Faculties Management SPs created';
 GO
 
 -- ===========================================
@@ -7020,7 +7369,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Departments Management SPs created';
+PRINT 'âœ… Departments Management SPs created';
 GO
 
 -- ===========================================
@@ -7113,7 +7462,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Majors Management SPs created';
+PRINT 'âœ… Majors Management SPs created';
 GO
 
 -- ===========================================
@@ -7190,7 +7539,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Academic Years Management SPs created';
+PRINT 'âœ… Academic Years Management SPs created';
 GO
 
 -- ===========================================
@@ -7318,7 +7667,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Students Management SPs created';
+PRINT 'âœ… Students Management SPs created';
 GO
 
 -- ===========================================
@@ -7405,7 +7754,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Lecturers Management SPs created';
+PRINT 'âœ… Lecturers Management SPs created';
 GO
 
 -- ===========================================
@@ -7491,7 +7840,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Subjects Management SPs created';
+PRINT 'âœ… Subjects Management SPs created';
 GO
 
 -- ===========================================
@@ -7591,7 +7940,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Classes Management SPs created';
+PRINT 'âœ… Classes Management SPs created';
 GO
 
 -- ===========================================
@@ -7618,7 +7967,7 @@ CREATE PROCEDURE sp_CreateEnrollment
     @EnrollmentId VARCHAR(50),
     @StudentId VARCHAR(50),
     @ClassId VARCHAR(50),
-    @Status NVARCHAR(50) = N'Đang học',
+    @Status NVARCHAR(50) = N'Äang há»c',
     @CreatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
@@ -7641,7 +7990,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Enrollments Management SPs created';
+PRINT 'âœ… Enrollments Management SPs created';
 GO
 
 -- ===========================================
@@ -7699,7 +8048,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Attendances Management SPs created';
+PRINT 'âœ… Attendances Management SPs created';
 GO
 
 -- ===========================================
@@ -7934,7 +8283,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Grades Management SPs created';
+PRINT 'âœ… Grades Management SPs created';
 GO
 
 -- ===========================================
@@ -7964,7 +8313,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Roles Management SPs created';
+PRINT 'âœ… Roles Management SPs created';
 GO
 
 -- ===========================================
@@ -7995,7 +8344,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Notifications Management SPs created';
+PRINT 'âœ… Notifications Management SPs created';
 GO
 
 -- ===========================================
@@ -8018,7 +8367,7 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.audit_logs al
     LEFT JOIN dbo.users u ON al.user_id = u.user_id
@@ -8032,7 +8381,7 @@ BEGIN
         AND (@FromDate IS NULL OR al.created_at >= @FromDate)
         AND (@ToDate IS NULL OR al.created_at <= @ToDate);
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT 
         al.log_id,
         al.user_id,
@@ -8182,7 +8531,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ Audit Logs Management SPs created';
+PRINT 'âœ… Audit Logs Management SPs created';
 GO
 
 -- ===========================================
@@ -8213,7 +8562,7 @@ GO
 CREATE PROCEDURE sp_CalculateGPA
     @StudentId VARCHAR(50),
     @AcademicYearId VARCHAR(50),
-    @Semester INT = NULL, -- NULL = cả năm, 1/2/3 = học kỳ cụ thể
+    @Semester INT = NULL, -- NULL = cáº£ nÄƒm, 1/2/3 = há»c ká»³ cá»¥ thá»ƒ
     @CreatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
@@ -8226,7 +8575,7 @@ BEGIN
     DECLARE @AccumulatedCredits INT;
     DECLARE @RankText NVARCHAR(50);
     
-    -- Tính điểm trung bình và tổng tín chỉ
+    -- TĂ­nh Ä‘iá»ƒm trung bĂ¬nh vĂ  tá»•ng tĂ­n chá»‰
     SELECT 
         @Gpa10 = ROUND(SUM(g.total_score * sub.credits) / NULLIF(SUM(sub.credits), 0), 2),
         @TotalCredits = SUM(sub.credits),
@@ -8243,7 +8592,7 @@ BEGIN
         AND s.deleted_at IS NULL
         AND e.deleted_at IS NULL;
     
-    -- Tính GPA hệ 4
+    -- TĂ­nh GPA há»‡ 4
     SELECT 
         @Gpa4 = ROUND(
             SUM(
@@ -8272,22 +8621,22 @@ BEGIN
         AND s.deleted_at IS NULL
         AND e.deleted_at IS NULL;
     
-    -- Xếp loại
+    -- Xáº¿p loáº¡i
     SET @RankText = CASE 
-        WHEN @Gpa10 >= 8.5 THEN N'Xuất sắc'
-        WHEN @Gpa10 >= 7.0 THEN N'Giỏi'
-        WHEN @Gpa10 >= 5.5 THEN N'Khá'
-        WHEN @Gpa10 >= 4.0 THEN N'Trung bình'
-        ELSE N'Yếu'
+        WHEN @Gpa10 >= 8.5 THEN N'Xuáº¥t sáº¯c'
+        WHEN @Gpa10 >= 7.0 THEN N'Giá»i'
+        WHEN @Gpa10 >= 5.5 THEN N'KhĂ¡'
+        WHEN @Gpa10 >= 4.0 THEN N'Trung bĂ¬nh'
+        ELSE N'Yáº¿u'
     END;
     
-    -- Xóa GPA cũ nếu có (để cập nhật)
+    -- XĂ³a GPA cÅ© náº¿u cĂ³ (Ä‘á»ƒ cáº­p nháº­t)
     DELETE FROM dbo.gpas 
     WHERE student_id = @StudentId 
         AND academic_year_id = @AcademicYearId 
         AND ((@Semester IS NULL AND semester IS NULL) OR semester = @Semester);
     
-    -- Chèn GPA mới
+    -- ChĂ¨n GPA má»›i
     INSERT INTO dbo.gpas (
         gpa_id, student_id, academic_year_id, semester,
         gpa10, gpa4, total_credits, accumulated_credits, rank_text,
@@ -8299,7 +8648,7 @@ BEGIN
         GETDATE(), @CreatedBy
     );
     
-    -- Trả về kết quả
+    -- Tráº£ vá» káº¿t quáº£
     SELECT 
         @GpaId as gpa_id,
         @StudentId as student_id,
@@ -8431,11 +8780,11 @@ BEGIN
     
     -- Determine rank
     SET @RankText = CASE
-        WHEN @Gpa10 >= 9.0 THEN N'Xuất sắc'
-        WHEN @Gpa10 >= 8.0 THEN N'Giỏi'
-        WHEN @Gpa10 >= 7.0 THEN N'Khá'
-        WHEN @Gpa10 >= 5.5 THEN N'Trung bình'
-        ELSE N'Yếu'
+        WHEN @Gpa10 >= 9.0 THEN N'Xuáº¥t sáº¯c'
+        WHEN @Gpa10 >= 8.0 THEN N'Giá»i'
+        WHEN @Gpa10 >= 7.0 THEN N'KhĂ¡'
+        WHEN @Gpa10 >= 5.5 THEN N'Trung bĂ¬nh'
+        ELSE N'Yáº¿u'
     END;
     
     -- Convert semester string to int (1, 2, or NULL)
@@ -8475,7 +8824,7 @@ BEGIN
 END
 GO
 
-PRINT '✅ GPAs Management SPs created';
+PRINT 'âœ… GPAs Management SPs created';
 GO
 
 -- ===========================================
@@ -8493,14 +8842,14 @@ BEGIN
     BEGIN TRANSACTION;
     
     BEGIN TRY
-        -- 1. Kiểm tra năm học mới có tồn tại không
+        -- 1. Kiá»ƒm tra nÄƒm há»c má»›i cĂ³ tá»“n táº¡i khĂ´ng
         IF NOT EXISTS (SELECT 1 FROM dbo.academic_years WHERE academic_year_id = @NewAcademicYearId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'❌ Năm học mới không tồn tại hoặc đã bị xóa!', 16, 1);
+            RAISERROR(N'âŒ NÄƒm há»c má»›i khĂ´ng tá»“n táº¡i hoáº·c Ä‘Ă£ bá»‹ xĂ³a!', 16, 1);
             RETURN;
         END
         
-        -- 2. Lấy năm học hiện tại (đang active)
+        -- 2. Láº¥y nÄƒm há»c hiá»‡n táº¡i (Ä‘ang active)
         DECLARE @OldAcademicYearId VARCHAR(50);
         SELECT TOP 1 @OldAcademicYearId = academic_year_id
         FROM dbo.academic_years
@@ -8508,13 +8857,13 @@ BEGIN
         
         IF @OldAcademicYearId IS NOT NULL
         BEGIN
-            -- 3. Tính GPA cho tất cả sinh viên của năm học cũ
+            -- 3. TĂ­nh GPA cho táº¥t cáº£ sinh viĂªn cá»§a nÄƒm há»c cÅ©
             EXEC sp_CalculateAllStudentGPA 
                 @AcademicYearId = @OldAcademicYearId,
-                @Semester = NULL, -- Tính GPA cả năm
+                @Semester = NULL, -- TĂ­nh GPA cáº£ nÄƒm
                 @CreatedBy = @ExecutedBy;
             
-            -- 4. Đóng năm học cũ
+            -- 4. ÄĂ³ng nÄƒm há»c cÅ©
             UPDATE dbo.academic_years 
             SET is_active = 0, 
                 updated_at = GETDATE(), 
@@ -8522,7 +8871,7 @@ BEGIN
             WHERE academic_year_id = @OldAcademicYearId;
         END
         
-        -- 5. Kích hoạt năm học mới
+        -- 5. KĂ­ch hoáº¡t nÄƒm há»c má»›i
         UPDATE dbo.academic_years 
         SET is_active = 1, 
             updated_at = GETDATE(), 
@@ -8551,7 +8900,7 @@ BEGIN
             @OldAcademicYearId as OldAcademicYearId,
             @NewAcademicYearId as NewAcademicYearId,
             GETDATE() as TransitionDate,
-            N'✅ Chuyển năm học thành công!' as Message;
+            N'âœ… Chuyá»ƒn nÄƒm há»c thĂ nh cĂ´ng!' as Message;
             
     END TRY
     BEGIN CATCH
@@ -8580,41 +8929,41 @@ BEGIN
 END
 GO
 
-PRINT '✅ Academic Year Transition SPs created';
+PRINT 'âœ… Academic Year Transition SPs created';
 GO
 
 PRINT '';
-PRINT '🎉 HOÀN THÀNH TẠO STORED PROCEDURES!';
-PRINT '✅ Đã tạo tổng cộng 90+ stored procedures';
-PRINT '✅ Tất cả SPs đều có DROP trước khi CREATE';
+PRINT 'đŸ‰ HOĂ€N THĂ€NH Táº O STORED PROCEDURES!';
+PRINT 'âœ… ÄĂ£ táº¡o tá»•ng cá»™ng 90+ stored procedures';
+PRINT 'âœ… Táº¥t cáº£ SPs Ä‘á»u cĂ³ DROP trÆ°á»›c khi CREATE';
 PRINT '';
 
 -- ===========================================
--- ⚡ PAGINATION UPDATE (CHẠY RIÊNG PHẦN NÀY)
+-- â¡ PAGINATION UPDATE (CHáº Y RIĂNG PHáº¦N NĂ€Y)
 -- ===========================================
--- 📌 CHÚ Ý: Nếu bạn đã chạy stored procedures trước đó,
---           chỉ cần chạy RIÊNG phần từ đây đến hết file
+-- đŸ“Œ CHĂ Ă: Náº¿u báº¡n Ä‘Ă£ cháº¡y stored procedures trÆ°á»›c Ä‘Ă³,
+--           chá»‰ cáº§n cháº¡y RIĂNG pháº§n tá»« Ä‘Ă¢y Ä‘áº¿n háº¿t file
 -- 
--- ✅ Cách chạy:
---    1. Bôi đen từ dòng "BEGIN PAGINATION UPDATE" 
---       đến dòng "END PAGINATION UPDATE"
---    2. Nhấn F5 hoặc Execute
+-- âœ… CĂ¡ch cháº¡y:
+--    1. BĂ´i Ä‘en tá»« dĂ²ng "BEGIN PAGINATION UPDATE" 
+--       Ä‘áº¿n dĂ²ng "END PAGINATION UPDATE"
+--    2. Nháº¥n F5 hoáº·c Execute
 -- 
--- ⏱️  Thời gian: ~5 giây
--- 📊 Sẽ update: 8 stored procedures với pagination
+-- â±ï¸  Thá»i gian: ~5 giĂ¢y
+-- đŸ“ Sáº½ update: 8 stored procedures vá»›i pagination
 -- ===========================================
 
 PRINT '';
-PRINT '⚡ BẮT ĐẦU UPDATE PAGINATION...';
+PRINT 'â¡ Báº®T Äáº¦U UPDATE PAGINATION...';
 PRINT '================================';
 GO
 
 -- ========================================
--- BEGIN PAGINATION UPDATE - BẮT ĐẦU TỪ ĐÂY
+-- BEGIN PAGINATION UPDATE - Báº®T Äáº¦U Tá»ª ÄĂ‚Y
 -- ========================================
 
 -- ===========================================
--- 1. UPDATE: sp_GetAllFaculties (THÊM PAGINATION)
+-- 1. UPDATE: sp_GetAllFaculties (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllFaculties', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllFaculties;
 GO
@@ -8627,14 +8976,14 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.faculties
     WHERE deleted_at IS NULL
         AND (@Search IS NULL OR faculty_code LIKE '%' + @Search + '%' 
              OR faculty_name LIKE '%' + @Search + '%');
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT faculty_id, faculty_code, faculty_name, description, 
            is_active, created_at, created_by, updated_at, updated_by
     FROM dbo.faculties
@@ -8645,11 +8994,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllFaculties (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllFaculties (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 2. UPDATE: sp_GetAllDepartments (THÊM PAGINATION)
+-- 2. UPDATE: sp_GetAllDepartments (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllDepartments', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllDepartments;
 GO
@@ -8663,7 +9012,7 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.departments d
     LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
@@ -8672,7 +9021,7 @@ BEGIN
              OR d.department_name LIKE '%' + @Search + '%')
         AND (@FacultyId IS NULL OR d.faculty_id = @FacultyId);
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT d.*, f.faculty_name, f.faculty_code
     FROM dbo.departments d
     LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
@@ -8684,11 +9033,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllDepartments (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllDepartments (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 3. UPDATE: sp_GetAllMajors (THÊM PAGINATION)
+-- 3. UPDATE: sp_GetAllMajors (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllMajors', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllMajors;
 GO
@@ -8702,7 +9051,7 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.majors m
     LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
@@ -8711,7 +9060,7 @@ BEGIN
              OR m.major_code LIKE '%' + @Search + '%')
         AND (@FacultyId IS NULL OR m.faculty_id = @FacultyId);
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT m.*, f.faculty_name, f.faculty_code
     FROM dbo.majors m
     LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
@@ -8723,11 +9072,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllMajors (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllMajors (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 4. UPDATE: sp_GetAllAcademicYears (THÊM PAGINATION)
+-- 4. UPDATE: sp_GetAllAcademicYears (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllAcademicYears', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllAcademicYears;
 GO
@@ -8740,13 +9089,13 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.academic_years
     WHERE deleted_at IS NULL
         AND (@Search IS NULL OR year_name LIKE '%' + @Search + '%');
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT *
     FROM dbo.academic_years
     WHERE deleted_at IS NULL
@@ -8755,11 +9104,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllAcademicYears (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllAcademicYears (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 5. UPDATE: sp_GetAllLecturers (THÊM PAGINATION)
+-- 5. UPDATE: sp_GetAllLecturers (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllLecturers', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllLecturers;
 GO
@@ -8773,7 +9122,7 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.lecturers l
     LEFT JOIN dbo.departments d ON l.department_id = d.department_id
@@ -8783,7 +9132,7 @@ BEGIN
              OR l.full_name LIKE '%' + @Search + '%')
         AND (@DepartmentId IS NULL OR l.department_id = @DepartmentId);
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT l.*, d.department_name, f.faculty_name
     FROM dbo.lecturers l
     LEFT JOIN dbo.departments d ON l.department_id = d.department_id
@@ -8796,11 +9145,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllLecturers (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllLecturers (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 6. UPDATE: sp_GetAllSubjects (THÊM PAGINATION)
+-- 6. UPDATE: sp_GetAllSubjects (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllSubjects', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllSubjects;
 GO
@@ -8814,7 +9163,7 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.subjects s
     LEFT JOIN dbo.departments d ON s.department_id = d.department_id
@@ -8824,7 +9173,7 @@ BEGIN
              OR s.subject_name LIKE '%' + @Search + '%')
         AND (@DepartmentId IS NULL OR s.department_id = @DepartmentId);
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT s.*, d.department_name, f.faculty_name
     FROM dbo.subjects s
     LEFT JOIN dbo.departments d ON s.department_id = d.department_id
@@ -8837,11 +9186,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllSubjects (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllSubjects (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 7. UPDATE: sp_GetAllClasses (THÊM PAGINATION)
+-- 7. UPDATE: sp_GetAllClasses (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllClasses', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllClasses;
 GO
@@ -8857,7 +9206,7 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.classes c
     LEFT JOIN dbo.subjects s ON c.subject_id = s.subject_id
@@ -8870,7 +9219,7 @@ BEGIN
         AND (@LecturerId IS NULL OR c.lecturer_id = @LecturerId)
         AND (@AcademicYearId IS NULL OR c.academic_year_id = @AcademicYearId);
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT c.*, s.subject_name, l.full_name as lecturer_name, ay.year_name
     FROM dbo.classes c
     LEFT JOIN dbo.subjects s ON c.subject_id = s.subject_id
@@ -8886,11 +9235,11 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllClasses (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllClasses (vá»›i pagination)';
 GO
 
 -- ===========================================
--- 8. UPDATE: sp_GetAllRoles (THÊM PAGINATION)
+-- 8. UPDATE: sp_GetAllRoles (THĂM PAGINATION)
 -- ===========================================
 IF OBJECT_ID('sp_GetAllRoles', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllRoles;
 GO
@@ -8903,13 +9252,13 @@ BEGIN
     SET NOCOUNT ON;
     DECLARE @Offset INT = (@Page - 1) * @PageSize;
     
-    -- Trả về TotalCount
+    -- Tráº£ vá» TotalCount
     SELECT COUNT(*) as TotalCount
     FROM dbo.roles
     WHERE deleted_at IS NULL
         AND (@Search IS NULL OR role_name LIKE '%' + @Search + '%');
     
-    -- Trả về Data với pagination
+    -- Tráº£ vá» Data vá»›i pagination
     SELECT role_id, role_name, description, is_active, created_at
     FROM dbo.roles
     WHERE deleted_at IS NULL
@@ -8918,23 +9267,23 @@ BEGIN
     OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;
 END
 GO
-PRINT '✅ Updated: sp_GetAllRoles (với pagination)';
+PRINT 'âœ… Updated: sp_GetAllRoles (vá»›i pagination)';
 GO
 
 -- ========================================
--- END PAGINATION UPDATE - KẾT THÚC Ở ĐÂY
+-- END PAGINATION UPDATE - Káº¾T THĂC á» ÄĂ‚Y
 -- ========================================
 
 PRINT '';
 PRINT '================================';
-PRINT '🎉 HOÀN THÀNH UPDATE PAGINATION!';
+PRINT 'đŸ‰ HOĂ€N THĂ€NH UPDATE PAGINATION!';
 PRINT '';
 
 -- ===========================================
 -- PERMISSIONS MANAGEMENT STORED PROCEDURES
 -- ===========================================
 PRINT '';
-PRINT '🔐 Bắt đầu tạo Stored Procedures cho PERMISSIONS...';
+PRINT 'đŸ” Báº¯t Ä‘áº§u táº¡o Stored Procedures cho PERMISSIONS...';
 PRINT '';
 
 -- SP 1: Get All Permissions
@@ -8958,7 +9307,7 @@ BEGIN
     ORDER BY permission_code;
 END
 GO
-PRINT '✅ Tạo sp_GetAllPermissions';
+PRINT 'âœ… Táº¡o sp_GetAllPermissions';
 
 -- SP 2: Get Permissions by Role
 IF OBJECT_ID('sp_GetPermissionsByRole', 'P') IS NOT NULL DROP PROCEDURE sp_GetPermissionsByRole;
@@ -8982,7 +9331,7 @@ BEGIN
     ORDER BY p.permission_code;
 END
 GO
-PRINT '✅ Tạo sp_GetPermissionsByRole';
+PRINT 'âœ… Táº¡o sp_GetPermissionsByRole';
 
 -- SP 2.5: Get Permissions by Role Name (for Menu API)
 IF OBJECT_ID('sp_GetPermissionsByRoleName', 'P') IS NOT NULL DROP PROCEDURE sp_GetPermissionsByRoleName;
@@ -9011,7 +9360,7 @@ BEGIN
     ORDER BY p.permission_code;
 END
 GO
-PRINT '✅ Tạo sp_GetPermissionsByRoleName';
+PRINT 'âœ… Táº¡o sp_GetPermissionsByRoleName';
 
 -- SP 3: Get Permission IDs by Role
 IF OBJECT_ID('sp_GetPermissionIdsByRole', 'P') IS NOT NULL DROP PROCEDURE sp_GetPermissionIdsByRole;
@@ -9027,7 +9376,7 @@ BEGIN
     WHERE role_id = @RoleId;
 END
 GO
-PRINT '✅ Tạo sp_GetPermissionIdsByRole';
+PRINT 'âœ… Táº¡o sp_GetPermissionIdsByRole';
 
 -- SP 4: Assign Permission to Role
 IF OBJECT_ID('sp_AssignPermissionToRole', 'P') IS NOT NULL DROP PROCEDURE sp_AssignPermissionToRole;
@@ -9050,7 +9399,7 @@ BEGIN
     END
 END
 GO
-PRINT '✅ Tạo sp_AssignPermissionToRole';
+PRINT 'âœ… Táº¡o sp_AssignPermissionToRole';
 
 -- SP 5: Remove Permission from Role
 IF OBJECT_ID('sp_RemovePermissionFromRole', 'P') IS NOT NULL DROP PROCEDURE sp_RemovePermissionFromRole;
@@ -9066,7 +9415,7 @@ BEGIN
     WHERE role_id = @RoleId AND permission_id = @PermissionId;
 END
 GO
-PRINT '✅ Tạo sp_RemovePermissionFromRole';
+PRINT 'âœ… Táº¡o sp_RemovePermissionFromRole';
 
 -- SP 6: Delete All Permissions by Role
 IF OBJECT_ID('sp_DeleteAllPermissionsByRole', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteAllPermissionsByRole;
@@ -9083,7 +9432,7 @@ BEGIN
     SELECT @@ROWCOUNT AS DeletedCount;
 END
 GO
-PRINT '✅ Tạo sp_DeleteAllPermissionsByRole';
+PRINT 'âœ… Táº¡o sp_DeleteAllPermissionsByRole';
 
 -- SP 7: Get User Permissions
 IF OBJECT_ID('sp_GetUserPermissions', 'P') IS NOT NULL DROP PROCEDURE sp_GetUserPermissions;
@@ -9111,7 +9460,7 @@ BEGIN
     ORDER BY p.permission_code;
 END
 GO
-PRINT '✅ Tạo sp_GetUserPermissions';
+PRINT 'âœ… Táº¡o sp_GetUserPermissions';
 
 -- SP 8: Check User Permission
 IF OBJECT_ID('sp_CheckUserPermission', 'P') IS NOT NULL DROP PROCEDURE sp_CheckUserPermission;
@@ -9141,7 +9490,7 @@ BEGIN
         SELECT 0 AS HasPermission;
 END
 GO
-PRINT '✅ Tạo sp_CheckUserPermission';
+PRINT 'âœ… Táº¡o sp_CheckUserPermission';
 
 -- SP 9: Get Roles with Permission Count
 IF OBJECT_ID('sp_GetRolesWithPermissionCount', 'P') IS NOT NULL DROP PROCEDURE sp_GetRolesWithPermissionCount;
@@ -9172,10 +9521,10 @@ BEGIN
     ORDER BY r.role_name;
 END
 GO
-PRINT '✅ Tạo sp_GetRolesWithPermissionCount';
+PRINT 'âœ… Táº¡o sp_GetRolesWithPermissionCount';
 
 -- ===========================================
--- 🔹 FUNCTION: Sinh mã Department Code tự động
+-- đŸ”¹ FUNCTION: Sinh mĂ£ Department Code tá»± Ä‘á»™ng
 -- ===========================================
 IF OBJECT_ID('fn_GenerateNextDepartmentCode', 'FN') IS NOT NULL
     DROP FUNCTION fn_GenerateNextDepartmentCode;
@@ -9188,7 +9537,7 @@ BEGIN
     DECLARE @NextNumber INT;
     DECLARE @NextCode VARCHAR(20);
     
-    -- Lấy số lớn nhất hiện tại từ các mã có format DEPT###
+    -- Láº¥y sá»‘ lá»›n nháº¥t hiá»‡n táº¡i tá»« cĂ¡c mĂ£ cĂ³ format DEPT###
     SELECT @NextNumber = ISNULL(MAX(
         CASE 
             WHEN department_code LIKE 'DEPT[0-9][0-9][0-9]'
@@ -9205,14 +9554,14 @@ BEGIN
     RETURN @NextCode;
 END
 GO
-PRINT '✅ Created: fn_GenerateNextDepartmentCode';
+PRINT 'âœ… Created: fn_GenerateNextDepartmentCode';
 GO
 
 -- ===========================================
 -- 16. REFRESH TOKENS MANAGEMENT
 -- ===========================================
 PRINT '';
-PRINT '🔐 Bắt đầu tạo Stored Procedures cho REFRESH TOKENS...';
+PRINT 'đŸ” Báº¯t Ä‘áº§u táº¡o Stored Procedures cho REFRESH TOKENS...';
 PRINT '';
 
 -- SP 1: Save Refresh Token
@@ -9233,7 +9582,7 @@ BEGIN
         -- Check if user exists
         IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE user_id = @UserId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'User không tồn tại: %s', 16, 1, @UserId);
+            RAISERROR(N'User khĂ´ng tá»“n táº¡i: %s', 16, 1, @UserId);
             RETURN;
         END
         
@@ -9256,7 +9605,7 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '✅ Tạo sp_SaveRefreshToken';
+PRINT 'âœ… Táº¡o sp_SaveRefreshToken';
 GO
 
 -- SP 2: Get Refresh Token by Token String
@@ -9286,7 +9635,7 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '✅ Tạo sp_GetRefreshTokenByToken';
+PRINT 'âœ… Táº¡o sp_GetRefreshTokenByToken';
 GO
 
 -- SP 3: Revoke Refresh Token
@@ -9309,7 +9658,7 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '✅ Tạo sp_RevokeRefreshToken';
+PRINT 'âœ… Táº¡o sp_RevokeRefreshToken';
 GO
 
 -- SP 4: Clean Expired Tokens (Maintenance Job)
@@ -9334,7 +9683,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        PRINT CONCAT('✅ Cleaned ', @DeletedCount, ' expired/revoked refresh tokens');
+        PRINT CONCAT('âœ… Cleaned ', @DeletedCount, ' expired/revoked refresh tokens');
         SELECT @DeletedCount AS DeletedCount;
         
     END TRY
@@ -9347,7 +9696,7 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '✅ Tạo sp_CleanExpiredRefreshTokens';
+PRINT 'âœ… Táº¡o sp_CleanExpiredRefreshTokens';
 GO
 
 -- SP 5: Revoke All User Tokens (Logout from all devices)
@@ -9382,24 +9731,24 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '✅ Tạo sp_RevokeAllUserTokens';
+PRINT 'âœ… Táº¡o sp_RevokeAllUserTokens';
 GO
 
-PRINT '✅ Refresh Tokens Management SPs created (5 procedures)';
+PRINT 'âœ… Refresh Tokens Management SPs created (5 procedures)';
 GO
 
 -- ===========================================
 -- 17. BATCH IMPORT STUDENTS
 -- ===========================================
 PRINT '';
-PRINT '🚀 Bắt đầu tạo Batch Import Stored Procedures...';
+PRINT 'đŸ€ Báº¯t Ä‘áº§u táº¡o Batch Import Stored Procedures...';
 PRINT '';
 
 -- Create TYPE for Student Table Parameter
 IF EXISTS (SELECT * FROM sys.types WHERE name = 'StudentImportType' AND is_table_type = 1)
 BEGIN
     DROP TYPE StudentImportType;
-    PRINT '🗑️  Dropped existing type: StudentImportType';
+    PRINT 'đŸ—‘ï¸  Dropped existing type: StudentImportType';
 END
 GO
 
@@ -9415,7 +9764,7 @@ CREATE TYPE StudentImportType AS TABLE (
     AcademicYearId VARCHAR(50) NULL
 );
 GO
-PRINT '✅ Created type: StudentImportType';
+PRINT 'âœ… Created type: StudentImportType';
 GO
 
 -- BATCH IMPORT STORED PROCEDURE
@@ -9474,7 +9823,7 @@ BEGIN
                 IF EXISTS (SELECT 1 FROM students WHERE student_code = @StudentCode AND deleted_at IS NULL)
                 BEGIN
                     INSERT INTO @Errors (RowNumber, StudentCode, ErrorMessage)
-                    VALUES (@RowNumber, @StudentCode, N'Mã sinh viên đã tồn tại');
+                    VALUES (@RowNumber, @StudentCode, N'MĂ£ sinh viĂªn Ä‘Ă£ tá»“n táº¡i');
                     
                     SET @ErrorCount = @ErrorCount + 1;
                 END
@@ -9482,7 +9831,7 @@ BEGIN
                 ELSE IF EXISTS (SELECT 1 FROM students WHERE email = @Email AND deleted_at IS NULL)
                 BEGIN
                     INSERT INTO @Errors (RowNumber, StudentCode, ErrorMessage)
-                    VALUES (@RowNumber, @StudentCode, N'Email đã tồn tại: ' + @Email);
+                    VALUES (@RowNumber, @StudentCode, N'Email Ä‘Ă£ tá»“n táº¡i: ' + @Email);
                     
                     SET @ErrorCount = @ErrorCount + 1;
                 END
@@ -9490,7 +9839,7 @@ BEGIN
                 ELSE IF NOT EXISTS (SELECT 1 FROM majors WHERE major_id = @MajorId AND deleted_at IS NULL)
                 BEGIN
                     INSERT INTO @Errors (RowNumber, StudentCode, ErrorMessage)
-                    VALUES (@RowNumber, @StudentCode, N'Ngành không tồn tại: ' + @MajorId);
+                    VALUES (@RowNumber, @StudentCode, N'NgĂ nh khĂ´ng tá»“n táº¡i: ' + @MajorId);
                     
                     SET @ErrorCount = @ErrorCount + 1;
                 END
@@ -9567,16 +9916,16 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '✅ Created procedure: sp_ImportStudentsBatch';
+PRINT 'âœ… Created procedure: sp_ImportStudentsBatch';
 GO
 
-PRINT '✅ Batch Import Students SPs created (1 procedure + 1 type)';
+PRINT 'âœ… Batch Import Students SPs created (1 procedure + 1 type)';
 GO
 
 PRINT '';
 PRINT '================================';
-PRINT '🎉 HOÀN THÀNH TẠO STORED PROCEDURES!';
-PRINT '✅ Đã tạo:';
+PRINT 'đŸ‰ HOĂ€N THĂ€NH Táº O STORED PROCEDURES!';
+PRINT 'âœ… ÄĂ£ táº¡o:';
 PRINT '   - 90+ Core Management SPs';
 PRINT '   - 9 Permission SPs';
 PRINT '   - 5 Refresh Token SPs';
@@ -9746,7 +10095,7 @@ BEGIN
         
         IF @@ROWCOUNT = 0
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
         END
         
     END TRY
@@ -9790,13 +10139,13 @@ BEGIN
         -- Validate: Check duplicate class code
         IF EXISTS (SELECT 1 FROM administrative_classes WHERE class_code = @ClassCode AND deleted_at IS NULL)
         BEGIN
-            THROW 50003, N'Mã lớp đã tồn tại', 1;
+            THROW 50003, N'MĂ£ lá»›p Ä‘Ă£ tá»“n táº¡i', 1;
         END
         
         -- Validate: Check major exists
         IF NOT EXISTS (SELECT 1 FROM majors WHERE major_id = @MajorId AND is_active = 1 AND deleted_at IS NULL)
         BEGIN
-            THROW 50004, N'Ngành học không tồn tại', 1;
+            THROW 50004, N'NgĂ nh há»c khĂ´ng tá»“n táº¡i', 1;
         END
         
         -- Validate: Check advisor exists (if provided)
@@ -9804,7 +10153,7 @@ BEGIN
         BEGIN
             IF NOT EXISTS (SELECT 1 FROM lecturers WHERE lecturer_id = @AdvisorId AND is_active = 1 AND deleted_at IS NULL)
             BEGIN
-                THROW 50005, N'Giảng viên chủ nhiệm không tồn tại', 1;
+                THROW 50005, N'Giáº£ng viĂªn chá»§ nhiá»‡m khĂ´ng tá»“n táº¡i', 1;
             END
         END
         
@@ -9813,7 +10162,7 @@ BEGIN
         BEGIN
             IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = @AcademicYearId AND deleted_at IS NULL)
             BEGIN
-                THROW 50006, N'Năm học không tồn tại', 1;
+                THROW 50006, N'NÄƒm há»c khĂ´ng tá»“n táº¡i', 1;
             END
         END
         
@@ -9898,7 +10247,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
         END
         
         -- Validate: Check duplicate class code (if changing)
@@ -9911,7 +10260,7 @@ BEGIN
                 AND deleted_at IS NULL
             )
             BEGIN
-                THROW 50003, N'Mã lớp đã tồn tại', 1;
+                THROW 50003, N'MĂ£ lá»›p Ä‘Ă£ tá»“n táº¡i', 1;
             END
         END
         
@@ -9925,7 +10274,7 @@ BEGIN
             
             IF @MaxStudents < @CurrentStudents
             BEGIN
-                THROW 50007, N'Sĩ số tối đa không được nhỏ hơn sĩ số hiện tại', 1;
+                THROW 50007, N'SÄ© sá»‘ tá»‘i Ä‘a khĂ´ng Ä‘Æ°á»£c nhá» hÆ¡n sÄ© sá»‘ hiá»‡n táº¡i', 1;
             END
         END
         
@@ -9985,7 +10334,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
         END
         
         -- Check if class has students
@@ -9996,7 +10345,7 @@ BEGIN
         
         IF @StudentCount > 0
         BEGIN
-            THROW 50008, N'Không thể xóa lớp đang có sinh viên', 1;
+            THROW 50008, N'KhĂ´ng thá»ƒ xĂ³a lá»›p Ä‘ang cĂ³ sinh viĂªn', 1;
         END
         
         -- Soft delete
@@ -10009,7 +10358,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Xóa lớp hành chính thành công' AS Message;
+        SELECT 1 AS Success, N'XĂ³a lá»›p hĂ nh chĂ­nh thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -10044,7 +10393,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
         END
         
         SELECT 
@@ -10100,13 +10449,13 @@ BEGIN
         -- Check if student exists
         IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = @StudentId AND deleted_at IS NULL)
         BEGIN
-            THROW 50009, N'Không tìm thấy sinh viên', 1;
+            THROW 50009, N'KhĂ´ng tĂ¬m tháº¥y sinh viĂªn', 1;
         END
         
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
         END
         
         -- Check if class is full
@@ -10117,7 +10466,7 @@ BEGIN
         
         IF @CurrentStudents >= @MaxStudents
         BEGIN
-            THROW 50010, N'Lớp đã đầy', 1;
+            THROW 50010, N'Lá»›p Ä‘Ă£ Ä‘áº§y', 1;
         END
         
         -- Check if student already has a class
@@ -10151,7 +10500,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Phân sinh viên vào lớp thành công' AS Message;
+        SELECT 1 AS Success, N'PhĂ¢n sinh viĂªn vĂ o lá»›p thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -10189,7 +10538,7 @@ BEGIN
         -- Check if student exists
         IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = @StudentId AND deleted_at IS NULL)
         BEGIN
-            THROW 50009, N'Không tìm thấy sinh viên', 1;
+            THROW 50009, N'KhĂ´ng tĂ¬m tháº¥y sinh viĂªn', 1;
         END
         
         -- Get student's current class
@@ -10198,7 +10547,7 @@ BEGIN
         
         IF @AdminClassId IS NULL
         BEGIN
-            THROW 50011, N'Sinh viên chưa có lớp hành chính', 1;
+            THROW 50011, N'Sinh viĂªn chÆ°a cĂ³ lá»›p hĂ nh chĂ­nh', 1;
         END
         
         -- Remove student from class
@@ -10215,7 +10564,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Xóa sinh viên khỏi lớp thành công' AS Message;
+        SELECT 1 AS Success, N'XĂ³a sinh viĂªn khá»i lá»›p thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -10252,7 +10601,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
         END
         
         -- Get class basic info
@@ -10365,9 +10714,9 @@ WHERE name IN (
 PRINT 'Stored Procedures created: ' + CAST(@SPCount AS VARCHAR(10)) + '/10';
 
 IF @SPCount = 10
-    PRINT '✓ All Administrative Class SPs created successfully'
+    PRINT 'âœ“ All Administrative Class SPs created successfully'
 ELSE
-    PRINT '✗ Some SPs missing';
+    PRINT 'âœ— Some SPs missing';
 
 PRINT '';
 PRINT '========================================';
@@ -10483,7 +10832,7 @@ BEGIN
         
         IF @@ROWCOUNT = 0
         BEGIN
-            SELECT NULL AS period_id, N'Không có đợt đăng ký nào đang mở' AS message;
+            SELECT NULL AS period_id, N'KhĂ´ng cĂ³ Ä‘á»£t Ä‘Äƒng kĂ½ nĂ o Ä‘ang má»Ÿ' AS message;
         END
         
     END TRY
@@ -10541,7 +10890,7 @@ BEGIN
         
         IF @@ROWCOUNT = 0
         BEGIN
-            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
+            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
         END
         
     END TRY
@@ -10583,19 +10932,19 @@ BEGIN
         -- Validate: Start date < End date
         IF @StartDate >= @EndDate
         BEGIN
-            THROW 50013, N'Ngày bắt đầu phải nhỏ hơn ngày kết thúc', 1;
+            THROW 50013, N'NgĂ y báº¯t Ä‘áº§u pháº£i nhá» hÆ¡n ngĂ y káº¿t thĂºc', 1;
         END
         
         -- Validate: Semester is 1, 2, or 3
         IF @Semester NOT IN (1, 2, 3)
         BEGIN
-            THROW 50014, N'Học kỳ không hợp lệ (phải là 1, 2, hoặc 3)', 1;
+            THROW 50014, N'Há»c ká»³ khĂ´ng há»£p lá»‡ (pháº£i lĂ  1, 2, hoáº·c 3)', 1;
         END
         
         -- Validate: Academic year exists
         IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = @AcademicYearId AND deleted_at IS NULL)
         BEGIN
-            THROW 50006, N'Năm học không tồn tại', 1;
+            THROW 50006, N'NÄƒm há»c khĂ´ng tá»“n táº¡i', 1;
         END
         
         -- Validate: Check for overlapping periods (same academic year and semester)
@@ -10612,7 +10961,7 @@ BEGIN
             )
         )
         BEGIN
-            THROW 50015, N'Đã có đợt đăng ký trùng thời gian cho học kỳ này', 1;
+            THROW 50015, N'ÄĂ£ cĂ³ Ä‘á»£t Ä‘Äƒng kĂ½ trĂ¹ng thá»i gian cho há»c ká»³ nĂ y', 1;
         END
         
         -- Insert new period
@@ -10688,7 +11037,7 @@ BEGIN
         -- Check if period exists
         IF NOT EXISTS (SELECT 1 FROM registration_periods WHERE period_id = @PeriodId AND deleted_at IS NULL)
         BEGIN
-            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
+            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
         END
         
         -- Get current values
@@ -10707,13 +11056,13 @@ BEGIN
         -- Validate: Start date < End date
         IF @StartDate >= @EndDate
         BEGIN
-            THROW 50013, N'Ngày bắt đầu phải nhỏ hơn ngày kết thúc', 1;
+            THROW 50013, N'NgĂ y báº¯t Ä‘áº§u pháº£i nhá» hÆ¡n ngĂ y káº¿t thĂºc', 1;
         END
         
         -- Don't allow editing if status is CLOSED
         IF @CurrentStatus = 'CLOSED'
         BEGIN
-            THROW 50016, N'Không thể sửa đợt đăng ký đã đóng', 1;
+            THROW 50016, N'KhĂ´ng thá»ƒ sá»­a Ä‘á»£t Ä‘Äƒng kĂ½ Ä‘Ă£ Ä‘Ă³ng', 1;
         END
         
         -- Update period
@@ -10768,7 +11117,7 @@ BEGIN
         -- Check if period exists
         IF NOT EXISTS (SELECT 1 FROM registration_periods WHERE period_id = @PeriodId AND deleted_at IS NULL)
         BEGIN
-            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
+            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
         END
         
         -- Check if period is OPEN
@@ -10777,7 +11126,7 @@ BEGIN
         
         IF @Status = 'OPEN'
         BEGIN
-            THROW 50017, N'Không thể xóa đợt đăng ký đang mở', 1;
+            THROW 50017, N'KhĂ´ng thá»ƒ xĂ³a Ä‘á»£t Ä‘Äƒng kĂ½ Ä‘ang má»Ÿ', 1;
         END
         
         -- Soft delete
@@ -10790,7 +11139,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Xóa đợt đăng ký thành công' AS Message;
+        SELECT 1 AS Success, N'XĂ³a Ä‘á»£t Ä‘Äƒng kĂ½ thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -10828,7 +11177,7 @@ BEGIN
         -- Check if period exists
         IF NOT EXISTS (SELECT 1 FROM registration_periods WHERE period_id = @PeriodId AND deleted_at IS NULL)
         BEGIN
-            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
+            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
         END
         
         -- Validate: Period dates are valid
@@ -10843,12 +11192,12 @@ BEGIN
         
         IF GETDATE() < @StartDate
         BEGIN
-            THROW 50018, N'Chưa đến thời gian mở đợt đăng ký', 1;
+            THROW 50018, N'ChÆ°a Ä‘áº¿n thá»i gian má»Ÿ Ä‘á»£t Ä‘Äƒng kĂ½', 1;
         END
         
         IF GETDATE() > @EndDate
         BEGIN
-            THROW 50019, N'Đã quá thời gian đăng ký', 1;
+            THROW 50019, N'ÄĂ£ quĂ¡ thá»i gian Ä‘Äƒng kĂ½', 1;
         END
         
         -- Close all other OPEN periods for the same academic year and semester
@@ -10912,7 +11261,7 @@ BEGIN
         -- Check if period exists
         IF NOT EXISTS (SELECT 1 FROM registration_periods WHERE period_id = @PeriodId AND deleted_at IS NULL)
         BEGIN
-            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
+            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
         END
         
         -- Close the period
@@ -10968,9 +11317,9 @@ WHERE name IN (
 PRINT 'Stored Procedures created: ' + CAST(@SPCount AS VARCHAR(10)) + '/8';
 
 IF @SPCount = 8
-    PRINT '✓ All Registration Period SPs created successfully'
+    PRINT 'âœ“ All Registration Period SPs created successfully'
 ELSE
-    PRINT '✗ Some SPs missing';
+    PRINT 'âœ— Some SPs missing';
 
 PRINT '';
 PRINT '========================================';
@@ -11046,14 +11395,14 @@ BEGIN
             END AS is_enrolled,
             -- Eligibility check (basic - detailed check in sp_CheckEnrollmentEligibility)
             CASE 
-                WHEN c.current_enrollment >= c.max_students THEN N'Lớp đã đầy'
+                WHEN c.current_enrollment >= c.max_students THEN N'Lá»›p Ä‘Ă£ Ä‘áº§y'
                 WHEN EXISTS (
                     SELECT 1 FROM enrollments e
                     WHERE e.student_id = @StudentId
                     AND e.class_id = c.class_id
                     AND e.deleted_at IS NULL
                     AND e.enrollment_status IN ('PENDING', 'APPROVED')
-                ) THEN N'Đã đăng ký lớp này'
+                ) THEN N'ÄĂ£ Ä‘Äƒng kĂ½ lá»›p nĂ y'
                 ELSE NULL
             END AS ineligible_reason
         FROM classes c
@@ -11099,14 +11448,14 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = @StudentId AND deleted_at IS NULL)
         BEGIN
             SET @IsEligible = 0;
-            SET @ErrorMessage = N'Sinh viên không tồn tại';
+            SET @ErrorMessage = N'Sinh viĂªn khĂ´ng tá»“n táº¡i';
         END
         
         -- Check 2: Class exists
         ELSE IF NOT EXISTS (SELECT 1 FROM classes WHERE class_id = @ClassId AND deleted_at IS NULL)
         BEGIN
             SET @IsEligible = 0;
-            SET @ErrorMessage = N'Lớp học không tồn tại';
+            SET @ErrorMessage = N'Lá»›p há»c khĂ´ng tá»“n táº¡i';
         END
         
         -- Check 3: Registration period is OPEN
@@ -11120,7 +11469,7 @@ BEGIN
         )
         BEGIN
             SET @IsEligible = 0;
-            SET @ErrorMessage = N'Không trong thời gian đăng ký';
+            SET @ErrorMessage = N'KhĂ´ng trong thá»i gian Ä‘Äƒng kĂ½';
         END
         
         -- Check 4: Class not full
@@ -11133,7 +11482,7 @@ BEGIN
             IF @CurrentEnrollment >= @MaxStudents
             BEGIN
                 SET @IsEligible = 0;
-                SET @ErrorMessage = N'Lớp đã đầy';
+                SET @ErrorMessage = N'Lá»›p Ä‘Ă£ Ä‘áº§y';
             END
         END
         
@@ -11149,7 +11498,7 @@ BEGIN
             )
             BEGIN
                 SET @IsEligible = 0;
-                SET @ErrorMessage = N'Đã đăng ký lớp này';
+                SET @ErrorMessage = N'ÄĂ£ Ä‘Äƒng kĂ½ lá»›p nĂ y';
             END
         END
         
@@ -11170,7 +11519,7 @@ BEGIN
             )
             BEGIN
                 SET @IsEligible = 0;
-                SET @ErrorMessage = N'Trùng lịch học';
+                SET @ErrorMessage = N'TrĂ¹ng lá»‹ch há»c';
             END
         END
         
@@ -11231,7 +11580,7 @@ BEGIN
         
         IF @CurrentEnrollment >= @MaxStudents
         BEGIN
-            THROW 50020, N'Lớp đã đầy', 1;
+            THROW 50020, N'Lá»›p Ä‘Ă£ Ä‘áº§y', 1;
         END
         
         -- Check not already enrolled
@@ -11243,7 +11592,7 @@ BEGIN
             AND deleted_at IS NULL
         )
         BEGIN
-            THROW 50021, N'Đã đăng ký lớp này', 1;
+            THROW 50021, N'ÄĂ£ Ä‘Äƒng kĂ½ lá»›p nĂ y', 1;
         END
         
         -- Calculate drop deadline (enrollment_date + 2 weeks)
@@ -11294,7 +11643,7 @@ BEGIN
             e.enrollment_status,
             e.drop_deadline,
             1 AS success,
-            N'Đăng ký thành công' AS message
+            N'ÄÄƒng kĂ½ thĂ nh cĂ´ng' AS message
         FROM enrollments e
         INNER JOIN students s ON e.student_id = s.student_id
         INNER JOIN classes c ON e.class_id = c.class_id
@@ -11338,7 +11687,7 @@ BEGIN
         -- Check if enrollment exists
         IF NOT EXISTS (SELECT 1 FROM enrollments WHERE enrollment_id = @EnrollmentId AND deleted_at IS NULL)
         BEGIN
-            THROW 50022, N'Không tìm thấy đăng ký', 1;
+            THROW 50022, N'KhĂ´ng tĂ¬m tháº¥y Ä‘Äƒng kĂ½', 1;
         END
         
         -- Get enrollment info
@@ -11353,13 +11702,13 @@ BEGIN
         -- Check if already dropped
         IF @EnrollmentStatus = 'DROPPED'
         BEGIN
-            THROW 50023, N'Đã hủy đăng ký trước đó', 1;
+            THROW 50023, N'ÄĂ£ há»§y Ä‘Äƒng kĂ½ trÆ°á»›c Ä‘Ă³', 1;
         END
         
         -- Check deadline
         IF @DropDeadline IS NOT NULL AND GETDATE() > @DropDeadline
         BEGIN
-            THROW 50024, N'Đã quá hạn hủy đăng ký', 1;
+            THROW 50024, N'ÄĂ£ quĂ¡ háº¡n há»§y Ä‘Äƒng kĂ½', 1;
         END
         
         -- Update enrollment status
@@ -11378,7 +11727,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Hủy đăng ký thành công' AS Message;
+        SELECT 1 AS Success, N'Há»§y Ä‘Äƒng kĂ½ thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -11449,7 +11798,7 @@ BEGIN
                     SET @SuccessCount = @SuccessCount + 1;
                     
                     INSERT INTO @Results
-                    SELECT @ClassId, class_code, 1, N'Thành công'
+                    SELECT @ClassId, class_code, 1, N'ThĂ nh cĂ´ng'
                     FROM classes WHERE class_id = @ClassId;
                     
                 END TRY
@@ -11802,13 +12151,13 @@ BEGIN
         -- Validate status
         IF @NewStatus NOT IN ('PENDING', 'APPROVED', 'DROPPED', 'WITHDRAWN')
         BEGIN
-            THROW 50025, N'Trạng thái không hợp lệ', 1;
+            THROW 50025, N'Tráº¡ng thĂ¡i khĂ´ng há»£p lá»‡', 1;
         END
         
         -- Check if enrollment exists
         IF NOT EXISTS (SELECT 1 FROM enrollments WHERE enrollment_id = @EnrollmentId AND deleted_at IS NULL)
         BEGIN
-            THROW 50022, N'Không tìm thấy đăng ký', 1;
+            THROW 50022, N'KhĂ´ng tĂ¬m tháº¥y Ä‘Äƒng kĂ½', 1;
         END
         
         -- Get old status
@@ -11836,7 +12185,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Cập nhật trạng thái thành công' AS Message;
+        SELECT 1 AS Success, N'Cáº­p nháº­t tráº¡ng thĂ¡i thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -11943,9 +12292,9 @@ WHERE name IN (
 PRINT 'Stored Procedures created: ' + CAST(@SPCount AS VARCHAR(10)) + '/12';
 
 IF @SPCount = 12
-    PRINT '✓ All Enrollment SPs created successfully'
+    PRINT 'âœ“ All Enrollment SPs created successfully'
 ELSE
-    PRINT '✗ Some SPs missing';
+    PRINT 'âœ— Some SPs missing';
 
 PRINT '';
 PRINT '========================================';
@@ -12045,18 +12394,18 @@ BEGIN
         -- Validate: Subject cannot be prerequisite of itself
         IF @SubjectId = @PrerequisiteSubjectId
         BEGIN
-            THROW 50026, N'Môn học không thể là điều kiện tiên quyết của chính nó', 1;
+            THROW 50026, N'MĂ´n há»c khĂ´ng thá»ƒ lĂ  Ä‘iá»u kiá»‡n tiĂªn quyáº¿t cá»§a chĂ­nh nĂ³', 1;
         END
         
         -- Validate: Both subjects exist
         IF NOT EXISTS (SELECT 1 FROM subjects WHERE subject_id = @SubjectId AND deleted_at IS NULL)
         BEGIN
-            THROW 50027, N'Môn học không tồn tại', 1;
+            THROW 50027, N'MĂ´n há»c khĂ´ng tá»“n táº¡i', 1;
         END
         
         IF NOT EXISTS (SELECT 1 FROM subjects WHERE subject_id = @PrerequisiteSubjectId AND deleted_at IS NULL)
         BEGIN
-            THROW 50028, N'Môn học điều kiện tiên quyết không tồn tại', 1;
+            THROW 50028, N'MĂ´n há»c Ä‘iá»u kiá»‡n tiĂªn quyáº¿t khĂ´ng tá»“n táº¡i', 1;
         END
         
         -- Validate: No duplicate prerequisite
@@ -12067,13 +12416,13 @@ BEGIN
             AND deleted_at IS NULL
         )
         BEGIN
-            THROW 50029, N'Điều kiện tiên quyết đã tồn tại', 1;
+            THROW 50029, N'Äiá»u kiá»‡n tiĂªn quyáº¿t Ä‘Ă£ tá»“n táº¡i', 1;
         END
         
         -- Validate: Minimum grade is valid (0-10)
         IF @MinimumGrade < 0 OR @MinimumGrade > 10
         BEGIN
-            THROW 50030, N'Điểm tối thiểu phải từ 0 đến 10', 1;
+            THROW 50030, N'Äiá»ƒm tá»‘i thiá»ƒu pháº£i tá»« 0 Ä‘áº¿n 10', 1;
         END
         
         -- Insert prerequisite
@@ -12145,7 +12494,7 @@ BEGIN
             AND deleted_at IS NULL
         )
         BEGIN
-            THROW 50031, N'Không tìm thấy điều kiện tiên quyết', 1;
+            THROW 50031, N'KhĂ´ng tĂ¬m tháº¥y Ä‘iá»u kiá»‡n tiĂªn quyáº¿t', 1;
         END
         
         -- Soft delete
@@ -12158,7 +12507,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Xóa điều kiện tiên quyết thành công' AS Message;
+        SELECT 1 AS Success, N'XĂ³a Ä‘iá»u kiá»‡n tiĂªn quyáº¿t thĂ nh cĂ´ng' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -12244,8 +12593,8 @@ BEGIN
             SELECT @MissingPrerequisites = STRING_AGG(
                 prerequisite_name + 
                 CASE 
-                    WHEN student_grade = 0 THEN N' (chưa học)'
-                    ELSE N' (điểm ' + CAST(student_grade AS NVARCHAR(10)) + N' < ' + CAST(minimum_grade AS NVARCHAR(10)) + N')'
+                    WHEN student_grade = 0 THEN N' (chÆ°a há»c)'
+                    ELSE N' (Ä‘iá»ƒm ' + CAST(student_grade AS NVARCHAR(10)) + N' < ' + CAST(minimum_grade AS NVARCHAR(10)) + N')'
                 END,
                 ', '
             )
@@ -12339,9 +12688,9 @@ WHERE name IN (
 PRINT 'Stored Procedures created: ' + CAST(@SPCount AS VARCHAR(10)) + '/5';
 
 IF @SPCount = 5
-    PRINT '✓ All Prerequisites SPs created successfully'
+    PRINT 'âœ“ All Prerequisites SPs created successfully'
 ELSE
-    PRINT '✗ Some SPs missing';
+    PRINT 'âœ— Some SPs missing';
 
 PRINT '';
 PRINT '========================================';
@@ -12349,13 +12698,13 @@ PRINT 'Completed: 14_SP_Prerequisites.sql';
 PRINT '========================================';
 GO
 
-PRINT '🔧 Starting Academic Year Automation Setup...';
+PRINT 'đŸ”§ Starting Academic Year Automation Setup...';
 GO
 
 -- ===========================================
--- STEP 1: BỎ HỌC KỲ HÈ - CHỈ GIỮ HK1 VÀ HK2
+-- STEP 1: Bá» Há»ŒC Ká»² HĂˆ - CHá»ˆ GIá»® HK1 VĂ€ HK2
 -- ===========================================
-PRINT '📋 Step 1: Removing Summer Semester (Semester 3)...';
+PRINT 'đŸ“‹ Step 1: Removing Summer Semester (Semester 3)...';
 GO
 
 -- Update existing registration_periods constraint
@@ -12373,14 +12722,14 @@ BEGIN
     IF @ConstraintName IS NOT NULL
     BEGIN
         EXEC('ALTER TABLE registration_periods DROP CONSTRAINT ' + @ConstraintName);
-        PRINT '   ✅ Dropped old semester constraint on registration_periods';
+        PRINT '   âœ… Dropped old semester constraint on registration_periods';
     END
 END
 
 -- Add new constraint: Only semester 1 and 2
 ALTER TABLE registration_periods 
 ADD CONSTRAINT CK_RegistrationPeriod_Semester CHECK (semester IN (1, 2));
-PRINT '   ✅ Added new constraint: Semester can only be 1 or 2';
+PRINT '   âœ… Added new constraint: Semester can only be 1 or 2';
 GO
 
 -- Update GPA constraint if exists
@@ -12398,20 +12747,20 @@ BEGIN
     IF @GpaConstraintName IS NOT NULL
     BEGIN
         EXEC('ALTER TABLE gpas DROP CONSTRAINT ' + @GpaConstraintName);
-        PRINT '   ✅ Dropped old semester constraint on gpas';
+        PRINT '   âœ… Dropped old semester constraint on gpas';
     END
 END
 
--- GPA: NULL = cả năm, 1 = HK1, 2 = HK2
+-- GPA: NULL = cáº£ nÄƒm, 1 = HK1, 2 = HK2
 ALTER TABLE gpas 
 ADD CONSTRAINT CK_GPA_Semester CHECK (semester IS NULL OR semester IN (1, 2));
-PRINT '   ✅ Added new constraint on gpas: NULL (yearly) or 1, 2';
+PRINT '   âœ… Added new constraint on gpas: NULL (yearly) or 1, 2';
 GO
 
 -- ===========================================
--- STEP 2: TẠO BẢNG SCHOOL_YEARS (NĂM HỌC)
+-- STEP 2: Táº O Báº¢NG SCHOOL_YEARS (NÄ‚M Há»ŒC)
 -- ===========================================
-PRINT '📋 Step 2: Creating school_years table...';
+PRINT 'đŸ“‹ Step 2: Creating school_years table...';
 GO
 
 IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'school_years')
@@ -12421,7 +12770,7 @@ BEGIN
         
         -- Basic Info
         year_code           NVARCHAR(20) NOT NULL UNIQUE,     -- "2024-2025"
-        year_name           NVARCHAR(100) NOT NULL,           -- "Năm học 2024-2025"
+        year_name           NVARCHAR(100) NOT NULL,           -- "NÄƒm há»c 2024-2025"
         
         -- Link to Academic Year (Cohort)
         academic_year_id    VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.academic_years(academic_year_id),
@@ -12459,37 +12808,37 @@ BEGIN
     CREATE INDEX IX_SchoolYear_YearCode ON school_years(year_code);
     CREATE INDEX IX_SchoolYear_AcademicYear ON school_years(academic_year_id);
     
-    PRINT '   ✅ Table school_years created successfully';
+    PRINT '   âœ… Table school_years created successfully';
 END
 ELSE
 BEGIN
-    PRINT '   ⚠️  Table school_years already exists';
+    PRINT '   â ï¸  Table school_years already exists';
 END
 GO
 
 -- ===========================================
--- STEP 3: UPDATE ACADEMIC_YEARS (NIÊN KHÓA)
+-- STEP 3: UPDATE ACADEMIC_YEARS (NIĂN KHĂ“A)
 -- ===========================================
-PRINT '📋 Step 3: Updating academic_years structure for Cohort (4 years)...';
+PRINT 'đŸ“‹ Step 3: Updating academic_years structure for Cohort (4 years)...';
 GO
 
 -- Add new columns for cohort management
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('academic_years') AND name = 'cohort_code')
 BEGIN
     ALTER TABLE academic_years ADD cohort_code NVARCHAR(10) NULL;
-    PRINT '   ✅ Added column: cohort_code (K21, K22, K23, K24)';
+    PRINT '   âœ… Added column: cohort_code (K21, K22, K23, K24)';
 END
 
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('academic_years') AND name = 'duration_years')
 BEGIN
     ALTER TABLE academic_years ADD duration_years INT NULL DEFAULT 4;
-    PRINT '   ✅ Added column: duration_years (default 4 for undergraduate)';
+    PRINT '   âœ… Added column: duration_years (default 4 for undergraduate)';
 END
 
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('academic_years') AND name = 'description')
 BEGIN
     ALTER TABLE academic_years ADD description NVARCHAR(500) NULL;
-    PRINT '   ✅ Added column: description';
+    PRINT '   âœ… Added column: description';
 END
 
 -- Update existing data
@@ -12498,23 +12847,23 @@ SET
     cohort_code = 'K' + CAST(start_year % 100 AS VARCHAR(2)),
     duration_years = 4,
     end_year = start_year + 4,
-    description = N'Niên khóa ' + CAST(start_year AS NVARCHAR) + N'-' + CAST(start_year + 4 AS NVARCHAR)
+    description = N'NiĂªn khĂ³a ' + CAST(start_year AS NVARCHAR) + N'-' + CAST(start_year + 4 AS NVARCHAR)
 WHERE cohort_code IS NULL;
 
-PRINT '   ✅ Updated existing academic_years with cohort info';
+PRINT '   âœ… Updated existing academic_years with cohort info';
 GO
 
 -- ===========================================
 -- STEP 4: ADD SCHOOL_YEAR_ID TO CLASSES
 -- ===========================================
-PRINT '📋 Step 4: Adding school_year_id to classes table...';
+PRINT 'đŸ“‹ Step 4: Adding school_year_id to classes table...';
 GO
 
 IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('classes') AND name = 'school_year_id')
 BEGIN
     ALTER TABLE classes ADD school_year_id VARCHAR(50) NULL;
     -- Will set FK after migrating data
-    PRINT '   ✅ Added column: school_year_id to classes';
+    PRINT '   âœ… Added column: school_year_id to classes';
 END
 GO
 
@@ -12523,9 +12872,9 @@ GO
 -- ===========================================
 
 -- ===========================================
--- SP 1: AUTO CREATE COHORT (NIÊN KHÓA)
+-- SP 1: AUTO CREATE COHORT (NIĂN KHĂ“A)
 -- ===========================================
-PRINT '📋 Creating SP: sp_AutoCreateCohort...';
+PRINT 'đŸ“‹ Creating SP: sp_AutoCreateCohort...';
 GO
 
 IF OBJECT_ID('sp_AutoCreateCohort', 'P') IS NOT NULL 
@@ -12534,7 +12883,7 @@ GO
 
 CREATE PROCEDURE sp_AutoCreateCohort
     @StartYear INT,                    -- 2025
-    @DurationYears INT = 4,            -- Mặc định 4 năm (đại học)
+    @DurationYears INT = 4,            -- Máº·c Ä‘á»‹nh 4 nÄƒm (Ä‘áº¡i há»c)
     @CreatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
@@ -12542,17 +12891,17 @@ BEGIN
     BEGIN TRY
         -- Validate
         IF @StartYear < 2020 OR @StartYear > 2050
-            THROW 50001, N'❌ Năm bắt đầu không hợp lệ (2020-2050)', 1;
+            THROW 50001, N'âŒ NÄƒm báº¯t Ä‘áº§u khĂ´ng há»£p lá»‡ (2020-2050)', 1;
         
         DECLARE @CohortId VARCHAR(50) = 'AY' + CAST(@StartYear AS VARCHAR);
         DECLARE @CohortCode NVARCHAR(10) = 'K' + RIGHT(CAST(@StartYear AS VARCHAR), 2);
         DECLARE @EndYear INT = @StartYear + @DurationYears;
         DECLARE @YearName NVARCHAR(50) = CAST(@StartYear AS NVARCHAR) + N'-' + CAST(@EndYear AS NVARCHAR);
-        DECLARE @Description NVARCHAR(500) = N'Niên khóa ' + @CohortCode + N' (' + CAST(@StartYear AS NVARCHAR) + N'-' + CAST(@EndYear AS NVARCHAR) + N')';
+        DECLARE @Description NVARCHAR(500) = N'NiĂªn khĂ³a ' + @CohortCode + N' (' + CAST(@StartYear AS NVARCHAR) + N'-' + CAST(@EndYear AS NVARCHAR) + N')';
         
         -- Check exists
         IF EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = @CohortId)
-            THROW 50002, N'❌ Niên khóa đã tồn tại!', 1;
+            THROW 50002, N'âŒ NiĂªn khĂ³a Ä‘Ă£ tá»“n táº¡i!', 1;
         
         -- Insert cohort
         INSERT INTO academic_years (
@@ -12581,7 +12930,7 @@ BEGIN
             @CohortCode AS CohortCode,
             @YearName AS YearName,
             @DurationYears AS DurationYears,
-            N'✅ Đã tạo niên khóa ' + @CohortCode + N' và ' + CAST(@DurationYears AS NVARCHAR) + N' năm học' AS Message;
+            N'âœ… ÄĂ£ táº¡o niĂªn khĂ³a ' + @CohortCode + N' vĂ  ' + CAST(@DurationYears AS NVARCHAR) + N' nÄƒm há»c' AS Message;
             
     END TRY
     BEGIN CATCH
@@ -12589,13 +12938,13 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '   ✅ Created: sp_AutoCreateCohort';
+PRINT '   âœ… Created: sp_AutoCreateCohort';
 GO
 
 -- ===========================================
--- SP 2: AUTO CREATE SCHOOL YEAR (NĂM HỌC)
+-- SP 2: AUTO CREATE SCHOOL YEAR (NÄ‚M Há»ŒC)
 -- ===========================================
-PRINT '📋 Creating SP: sp_AutoCreateSchoolYear...';
+PRINT 'đŸ“‹ Creating SP: sp_AutoCreateSchoolYear...';
 GO
 
 IF OBJECT_ID('sp_AutoCreateSchoolYear', 'P') IS NOT NULL 
@@ -12612,7 +12961,7 @@ BEGIN
     BEGIN TRY
         DECLARE @SchoolYearId VARCHAR(50) = 'SY' + CAST(@StartYear AS VARCHAR);
         DECLARE @YearCode NVARCHAR(20) = CAST(@StartYear AS NVARCHAR) + N'-' + CAST(@StartYear + 1 AS NVARCHAR);
-        DECLARE @YearName NVARCHAR(100) = N'Năm học ' + @YearCode;
+        DECLARE @YearName NVARCHAR(100) = N'NÄƒm há»c ' + @YearCode;
         
         -- Dates according to Vietnamese university calendar
         DECLARE @StartDate DATE = DATEFROMPARTS(@StartYear, 9, 1);      -- 01-Sep
@@ -12625,7 +12974,7 @@ BEGIN
         -- Check exists
         IF EXISTS (SELECT 1 FROM school_years WHERE school_year_id = @SchoolYearId)
         BEGIN
-            PRINT '   ⚠️  School year ' + @YearCode + ' already exists';
+            PRINT '   â ï¸  School year ' + @YearCode + ' already exists';
             RETURN;
         END
         
@@ -12645,7 +12994,7 @@ BEGIN
             GETDATE(), @CreatedBy
         );
         
-        PRINT '   ✅ Created school year: ' + @YearCode;
+        PRINT '   âœ… Created school year: ' + @YearCode;
         
     END TRY
     BEGIN CATCH
@@ -12653,13 +13002,13 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '   ✅ Created: sp_AutoCreateSchoolYear';
+PRINT '   âœ… Created: sp_AutoCreateSchoolYear';
 GO
 
 -- ===========================================
 -- SP 3: GET CURRENT SCHOOL YEAR & SEMESTER
 -- ===========================================
-PRINT '📋 Creating SP: sp_GetCurrentSchoolYearAndSemester...';
+PRINT 'đŸ“‹ Creating SP: sp_GetCurrentSchoolYearAndSemester...';
 GO
 
 IF OBJECT_ID('sp_GetCurrentSchoolYearAndSemester', 'P') IS NOT NULL 
@@ -12697,9 +13046,9 @@ BEGIN
         ay.cohort_code,
         @CurrentSemester AS current_semester,
         CASE @CurrentSemester
-            WHEN 1 THEN N'Học kỳ 1'
-            WHEN 2 THEN N'Học kỳ 2'
-            ELSE N'Ngoài học kỳ'
+            WHEN 1 THEN N'Há»c ká»³ 1'
+            WHEN 2 THEN N'Há»c ká»³ 2'
+            ELSE N'NgoĂ i há»c ká»³'
         END AS semester_name,
         sy.is_active,
         sy.start_date,
@@ -12713,13 +13062,13 @@ BEGIN
     WHERE sy.school_year_id = @SchoolYearId;
 END
 GO
-PRINT '   ✅ Created: sp_GetCurrentSchoolYearAndSemester';
+PRINT '   âœ… Created: sp_GetCurrentSchoolYearAndSemester';
 GO
 
 -- ===========================================
 -- SP 4: AUTO TRANSITION SEMESTER
 -- ===========================================
-PRINT '📋 Creating SP: sp_AutoTransitionSemester...';
+PRINT 'đŸ“‹ Creating SP: sp_AutoTransitionSemester...';
 GO
 
 IF OBJECT_ID('sp_AutoTransitionSemester', 'P') IS NOT NULL 
@@ -12759,7 +13108,7 @@ BEGIN
             -- Calculate GPA for previous semester if exists
             IF @CurrentSemester IS NOT NULL
             BEGIN
-                PRINT '   📊 Calculating GPA for Semester ' + CAST(@CurrentSemester AS VARCHAR) + '...';
+                PRINT '   đŸ“ Calculating GPA for Semester ' + CAST(@CurrentSemester AS VARCHAR) + '...';
                 EXEC sp_CalculateAllStudentGPA 
                     @AcademicYearId = @SchoolYearId,
                     @Semester = @CurrentSemester,
@@ -12773,7 +13122,7 @@ BEGIN
                 updated_by = @ExecutedBy
             WHERE school_year_id = @SchoolYearId;
             
-            PRINT '   ✅ Transitioned to Semester ' + CAST(@NewSemester AS VARCHAR);
+            PRINT '   âœ… Transitioned to Semester ' + CAST(@NewSemester AS VARCHAR);
             
             -- Log transition
             INSERT INTO audit_logs (user_id, action, entity_type, entity_id, new_values, created_at)
@@ -12788,7 +13137,7 @@ BEGIN
         END
         ELSE
         BEGIN
-            PRINT '   ℹ️  No semester transition needed';
+            PRINT '   â„¹ï¸  No semester transition needed';
         END
         
         COMMIT TRANSACTION;
@@ -12797,7 +13146,7 @@ BEGIN
             'SUCCESS' AS Status,
             @SchoolYearId AS SchoolYearId,
             @NewSemester AS CurrentSemester,
-            N'✅ Đã kiểm tra và cập nhật học kỳ' AS Message;
+            N'âœ… ÄĂ£ kiá»ƒm tra vĂ  cáº­p nháº­t há»c ká»³' AS Message;
             
     END TRY
     BEGIN CATCH
@@ -12806,13 +13155,13 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '   ✅ Created: sp_AutoTransitionSemester';
+PRINT '   âœ… Created: sp_AutoTransitionSemester';
 GO
 
 -- ===========================================
 -- SP 5: AUTO TRANSITION TO NEW SCHOOL YEAR
 -- ===========================================
-PRINT '📋 Creating SP: sp_AutoTransitionToNewSchoolYear...';
+PRINT 'đŸ“‹ Creating SP: sp_AutoTransitionToNewSchoolYear...';
 GO
 
 IF OBJECT_ID('sp_AutoTransitionToNewSchoolYear', 'P') IS NOT NULL 
@@ -12830,7 +13179,7 @@ BEGIN
     BEGIN TRY
         -- Validate new school year exists
         IF NOT EXISTS (SELECT 1 FROM school_years WHERE school_year_id = @NewSchoolYearId AND deleted_at IS NULL)
-            THROW 50001, N'❌ Năm học mới không tồn tại!', 1;
+            THROW 50001, N'âŒ NÄƒm há»c má»›i khĂ´ng tá»“n táº¡i!', 1;
         
         -- Get old school year
         DECLARE @OldSchoolYearId VARCHAR(50);
@@ -12841,7 +13190,7 @@ BEGIN
         IF @OldSchoolYearId IS NOT NULL
         BEGIN
             -- Calculate GPA for entire old school year
-            PRINT '   📊 Calculating yearly GPA for old school year...';
+            PRINT '   đŸ“ Calculating yearly GPA for old school year...';
             EXEC sp_CalculateAllStudentGPA 
                 @AcademicYearId = @OldSchoolYearId,
                 @Semester = NULL,  -- NULL = yearly GPA
@@ -12854,7 +13203,7 @@ BEGIN
                 updated_by = @ExecutedBy
             WHERE school_year_id = @OldSchoolYearId;
             
-            PRINT '   ✅ Closed old school year: ' + @OldSchoolYearId;
+            PRINT '   âœ… Closed old school year: ' + @OldSchoolYearId;
         END
         
         -- Activate new school year
@@ -12865,7 +13214,7 @@ BEGIN
             updated_by = @ExecutedBy
         WHERE school_year_id = @NewSchoolYearId;
         
-        PRINT '   ✅ Activated new school year: ' + @NewSchoolYearId;
+        PRINT '   âœ… Activated new school year: ' + @NewSchoolYearId;
         
         -- Log transition
         INSERT INTO audit_logs (user_id, action, entity_type, entity_id, old_values, new_values, created_at)
@@ -12885,7 +13234,7 @@ BEGIN
             'SUCCESS' AS Status,
             @OldSchoolYearId AS OldSchoolYearId,
             @NewSchoolYearId AS NewSchoolYearId,
-            N'✅ Đã chuyển sang năm học mới' AS Message;
+            N'âœ… ÄĂ£ chuyá»ƒn sang nÄƒm há»c má»›i' AS Message;
             
     END TRY
     BEGIN CATCH
@@ -12894,31 +13243,332 @@ BEGIN
     END CATCH
 END
 GO
-PRINT '   ✅ Created: sp_AutoTransitionToNewSchoolYear';
+PRINT '   âœ… Created: sp_AutoTransitionToNewSchoolYear';
 GO
 
 -- ===========================================
 -- SUMMARY
 -- ===========================================
 PRINT '';
-PRINT '╔════════════════════════════════════════════════╗';
-PRINT '║   ✅ ACADEMIC YEAR AUTOMATION SETUP COMPLETE   ║';
-PRINT '╚════════════════════════════════════════════════╝';
+PRINT 'â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—';
+PRINT 'â•‘   âœ… ACADEMIC YEAR AUTOMATION SETUP COMPLETE   â•‘';
+PRINT 'â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•';
 PRINT '';
-PRINT '📊 Summary:';
-PRINT '   ✅ Removed Summer Semester (only HK1 & HK2)';
-PRINT '   ✅ Created school_years table';
-PRINT '   ✅ Updated academic_years for cohort management';
-PRINT '   ✅ Created 5 automation stored procedures:';
-PRINT '      • sp_AutoCreateCohort';
-PRINT '      • sp_AutoCreateSchoolYear';
-PRINT '      • sp_GetCurrentSchoolYearAndSemester';
-PRINT '      • sp_AutoTransitionSemester';
-PRINT '      • sp_AutoTransitionToNewSchoolYear';
+PRINT 'đŸ“ Summary:';
+PRINT '   âœ… Removed Summer Semester (only HK1 & HK2)';
+PRINT '   âœ… Created school_years table';
+PRINT '   âœ… Updated academic_years for cohort management';
+PRINT '   âœ… Created 5 automation stored procedures:';
+PRINT '      â€¢ sp_AutoCreateCohort';
+PRINT '      â€¢ sp_AutoCreateSchoolYear';
+PRINT '      â€¢ sp_GetCurrentSchoolYearAndSemester';
+PRINT '      â€¢ sp_AutoTransitionSemester';
+PRINT '      â€¢ sp_AutoTransitionToNewSchoolYear';
 PRINT '';
-PRINT '🎯 Next Steps:';
+PRINT 'đŸ¯ Next Steps:';
 PRINT '   1. Run seed data to create sample cohorts';
 PRINT '   2. Update C# models and services';
 PRINT '   3. Set up background job for auto-transition';
 PRINT '';
 GO
+-- ===========================================
+-- STUDENT FULL OPERATIONS (Business Logic)
+-- ===========================================
+
+-- ===========================================
+-- SP: sp_AddStudentFull - Táº¡o Student tá»« UserId Ä‘Ă£ cĂ³
+-- ===========================================
+IF OBJECT_ID('sp_AddStudentFull', 'P') IS NOT NULL DROP PROCEDURE sp_AddStudentFull;
+GO
+CREATE PROCEDURE sp_AddStudentFull
+    @UserId VARCHAR(50),
+    @StudentCode VARCHAR(20),
+    @FullName NVARCHAR(150),
+    @Gender NVARCHAR(10) = NULL,
+    @Dob DATE = NULL,
+    @Email VARCHAR(150) = NULL,
+    @Phone VARCHAR(20) = NULL,
+    @FacultyId VARCHAR(50) = NULL,
+    @MajorId VARCHAR(50) = NULL,
+    @AcademicYearId VARCHAR(50) = NULL,
+    @CohortYear VARCHAR(10) = NULL,
+    @CreatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Validate User exists
+        IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE user_id = @UserId AND deleted_at IS NULL)
+        BEGIN
+            RAISERROR(N'User khĂ´ng tá»“n táº¡i: %s', 16, 1, @UserId);
+            RETURN;
+        END
+        
+        -- Validate StudentCode unique
+        IF EXISTS (SELECT 1 FROM dbo.students WHERE student_code = @StudentCode AND deleted_at IS NULL)
+        BEGIN
+            RAISERROR(N'MĂ£ sinh viĂªn Ä‘Ă£ tá»“n táº¡i: %s', 16, 1, @StudentCode);
+            RETURN;
+        END
+        
+        -- Generate StudentId
+        DECLARE @StudentId VARCHAR(50) = 'STD-' + LOWER(CONVERT(VARCHAR(36), NEWID()));
+        
+        -- Insert Student
+        INSERT INTO dbo.students (
+            student_id, user_id, student_code, full_name, gender, 
+            date_of_birth, email, phone, faculty_id, major_id, 
+            academic_year_id, cohort_year, is_active, 
+            created_at, created_by
+        )
+        VALUES (
+            @StudentId, @UserId, @StudentCode, @FullName, @Gender,
+            @Dob, @Email, @Phone, @FacultyId, @MajorId,
+            @AcademicYearId, @CohortYear, 1,
+            GETDATE(), @CreatedBy
+        );
+        
+        COMMIT TRANSACTION;
+        SELECT @StudentId AS student_id;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+        
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
+        DECLARE @ErrorState INT = ERROR_STATE();
+        
+        RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+    END CATCH
+END
+GO
+
+-- ===========================================
+-- SP: sp_UpdateStudentFull - Update Student + Profile + Family
+-- ===========================================
+IF OBJECT_ID('sp_UpdateStudentFull', 'P') IS NOT NULL DROP PROCEDURE sp_UpdateStudentFull;
+GO
+CREATE PROCEDURE sp_UpdateStudentFull
+    @StudentId VARCHAR(50),
+    @FullName NVARCHAR(150),
+    @Gender NVARCHAR(10) = NULL,
+    @Dob DATE = NULL,
+    @Email VARCHAR(150) = NULL,
+    @Phone VARCHAR(20) = NULL,
+    @FacultyId VARCHAR(50) = NULL,
+    @MajorId VARCHAR(50) = NULL,
+    @AcademicYearId VARCHAR(50) = NULL,
+    @CohortYear VARCHAR(10) = NULL,
+    @Nationality NVARCHAR(50) = NULL,
+    @Ethnicity NVARCHAR(30) = NULL,
+    @Religion NVARCHAR(50) = NULL,
+    @Hometown NVARCHAR(250) = NULL,
+    @CurrentAddress NVARCHAR(250) = NULL,
+    @BankNo NVARCHAR(30) = NULL,
+    @BankName NVARCHAR(100) = NULL,
+    @InsuranceNo NVARCHAR(30) = NULL,
+    @IssuePlace NVARCHAR(100) = NULL,
+    @IssueDate DATE = NULL,
+    @Facebook NVARCHAR(200) = NULL,
+    @FamilyFullName NVARCHAR(150) = NULL,
+    @RelationType NVARCHAR(50) = NULL,
+    @BirthYear INT = NULL,
+    @PhoneFamily NVARCHAR(20) = NULL,
+    @JobFamily NVARCHAR(100) = NULL,
+    @UpdatedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Validate Student exists
+        IF NOT EXISTS (SELECT 1 FROM dbo.students WHERE student_id = @StudentId AND deleted_at IS NULL)
+        BEGIN
+            RAISERROR(N'Sinh viĂªn khĂ´ng tá»“n táº¡i: %s', 16, 1, @StudentId);
+            RETURN;
+        END
+        
+        -- Update Student
+        UPDATE dbo.students
+        SET full_name = @FullName, gender = @Gender, date_of_birth = @Dob,
+            email = @Email, phone = @Phone, faculty_id = @FacultyId,
+            major_id = @MajorId, academic_year_id = @AcademicYearId,
+            cohort_year = @CohortYear,
+            updated_at = GETDATE(), updated_by = @UpdatedBy
+        WHERE student_id = @StudentId AND deleted_at IS NULL;
+        
+        -- Update/Create Student Profile (if student_profiles table exists)
+        IF OBJECT_ID('dbo.student_profiles', 'U') IS NOT NULL
+        BEGIN
+            IF EXISTS (SELECT 1 FROM dbo.student_profiles WHERE student_id = @StudentId)
+            BEGIN
+                UPDATE dbo.student_profiles
+                SET nationality = @Nationality, ethnicity = @Ethnicity, religion = @Religion,
+                    hometown = @Hometown, current_address = @CurrentAddress,
+                    bank_no = @BankNo, bank_name = @BankName,
+                    insurance_no = @InsuranceNo, issue_place = @IssuePlace,
+                    issue_date = @IssueDate, facebook = @Facebook,
+                    updated_at = GETDATE(), updated_by = @UpdatedBy
+                WHERE student_id = @StudentId;
+            END
+            ELSE
+            BEGIN
+                INSERT INTO dbo.student_profiles (
+                    student_id, nationality, ethnicity, religion,
+                    hometown, current_address, bank_no, bank_name,
+                    insurance_no, issue_place, issue_date, facebook,
+                    created_at, created_by
+                )
+                VALUES (
+                    @StudentId, @Nationality, @Ethnicity, @Religion,
+                    @Hometown, @CurrentAddress, @BankNo, @BankName,
+                    @InsuranceNo, @IssuePlace, @IssueDate, @Facebook,
+                    GETDATE(), @UpdatedBy
+                );
+            END
+        END
+        
+        -- Update/Create Student Family (if student_families table exists and family info provided)
+        IF OBJECT_ID('dbo.student_families', 'U') IS NOT NULL 
+           AND @FamilyFullName IS NOT NULL
+        BEGIN
+            -- Check if family member exists
+            DECLARE @FamilyId VARCHAR(50);
+            SELECT TOP 1 @FamilyId = student_family_id
+            FROM dbo.student_families
+            WHERE student_id = @StudentId AND deleted_at IS NULL
+            ORDER BY created_at DESC;
+            
+            IF @FamilyId IS NOT NULL
+            BEGIN
+                UPDATE dbo.student_families
+                SET full_name = @FamilyFullName, relation_type = @RelationType,
+                    birth_year = @BirthYear, phone = @PhoneFamily, job = @JobFamily,
+                    updated_at = GETDATE(), updated_by = @UpdatedBy
+                WHERE student_family_id = @FamilyId;
+            END
+            ELSE
+            BEGIN
+                SET @FamilyId = 'SF-' + LOWER(CONVERT(VARCHAR(36), NEWID()));
+                INSERT INTO dbo.student_families (
+                    student_family_id, student_id, relation_type, full_name,
+                    birth_year, phone, job, created_at, created_by
+                )
+                VALUES (
+                    @FamilyId, @StudentId, @RelationType, @FamilyFullName,
+                    @BirthYear, @PhoneFamily, @JobFamily, GETDATE(), @UpdatedBy
+                );
+            END
+        END
+        
+        COMMIT TRANSACTION;
+        SELECT @StudentId AS student_id;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+        
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
+        DECLARE @ErrorState INT = ERROR_STATE();
+        
+        RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+    END CATCH
+END
+GO
+
+-- ===========================================
+-- SP: sp_DeleteStudentFull - Soft delete Student + related records
+-- ===========================================
+IF OBJECT_ID('sp_DeleteStudentFull', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteStudentFull;
+GO
+CREATE PROCEDURE sp_DeleteStudentFull
+    @StudentId VARCHAR(50),
+    @DeletedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Validate Student exists
+        IF NOT EXISTS (SELECT 1 FROM dbo.students WHERE student_id = @StudentId AND deleted_at IS NULL)
+        BEGIN
+            RAISERROR(N'Sinh viĂªn khĂ´ng tá»“n táº¡i: %s', 16, 1, @StudentId);
+            RETURN;
+        END
+        
+        -- Soft delete Student
+        UPDATE dbo.students
+        SET deleted_at = GETDATE(), deleted_by = @DeletedBy
+        WHERE student_id = @StudentId;
+        
+        -- Soft delete Student Profile (if exists)
+        IF OBJECT_ID('dbo.student_profiles', 'U') IS NOT NULL
+        BEGIN
+            UPDATE dbo.student_profiles
+            SET deleted_at = GETDATE(), deleted_by = @DeletedBy
+            WHERE student_id = @StudentId;
+        END
+        
+        -- Soft delete Student Family (if exists)
+        IF OBJECT_ID('dbo.student_families', 'U') IS NOT NULL
+        BEGIN
+            UPDATE dbo.student_families
+            SET deleted_at = GETDATE(), deleted_by = @DeletedBy
+            WHERE student_id = @StudentId;
+        END
+        
+        COMMIT TRANSACTION;
+        SELECT @StudentId AS student_id;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+        
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        DECLARE @ErrorSeverity INT = ERROR_SEVERITY();
+        DECLARE @ErrorState INT = ERROR_STATE();
+        
+        RAISERROR(@ErrorMessage, @ErrorSeverity, @ErrorState);
+    END CATCH
+END
+GO
+
+-- ===========================================
+-- SP: sp_GetStudentByUserId - Map UserId -> StudentId (cho authentication)
+-- ===========================================
+IF OBJECT_ID('sp_GetStudentByUserId', 'P') IS NOT NULL DROP PROCEDURE sp_GetStudentByUserId;
+GO
+CREATE PROCEDURE sp_GetStudentByUserId
+    @UserId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    SELECT 
+        s.student_id, s.user_id, s.student_code, s.full_name, s.gender,
+        s.date_of_birth AS dob, s.email, s.phone, s.faculty_id, s.major_id,
+        s.academic_year_id, s.cohort_year, s.is_active,
+        s.created_at, s.created_by, s.updated_at, s.updated_by,
+        s.deleted_at, s.deleted_by,
+        m.major_name, m.faculty_id AS major_faculty_id,
+        f.faculty_name, ay.year_name
+    FROM dbo.students s
+    LEFT JOIN dbo.majors m ON s.major_id = m.major_id
+    LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
+    LEFT JOIN dbo.academic_years ay ON s.academic_year_id = ay.academic_year_id
+    WHERE s.user_id = @UserId AND s.deleted_at IS NULL;
+END
+GO
+
+PRINT 'âœ… Student Full Operations SPs created';
+GO
+
