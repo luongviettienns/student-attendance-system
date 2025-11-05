@@ -14,6 +14,19 @@
             }
         },
         {
+            "DownstreamPathTemplate": "/api-edu/rooms",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                { "Host": "localhost", "Port": 5227 }
+            ],
+            "UpstreamPathTemplate": "/api-edu/rooms",
+            "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+        {
             "DownstreamPathTemplate": "/api-edu/auth/{everything}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
