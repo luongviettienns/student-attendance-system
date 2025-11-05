@@ -1,4 +1,3 @@
-<<<<<<< ours
 -- ===========================================
 -- 🎓 HỆ THỐNG QUẢN LÝ ĐIỂM DANH SINH VIÊN
 -- 📋 File 2/4: STORED PROCEDURES (ĐẦY ĐỦ)
