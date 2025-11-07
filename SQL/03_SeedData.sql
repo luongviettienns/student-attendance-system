@@ -287,7 +287,21 @@ END
 ELSE
     PRINT '   ⚠️  Students already exist';
 GO
-
+PRINT N'';
+PRINT N'📋 Danh sách lớp hành chính hiện có:';
+SELECT 
+    admin_class_id,
+    class_code,
+    class_name,
+    cohort_year,
+    major_id,
+    current_students,
+    max_students,
+    (max_students - current_students) AS available_slots
+FROM administrative_classes
+WHERE deleted_at IS NULL AND is_active = 1
+ORDER BY cohort_year DESC, class_code;
+GO
 -- ===========================================
 -- 9. SUBJECTS (4 subjects - for different years)
 -- ===========================================
@@ -326,7 +340,6 @@ END
 ELSE
     PRINT '   ⚠️  Classes already exist';
 GO
-
 -- ===========================================
 -- 11. ENROLLMENTS - Students register for classes
 -- ===========================================

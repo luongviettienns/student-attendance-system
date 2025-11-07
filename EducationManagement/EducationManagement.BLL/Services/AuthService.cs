@@ -17,11 +17,9 @@ namespace EducationManagement.BLL.Services
             _refreshStore = refreshStore;
         }
 
-        // 🔹 Kiểm tra thông tin đăng nhập (đã tối ưu)
+        // 🔹 Kiểm tra thông tin đăng nhập
         public async Task<User?> ValidateUserAsync(string username, string password)
         {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
             var normalizedUsername = username.Trim().ToLower();
 
             // ✅ Lấy user từ repository
@@ -29,11 +27,15 @@ namespace EducationManagement.BLL.Services
 
             if (user == null || !user.IsActive)
             {
+<<<<<<< Updated upstream
                 Console.WriteLine($"[Login] ❌ User không tồn tại ({stopwatch.ElapsedMilliseconds} ms)");
+=======
+>>>>>>> Stashed changes
                 return null;
             }
 
             // ✅ Kiểm tra mật khẩu (BCrypt)
+<<<<<<< Updated upstream
             var sw = System.Diagnostics.Stopwatch.StartNew();
             var isValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
             sw.Stop();
@@ -48,20 +50,34 @@ namespace EducationManagement.BLL.Services
             }
 
             Console.WriteLine($"[Login] ✅ Thành công, tổng {stopwatch.ElapsedMilliseconds} ms");
+=======
+            // 🔧 FIX: Trim hash để tránh trailing spaces từ database
+            var passwordHash = user.PasswordHash?.Trim() ?? "";
+            var isValid = BCrypt.Net.BCrypt.Verify(password, passwordHash);
+
+            if (!isValid)
+            {
+                return null;
+            }
+            
+>>>>>>> Stashed changes
             return user;
         }
 
         // 🔹 Hash mật khẩu dùng chung
-        public string HashPassword(string password)
+        public string HashPassword(string password, int workFactor = 12)
         {
-            // ⚙️ Giảm work factor trong môi trường dev/test cho nhanh
-            return BCrypt.Net.BCrypt.HashPassword(password, workFactor: 10);
+            // ⚙️ Work factor 12 để tương thích với hash cũ ($2b$12$)
+            // Có thể giảm xuống 10 trong môi trường dev/test cho nhanh
+            return BCrypt.Net.BCrypt.HashPassword(password, workFactor: workFactor);
         }
 
         // 🔹 Verify mật khẩu dùng chung
         public bool VerifyPassword(string password, string passwordHash)
         {
-            return BCrypt.Net.BCrypt.Verify(password, passwordHash);
+            // 🔧 FIX: Trim hash để tránh trailing spaces từ database
+            var hash = passwordHash?.Trim() ?? "";
+            return BCrypt.Net.BCrypt.Verify(password, hash);
         }
 
         // 🔹 Lưu refresh token
