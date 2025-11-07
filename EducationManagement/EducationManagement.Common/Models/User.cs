@@ -7,28 +7,28 @@ namespace EducationManagement.Common.Models
     public class User
     {
         [Column("user_id")]
-        public string UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
         [Column("username")]
-        public string Username { get; set; }
+        public string Username { get; set; } = string.Empty;
 
         [Column("password_hash")]
-        public string PasswordHash { get; set; }
+        public string PasswordHash { get; set; } = string.Empty;
 
         [Column("email")]
-        public string Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         [Column("phone")]
         public string? Phone { get; set; }
 
         [Column("full_name")]
-        public string FullName { get; set; }
+        public string FullName { get; set; } = string.Empty;
 
         [Column("avatar_url")]
         public string? AvatarUrl { get; set; }
 
         [Column("role_id")]
-        public string RoleId { get; set; }
+        public string RoleId { get; set; } = string.Empty;
 
         // 🔹 Chỉ dùng để map kết quả từ Stored Procedure
         [NotMapped]

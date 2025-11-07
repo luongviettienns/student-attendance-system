@@ -6,15 +6,15 @@ namespace EducationManagement.Common.DTOs.Student
     public class StudentCreateDto
     {
         [Required(ErrorMessage = "User ID is required")]
-        public string UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Student code is required")]
         [StringLength(20, ErrorMessage = "Student code cannot exceed 20 characters")]
-        public string StudentCode { get; set; }
+        public string StudentCode { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Full name is required")]
         [StringLength(150, ErrorMessage = "Full name cannot exceed 150 characters")]
-        public string FullName { get; set; }
+        public string FullName { get; set; } = string.Empty;
 
         [StringLength(10, ErrorMessage = "Gender cannot exceed 10 characters")]
         public string? Gender { get; set; }
@@ -43,6 +43,6 @@ namespace EducationManagement.Common.DTOs.Student
 
         [Required(ErrorMessage = "Created by is required")]
         [StringLength(50, ErrorMessage = "Created by cannot exceed 50 characters")]
-        public string CreatedBy { get; set; }
+        public string CreatedBy { get; set; } = string.Empty;
     }
 }

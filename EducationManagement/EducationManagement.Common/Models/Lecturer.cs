@@ -9,15 +9,15 @@ namespace EducationManagement.Common.Models
     {
         [Key]
         [Column("lecturer_id")]
-        public string LecturerId { get; set; }
+        public string LecturerId { get; set; } = string.Empty;
 
         [Column("user_id")]
         [Required]
-        public string UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
         [Column("department_id")]
         [Required]
-        public string DepartmentId { get; set; }
+        public string DepartmentId { get; set; } = string.Empty;
 
         [Column("academic_title")]
         public string? AcademicTitle { get; set; }     // GS, PGS, TS,...

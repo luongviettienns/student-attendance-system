@@ -14,12 +14,12 @@ namespace EducationManagement.Common.Models
         [Column("faculty_code")]
         [Required]
         [MaxLength(20)]
-        public string FacultyCode { get; set; }
+        public string FacultyCode { get; set; } = string.Empty;
 
         [Column("faculty_name")]
         [Required]
         [MaxLength(200)]
-        public string FacultyName { get; set; }
+        public string FacultyName { get; set; } = string.Empty;
 
         [Column("description")]
         public string? Description { get; set; }

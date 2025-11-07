@@ -8,13 +8,13 @@ namespace EducationManagement.Common.DTOs.User
 {
     public class UserResponseDto
     {
-        public string UserId { get; set; }
-        public string Username { get; set; }
-        public string FullName { get; set; }
-        public string Email { get; set; }
-        public string Phone { get; set; }
-        public string RoleId { get; set; }
-        public string RoleName { get; set; }
-        public string AvatarUrl { get; set; }
+        public string UserId { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string RoleId { get; set; } = string.Empty;
+        public string RoleName { get; set; } = string.Empty;
+        public string AvatarUrl { get; set; } = string.Empty;
     }
 }

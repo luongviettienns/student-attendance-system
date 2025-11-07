@@ -43,7 +43,7 @@ namespace EducationManagement.DAL.Repositories
         public async Task<(List<Faculty> items, int totalCount)> GetAllPagedAsync(
             int page = 1,
             int pageSize = 10,
-            string search = null)
+            string? search = null)
         {
             var parameters = new[]
             {

@@ -13,11 +13,11 @@ namespace EducationManagement.Common.Models
 
         [Column("PermissionCode")]
         [Required, MaxLength(100)]
-        public string PermissionCode { get; set; }
+        public string PermissionCode { get; set; } = string.Empty;
 
         [Column("PermissionName")]
         [Required, MaxLength(200)]
-        public string PermissionName { get; set; }
+        public string PermissionName { get; set; } = string.Empty;
 
         // 🔹 Dùng cho menu con (dropdown trong FE)
         [Column("ParentCode")]

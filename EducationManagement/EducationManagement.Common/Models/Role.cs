@@ -2,10 +2,6 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-
 namespace EducationManagement.Common.Models
 {
     [Table("roles")]
@@ -15,7 +11,7 @@ namespace EducationManagement.Common.Models
         public string? RoleId { get; set; }
 
         [Column("role_name")]
-        public string RoleName { get; set; }
+        public string RoleName { get; set; } = string.Empty;
 
         [Column("description")]
         public string? Description { get; set; }   // cho phép NULL

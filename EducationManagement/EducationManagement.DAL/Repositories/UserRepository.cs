@@ -229,7 +229,7 @@ namespace EducationManagement.DAL.Repositories
                 UserId = row["user_id"].ToString()!,
                 Username = row["username"].ToString()!,
                 // ✅ Thêm map PasswordHash
-                PasswordHash = row.Table.Columns.Contains("password_hash") ? row["password_hash"]?.ToString() : null,
+                PasswordHash = row.Table.Columns.Contains("password_hash") ? row["password_hash"]?.ToString() ?? string.Empty : string.Empty,
                 FullName = row["full_name"].ToString()!,
                 Email = row["email"].ToString()!,
                 Phone = row["phone"]?.ToString(),
