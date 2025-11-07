@@ -44,16 +44,18 @@ PRINT '👤 Seeding Users...';
 
 IF NOT EXISTS (SELECT 1 FROM users WHERE user_id = 'USER001')
 BEGIN
-    -- Password: "password123" 
-    -- BCrypt hash: $2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK
+    -- Admin password: "admin123" 
+    -- BCrypt hash: $2a$10$h5gvrNjE2bhwhHn6Ofofq.Ppr0hvpLY5Q3mbY1OjkkGL8CMxm2VBm
+    -- Other users password: "password123"
+    -- BCrypt hash: $2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue
     INSERT INTO dbo.users (user_id, username, password_hash, email, phone, full_name, role_id, is_active) VALUES
-    ('USER001', 'admin', '$2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK', 'admin@example.com', '0901234567', N'Nguyễn Văn Admin', 'ROLE_ADMIN', 1),
-    ('USER002', 'lecturer01', '$2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK', 'lecturer01@example.com', '0902222222', N'Trần Thị Hoa', 'ROLE_LECTURER', 1),
-    ('USER003', 'student_k21_01', '$2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK', 'student.k21.01@example.com', '0903333333', N'Lê Văn An', 'ROLE_STUDENT', 1),
-    ('USER004', 'student_k21_02', '$2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK', 'student.k21.02@example.com', '0904444444', N'Phạm Thị Bình', 'ROLE_STUDENT', 1),
-    ('USER005', 'student_k22_01', '$2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK', 'student.k22.01@example.com', '0905555555', N'Nguyễn Văn Cường', 'ROLE_STUDENT', 1),
-    ('USER006', 'student_k23_01', '$2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK', 'student.k23.01@example.com', '0906666666', N'Hoàng Thị Dung', 'ROLE_STUDENT', 1),
-    ('USER007', 'student_k24_01', '$2b$12$8HoLKV3tszmWbxEa1OWy8u973bS4UCVLXd3JJQ9JaF0vXFaQyKydK', 'student.k24.01@example.com', '0907777777', N'Đinh Văn Em', 'ROLE_STUDENT', 1);
+    ('USER001', 'admin', '$2a$10$h5gvrNjE2bhwhHn6Ofofq.Ppr0hvpLY5Q3mbY1OjkkGL8CMxm2VBm', 'admin@example.com', '0901234567', N'Nguyễn Văn Admin', 'ROLE_ADMIN', 1),
+    ('USER002', 'lecturer01', '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'lecturer01@example.com', '0902222222', N'Trần Thị Hoa', 'ROLE_LECTURER', 1),
+    ('USER003', 'student_k21_01', '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'student.k21.01@example.com', '0903333333', N'Lê Văn An', 'ROLE_STUDENT', 1),
+    ('USER004', 'student_k21_02', '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'student.k21.02@example.com', '0904444444', N'Phạm Thị Bình', 'ROLE_STUDENT', 1),
+    ('USER005', 'student_k22_01', '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'student.k22.01@example.com', '0905555555', N'Nguyễn Văn Cường', 'ROLE_STUDENT', 1),
+    ('USER006', 'student_k23_01', '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'student.k23.01@example.com', '0906666666', N'Hoàng Thị Dung', 'ROLE_STUDENT', 1),
+    ('USER007', 'student_k24_01', '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'student.k24.01@example.com', '0907777777', N'Đinh Văn Em', 'ROLE_STUDENT', 1);
     
     PRINT '   ✅ 7 users created (1 admin, 1 lecturer, 5 students from different cohorts)';
 END
@@ -473,13 +475,13 @@ PRINT '   ✅ 6 Enrollments';
 PRINT '   ✅ 6 Grades';
 PRINT '   ✅ 14 Permissions';
 PRINT '';
-PRINT '🔑 Login Credentials (all use password: password123):';
-PRINT '   👤 Admin:        admin';
-PRINT '   👨‍🏫 Lecturer:     lecturer01';
-PRINT '   👨‍🎓 Student K21:  student_k21_01, student_k21_02 (Year 4)';
-PRINT '   👨‍🎓 Student K22:  student_k22_01 (Year 3)';
-PRINT '   👨‍🎓 Student K23:  student_k23_01 (Year 2)';
-PRINT '   👨‍🎓 Student K24:  student_k24_01 (Year 1 - Freshman)';
+PRINT '🔑 Login Credentials:';
+PRINT '   👤 Admin:        admin / admin123';
+PRINT '   👨‍🏫 Lecturer:     lecturer01 / password123';
+PRINT '   👨‍🎓 Student K21:  student_k21_01, student_k21_02 (Year 4) / password123';
+PRINT '   👨‍🎓 Student K22:  student_k22_01 (Year 3) / password123';
+PRINT '   👨‍🎓 Student K23:  student_k23_01 (Year 2) / password123';
+PRINT '   👨‍🎓 Student K24:  student_k24_01 (Year 1 - Freshman) / password123';
 PRINT '';
 PRINT '🎯 Test Automation:';
 PRINT '   • EXEC sp_GetCurrentSchoolYearAndSemester;';
