@@ -49,7 +49,6 @@ namespace EducationManagement.BLL.Services
                     PeriodFrom = r["period_from"] == DBNull.Value ? null : Convert.ToInt32(r["period_from"]).ToString(),
                     PeriodTo = r["period_to"] == DBNull.Value ? null : Convert.ToInt32(r["period_to"]).ToString(),
                     Status = r.Table.Columns.Contains("status") ? r["status"]?.ToString() : null,
-                    Recurrence = r.Table.Columns.Contains("recurrence") ? r["recurrence"]?.ToString() : null,
                     ClassId = r["class_id"].ToString()!,
                     ClassCode = r["class_code"].ToString()!,
                     ClassName = r["class_name"].ToString()!,
@@ -117,7 +116,7 @@ namespace EducationManagement.BLL.Services
             var id = Guid.NewGuid().ToString("N");
             await _repo.InsertSessionAsync(id, input.ClassId, input.SubjectId, input.LecturerId, input.RoomId,
                 input.SchoolYearId, input.WeekNo, input.Weekday, input.StartTime, input.EndTime,
-                input.PeriodFrom, input.PeriodTo, input.Recurrence, input.Status, input.Actor);
+input.PeriodFrom, input.PeriodTo, input.Recurrence, input.Status, input.Actor);
             return id;
         }
 
@@ -127,7 +126,7 @@ namespace EducationManagement.BLL.Services
             {
                 LecturerId = input.LecturerId,
                 RoomId = input.RoomId
-            }, updateMode:true);
+            }, updateMode: true);
             if (fkErrors.Any())
                 throw new InvalidOperationException(string.Join("; ", fkErrors));
 
@@ -328,8 +327,8 @@ namespace EducationManagement.BLL.Services
 
             // Get source sessions
             var sourceSessionsDt = await _repo.GetSessionsBySemesterAsync(
-                input.SourceSchoolYearId, 
-                input.SourceSemester, 
+                input.SourceSchoolYearId,
+                input.SourceSemester,
                 input.SourceClassId);
             var sourceSessions = MapSessions(sourceSessionsDt);
 
@@ -340,7 +339,7 @@ namespace EducationManagement.BLL.Services
                 try
                 {
                     // Check if target class exists
-                    if (!string.IsNullOrEmpty(input.TargetClassId) && 
+                    if (!string.IsNullOrEmpty(input.TargetClassId) &&
                         !await _repo.ExistsClassAsync(input.TargetClassId))
                     {
                         result.Errors.Add($"Session {session.SessionId}: Target class not found");
@@ -477,8 +476,8 @@ namespace EducationManagement.BLL.Services
         /// Get sessions by semester
         /// </summary>
         public async Task<List<TimetableSessionDto>> GetSessionsBySemesterAsync(
-            string schoolYearId, 
-            int semester, 
+            string schoolYearId,
+            int semester,
             string? classId = null)
         {
             var dt = await _repo.GetSessionsBySemesterAsync(schoolYearId, semester, classId);
@@ -489,8 +488,8 @@ namespace EducationManagement.BLL.Services
         /// Create session with recurrence pattern
         /// </summary>
         public async Task<RecurrenceCreateResult> CreateSessionWithRecurrenceAsync(
-            TimetableCreateInput input, 
-            DateTime? startDate = null, 
+            TimetableCreateInput input,
+            DateTime? startDate = null,
             DateTime? endDate = null)
         {
             var result = new RecurrenceCreateResult
@@ -572,7 +571,7 @@ namespace EducationManagement.BLL.Services
         public async Task<List<string>> ApplyRecurrencePatternAsync(TimetableCreateInput input, DateTime startDate, DateTime endDate)
         {
             var createdSessionIds = new List<string>();
-            
+
             if (string.IsNullOrEmpty(input.Recurrence) || input.Recurrence == "once")
             {
                 // Single session - no recurrence
@@ -583,18 +582,18 @@ namespace EducationManagement.BLL.Services
 
             var currentDate = startDate;
             var weekday = input.Weekday; // 1=Sunday, 2=Monday, ..., 7=Saturday
-            
+
             while (currentDate <= endDate)
             {
                 // Check if current date matches the weekday
                 var currentWeekday = (int)currentDate.DayOfWeek;
                 if (currentWeekday == 0) currentWeekday = 7; // Sunday = 7
-                
+
                 if (currentWeekday == weekday)
                 {
                     // Calculate week number for this date
                     var weekNo = GetWeekNumber(currentDate);
-                    
+
                     // Check if we should create session based on recurrence pattern
                     bool shouldCreate = input.Recurrence switch
                     {
@@ -689,7 +688,7 @@ namespace EducationManagement.BLL.Services
                 new { Start = TimeSpan.FromHours(7), End = TimeSpan.FromHours(9) },   // 7:00-9:00
                 new { Start = TimeSpan.FromHours(9), End = TimeSpan.FromHours(11) },  // 9:00-11:00
                 new { Start = TimeSpan.FromHours(13), End = TimeSpan.FromHours(15) },  // 13:00-15:00
-                new { Start = TimeSpan.FromHours(15), End = TimeSpan.FromHours(17) },  // 15:00-17:00
+new { Start = TimeSpan.FromHours(15), End = TimeSpan.FromHours(17) },  // 15:00-17:00
                 new { Start = TimeSpan.FromHours(17), End = TimeSpan.FromHours(19) },  // 17:00-19:00
             };
 
@@ -719,7 +718,6 @@ namespace EducationManagement.BLL.Services
         public string? PeriodFrom { get; set; }
         public string? PeriodTo { get; set; }
         public string? Status { get; set; }
-        public string? Recurrence { get; set; }
         public string ClassId { get; set; } = string.Empty;
         public string ClassCode { get; set; } = string.Empty;
         public string ClassName { get; set; } = string.Empty;
@@ -817,6 +815,11 @@ namespace EducationManagement.BLL.Services
         public int? Capacity { get; set; }
         public bool IsActive { get; set; }
     }
+<<<<<<< Updated upstream
+}
+
+
+=======
     // ============================================
     // NEW DTOs for advanced features
     // ============================================
@@ -909,5 +912,4 @@ namespace EducationManagement.BLL.Services
         public DateTime? EndDate { get; set; }
     }
 }
-
-
+>>>>>>> Stashed changes

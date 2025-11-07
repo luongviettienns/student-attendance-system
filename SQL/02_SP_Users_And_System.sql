@@ -613,11 +613,12 @@ CREATE PROCEDURE sp_GetUserByUsername
     @Username VARCHAR(50)
 AS
 BEGIN
+    -- ✅ FIX: Case-insensitive comparison (code normalize to lowercase)
     SELECT u.user_id, u.username, u.password_hash, u.full_name, u.email, 
            u.phone, u.role_id, r.role_name, u.avatar_url, u.is_active, u.last_login_at
     FROM dbo.users u
     LEFT JOIN dbo.roles r ON u.role_id = r.role_id
-    WHERE u.username = @Username AND u.deleted_at IS NULL;
+    WHERE LOWER(u.username) = LOWER(@Username) AND u.deleted_at IS NULL;
 END
 GO
 
