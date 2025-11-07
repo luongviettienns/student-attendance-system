@@ -49,6 +49,7 @@ namespace EducationManagement.BLL.Services
                     PeriodFrom = r["period_from"] == DBNull.Value ? null : Convert.ToInt32(r["period_from"]).ToString(),
                     PeriodTo = r["period_to"] == DBNull.Value ? null : Convert.ToInt32(r["period_to"]).ToString(),
                     Status = r.Table.Columns.Contains("status") ? r["status"]?.ToString() : null,
+                    Recurrence = r.Table.Columns.Contains("recurrence") ? r["recurrence"]?.ToString() : null,
                     ClassId = r["class_id"].ToString()!,
                     ClassCode = r["class_code"].ToString()!,
                     ClassName = r["class_name"].ToString()!,
@@ -116,7 +117,7 @@ namespace EducationManagement.BLL.Services
             var id = Guid.NewGuid().ToString("N");
             await _repo.InsertSessionAsync(id, input.ClassId, input.SubjectId, input.LecturerId, input.RoomId,
                 input.SchoolYearId, input.WeekNo, input.Weekday, input.StartTime, input.EndTime,
-input.PeriodFrom, input.PeriodTo, input.Recurrence, input.Status, input.Actor);
+                input.PeriodFrom, input.PeriodTo, input.Recurrence, input.Status, input.Actor);
             return id;
         }
 
@@ -250,7 +251,7 @@ input.PeriodFrom, input.PeriodTo, input.Recurrence, input.Status, input.Actor);
                 throw new InvalidOperationException(string.Join("; ", fkErrors));
 
             // Calculate weeks based on semester or week range
-            var weeks = CalculateWeeks(input);
+            var weeks = await CalculateWeeksAsync(input);
             result.TotalRequested = weeks.Count;
 
             foreach (var weekNo in weeks)
@@ -538,31 +539,46 @@ input.PeriodFrom, input.PeriodTo, input.Recurrence, input.Status, input.Actor);
         }
 
         // Helper methods
-        private List<int> CalculateWeeks(BulkCreateSessionsInput input)
+        private async Task<List<int>> CalculateWeeksAsync(BulkCreateSessionsInput input)
         {
+            if (input == null)
+                throw new ArgumentNullException(nameof(input));
+
             var weeks = new List<int>();
 
+            // Priority 1: Specific week numbers
             if (input.WeekNumbers != null && input.WeekNumbers.Any())
             {
-                return input.WeekNumbers.ToList();
+                return input.WeekNumbers.Where(w => w > 0).OrderBy(w => w).Distinct().ToList();
             }
 
+            // Priority 2: Calculate from semester
             if (input.Semester.HasValue && !string.IsNullOrEmpty(input.SchoolYearId))
             {
-                // Get semester dates from school year
-                var semesterWeeks = _repo.GetSemesterWeeksAsync(input.SchoolYearId, input.Semester.Value).Result;
+                var semesterWeeks = await _repo.GetSemesterWeeksAsync(input.SchoolYearId, input.Semester.Value);
+                if (semesterWeeks == null || !semesterWeeks.Any())
+                    throw new InvalidOperationException($"Không tìm thấy tuần học cho học kỳ {input.Semester.Value} của năm học {input.SchoolYearId}");
                 return semesterWeeks;
             }
 
+            // Priority 3: Week range
             if (input.WeekFrom.HasValue && input.WeekTo.HasValue)
             {
+                if (input.WeekFrom.Value < 1 || input.WeekTo.Value < 1)
+                    throw new ArgumentException("Số tuần phải lớn hơn 0", nameof(input));
+                
+                if (input.WeekFrom.Value > input.WeekTo.Value)
+                    throw new ArgumentException("WeekFrom phải nhỏ hơn hoặc bằng WeekTo", nameof(input));
+
                 for (int i = input.WeekFrom.Value; i <= input.WeekTo.Value; i++)
                 {
                     weeks.Add(i);
                 }
+                return weeks;
             }
 
-            return weeks;
+            // No valid input provided
+            throw new ArgumentException("Phải cung cấp WeekNumbers, (Semester + SchoolYearId), hoặc (WeekFrom + WeekTo)", nameof(input));
         }
 
         /// <summary>
@@ -718,6 +734,7 @@ new { Start = TimeSpan.FromHours(15), End = TimeSpan.FromHours(17) },  // 15:00-
         public string? PeriodFrom { get; set; }
         public string? PeriodTo { get; set; }
         public string? Status { get; set; }
+        public string? Recurrence { get; set; }
         public string ClassId { get; set; } = string.Empty;
         public string ClassCode { get; set; } = string.Empty;
         public string ClassName { get; set; } = string.Empty;
@@ -815,11 +832,7 @@ new { Start = TimeSpan.FromHours(15), End = TimeSpan.FromHours(17) },  // 15:00-
         public int? Capacity { get; set; }
         public bool IsActive { get; set; }
     }
-<<<<<<< Updated upstream
-}
 
-
-=======
     // ============================================
     // NEW DTOs for advanced features
     // ============================================
@@ -912,4 +925,3 @@ new { Start = TimeSpan.FromHours(15), End = TimeSpan.FromHours(17) },  // 15:00-
         public DateTime? EndDate { get; set; }
     }
 }
->>>>>>> Stashed changes

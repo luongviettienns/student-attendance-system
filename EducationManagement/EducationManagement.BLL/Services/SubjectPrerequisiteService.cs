@@ -143,8 +143,8 @@ namespace EducationManagement.BLL.Services
                     missingPrereqs.Add(new MissingPrerequisiteDto
                     {
                         SubjectId = prereq.PrerequisiteSubjectId,
-                        SubjectCode = prereq.PrerequisiteSubjectCode,
-                        SubjectName = prereq.PrerequisiteSubjectName,
+                        SubjectCode = prereq.PrerequisiteSubjectCode ?? string.Empty,
+                        SubjectName = prereq.PrerequisiteSubjectName ?? string.Empty,
                         MinimumGrade = prereq.MinimumGrade,
                         IsRequired = prereq.IsRequired,
                         Reason = "Chưa học hoặc điểm chưa đạt"
