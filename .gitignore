@@ -486,15 +486,3 @@ $RECYCLE.BIN/
 .vs/
 **/bin/
 **/obj/
-
-# Documentation files (keep local only)
-*.md
-!README.md
-
-# Postman collections (keep local only)
-*.json
-!package.json
-!package-lock.json
-!tsconfig.json
-!appsettings.json
-!ocelot.json
