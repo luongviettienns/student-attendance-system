@@ -1,6 +1,6 @@
 // User Controller
-app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserService', 'AuthService',
-    function($scope, $location, $routeParams, UserService, AuthService) {
+app.controller('UserController', ['$scope', '$location', '$routeParams', '$timeout', 'UserService', 'AuthService',
+    function($scope, $location, $routeParams, $timeout, UserService, AuthService) {
     
     $scope.users = [];
     $scope.filteredUsers = [];
@@ -25,8 +25,25 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserSe
     // Math for template
     $scope.Math = window.Math;
     
-    // Load all users
+    // Load all users (Admin only)
     $scope.loadUsers = function() {
+        // Check if user is Admin before loading
+        var currentUser = AuthService.getCurrentUser();
+        if (!currentUser) {
+            $scope.error = 'Bạn chưa đăng nhập. Vui lòng đăng nhập lại.';
+            $scope.loading = false;
+            return;
+        }
+        
+        // Backend returns 'Role' (capital R) in LoginResponse
+        var userRole = (currentUser.Role || currentUser.roleName || currentUser.role || '').trim();
+        
+        if (userRole !== 'Admin') {
+            $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
+            $scope.loading = false;
+            return;
+        }
+        
         $scope.loading = true;
         UserService.getAll()
             .then(function(response) {
@@ -36,7 +53,13 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserSe
                 $scope.loading = false;
             })
             .catch(function(error) {
-                $scope.error = 'Không thể tải danh sách người dùng';
+                if (error.status === 403) {
+                    $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
+                } else if (error.status === 404) {
+                    $scope.error = 'Không tìm thấy dữ liệu người dùng.';
+                } else {
+                    $scope.error = 'Không thể tải danh sách người dùng: ' + (error.data?.message || error.message || 'Lỗi không xác định');
+                }
                 $scope.loading = false;
             });
     };
@@ -122,7 +145,7 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserSe
                 $scope.roles = response.data;
             })
             .catch(function(error) {
-                console.error('Error loading roles:', error);
+                // Error handled silently
             });
     };
     
@@ -179,9 +202,8 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserSe
                 window.scrollTo(0, 0);
                 
                 // Redirect after 1.5 seconds
-                setTimeout(function() {
+                $timeout(function() {
                     $location.path('/users');
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {
@@ -216,9 +238,8 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserSe
         if (userId === $scope.currentUser.userId) {
             $scope.error = 'Bạn không thể xóa tài khoản của chính mình!';
             window.scrollTo(0, 0);
-            setTimeout(function() {
+            $timeout(function() {
                 $scope.error = null;
-                $scope.$apply();
             }, 3000);
             return;
         }
@@ -238,10 +259,9 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserSe
                 window.scrollTo(0, 0);
                 
                 // Reload users after 1 second
-                setTimeout(function() {
+                $timeout(function() {
                     $scope.loadUsers();
                     $scope.success = null;
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {
@@ -257,9 +277,8 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserSe
                 }
                 
                 // Auto hide error after 5 seconds
-                setTimeout(function() {
+                $timeout(function() {
                     $scope.error = null;
-                    $scope.$apply();
                 }, 5000);
             });
     };
@@ -280,24 +299,49 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', 'UserSe
     };
     
     // Initialize based on route
-    if ($location.path() === '/users') {
-        $scope.loadUsers();
-        $scope.loadRoles(); // Load roles for filter
-    } else if ($routeParams.id) {
-        $scope.loadUser($routeParams.id);
-        $scope.loadRoles();
+    // Check if user is Admin before loading
+    var currentUser = AuthService.getCurrentUser();
+    if (!currentUser) {
+        $scope.error = 'Bạn chưa đăng nhập. Vui lòng đăng nhập lại.';
+        $scope.loading = false;
     } else {
-        // Create mode - set default values
-        $scope.user = {
-            isActive: true,
-            username: '',
-            fullName: '',
-            email: '',
-            phone: '',
-            roleId: '',
-            password: ''
-        };
-        $scope.loadRoles();
+        // Backend returns 'Role' (capital R) in LoginResponse
+        var userRole = (currentUser.Role || currentUser.roleName || currentUser.role || '').trim();
+        
+        if ($location.path() === '/users') {
+            if (userRole === 'Admin') {
+                $scope.loadUsers();
+                $scope.loadRoles(); // Load roles for filter
+            } else {
+                $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
+                $scope.loading = false;
+            }
+        } else if ($routeParams.id) {
+            if (userRole === 'Admin') {
+                $scope.loadUser($routeParams.id);
+                $scope.loadRoles();
+            } else {
+                $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
+                $scope.loading = false;
+            }
+        } else {
+            // Create mode - set default values
+            if (userRole === 'Admin') {
+                $scope.user = {
+                    isActive: true,
+                    username: '',
+                    fullName: '',
+                    email: '',
+                    phone: '',
+                    roleId: '',
+                    password: ''
+                };
+                $scope.loadRoles();
+            } else {
+                $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
+                $scope.loading = false;
+            }
+        }
     }
 }]);
 

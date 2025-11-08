@@ -1,6 +1,6 @@
 // Dashboard Controller
-app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService', 'UserService', 'FacultyService', 'StudentService', 'SubjectService', 'LecturerService', 'MajorService', 'AcademicYearService', 'ApiService', 'ToastService',
-    function($scope, $q, $timeout, AuthService, UserService, FacultyService, StudentService, SubjectService, LecturerService, MajorService, AcademicYearService, ApiService, ToastService) {
+app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService', 'UserService', 'FacultyService', 'StudentService', 'SubjectService', 'LecturerService', 'MajorService', 'AcademicYearService', 'ApiService', 'ToastService', 'AuditLogService', 'LoggerService',
+    function($scope, $q, $timeout, AuthService, UserService, FacultyService, StudentService, SubjectService, LecturerService, MajorService, AcademicYearService, ApiService, ToastService, AuditLogService, LoggerService) {
     
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.stats = {
@@ -15,6 +15,10 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
     
     $scope.loading = true;
     $scope.error = null;
+    $scope.recentAuditLogs = [];
+    $scope.allAuditLogs = [];
+    $scope.filteredAllAuditLogs = [];
+    $scope.auditFilter = 'ALL'; // ALL | CREATE | UPDATE | DELETE
     
     // ============================================
     // 🆕 AVATAR MODAL - CLEAN IMPLEMENTATION
@@ -136,7 +140,7 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
                 }, 1000);
             })
             .catch(function(error) {
-                console.error('❌ Upload error:', error);
+                LoggerService.error('Avatar upload error', error);
                 
                 $scope.avatarModal.uploading = false;
                 
@@ -202,61 +206,108 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
     
     // Helper function to extract count from response
     function getCountFromResponse(response) {
-        if (!response || !response.data) return 0;
+        if (!response || !response.data) {
+            LoggerService.warn('getCountFromResponse: No response or data', response);
+            return 0;
+        }
         
-        // Check if it's pagination response
-        if (response.data.pagination && response.data.pagination.totalCount) {
+        // Check if it's pagination response (students, lecturers, etc.)
+        if (response.data.pagination && typeof response.data.pagination.totalCount === 'number') {
+            LoggerService.log('getCountFromResponse: Found pagination.totalCount', response.data.pagination.totalCount);
             return response.data.pagination.totalCount;
         }
         
         // Check if it's array directly
         if (Array.isArray(response.data)) {
+            LoggerService.log('getCountFromResponse: Found array directly', response.data.length);
             return response.data.length;
         }
         
         // Check if it's wrapped in data property
         if (response.data.data) {
             if (Array.isArray(response.data.data)) {
+                LoggerService.log('getCountFromResponse: Found array in data.data', response.data.data.length);
                 return response.data.data.length;
+            }
+            // If data.data is an object with count property
+            if (typeof response.data.data === 'object' && typeof response.data.data.count === 'number') {
+                LoggerService.log('getCountFromResponse: Found count in data.data', response.data.data.count);
+                return response.data.data.count;
             }
         }
         
+        // Check if response.data has a count property directly
+        if (typeof response.data.count === 'number') {
+            LoggerService.log('getCountFromResponse: Found count directly', response.data.count);
+            return response.data.count;
+        }
+        
+        LoggerService.warn('getCountFromResponse: Could not extract count', response.data);
         return 0;
     }
     
-    // Load all statistics
+    // Load all statistics (only for Admin role)
     $scope.loadStats = function() {
+        // Check if user is Admin - only load admin stats for Admin role
+        var currentUser = AuthService.getCurrentUser();
+        var userRole = currentUser?.roleName || currentUser?.Role || '';
+        
+        // Only load admin statistics if user is Admin
+        if (userRole !== 'Admin') {
+            $scope.loading = false;
+            $scope.error = null;
+            // Don't load stats for non-admin users
+            return;
+        }
+        
         $scope.loading = true;
         $scope.error = null;
         
-        // Create promises for all API calls
+        // Create promises for all API calls (Admin only)
+        // Note: StudentService.getAll() returns pagination, others return arrays
         var promises = {
             users: UserService.getAll().catch(function(err) { 
-                console.error('Error loading users:', err);
-                return {data: []};
+                // Silently handle 403 errors - user might not have permission
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading users', err);
+                }
+                return {data: {data: []}}; // Keep structure for getCountFromResponse
             }),
-            students: StudentService.getAll().catch(function(err) { 
-                console.error('Error loading students:', err);
-                return {data: []};
+            students: StudentService.getAll({page: 1, pageSize: 1}).catch(function(err) { 
+                // Use pagination to get totalCount
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading students', err);
+                }
+                return {data: {pagination: {totalCount: 0}}};
             }),
             lecturers: LecturerService.getAll().catch(function(err) { 
-                console.error('Error loading lecturers:', err);
-                return {data: []};
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading lecturers', err);
+                }
+                return {data: {data: []}}; // Keep structure for getCountFromResponse
             }),
             faculties: FacultyService.getAll().catch(function(err) { 
-                console.error('Error loading faculties:', err);
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading faculties', err);
+                }
                 return {data: []};
             }),
             majors: MajorService.getAll().catch(function(err) { 
-                console.error('Error loading majors:', err);
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading majors', err);
+                }
                 return {data: []};
             }),
             subjects: SubjectService.getAll().catch(function(err) { 
-                console.error('Error loading subjects:', err);
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading subjects', err);
+                }
                 return {data: []};
             }),
             academicYears: AcademicYearService.getAll().catch(function(err) { 
-                console.error('Error loading academic years:', err);
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading academic years', err);
+                }
                 return {data: []};
             })
         };
@@ -272,10 +323,112 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
             $scope.stats.totalAcademicYears = getCountFromResponse(results.academicYears);
             $scope.loading = false;
         }).catch(function(error) {
-            console.error('Error loading dashboard stats:', error);
+            LoggerService.error('Error loading dashboard stats', error);
             $scope.error = 'Không thể tải dữ liệu thống kê';
             $scope.loading = false;
         });
+    };
+
+    // Load recent audit logs (latest 10) - Admin only
+    $scope.loadRecentAuditLogs = function() {
+        // Check if user is Admin - only load audit logs for Admin role
+        var currentUser = AuthService.getCurrentUser();
+        var userRole = currentUser?.roleName || currentUser?.Role || '';
+        
+        // Only load audit logs if user is Admin
+        if (userRole !== 'Admin') {
+            $scope.allAuditLogs = [];
+            $scope.recentAuditLogs = [];
+            $scope.filteredAllAuditLogs = [];
+            return;
+        }
+        
+        AuditLogService.getAll({ pageSize: 100, page: 1 })
+            .then(function(response) {
+                var list = response.data?.data || response.data || [];
+                $scope.allAuditLogs = list;
+                $scope.applyAuditFilter();
+            })
+            .catch(function(err) {
+                // Silently handle 403 errors - user might not have permission
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading audit logs', err);
+                }
+                $scope.allAuditLogs = [];
+                $scope.recentAuditLogs = [];
+                $scope.filteredAllAuditLogs = [];
+            });
+    };
+
+    // Apply audit filter
+    $scope.applyAuditFilter = function() {
+        var source = ($scope.allAuditLogs || []);
+        $scope.recentAuditLogs = ($scope.auditFilter === 'ALL')
+            ? source
+            : source.filter(function(x){ return x.action === $scope.auditFilter; });
+        // recent widget shows top 5 only
+        $scope.recentAuditLogs = ($scope.recentAuditLogs || []).slice(0, 5);
+        // full list widget
+        $scope.filteredAllAuditLogs = ($scope.auditFilter === 'ALL')
+            ? ($scope.allAuditLogs || [])
+            : ($scope.allAuditLogs || []).filter(function(x){ return x.action === $scope.auditFilter; });
+    };
+
+    // Set filter helper
+    $scope.setAuditFilter = function(filter) {
+        $scope.auditFilter = filter;
+        $scope.applyAuditFilter();
+    };
+
+    // ===== Friendly display helpers =====
+    var actionVerbMap = {
+        'CREATE': 'Thêm',
+        'UPDATE': 'Cập nhật',
+        'DELETE': 'Xóa',
+        'LOGIN': 'Đăng nhập',
+        'LOGOUT': 'Đăng xuất'
+    };
+
+    var entityLabelMap = {
+        'User': 'Người dùng',
+        'Student': 'Sinh viên',
+        'Lecturer': 'Giảng viên',
+        'Faculty': 'Khoa',
+        'Department': 'Bộ môn',
+        'Major': 'Ngành',
+        'Subject': 'Môn học',
+        'Class': 'Lớp học phần',
+        'AcademicYear': 'Niên khóa',
+        'RegistrationPeriod': 'Đợt đăng ký',
+        'Enrollment': 'Đăng ký học phần',
+        'Auth': 'Auth'
+    };
+
+    $scope.displayAuditTitle = function(log) {
+        if (!log) return '';
+        var verb = actionVerbMap[log.action] || log.action;
+        var entity = entityLabelMap[log.entityType] || log.entityType || 'Đối tượng';
+        var who = log.userName || log.userId || 'System';
+        var id = log.entityCode || log.entityName || log.entityId || '';
+        if (log.entityType === 'Auth' && log.action === 'LOGIN') {
+            return 'Đăng nhập thành công: ' + (log.details || (log.userName || log.userId));
+        }
+        return verb + ' ' + entity + (id ? (' #' + id) : '') + ' bởi ' + who;
+    };
+
+    $scope.timeAgo = function(dateString) {
+        if (!dateString) return '';
+        var date = new Date(dateString);
+        var now = new Date();
+        var diff = Math.floor((now - date) / 1000);
+        if (diff < 60) return diff + ' giây trước';
+        var mins = Math.floor(diff/60);
+        if (mins < 60) return mins + ' phút trước';
+        var hours = Math.floor(mins/60);
+        if (hours < 24) return hours + ' giờ trước';
+        var days = Math.floor(hours/24);
+        if (days < 7) return days + ' ngày trước';
+        return date.toLocaleString('vi-VN');
     };
     
     // Logout
@@ -290,5 +443,6 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
     
     // Initialize
     $scope.loadStats();
+    $scope.loadRecentAuditLogs();
 }]);
 

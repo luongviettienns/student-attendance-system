@@ -1,5 +1,18 @@
+// @ts-check
+/* global angular */
+'use strict';
+
 // AngularJS Application Configuration
-var app = angular.module('adminApp', ['ngRoute']);
+var app = angular.module('adminApp', ['ngRoute', 'ngAnimate']);
+
+// Academic rules & thresholds (centralised to avoid scattering magic numbers)
+app.constant('ACADEMIC_RULES', {
+    defaultRequiredCredits: 120,
+    passingScore: 5.0,
+    excellentThreshold: 9.0,
+    goodThreshold: 8.0,
+    averageThreshold: 5.5
+});
 
 // API Configuration (Microservices Pattern - All via Gateway)
 app.constant('API_CONFIG', {
@@ -10,41 +23,10 @@ app.constant('API_CONFIG', {
     // ✅ Gateway sẽ proxy đến Admin API
 });
 
-// HTTP Interceptor để tự động thêm Authorization token vào mọi request
-app.config(['$httpProvider', function($httpProvider) {
-    $httpProvider.interceptors.push(['$window', '$q', '$location', function($window, $q, $location) {
-        return {
-            request: function(config) {
-                // Lấy token từ localStorage hoặc sessionStorage
-                var token = $window.localStorage.getItem('auth_token') || 
-                           $window.sessionStorage.getItem('auth_token');
-                
-                // Nếu có token, thêm vào header
-                if (token) {
-                    config.headers.Authorization = 'Bearer ' + token;
-                }
-                
-                return config;
-            },
-            
-            responseError: function(rejection) {
-                // Nếu lỗi 401 (Unauthorized), redirect về login
-                if (rejection.status === 401) {
-                    $window.localStorage.removeItem('auth_token');
-                    $window.localStorage.removeItem('user_info');
-                    $window.sessionStorage.removeItem('auth_token');
-                    $window.sessionStorage.removeItem('user_info');
-                    $location.path('/login');
-                }
-                
-                return $q.reject(rejection);
-            }
-        };
-    }]);
-}]);
-
 // Route Configuration
 app.config(['$routeProvider', '$locationProvider', function($routeProvider, $locationProvider) {
+    // Đảm bảo sử dụng hashbang kiểu #! để điều hướng đúng
+    $locationProvider.hashPrefix('!');
     $routeProvider
         // Login
         .when('/login', {
@@ -95,20 +77,6 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'OrganizationController'
         })
         
-        // Legacy routes - redirect to organization page
-        .when('/faculties', {
-            redirectTo: '/organization'
-        })
-        .when('/departments', {
-            redirectTo: '/organization'
-        })
-        .when('/majors', {
-            redirectTo: '/organization'
-        })
-        .when('/subjects', {
-            redirectTo: '/organization'
-        })
-        
         // Academic Year Management
         .when('/academic-years', {
             templateUrl: 'views/academic-years/list.html',
@@ -121,6 +89,20 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/academic-years/edit/:id', {
             templateUrl: 'views/academic-years/form.html',
             controller: 'AcademicYearController'
+        })
+        
+        // School Year Management
+        .when('/school-years', {
+            templateUrl: 'views/school-years/list.html',
+            controller: 'SchoolYearController'
+        })
+        .when('/school-years/create', {
+            templateUrl: 'views/school-years/form.html',
+            controller: 'SchoolYearController'
+        })
+        .when('/school-years/edit/:id', {
+            templateUrl: 'views/school-years/form.html',
+            controller: 'SchoolYearController'
         })
         
         // Student Management
@@ -149,6 +131,12 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'ClassController'
         })
         
+        // Attendance Management
+        .when('/attendances', {
+            templateUrl: 'views/attendances/list.html',
+            controller: 'AttendanceController'
+        })
+        
         // Lecturer Portal
         .when('/lecturer/dashboard', {
             templateUrl: 'views/lecturer/dashboard.html',
@@ -162,6 +150,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'views/lecturer/grades.html',
             controller: 'LecturerGradesController'
         })
+        .when('/lecturer/appeals', {
+            templateUrl: 'views/lecturer/appeals.html',
+            controller: 'LecturerGradeAppealController'
+        })
         .when('/lecturer/timetable', {
             templateUrl: 'views/lecturer/timetable.html',
             controller: 'LecturerTimetableController'
@@ -171,6 +163,34 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/advisor/dashboard', {
             templateUrl: 'views/advisor/dashboard.html',
             controller: 'AdvisorDashboardController'
+        })
+        .when('/advisor/students/:studentId', {
+            templateUrl: 'views/advisor/student-detail.html',
+            controller: 'AdvisorStudentController'
+        })
+        .when('/advisor/students', {
+            templateUrl: 'views/advisor/students.html',
+            controller: 'AdvisorStudentListController'
+        })
+        .when('/advisor/students/:studentId/progress', {
+            templateUrl: 'views/advisor/student-progress.html',
+            controller: 'AdvisorProgressController'
+        })
+        .when('/advisor/warnings', {
+            templateUrl: 'views/advisor/warnings.html',
+            controller: 'AdvisorWarningController'
+        })
+        .when('/advisor/appeals', {
+            templateUrl: 'views/advisor/appeals.html',
+            controller: 'AdvisorGradeAppealController'
+        })
+        .when('/advisor/grade-formula', {
+            templateUrl: 'views/advisor/grade-formula.html',
+            controller: 'AdvisorGradeFormulaConfigController'
+        })
+        .when('/advisor/enrollments', {
+            templateUrl: 'views/advisor/enrollments.html',
+            controller: 'AdvisorEnrollmentController'
         })
         
         // Student Portal
@@ -189,6 +209,52 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/student/grades', {
             templateUrl: 'views/student/grades.html',
             controller: 'StudentGradesController'
+        })
+        .when('/student/appeals', {
+            templateUrl: 'views/student/appeals.html',
+            controller: 'StudentGradeAppealController'
+        })
+        .when('/student/attendance', {
+            templateUrl: 'views/student/attendance.html',
+            controller: 'StudentAttendanceController'
+        })
+        .when('/student/profile', {
+            templateUrl: 'views/student/profile.html',
+            controller: 'StudentProfileController'
+        })
+        
+        // =============================================
+        // 🔹 PHASE 2: ENROLLMENT SYSTEM
+        // =============================================
+        
+        // Administrative Classes
+        .when('/admin-classes', {
+            templateUrl: 'views/admin-classes/list.html',
+            controller: 'AdministrativeClassController'
+        })
+        
+        // Registration Periods
+        .when('/registration-periods', {
+            templateUrl: 'views/registration-periods/manage.html',
+            controller: 'RegistrationPeriodController'
+        })
+        
+        // Enrollments - Student
+        .when('/student/enrollments', {
+            templateUrl: 'views/enrollments/student-register.html',
+            controller: 'EnrollmentController'
+        })
+        
+        // Enrollments - Admin
+        .when('/enrollments', {
+            templateUrl: 'views/enrollments/admin-manage.html',
+            controller: 'EnrollmentController'
+        })
+        
+        // Subject Prerequisites
+        .when('/subject-prerequisites', {
+            templateUrl: 'views/subject-prerequisites/manage.html',
+            controller: 'SubjectPrerequisiteController'
         })
         
         // System Management
@@ -214,13 +280,26 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
 }]);
 
 // Run block - Check authentication and add global logout
-app.run(['$rootScope', '$location', 'AuthService', function($rootScope, $location, AuthService) {
+app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', 'NotificationService', function($rootScope, $location, AuthService, LoggerService, NotificationService) {
     // Global logout function available in all views
     $rootScope.logout = function() {
-        console.log('Logging out...');
+        LoggerService.log('Logging out...');
         AuthService.logout();
         $location.path('/login');
     };
+    
+    // Load unread notification count on app start (if user is authenticated)
+    $rootScope.$on('$routeChangeStart', function(event, next, current) {
+        if (AuthService.isAuthenticated() && next && !next.publicAccess) {
+            // Load unread count when navigating to authenticated pages
+            NotificationService.loadUnreadCount();
+        }
+    });
+    
+    // Initial load if already authenticated
+    if (AuthService.isAuthenticated()) {
+        NotificationService.loadUnreadCount();
+    }
     
     // Get current user for display in header
     $rootScope.getCurrentUser = function() {
@@ -232,15 +311,41 @@ app.run(['$rootScope', '$location', 'AuthService', function($rootScope, $locatio
             $location.path('/login');
         }
         
-        // If authenticated and trying to access login, redirect to dashboard
-        if (next.publicAccess && AuthService.isAuthenticated()) {
-            $location.path('/dashboard');
+        // If authenticated and trying to access login, redirect based on role
+        if (next && next.publicAccess && AuthService.isAuthenticated()) {
+            var currentUser = AuthService.getCurrentUser();
+            // Backend returns 'role' (lowercase) or 'Role' (capital), not 'roleName'
+            var userRole = (currentUser && currentUser.role) || (currentUser && currentUser.Role) || (currentUser && currentUser.roleName) || 'Admin';
+            
+            // Normalize role
+            if (userRole) {
+                userRole = userRole.trim();
+                var roleMap = {
+                    'Cố vấn': 'Advisor',
+                    'Giảng viên': 'Lecturer',
+                    'Sinh viên': 'Student',
+                    'Quản trị viên': 'Admin'
+                };
+                userRole = roleMap[userRole] || userRole;
+            }
+            
+            // Redirect based on user role
+            var defaultRoute = '/dashboard';
+            if (userRole === 'Student') {
+                defaultRoute = '/student/dashboard';
+            } else if (userRole === 'Lecturer') {
+                defaultRoute = '/lecturer/dashboard';
+            } else if (userRole === 'Advisor') {
+                defaultRoute = '/advisor/dashboard';
+            }
+            
+            $location.path(defaultRoute);
         }
     });
 }]);
 
 // HTTP Interceptor for adding JWT token
-app.factory('AuthInterceptor', ['$q', '$location', '$window', function($q, $location, $window) {
+app.factory('AuthInterceptor', ['$q', '$location', '$window', '$injector', function($q, $location, $window, $injector) {
     return {
         request: function(config) {
             // Check both localStorage and sessionStorage for token
@@ -253,12 +358,28 @@ app.factory('AuthInterceptor', ['$q', '$location', '$window', function($q, $loca
         },
         responseError: function(rejection) {
             if (rejection.status === 401) {
-                // Clear tokens from both storages and redirect to login
+                // Unauthorized - Clear tokens and redirect to login
                 $window.localStorage.removeItem('auth_token');
                 $window.localStorage.removeItem('user_info');
                 $window.sessionStorage.removeItem('auth_token');
                 $window.sessionStorage.removeItem('user_info');
                 $location.path('/login');
+                // Try to show toast if ToastService is available
+                try {
+                    var ToastService = $injector.get('ToastService');
+                    ToastService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                } catch (e) {
+                    // ToastService not available, skip
+                }
+            } else if (rejection.status === 403) {
+                // Forbidden - User doesn't have permission
+                // Don't show error toast for 403, let the controller handle it
+                // This prevents spam of error messages for admin-only features
+                // Silent - no console output
+            } else if (rejection.status === 404) {
+                // Not Found - Resource doesn't exist
+                // Don't show error toast, let the controller handle it
+                // Silent - no console output
             }
             return $q.reject(rejection);
         }

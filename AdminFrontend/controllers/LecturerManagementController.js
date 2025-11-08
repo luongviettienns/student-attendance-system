@@ -1,7 +1,8 @@
 // ============================================================
 // LECTURER MANAGEMENT CONTROLLER - Quản lý Giảng viên + Phân môn
 // ============================================================
-app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG', 'AuthService', 'AvatarService', function($scope, $http, API_CONFIG, AuthService, AvatarService) {
+app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG', 'AuthService', 'AvatarService', 'RoleService', 'ToastService', 'LoggerService', 'DepartmentService',
+    function($scope, $http, API_CONFIG, AuthService, AvatarService, RoleService, ToastService, LoggerService, DepartmentService) {
     
     // =========================
     // INITIALIZATION
@@ -18,6 +19,15 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     $scope.lecturerSubjects = [];
     $scope.availableSubjects = [];
     $scope.newSubject = {};
+    
+    // Pagination for subjects list
+    $scope.subjectsCurrentPage = 1;
+    $scope.subjectsPageSize = 5; // 5 môn học mỗi trang
+    $scope.subjectsTotalPages = 1;
+    $scope.paginatedSubjects = [];
+    
+    // Permission check
+    $scope.canViewSubjectAssignment = false;
 
     // Initialize Avatar Modal Functions
     AvatarService.initAvatarModal($scope);
@@ -32,27 +42,59 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
         AuthService.logout(); // Will auto-redirect to login
     };
 
+    // Handle tab click
+    $scope.onTabClick = function(tabName) {
+        LoggerService.debug('Lecturer management tab clicked', tabName);
+        $scope.activeTab = tabName;
+        LoggerService.debug('Lecturer management active tab', $scope.activeTab);
+    };
+    
     $scope.init = function() {
-        $scope.loadLecturers();
-        $scope.loadDepartments();
-        $scope.loadAllSubjects();
+        // Load permissions first, then load data
+        RoleService.loadPermissions().then(function() {
+            $scope.canViewSubjectAssignment = RoleService.hasPermission('canManageLecturers');
+            LoggerService.debug('Permissions loaded for lecturer management', { canViewSubjectAssignment: $scope.canViewSubjectAssignment });
+            
+            // Now load data
+            $scope.loadLecturers();
+            $scope.loadDepartments();
+            
+            // Only load subjects if has permission
+            if ($scope.canViewSubjectAssignment) {
+                $scope.loadAllSubjects();
+            }
+        }).catch(function(error) {
+            LoggerService.error('Error loading lecturer permissions', error);
+            // Use fallback permissions
+            $scope.canViewSubjectAssignment = RoleService.hasPermission('canManageLecturers');
+            
+            // Still load basic data
+            $scope.loadLecturers();
+            $scope.loadDepartments();
+            
+            if ($scope.canViewSubjectAssignment) {
+                $scope.loadAllSubjects();
+            }
+        });
     };
 
     // =========================
     // LECTURER FUNCTIONS
     // =========================
     $scope.loadLecturers = function() {
-        $http.get(API_CONFIG.BASE_URL + '/lecturer')
+        $http.get(API_CONFIG.BASE_URL + '/lecturers')
             .then(function(response) {
                 $scope.lecturers = response.data;
                 
-                // Load subject count for each lecturer
-                $scope.lecturers.forEach(function(lecturer) {
-                    $scope.loadLecturerSubjectCount(lecturer);
-                });
+                // Load subject count for each lecturer (only if has permission)
+                if ($scope.canViewSubjectAssignment) {
+                    $scope.lecturers.forEach(function(lecturer) {
+                        $scope.loadLecturerSubjectCount(lecturer);
+                    });
+                }
             })
             .catch(function(error) {
-                console.error('Error loading lecturers:', error);
+                ToastService.error('❌ Lỗi tải danh sách giảng viên');
             });
     };
 
@@ -62,23 +104,26 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
             return;
         }
 
-        $http.get(API_CONFIG.BASE_URL + '/lecturer')
+        $http.get(API_CONFIG.BASE_URL + '/lecturers')
             .then(function(response) {
                 $scope.lecturers = response.data.filter(function(l) {
                     return l.departmentId === $scope.filterByDepartment;
                 });
 
-                $scope.lecturers.forEach(function(lecturer) {
-                    $scope.loadLecturerSubjectCount(lecturer);
-                });
+                // Load subject count (only if has permission)
+                if ($scope.canViewSubjectAssignment) {
+                    $scope.lecturers.forEach(function(lecturer) {
+                        $scope.loadLecturerSubjectCount(lecturer);
+                    });
+                }
             })
             .catch(function(error) {
-                console.error('Error loading lecturers:', error);
+                ToastService.error('❌ Lỗi tải danh sách giảng viên');
             });
     };
 
     $scope.loadLecturerSubjectCount = function(lecturer) {
-        $http.get(API_CONFIG.BASE_URL + '/admin/lecturersubject/lecturer/' + lecturer.lecturerId)
+        $http.get(API_CONFIG.BASE_URL + '/lecturer-subjects/lecturer/' + lecturer.lecturerId)
             .then(function(response) {
                 lecturer.subjectCount = (response.data.data || []).length;
             })
@@ -88,34 +133,45 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     };
 
     $scope.loadDepartments = function() {
-        $http.get(API_CONFIG.BASE_URL + '/admin/department')
+        DepartmentService.getAll()
             .then(function(response) {
-                $scope.departments = response.data;
+                // Handle different response formats: {data: [...]} or [...]
+                var data = response.data;
+                if (data && data.data && Array.isArray(data.data)) {
+                    $scope.departments = data.data;
+                } else if (Array.isArray(data)) {
+                    $scope.departments = data;
+                } else {
+                    $scope.departments = [];
+                }
+                LoggerService.debug('Departments loaded', { count: $scope.departments.length });
             })
             .catch(function(error) {
-                console.error('Error loading departments:', error);
+                LoggerService.error('Error loading departments', error);
+                ToastService.error('❌ Lỗi tải danh sách bộ môn');
+                $scope.departments = [];
             });
     };
 
     $scope.openLecturerModal = function() {
         $scope.lecturerForm = { isActive: true };
-        $('#lecturerModal').modal('show');
+        ModalUtils.open('lecturerModal');
     };
 
     $scope.editLecturer = function(lecturer) {
         $scope.lecturerForm = angular.copy(lecturer);
-        $('#lecturerModal').modal('show');
+        ModalUtils.open('lecturerModal');
     };
 
     $scope.saveLecturer = function() {
         if (!$scope.lecturerForm.fullName || !$scope.lecturerForm.email || 
             !$scope.lecturerForm.departmentId) {
-            alert('Vui lòng điền đầy đủ thông tin bắt buộc!');
+            ToastService.warning('⚠️ Vui lòng điền đầy đủ thông tin bắt buộc!');
             return;
         }
 
         var method = $scope.lecturerForm.lecturerId ? 'PUT' : 'POST';
-        var url = API_CONFIG.BASE_URL + '/lecturer';
+        var url = API_CONFIG.BASE_URL + '/lecturers';
         if (method === 'PUT') {
             url += '/' + $scope.lecturerForm.lecturerId;
         }
@@ -126,14 +182,14 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
             data: $scope.lecturerForm
         })
         .then(function(response) {
-            alert('✅ Lưu thông tin Giảng viên thành công!');
-            $('#lecturerModal').modal('hide');
+            ToastService.success('✅ Lưu thông tin Giảng viên thành công!');
+            ModalUtils.close('lecturerModal');
             $scope.loadLecturers();
             $scope.lecturerForm = {};
         })
         .catch(function(error) {
-            console.error('Error saving lecturer:', error);
-            alert('❌ Lỗi: ' + (error.data?.message || 'Không thể lưu thông tin Giảng viên'));
+            var errorMsg = error.data?.message || 'Không thể lưu thông tin Giảng viên';
+            ToastService.error('❌ Lỗi: ' + errorMsg);
         });
     };
 
@@ -142,14 +198,14 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
             return;
         }
 
-        $http.delete(API_CONFIG.BASE_URL + '/lecturer/' + lecturerId)
+        $http.delete(API_CONFIG.BASE_URL + '/lecturers/' + lecturerId)
             .then(function(response) {
-                alert('🗑 Đã xóa Giảng viên!');
+                ToastService.success('🗑 Đã xóa Giảng viên!');
                 $scope.loadLecturers();
             })
             .catch(function(error) {
-                console.error('Error deleting lecturer:', error);
-                alert('❌ Lỗi: ' + (error.data?.message || 'Không thể xóa Giảng viên'));
+                var errorMsg = error.data?.message || 'Không thể xóa Giảng viên';
+                ToastService.error('❌ Lỗi: ' + errorMsg);
             });
     };
 
@@ -157,7 +213,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     // SUBJECT ASSIGNMENT FUNCTIONS
     // =========================
     $scope.loadAllSubjects = function() {
-        $http.get(API_CONFIG.BASE_URL + '/subject')
+        $http.get(API_CONFIG.BASE_URL + '/subjects')
             .then(function(response) {
                 $scope.allSubjects = response.data;
                 
@@ -165,14 +221,64 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
                 $scope.allSubjects.forEach(function(subject) {
                     $scope.loadSubjectLecturers(subject);
                 });
+                
+                // Update pagination
+                $scope.updateSubjectsPagination();
             })
             .catch(function(error) {
-                console.error('Error loading subjects:', error);
+                ToastService.error('❌ Lỗi tải danh sách môn học');
             });
+    };
+    
+    // Pagination functions for subjects list
+    $scope.updateSubjectsPagination = function() {
+        $scope.subjectsTotalPages = Math.ceil($scope.allSubjects.length / $scope.subjectsPageSize);
+        if ($scope.subjectsCurrentPage > $scope.subjectsTotalPages && $scope.subjectsTotalPages > 0) {
+            $scope.subjectsCurrentPage = $scope.subjectsTotalPages;
+        }
+        $scope.updatePaginatedSubjects();
+    };
+    
+    $scope.updatePaginatedSubjects = function() {
+        var start = ($scope.subjectsCurrentPage - 1) * $scope.subjectsPageSize;
+        var end = start + $scope.subjectsPageSize;
+        $scope.paginatedSubjects = $scope.allSubjects.slice(start, end);
+    };
+    
+    $scope.goToSubjectsPage = function(page) {
+        if (page >= 1 && page <= $scope.subjectsTotalPages) {
+            $scope.subjectsCurrentPage = page;
+            $scope.updatePaginatedSubjects();
+        }
+    };
+    
+    $scope.previousSubjectsPage = function() {
+        if ($scope.subjectsCurrentPage > 1) {
+            $scope.subjectsCurrentPage--;
+            $scope.updatePaginatedSubjects();
+        }
+    };
+    
+    $scope.nextSubjectsPage = function() {
+        if ($scope.subjectsCurrentPage < $scope.subjectsTotalPages) {
+            $scope.subjectsCurrentPage++;
+            $scope.updatePaginatedSubjects();
+        }
+    };
+    
+    $scope.getSubjectsPages = function() {
+        var pages = [];
+        var startPage = Math.max(1, $scope.subjectsCurrentPage - 2);
+        var endPage = Math.min($scope.subjectsTotalPages, $scope.subjectsCurrentPage + 2);
+        
+        for (var i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        return pages;
     };
 
     $scope.loadSubjectLecturers = function(subject) {
-        $http.get(API_CONFIG.BASE_URL + '/admin/lecturersubject/subject/' + subject.subjectId)
+        $http.get(API_CONFIG.BASE_URL + '/lecturer-subjects/subject/' + subject.subjectId)
             .then(function(response) {
                 subject.assignedLecturers = response.data.data || [];
             })
@@ -186,7 +292,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
         $scope.newSubject = { isPrimary: false, experienceYears: 0 };
         
         // Load subjects assigned to this lecturer
-        $http.get(API_CONFIG.BASE_URL + '/admin/lecturersubject/lecturer/' + lecturer.lecturerId)
+        $http.get(API_CONFIG.BASE_URL + '/lecturer-subjects/lecturer/' + lecturer.lecturerId)
             .then(function(response) {
                 $scope.lecturerSubjects = response.data.data || [];
                 
@@ -199,17 +305,16 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
                     return assignedSubjectIds.indexOf(s.subjectId) === -1;
                 });
                 
-                $('#assignSubjectsModal').modal('show');
+                ModalUtils.open('assignSubjectsModal');
             })
             .catch(function(error) {
-                console.error('Error loading lecturer subjects:', error);
-                alert('Lỗi khi tải danh sách môn học của giảng viên!');
+                ToastService.error('❌ Lỗi tải môn học của giảng viên');
             });
     };
 
     $scope.addSubjectToLecturer = function() {
         if (!$scope.newSubject.subjectId) {
-            alert('Vui lòng chọn môn học!');
+            ToastService.warning('⚠️ Vui lòng chọn môn học!');
             return;
         }
 
@@ -222,16 +327,16 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
             certifiedDate: new Date().toISOString()
         };
 
-        $http.post(API_CONFIG.BASE_URL + '/admin/lecturersubject', data)
+        $http.post(API_CONFIG.BASE_URL + '/lecturer-subjects', data)
             .then(function(response) {
-                alert('✅ Đã phân môn cho giảng viên!');
+                ToastService.success('✅ Đã phân môn cho giảng viên!');
                 $scope.assignSubjects($scope.selectedLecturer); // Reload
                 $scope.newSubject = { isPrimary: false, experienceYears: 0 };
                 $scope.loadLecturers(); // Update count
             })
             .catch(function(error) {
-                console.error('Error assigning subject:', error);
-                alert('❌ Lỗi: ' + (error.data?.message || 'Không thể phân môn'));
+                var errorMsg = error.data?.message || 'Không thể phân môn';
+                ToastService.error('❌ Lỗi: ' + errorMsg);
             });
     };
 
@@ -240,15 +345,15 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
             return;
         }
 
-        $http.delete(API_CONFIG.BASE_URL + '/admin/lecturersubject/' + lecturerSubjectId)
+        $http.delete(API_CONFIG.BASE_URL + '/lecturer-subjects/' + lecturerSubjectId)
             .then(function(response) {
-                alert('🗑 Đã bỏ môn học!');
+                ToastService.success('🗑 Đã bỏ môn học!');
                 $scope.assignSubjects($scope.selectedLecturer); // Reload
                 $scope.loadLecturers(); // Update count
             })
             .catch(function(error) {
-                console.error('Error removing subject:', error);
-                alert('❌ Lỗi: ' + (error.data?.message || 'Không thể bỏ môn'));
+                var errorMsg = error.data?.message || 'Không thể bỏ môn';
+                ToastService.error('❌ Lỗi: ' + errorMsg);
             });
     };
 

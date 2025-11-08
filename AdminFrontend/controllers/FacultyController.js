@@ -1,6 +1,6 @@
 // Faculty Controller with Pagination, Search, Sort, Export
-app.controller('FacultyController', ['$scope', '$location', '$routeParams', 'FacultyService', 'PaginationService', 'ExportService',
-    function($scope, $location, $routeParams, FacultyService, PaginationService, ExportService) {
+app.controller('FacultyController', ['$scope', '$location', '$routeParams', '$timeout', 'FacultyService', 'PaginationService', 'ExportService',
+    function($scope, $location, $routeParams, $timeout, FacultyService, PaginationService, ExportService) {
     
     $scope.faculties = [];
     $scope.displayedFaculties = [];
@@ -88,7 +88,17 @@ app.controller('FacultyController', ['$scope', '$location', '$routeParams', 'Fac
             { label: 'Mô tả', field: 'description' }
         ];
         
-        ExportService.exportToExcel($scope.faculties, 'DanhSachKhoa_' + new Date().toISOString().split('T')[0], columns);
+        var exportOptions = {
+            title: '🏛️ DANH SÁCH KHOA',
+            info: [
+                ['Đơn vị:', 'Trường Đại học ABC'],
+                ['Thời gian xuất:', new Date().toLocaleDateString('vi-VN') + ' ' + new Date().toLocaleTimeString('vi-VN')]
+            ],
+            sheetName: 'Khoa',
+            showSummary: true
+        };
+        
+        ExportService.exportToExcel($scope.faculties, 'DanhSachKhoa', columns, exportOptions);
     };
     
     // Export to CSV
@@ -131,15 +141,39 @@ app.controller('FacultyController', ['$scope', '$location', '$routeParams', 'Fac
         
         savePromise
             .then(function(response) {
-                $scope.success = 'Lưu khoa thành công';
+                $scope.success = response.data?.message || 'Lưu khoa thành công';
                 $scope.loading = false;
-                setTimeout(function() {
-                    $location.path('/faculties');
-                    $scope.$apply();
-                }, 1500);
+                // Reload faculties list to show updated data
+                if ($location.path() === '/faculties') {
+                    $scope.loadFaculties();
+                } else {
+                    $timeout(function() {
+                        $location.path('/faculties');
+                    }, 1500);
+                }
             })
             .catch(function(error) {
-                $scope.error = error.data?.message || 'Không thể lưu khoa';
+                var errorMessage = 'Không thể lưu khoa';
+                
+                // Try to extract error message from different response formats
+                if (error.data) {
+                    if (error.data.message) {
+                        errorMessage = error.data.message;
+                    } else if (error.data.errors) {
+                        // Handle validation errors
+                        var errors = [];
+                        for (var key in error.data.errors) {
+                            if (error.data.errors.hasOwnProperty(key)) {
+                                errors.push(error.data.errors[key].join(', '));
+                            }
+                        }
+                        errorMessage = errors.join('; ');
+                    } else if (typeof error.data === 'string') {
+                        errorMessage = error.data;
+                    }
+                }
+                
+                $scope.error = errorMessage;
                 $scope.loading = false;
             });
     };
