@@ -118,7 +118,7 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
         var formData = new FormData();
         formData.append('avatar', $scope.avatarModal.selectedFile);
         formData.append('userId', $scope.currentUser.userId);
-        ApiService.uploadFile('/admin/users/avatar', formData)
+        ApiService.uploadFile('/users/avatar', formData)
             .then(function(response) {
                 $scope.avatarModal.uploading = false;
                 $scope.avatarModal.success = 'Tải ảnh thành công!';
@@ -228,39 +228,66 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
         return 0;
     }
     
-    // Load all statistics
+    // Load all statistics (only for Admin role)
     $scope.loadStats = function() {
+        // Check if user is Admin - only load admin stats for Admin role
+        var currentUser = AuthService.getCurrentUser();
+        var userRole = currentUser?.roleName || currentUser?.Role || '';
+        
+        // Only load admin statistics if user is Admin
+        if (userRole !== 'Admin') {
+            $scope.loading = false;
+            $scope.error = null;
+            // Don't load stats for non-admin users
+            return;
+        }
+        
         $scope.loading = true;
         $scope.error = null;
         
-        // Create promises for all API calls
+        // Create promises for all API calls (Admin only)
         var promises = {
             users: UserService.getAll().catch(function(err) { 
-                LoggerService.error('Error loading users', err);
+                // Silently handle 403 errors - user might not have permission
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading users', err);
+                }
                 return {data: []};
             }),
             students: StudentService.getAll().catch(function(err) { 
-                LoggerService.error('Error loading students', err);
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading students', err);
+                }
                 return {data: []};
             }),
             lecturers: LecturerService.getAll().catch(function(err) { 
-                LoggerService.error('Error loading lecturers', err);
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading lecturers', err);
+                }
                 return {data: []};
             }),
             faculties: FacultyService.getAll().catch(function(err) { 
-                LoggerService.error('Error loading faculties', err);
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading faculties', err);
+                }
                 return {data: []};
             }),
             majors: MajorService.getAll().catch(function(err) { 
-                LoggerService.error('Error loading majors', err);
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading majors', err);
+                }
                 return {data: []};
             }),
             subjects: SubjectService.getAll().catch(function(err) { 
-                LoggerService.error('Error loading subjects', err);
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading subjects', err);
+                }
                 return {data: []};
             }),
             academicYears: AcademicYearService.getAll().catch(function(err) { 
-                LoggerService.error('Error loading academic years', err);
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading academic years', err);
+                }
                 return {data: []};
             })
         };
@@ -282,8 +309,20 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
         });
     };
 
-    // Load recent audit logs (latest 10)
+    // Load recent audit logs (latest 10) - Admin only
     $scope.loadRecentAuditLogs = function() {
+        // Check if user is Admin - only load audit logs for Admin role
+        var currentUser = AuthService.getCurrentUser();
+        var userRole = currentUser?.roleName || currentUser?.Role || '';
+        
+        // Only load audit logs if user is Admin
+        if (userRole !== 'Admin') {
+            $scope.allAuditLogs = [];
+            $scope.recentAuditLogs = [];
+            $scope.filteredAllAuditLogs = [];
+            return;
+        }
+        
         AuditLogService.getAll({ pageSize: 100, page: 1 })
             .then(function(response) {
                 var list = response.data?.data || response.data || [];
@@ -291,9 +330,13 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
                 $scope.applyAuditFilter();
             })
             .catch(function(err) {
-                LoggerService.error('Error loading audit logs', err);
+                // Silently handle 403 errors - user might not have permission
+                if (err.status !== 403) {
+                    LoggerService.error('Error loading audit logs', err);
+                }
                 $scope.allAuditLogs = [];
                 $scope.recentAuditLogs = [];
+                $scope.filteredAllAuditLogs = [];
             });
     };
 

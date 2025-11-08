@@ -3,23 +3,7 @@
     <app-sidebar></app-sidebar>
     
     <div class="main-content">
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
-                <h1 class="page-title">Quản lý Lớp hành chính</h1>
-            </div>
-            <div class="header-right">
-                <div class="user-info" ng-init="currentUser = getCurrentUser()">
-                    <div class="user-avatar">
-                        <span>{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
-                    </div>
-                    <div class="user-details">
-                        <span class="user-name">{{currentUser.fullName}}</span>
-                        <span class="user-role">{{currentUser.roleName}}</span>
-                    </div>
-                </div>
-            </div>
-        </header>
+        <app-topbar page-title="Quản lý Lớp hành chính"></app-topbar>
         
         <div class="content-body">
             <div class="card">

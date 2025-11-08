@@ -108,7 +108,6 @@ app.service('ImportService', ['$q', function($q) {
     this.downloadTemplate = function(filename, columns, referenceData) {
         // Check if XLSX is loaded
         if (typeof XLSX === 'undefined') {
-            console.error('SheetJS library not loaded. Please refresh the page.');
             alert('Thư viện Excel chưa được tải. Vui lòng refresh trang và thử lại.');
             return;
         }

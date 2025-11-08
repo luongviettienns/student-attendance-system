@@ -507,21 +507,31 @@ BEGIN
     SET NOCOUNT ON;
     
     -- Join roles -> role_permissions -> permissions
+    -- ✅ Updated to include ParentCode, Icon, SortOrder for menu building
     SELECT 
         p.permission_id,
         p.permission_code,
         p.permission_name,
         p.description,
+        -- ✅ Trả về NULL thay vì empty string để dễ check trong C#
+        p.parent_code AS parent_code,
+        -- ✅ Chỉ lấy icon nếu có, không default
+        p.icon AS icon,
+        p.sort_order AS sort_order,
+        ISNULL(p.is_active, 1) AS is_active,
         p.created_at,
         p.created_by,
         p.updated_at,
-        p.updated_by
+        p.updated_by,
+        p.deleted_at
     FROM dbo.permissions p
     INNER JOIN dbo.role_permissions rp ON p.permission_id = rp.permission_id
     INNER JOIN dbo.roles r ON rp.role_id = r.role_id
     WHERE r.role_name = @RoleName 
         AND r.deleted_at IS NULL
-    ORDER BY p.permission_code;
+        AND (p.deleted_at IS NULL OR p.deleted_at = '1900-01-01')
+        AND ISNULL(p.is_active, 1) = 1
+    ORDER BY ISNULL(p.sort_order, 999), p.permission_code;
 END
 GO
 

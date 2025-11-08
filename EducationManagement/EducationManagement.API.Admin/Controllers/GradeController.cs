@@ -161,6 +161,51 @@ namespace EducationManagement.API.Admin.Controllers
                 return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
             }
         }
+
+        [HttpGet("student/{studentId}/cumulative")]
+        public async Task<IActionResult> GetCumulativeGPA(string studentId)
+        {
+            try
+            {
+                var cumulativeGPA = await _gradeService.GetCumulativeGPAAsync(studentId);
+                if (cumulativeGPA == null)
+                    return NotFound(new { message = "Không tìm thấy dữ liệu GPA tích lũy" });
+
+                return Ok(new { data = cumulativeGPA });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        [HttpGet("student/{studentId}/transcript")]
+        public async Task<IActionResult> GetStudentTranscript(string studentId)
+        {
+            try
+            {
+                var transcript = await _gradeService.GetStudentTranscriptAsync(studentId);
+                return Ok(new { data = transcript });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        [HttpPost("calculate/student/{studentId}/school-year/{schoolYearId}")]
+        public async Task<IActionResult> CalculateGPA(string studentId, string schoolYearId, [FromQuery] string? semester = null)
+        {
+            try
+            {
+                await _gradeService.CalculateGPABySchoolYearAsync(studentId, schoolYearId, semester);
+                return Ok(new { message = "Tính GPA thành công" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
     }
 
     public class CreateGradeRequest

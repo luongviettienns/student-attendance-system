@@ -111,7 +111,7 @@ app.controller('LecturerController', ['$scope', '$location', '$routeParams', '$t
                 $scope.departments = response.data;
             })
             .catch(function(error) {
-                console.error('Lỗi khi tải danh sách bộ môn:', error);
+                // Error handled silently
             });
     };
     
@@ -124,7 +124,7 @@ app.controller('LecturerController', ['$scope', '$location', '$routeParams', '$t
                 $scope.allSubjects = response.data;
             })
             .catch(function(error) {
-                console.error('Lỗi khi tải danh sách môn học:', error);
+                // Error handled silently
             });
     };
     
@@ -138,7 +138,7 @@ app.controller('LecturerController', ['$scope', '$location', '$routeParams', '$t
                 $scope.updateSubjectPagination();
             })
             .catch(function(error) {
-                console.error('Lỗi khi tải môn học đã phân:', error);
+                // Error handled silently
             });
     };
     

@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
     [Route("api-edu/faculties")]
     public class FacultyController : BaseController
     {
@@ -19,6 +19,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
@@ -45,6 +46,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
         public async Task<IActionResult> GetById(string id)
         {
             var item = await _service.GetByIdAsync(id);
@@ -54,6 +56,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được tạo
         public async Task<IActionResult> Create([FromBody] Faculty f)
         {
             try
@@ -106,6 +109,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được cập nhật
         public async Task<IActionResult> Update(string id, [FromBody] Faculty f)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -167,6 +171,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được xóa
         public async Task<IActionResult> Delete(string id)
         {
             var faculty = await _service.GetByIdAsync(id);

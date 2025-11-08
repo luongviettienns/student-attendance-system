@@ -1,14 +1,34 @@
+// @ts-check
+/* global angular */
+'use strict';
+
 // School Year Service
 app.service('SchoolYearService', ['ApiService', function(ApiService) {
+    var CACHE_KEY_ALL = 'school-years:all';
+    var DEFAULT_CACHE_TTL = 5 * 60 * 1000;
     
     // Get all school years
-    this.getAll = function() {
-        return ApiService.get('/school-years').then(function(response) {
+    this.getAll = function(options) {
+        var cacheOptions = {
+            cache: !(options && options.forceRefresh),
+            cacheKey: CACHE_KEY_ALL,
+            cacheTTL: (options && options.cacheTTL) || DEFAULT_CACHE_TTL
+        };
+        
+        if (options && options.forceRefresh) {
+            ApiService.clearCache(CACHE_KEY_ALL);
+        }
+        
+        return ApiService.get('/school-years', {}, cacheOptions).then(function(response) {
             if (response.data && response.data.data) {
                 response.data = response.data.data;
             }
             return response;
         });
+    };
+    
+    this.invalidateCache = function() {
+        ApiService.clearCache(CACHE_KEY_ALL);
     };
     
     // Get current school year (based on current date)

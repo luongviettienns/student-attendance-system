@@ -5,42 +5,19 @@
     <!-- Main Content -->
     <div class="main-content">
         <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <h1 class="page-title">Dashboard Cố vấn học tập</h1>
-            </div>
-            
-            <div class="header-right">
-                <div class="user-info">
-                    <div class="user-avatar" ng-click="openAvatarModal()">
-                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
-                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName.charAt(0)}}</span>
-                    </div>
-                    <div class="user-details">
-                        <span class="user-name">{{currentUser.fullName}}</span>
-                        <span class="user-role">Cố vấn học tập</span>
-                    </div>
-                </div>
-                <button ng-click="logout()" class="btn btn-outline">
-                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                </button>
-            </div>
-        </header>
+        <app-topbar page-title="Dashboard Cố vấn học tập"></app-topbar>
         
         <!-- Content Body -->
         <div class="content-body">
             <!-- Statistics Cards -->
-            <div class="stats-grid">
+            <div class="stats-grid" ng-if="!loadingStats">
                 <div class="stat-card">
                     <div class="stat-icon blue">
                         <i class="fas fa-users"></i>
                     </div>
                     <div class="stat-info">
                         <h3>{{stats.totalStudents || 0}}</h3>
-                        <p>Tổng sinh viên cố vấn</p>
+                        <p>Tổng sinh viên toàn trường</p>
                     </div>
                 </div>
                 
@@ -49,8 +26,8 @@
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
                     <div class="stat-info">
-                        <h3>{{stats.warningStudents || 0}}</h3>
-                        <p>Cảnh báo chuyên cần</p>
+                        <h3>{{stats.warningAttendanceStudents || 0}}</h3>
+                        <p>Cảnh báo chuyên cần (>20%)</p>
                     </div>
                 </div>
                 
@@ -59,7 +36,7 @@
                         <i class="fas fa-chart-line"></i>
                     </div>
                     <div class="stat-info">
-                        <h3>{{stats.lowGPAStudents || 0}}</h3>
+                        <h3>{{stats.lowGpaStudents || 0}}</h3>
                         <p>Điểm TB < 2.0</p>
                     </div>
                 </div>
@@ -70,26 +47,58 @@
                     </div>
                     <div class="stat-info">
                         <h3>{{stats.excellentStudents || 0}}</h3>
-                        <p>Sinh viên giỏi</p>
+                        <p>Sinh viên giỏi (GPA >= 3.5)</p>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Loading Stats -->
+            <div ng-if="loadingStats" class="text-center" style="padding: 40px;">
+                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                <p>Đang tải thống kê...</p>
+            </div>
+            
+            <!-- Error Stats -->
+            <div ng-if="errorStats && !loadingStats" class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> {{errorStats}}
+                <button class="btn btn-sm btn-danger ml-2" ng-click="loadDashboardStats()">
+                    <i class="fas fa-redo"></i> Thử lại
+                </button>
             </div>
             
             <!-- Warning Students -->
             <div class="card">
                 <div class="card-header">
                     <h2><i class="fas fa-exclamation-triangle"></i> Sinh viên cần quan tâm</h2>
+                    <button class="btn btn-sm btn-primary" ng-click="refreshData()" ng-disabled="loadingWarningStudents">
+                        <i class="fas fa-sync-alt" ng-class="{'fa-spin': loadingWarningStudents}"></i> Làm mới
+                    </button>
                 </div>
                 <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table">
+                    <!-- Loading -->
+                    <div ng-if="loadingWarningStudents" class="text-center" style="padding: 40px;">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p>Đang tải danh sách sinh viên...</p>
+                    </div>
+                    
+                    <!-- Error -->
+                    <div ng-if="errorWarningStudents && !loadingWarningStudents" class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> {{errorWarningStudents}}
+                        <button class="btn btn-sm btn-danger ml-2" ng-click="loadWarningStudents()">
+                            <i class="fas fa-redo"></i> Thử lại
+                        </button>
+                    </div>
+                    
+                    <!-- Table -->
+                    <div ng-if="!loadingWarningStudents && !errorWarningStudents" class="table-responsive">
+                        <table class="table" ng-if="warningStudents.length > 0">
                             <thead>
                                 <tr>
                                     <th>MSSV</th>
                                     <th>Họ và tên</th>
                                     <th>Lớp</th>
                                     <th>GPA</th>
-                                    <th>Vắng (%)</th>
+                                    <th>Chuyên cần (%)</th>
                                     <th>Cảnh báo</th>
                                     <th>Thao tác</th>
                                 </tr>
@@ -98,30 +107,30 @@
                                 <tr ng-repeat="student in warningStudents">
                                     <td>{{student.studentCode}}</td>
                                     <td><strong>{{student.fullName}}</strong></td>
-                                    <td>{{student.className}}</td>
+                                    <td>{{student.className || 'N/A'}}</td>
                                     <td>
                                         <span ng-class="{
-                                            'badge badge-success': student.gpa >= 3.0,
-                                            'badge badge-warning': student.gpa >= 2.0 && student.gpa < 3.0,
-                                            'badge badge-danger': student.gpa < 2.0
+                                            'badge badge-success': student.gpa && student.gpa >= 3.0,
+                                            'badge badge-warning': student.gpa && student.gpa >= 2.0 && student.gpa < 3.0,
+                                            'badge badge-danger': !student.gpa || student.gpa < 2.0
                                         }">
-                                            {{student.gpa | number:2}}
+                                            {{student.gpa ? (student.gpa | number:2) : 'N/A'}}
                                         </span>
                                     </td>
                                     <td>
                                         <span ng-class="{
-                                            'badge badge-danger': student.absenceRate >= 20,
-                                            'badge badge-warning': student.absenceRate >= 10 && student.absenceRate < 20,
-                                            'badge badge-success': student.absenceRate < 10
+                                            'badge badge-danger': getAbsenceRate(student) >= 20,
+                                            'badge badge-warning': getAbsenceRate(student) >= 10 && getAbsenceRate(student) < 20,
+                                            'badge badge-success': getAbsenceRate(student) < 10
                                         }">
-                                            {{student.absenceRate}}%
+                                            {{student.attendanceRate ? (student.attendanceRate | number:1) + '%' : 'N/A'}}
                                         </span>
                                     </td>
                                     <td>
                                         <span class="badge badge-danger" ng-if="student.warningType === 'attendance'">
                                             <i class="fas fa-user-times"></i> Chuyên cần
                                         </span>
-                                        <span class="badge badge-warning" ng-if="student.warningType === 'gpa'">
+                                        <span class="badge badge-warning" ng-if="student.warningType === 'academic'">
                                             <i class="fas fa-chart-line"></i> Học tập
                                         </span>
                                         <span class="badge badge-danger" ng-if="student.warningType === 'both'">
@@ -129,13 +138,44 @@
                                         </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-sm btn-primary" ng-click="contactStudent(student)">
-                                            <i class="fas fa-envelope"></i> Liên hệ
+                                        <button class="btn btn-sm btn-primary" ng-click="viewStudentDetail(student.studentId)" title="Xem chi tiết">
+                                            <i class="fas fa-eye"></i> Chi tiết
+                                        </button>
+                                        <button class="btn btn-sm btn-outline ml-1" ng-click="contactStudent(student)" title="Liên hệ">
+                                            <i class="fas fa-envelope"></i>
                                         </button>
                                     </td>
                                 </tr>
                             </tbody>
                         </table>
+                        
+                        <!-- Empty state -->
+                        <div ng-if="warningStudents.length === 0" class="text-center" style="padding: 40px;">
+                            <i class="fas fa-check-circle fa-3x text-success"></i>
+                            <p>Không có sinh viên nào cần cảnh báo</p>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div ng-if="warningStudents.length > 0 && warningStudentsPagination.totalPages > 1" class="pagination-container mt-3">
+                            <nav>
+                                <ul class="pagination justify-content-center">
+                                    <li class="page-item" ng-class="{'disabled': warningStudentsPagination.page === 1}">
+                                        <a class="page-link" href="#" ng-click="loadWarningStudents(warningStudentsPagination.page - 1)">Trước</a>
+                                    </li>
+                                    <li class="page-item" ng-repeat="page in [] | range:1:warningStudentsPagination.totalPages" 
+                                        ng-class="{'active': page === warningStudentsPagination.page}">
+                                        <a class="page-link" href="#" ng-click="loadWarningStudents(page)">{{page}}</a>
+                                    </li>
+                                    <li class="page-item" ng-class="{'disabled': warningStudentsPagination.page === warningStudentsPagination.totalPages}">
+                                        <a class="page-link" href="#" ng-click="loadWarningStudents(warningStudentsPagination.page + 1)">Sau</a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <p class="text-center text-muted">
+                                Trang {{warningStudentsPagination.page}} / {{warningStudentsPagination.totalPages}} 
+                                (Tổng: {{warningStudentsPagination.totalCount}} sinh viên)
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -168,4 +208,5 @@
 
 <!-- Avatar Change Modal -->
 <div ng-include="'views/partials/avatar-modal.html'"></div>
+
 

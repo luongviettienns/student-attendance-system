@@ -5,28 +5,15 @@
     <!-- Main Content -->
     <div class="main-content">
         <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
-                <h1 class="page-title">Bảng điểm</h1>
-            </div>
-            <div class="header-right">
-                <div class="user-info" ng-init="currentUser = getCurrentUser()">
-                    <div class="user-avatar" ng-click="openAvatarModal()">
-                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
-                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
-                    </div>
-                    <div class="user-details">
-                        <span class="user-name">{{currentUser.fullName}}</span>
-                        <span class="user-role">{{currentUser.roleName || 'Sinh viên'}}</span>
-                    </div>
-                </div>
-                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
-            </div>
-        </header>
+        <app-topbar page-title="Bảng điểm"></app-topbar>
         
         <!-- Content Body -->
         <div class="content-body">
+            <div class="loading-overlay" ng-if="loading">
+                <div class="spinner"></div>
+                <div class="loading-text">Đang tải dữ liệu điểm...</div>
+            </div>
+
             <!-- GPA Summary -->
             <div class="card">
                 <div class="card-body">
@@ -49,7 +36,7 @@
                                     'text-success': summary.rank === 'Xuất sắc' || summary.rank === 'Giỏi',
                                     'text-primary': summary.rank === 'Khá',
                                     'text-warning': summary.rank === 'Trung bình',
-                                    'text-danger': summary.rank === 'Yếu'
+                                    'text-danger': summary.rank === 'Yếu' || summary.rank === 'Kém'
                                 }">{{summary.rank}}</span>
                             </div>
                             <div class="gpa-label">Xếp loại</div>
@@ -66,7 +53,19 @@
             <!-- Semester Selection -->
             <div class="card">
                 <div class="card-header">
-                    <h2><i class="fas fa-filter"></i> Lọc theo học kỳ</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2><i class="fas fa-filter"></i> Lọc theo học kỳ</h2>
+                        <div class="card-actions">
+                            <button class="btn btn-sm btn-outline" ng-click="refreshGrades()" ng-disabled="loading">
+                                <i class="fas fa-rotate"></i> Làm mới
+                            </button>
+                            <button class="btn btn-sm btn-primary"
+                                    ng-click="recalculateGPA()"
+                                    ng-disabled="loading || !selectedSchoolYear">
+                                <i class="fas fa-calculator"></i> Tính lại GPA
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="form-row">
@@ -91,13 +90,6 @@
                 </div>
             </div>
             
-            <!-- Loading State -->
-            <div ng-if="loading" class="card">
-                <div class="card-body text-center">
-                    <i class="fas fa-spinner fa-spin fa-2x"></i>
-                    <p>Đang tải điểm...</p>
-                </div>
-            </div>
             
             <!-- Grades Table -->
             <div class="card" ng-if="!loading && grades.length > 0">

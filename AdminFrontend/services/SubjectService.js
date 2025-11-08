@@ -39,7 +39,7 @@ app.service('SubjectService', ['ApiService', function(ApiService) {
     
     // Get lecturers teaching this subject
     this.getLecturersBySubject = function(subjectId) {
-        return ApiService.get('/admin/lecturersubject/subject/' + subjectId);
+        return ApiService.get('/lecturer-subjects/subject/' + subjectId);
     };
 
     // NEW: Get all subjects with lecturer count (aggregate)

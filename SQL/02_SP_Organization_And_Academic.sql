@@ -26,22 +26,37 @@ CREATE PROCEDURE dbo.sp_AutoCreateCohort
 AS
 BEGIN
     SET NOCOUNT ON;
+    
+    -- Tạo 1 academic_year (niên khóa) cho cohort bắt đầu từ @StartYear
+    DECLARE @EndYear INT = @StartYear + @DurationYears;
+    DECLARE @YearName NVARCHAR(50) = CONCAT(@StartYear, '-', @EndYear);
+    DECLARE @ayId VARCHAR(50) = CONCAT('AY', @StartYear);
+    DECLARE @cohortCode NVARCHAR(10) = CONCAT('K', SUBSTRING(CAST(@StartYear AS VARCHAR(4)), 3, 2)); -- K21, K22, K23, K24
 
+    -- Tạo academic_year (niên khóa)
+    IF NOT EXISTS (SELECT 1 FROM dbo.academic_years WHERE academic_year_id = @ayId)
+    BEGIN
+        INSERT INTO dbo.academic_years (academic_year_id, year_name, cohort_code, start_year, end_year, duration_years, is_active, created_at, created_by)
+        VALUES (@ayId, @YearName, @cohortCode, @StartYear, @EndYear, @DurationYears, 0, GETDATE(), @CreatedBy);
+    END
+    ELSE
+    BEGIN
+        -- Update cohort_code nếu đã tồn tại nhưng chưa có cohort_code
+        UPDATE dbo.academic_years 
+        SET cohort_code = @cohortCode 
+        WHERE academic_year_id = @ayId AND cohort_code IS NULL;
+    END
+
+    -- Tạo các school_years (năm học) cho cohort này (4 năm học)
     DECLARE @i INT = 0;
     WHILE @i < @DurationYears
     BEGIN
-        DECLARE @yearName NVARCHAR(50) = CONCAT(@StartYear + @i, '-', @StartYear + @i + 1);
-        DECLARE @ayId VARCHAR(50) = CONCAT('AY', @StartYear + @i);
-
-        IF NOT EXISTS (SELECT 1 FROM dbo.academic_years WHERE academic_year_id = @ayId)
-        BEGIN
-            INSERT INTO dbo.academic_years (academic_year_id, year_name, start_year, end_year, duration_years, is_active, created_at, created_by)
-            VALUES (@ayId, @yearName, @StartYear + @i, @StartYear + @i + 1, @DurationYears, CASE WHEN @i=0 THEN 1 ELSE 0 END, GETDATE(), @CreatedBy);
-        END
-
-        -- create single school_year_id per academic year to match SeedData (SY{StartYear})
-        DECLARE @syId VARCHAR(50) = CONCAT('SY', @StartYear + @i);
-        IF NOT EXISTS (SELECT 1 FROM dbo.school_years WHERE school_year_id=@syId)
+        DECLARE @syStartYear INT = @StartYear + @i;
+        DECLARE @syEndYear INT = @syStartYear + 1;
+        DECLARE @syYearName NVARCHAR(50) = CONCAT(@syStartYear, '-', @syEndYear);
+        DECLARE @syId VARCHAR(50) = CONCAT('SY', @syStartYear);
+        
+        IF NOT EXISTS (SELECT 1 FROM dbo.school_years WHERE school_year_id = @syId)
         BEGIN
             INSERT INTO dbo.school_years (
                 school_year_id, year_code, year_name, academic_year_id,
@@ -51,14 +66,14 @@ BEGIN
                 is_active, current_semester, created_at)
             VALUES (
                 @syId,
-                CONCAT('SY', @StartYear + @i),
-                CONCAT(@yearName, ' - HK1/HK2'),
+                CONCAT('SY', @syStartYear),
+                CONCAT(@syYearName, ' - HK1/HK2'),
                 @ayId,
-                DATEFROMPARTS(@StartYear + @i, 9, 1),
-                DATEFROMPARTS(@StartYear + @i + 1, 8, 31),
-                DATEFROMPARTS(@StartYear + @i, 9, 1), DATEFROMPARTS(@StartYear + @i, 12, 31),
-                DATEFROMPARTS(@StartYear + @i + 1, 1, 1), DATEFROMPARTS(@StartYear + @i + 1, 5, 31),
-                CASE WHEN @i=0 THEN 1 ELSE 0 END,
+                DATEFROMPARTS(@syStartYear, 9, 1),
+                DATEFROMPARTS(@syEndYear, 8, 31),
+                DATEFROMPARTS(@syStartYear, 9, 1), DATEFROMPARTS(@syStartYear, 12, 31),
+                DATEFROMPARTS(@syEndYear, 1, 1), DATEFROMPARTS(@syEndYear, 5, 31),
+                0,
                 1,
                 GETDATE()
             );

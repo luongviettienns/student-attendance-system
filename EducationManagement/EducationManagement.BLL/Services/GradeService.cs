@@ -146,7 +146,7 @@ namespace EducationManagement.BLL.Services
                     _ => 0.0m
                 };
 
-                // Determine rank
+                // Determine rank (Tiếng Việt có dấu - encoding UTF-8)
                 summary.RankText = summary.Gpa10 switch
                 {
                     >= 9.0m => "Xuất sắc",
@@ -163,6 +163,33 @@ namespace EducationManagement.BLL.Services
             }
 
             return summary;
+        }
+
+        public async Task<Common.DTOs.Grade.CumulativeGPADto?> GetCumulativeGPAAsync(string studentId)
+        {
+            if (string.IsNullOrWhiteSpace(studentId))
+                throw new ArgumentException("Student ID không được để trống");
+
+            return await _gradeRepository.GetCumulativeGPAAsync(studentId);
+        }
+
+        public async Task<List<Common.DTOs.Grade.TranscriptDto>> GetStudentTranscriptAsync(string studentId)
+        {
+            if (string.IsNullOrWhiteSpace(studentId))
+                throw new ArgumentException("Student ID không được để trống");
+
+            return await _gradeRepository.GetStudentTranscriptAsync(studentId);
+        }
+
+        public async Task CalculateGPABySchoolYearAsync(string studentId, string schoolYearId, string? semester = null)
+        {
+            if (string.IsNullOrWhiteSpace(studentId))
+                throw new ArgumentException("Student ID không được để trống");
+
+            if (string.IsNullOrWhiteSpace(schoolYearId))
+                throw new ArgumentException("School Year ID không được để trống");
+
+            await _gradeRepository.CalculateGPABySchoolYearAsync(studentId, schoolYearId, semester);
         }
     }
 }

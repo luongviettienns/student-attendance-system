@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
     [Route("api-edu/majors")]
     public class MajorController : BaseController
     {
@@ -18,6 +18,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
         public async Task<IActionResult> GetAll()
         {
             var data = await _service.GetAllAsync();
@@ -25,6 +26,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
         public async Task<IActionResult> GetById(string id)
         {
             var major = await _service.GetByIdAsync(id);
@@ -33,6 +35,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("by-faculty/{facultyId}")]
+        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
         public async Task<IActionResult> GetByFaculty(string facultyId)
         {
             var list = await _service.GetByFacultyAsync(facultyId);
@@ -40,6 +43,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được tạo
         public async Task<IActionResult> Create([FromBody] Major model)
         {
             try
@@ -62,6 +66,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được cập nhật
         public async Task<IActionResult> Update(string id, [FromBody] Major model)
         {
             if (id != model.MajorId)
@@ -82,6 +87,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được xóa
         public async Task<IActionResult> Delete(string id)
         {
             var major = await _service.GetByIdAsync(id);

@@ -69,7 +69,7 @@ SELECT
     f.faculty_name,
     g.academic_year_id,
     ay.year_name as academic_year,
-    g.semester,
+    COALESCE(g.semester, 0) as semester, -- 0 = Cả năm (thay thế NULL)
     CASE 
         WHEN g.semester IS NULL THEN N'Cả năm'
         WHEN g.semester = 1 THEN N'Học kỳ 1'

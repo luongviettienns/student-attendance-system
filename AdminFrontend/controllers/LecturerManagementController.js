@@ -1,8 +1,8 @@
 // ============================================================
 // LECTURER MANAGEMENT CONTROLLER - Quản lý Giảng viên + Phân môn
 // ============================================================
-app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG', 'AuthService', 'AvatarService', 'RoleService', 'ToastService', 
-    function($scope, $http, API_CONFIG, AuthService, AvatarService, RoleService, ToastService) {
+app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG', 'AuthService', 'AvatarService', 'RoleService', 'ToastService', 'LoggerService', 
+    function($scope, $http, API_CONFIG, AuthService, AvatarService, RoleService, ToastService, LoggerService) {
     
     // =========================
     // INITIALIZATION
@@ -44,16 +44,16 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
 
     // Handle tab click
     $scope.onTabClick = function(tabName) {
-        console.log('Tab clicked:', tabName);
+        LoggerService.debug('Lecturer management tab clicked', tabName);
         $scope.activeTab = tabName;
-        console.log('Active tab now:', $scope.activeTab);
+        LoggerService.debug('Lecturer management active tab', $scope.activeTab);
     };
     
     $scope.init = function() {
         // Load permissions first, then load data
         RoleService.loadPermissions().then(function() {
             $scope.canViewSubjectAssignment = RoleService.hasPermission('canManageLecturers');
-            console.log('Permissions loaded. canViewSubjectAssignment:', $scope.canViewSubjectAssignment);
+            LoggerService.debug('Permissions loaded for lecturer management', { canViewSubjectAssignment: $scope.canViewSubjectAssignment });
             
             // Now load data
             $scope.loadLecturers();
@@ -64,7 +64,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
                 $scope.loadAllSubjects();
             }
         }).catch(function(error) {
-            console.error('Error loading permissions:', error);
+            LoggerService.error('Error loading lecturer permissions', error);
             // Use fallback permissions
             $scope.canViewSubjectAssignment = RoleService.hasPermission('canManageLecturers');
             
@@ -123,7 +123,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     };
 
     $scope.loadLecturerSubjectCount = function(lecturer) {
-        $http.get(API_CONFIG.BASE_URL + '/admin/lecturersubject/lecturer/' + lecturer.lecturerId)
+        $http.get(API_CONFIG.BASE_URL + '/lecturer-subjects/lecturer/' + lecturer.lecturerId)
             .then(function(response) {
                 lecturer.subjectCount = (response.data.data || []).length;
             })
@@ -133,7 +133,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     };
 
     $scope.loadDepartments = function() {
-        $http.get(API_CONFIG.BASE_URL + '/admin/department')
+        $http.get(API_CONFIG.BASE_URL + '/departments')
             .then(function(response) {
                 $scope.departments = response.data;
             })
@@ -267,7 +267,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     };
 
     $scope.loadSubjectLecturers = function(subject) {
-        $http.get(API_CONFIG.BASE_URL + '/admin/lecturersubject/subject/' + subject.subjectId)
+        $http.get(API_CONFIG.BASE_URL + '/lecturer-subjects/subject/' + subject.subjectId)
             .then(function(response) {
                 subject.assignedLecturers = response.data.data || [];
             })
@@ -281,7 +281,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
         $scope.newSubject = { isPrimary: false, experienceYears: 0 };
         
         // Load subjects assigned to this lecturer
-        $http.get(API_CONFIG.BASE_URL + '/admin/lecturersubject/lecturer/' + lecturer.lecturerId)
+        $http.get(API_CONFIG.BASE_URL + '/lecturer-subjects/lecturer/' + lecturer.lecturerId)
             .then(function(response) {
                 $scope.lecturerSubjects = response.data.data || [];
                 
@@ -316,7 +316,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
             certifiedDate: new Date().toISOString()
         };
 
-        $http.post(API_CONFIG.BASE_URL + '/admin/lecturersubject', data)
+        $http.post(API_CONFIG.BASE_URL + '/lecturer-subjects', data)
             .then(function(response) {
                 ToastService.success('✅ Đã phân môn cho giảng viên!');
                 $scope.assignSubjects($scope.selectedLecturer); // Reload
@@ -334,7 +334,7 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
             return;
         }
 
-        $http.delete(API_CONFIG.BASE_URL + '/admin/lecturersubject/' + lecturerSubjectId)
+        $http.delete(API_CONFIG.BASE_URL + '/lecturer-subjects/' + lecturerSubjectId)
             .then(function(response) {
                 ToastService.success('🗑 Đã bỏ môn học!');
                 $scope.assignSubjects($scope.selectedLecturer); // Reload

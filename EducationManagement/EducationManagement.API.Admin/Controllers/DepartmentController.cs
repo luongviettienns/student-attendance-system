@@ -9,7 +9,7 @@ namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
     [Authorize(Roles = "Admin")]
-    [Route("api-edu/admin/department")]
+    [Route("api-edu/departments")]
     public class DepartmentController : BaseController
     {
         private readonly DepartmentRepository _repository;

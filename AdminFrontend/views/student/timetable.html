@@ -5,54 +5,10 @@
     <!-- Main Content -->
     <div class="main-content">
         <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <h1 class="page-title">Thời khóa biểu Sinh viên</h1>
-            </div>
-            
-            <div class="header-right">
-                <notification-bell></notification-bell>
-                <div class="user-info">
-                    <div class="user-avatar" ng-click="openAvatarModal()">
-                        <img ng-if="currentUser && currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
-                        <span ng-if="!currentUser || !currentUser.avatarUrl">{{(currentUser && currentUser.fullName) ? currentUser.fullName.charAt(0) : 'U'}}</span>
-                    </div>
-                    <div class="user-details">
-                        <span class="user-name">{{(currentUser && currentUser.fullName) || 'User'}}</span>
-                        <span class="user-role">{{(currentUser && currentUser.role) || 'Student'}}</span>
-                    </div>
-                </div>
-                <button ng-click="logout()" class="btn btn-outline">
-                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                </button>
-            </div>
-        </header>
+        <app-topbar page-title="Thời khóa biểu Sinh viên"></app-topbar>
         
         <!-- Content Body -->
         <div class="content-body">
-            <!-- Student ID Input (for testing) -->
-            <div class="card" style="margin-bottom: 20px;">
-                <div class="card-header">
-                    <h3>Nhập Student ID</h3>
-                </div>
-                <div class="card-body">
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <input type="text" ng-model="studentId" placeholder="Nhập Student ID (ví dụ: STU001)" 
-                               style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                        <button ng-click="load()" class="btn btn-primary" ng-disabled="loading">
-                            <i class="fas fa-search"></i> Xem TKB
-                        </button>
-                    </div>
-                    <small style="color: #666; margin-top: 5px; display: block;">
-                        <i class="fas fa-info-circle"></i> 
-                        Nếu đã đăng nhập bằng tài khoản sinh viên, Student ID sẽ tự động được lấy từ tài khoản.
-                    </small>
-                </div>
-            </div>
-            
             <!-- Error Message -->
             <div ng-if="error" class="alert alert-danger">
                 <i class="fas fa-exclamation-circle"></i> {{error}}
@@ -77,9 +33,6 @@
                                 Tuần sau <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>
-                    </div>
-                    <div style="margin-top:8px;color:#666;font-size:12px;">
-                        Debug: studentId={{debug.studentId}} | week={{debug.week}} | year={{debug.year}} | count={{debug.count}}
                     </div>
                 </div>
                 <div class="card-body">

@@ -81,12 +81,57 @@ app.directive('appSidebar', ['$location', 'AuthService', 'RoleService', function
                 return false;
             };
             
+            // Navigate to path (explicit navigation)
+            scope.navigateTo = function(path, event) {
+                if (!path) {
+                    if (event) event.preventDefault();
+                    return;
+                }
+                
+                // Prevent default link behavior if event is provided
+                if (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                
+                // Normalize path
+                var normalized = String(path).replace(/\s+/g, '');
+                if (normalized.charAt(0) !== '/') {
+                    normalized = '/' + normalized;
+                }
+                normalized = normalized.replace(/\/+/g, '/');
+                
+                // Navigate using $location (will trigger digest automatically)
+                $location.path(normalized);
+            };
+            
+            // Listen for menu updates from API
+            scope.$on('menu:updated', function(event, menuItems) {
+                scope.menuSections = menuItems;
+                expandSectionForCurrentPath();
+            });
+            
+            // Listen for menu reload event (when permissions are updated)
+            scope.$on('menu:reload', function() {
+                RoleService.clearCache();
+                RoleService.loadMenuItems().then(function(menuItems) {
+                    scope.menuSections = menuItems;
+                    expandSectionForCurrentPath();
+                });
+            });
+            
+            // Load menu from API on init
+            RoleService.loadMenuItems().then(function(menuItems) {
+                scope.menuSections = menuItems;
+                expandSectionForCurrentPath();
+            });
+            
             // Watch for route changes
             scope.$on('$routeChangeSuccess', function() {
                 // Update current user if needed
                 scope.currentUser = AuthService.getCurrentUser() || { fullName: 'Admin' };
-                // Update menu items
-                scope.menuSections = RoleService.getMenuItems();
+                // Update menu items (use sync method to get latest)
+                scope.menuSections = RoleService.getMenuItemsSync();
                 // Sync trạng thái mở theo route
                 expandSectionForCurrentPath();
             });

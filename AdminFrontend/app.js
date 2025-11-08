@@ -1,5 +1,18 @@
+// @ts-check
+/* global angular */
+'use strict';
+
 // AngularJS Application Configuration
 var app = angular.module('adminApp', ['ngRoute', 'ngAnimate']);
+
+// Academic rules & thresholds (centralised to avoid scattering magic numbers)
+app.constant('ACADEMIC_RULES', {
+    defaultRequiredCredits: 120,
+    passingScore: 5.0,
+    excellentThreshold: 9.0,
+    goodThreshold: 8.0,
+    averageThreshold: 5.5
+});
 
 // API Configuration (Microservices Pattern - All via Gateway)
 app.constant('API_CONFIG', {
@@ -155,6 +168,22 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'views/advisor/dashboard.html',
             controller: 'AdvisorDashboardController'
         })
+        .when('/advisor/students/:studentId', {
+            templateUrl: 'views/advisor/student-detail.html',
+            controller: 'AdvisorStudentController'
+        })
+        .when('/advisor/students', {
+            templateUrl: 'views/advisor/students.html',
+            controller: 'AdvisorStudentListController'
+        })
+        .when('/advisor/students/:studentId/progress', {
+            templateUrl: 'views/advisor/student-progress.html',
+            controller: 'AdvisorProgressController'
+        })
+        .when('/advisor/warnings', {
+            templateUrl: 'views/advisor/warnings.html',
+            controller: 'AdvisorWarningController'
+        })
         
         // Student Portal
         .when('/student/dashboard', {
@@ -172,6 +201,14 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/student/grades', {
             templateUrl: 'views/student/grades.html',
             controller: 'StudentGradesController'
+        })
+        .when('/student/attendance', {
+            templateUrl: 'views/student/attendance.html',
+            controller: 'StudentAttendanceController'
+        })
+        .when('/student/profile', {
+            templateUrl: 'views/student/profile.html',
+            controller: 'StudentProfileController'
         })
         
         // =============================================
@@ -249,15 +286,28 @@ app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', function($ro
             $location.path('/login');
         }
         
-        // If authenticated and trying to access login, redirect to dashboard
+        // If authenticated and trying to access login, redirect based on role
         if (next.publicAccess && AuthService.isAuthenticated()) {
-            $location.path('/dashboard');
+            var currentUser = AuthService.getCurrentUser();
+            var userRole = currentUser?.roleName || currentUser?.Role || 'Admin';
+            
+            // Redirect based on user role
+            var defaultRoute = '/dashboard';
+            if (userRole === 'Student') {
+                defaultRoute = '/student/dashboard';
+            } else if (userRole === 'Lecturer') {
+                defaultRoute = '/lecturer/dashboard';
+            } else if (userRole === 'Advisor') {
+                defaultRoute = '/advisor/dashboard';
+            }
+            
+            $location.path(defaultRoute);
         }
     });
 }]);
 
 // HTTP Interceptor for adding JWT token
-app.factory('AuthInterceptor', ['$q', '$location', '$window', function($q, $location, $window) {
+app.factory('AuthInterceptor', ['$q', '$location', '$window', '$injector', function($q, $location, $window, $injector) {
     return {
         request: function(config) {
             // Check both localStorage and sessionStorage for token
@@ -270,12 +320,28 @@ app.factory('AuthInterceptor', ['$q', '$location', '$window', function($q, $loca
         },
         responseError: function(rejection) {
             if (rejection.status === 401) {
-                // Clear tokens from both storages and redirect to login
+                // Unauthorized - Clear tokens and redirect to login
                 $window.localStorage.removeItem('auth_token');
                 $window.localStorage.removeItem('user_info');
                 $window.sessionStorage.removeItem('auth_token');
                 $window.sessionStorage.removeItem('user_info');
                 $location.path('/login');
+                // Try to show toast if ToastService is available
+                try {
+                    var ToastService = $injector.get('ToastService');
+                    ToastService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                } catch (e) {
+                    // ToastService not available, skip
+                }
+            } else if (rejection.status === 403) {
+                // Forbidden - User doesn't have permission
+                // Don't show error toast for 403, let the controller handle it
+                // This prevents spam of error messages for admin-only features
+                // Silent - no console output
+            } else if (rejection.status === 404) {
+                // Not Found - Resource doesn't exist
+                // Don't show error toast, let the controller handle it
+                // Silent - no console output
             }
             return $q.reject(rejection);
         }

@@ -1,11 +1,13 @@
 // Role Controller
 app.controller('RoleController', [
     '$scope', 
+    '$rootScope',
     'RoleManagementService', 
     'AuthService', 
     'AvatarService', 
     'ToastService',
-    function($scope, RoleManagementService, AuthService, AvatarService, ToastService) {
+    'RoleService',
+    function($scope, $rootScope, RoleManagementService, AuthService, AvatarService, ToastService, RoleService) {
     
     $scope.roles = [];
     $scope.permissions = [];
@@ -238,6 +240,13 @@ app.controller('RoleController', [
                 ToastService.success(response.data.message || 'Cập nhật quyền thành công');
                 closeModal('permissionModal');
                 $scope.loadRoles();
+                
+                // Clear menu cache to force reload from API
+                // This ensures menu updates immediately after permission changes
+                RoleService.clearCache();
+                
+                // Broadcast event to reload menu
+                $rootScope.$broadcast('menu:reload');
             })
             .catch(function(error) {
                 var errorMsg = error.data?.message || 'Không thể cập nhật quyền';
@@ -252,8 +261,12 @@ app.controller('RoleController', [
     function openModal(modalId) {
         var modal = document.getElementById(modalId);
         if (modal) {
-            // Use 'active' class to display modal per CSS rules
-            modal.classList.add('active');
+            // Use 'show' class for custom-modal, 'active' for other modals
+            if (modal.classList.contains('custom-modal')) {
+                modal.classList.add('show');
+            } else {
+                modal.classList.add('active');
+            }
             // Prevent body scroll
             document.body.style.overflow = 'hidden';
         }
@@ -262,8 +275,12 @@ app.controller('RoleController', [
     function closeModal(modalId) {
         var modal = document.getElementById(modalId);
         if (modal) {
-            // Remove 'active' class to hide modal
-            modal.classList.remove('active');
+            // Remove class to hide modal
+            if (modal.classList.contains('custom-modal')) {
+                modal.classList.remove('show');
+            } else {
+                modal.classList.remove('active');
+            }
             // Restore body scroll
             document.body.style.overflow = '';
         }

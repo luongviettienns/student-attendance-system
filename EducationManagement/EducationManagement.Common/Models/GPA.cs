@@ -58,7 +58,7 @@ namespace EducationManagement.Common.Models
 
         [Column("rank_text")]
         [MaxLength(50)]
-        public string? RankText { get; set; } // Xuất sắc, Giỏi, Khá, Trung bình
+        public string? RankText { get; set; } // Xuất sắc, Giỏi, Khá, Trung bình, Yếu, Kém (Tiếng Việt có dấu - encoding UTF-8)
 
         // ==================================================
         // 🔹 Audit fields

@@ -31,7 +31,7 @@ app.controller('MajorController', ['$scope', '$location', '$routeParams', '$time
                 $scope.faculties = response.data;
             })
             .catch(function(error) {
-                console.error('Error loading faculties:', error);
+                // Error handled silently
             });
     };
     

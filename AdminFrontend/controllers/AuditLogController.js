@@ -1,6 +1,6 @@
 // Audit Log Controller
-app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 'PaginationService', 'ExportService', 'AuthService', 'AvatarService',
-    function($scope, $location, AuditLogService, PaginationService, ExportService, AuthService, AvatarService) {
+app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 'PaginationService', 'ExportService', 'AuthService', 'AvatarService', 'LoggerService',
+    function($scope, $location, AuditLogService, PaginationService, ExportService, AuthService, AvatarService, LoggerService) {
     
     $scope.logs = [];
     $scope.displayedLogs = [];
@@ -97,11 +97,11 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
                         $scope.pagination = PaginationService.calculate($scope.pagination);
                     }
                     
-                    console.log('🔍 DEBUG Audit Logs:', {
-                        'API returned': response.data.data.length,
-                        'Mapped logs': $scope.logs.length,
-                        'PageSize expected': $scope.pagination.pageSize,
-                        'Total items': $scope.pagination.totalItems
+                    LoggerService.debug('Audit logs fetched', {
+                        apiReturned: response.data.data.length,
+                        mappedLogs: $scope.logs.length,
+                        pageSize: $scope.pagination.pageSize,
+                        totalItems: $scope.pagination.totalItems
                     });
                     
                     $scope.displayedLogs = $scope.logs;
@@ -112,8 +112,14 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
                 $scope.loading = false;
             })
             .catch(function(error) {
-                console.error('Error loading audit logs:', error);
-                $scope.error = 'Không thể tải audit log: ' + (error.data?.message || error.message || 'Lỗi không xác định');
+                LoggerService.error('Error loading audit logs', error);
+                if (error.status === 403) {
+                    $scope.error = 'Bạn không có quyền truy cập audit log. Chỉ Admin mới có quyền xem.';
+                } else if (error.status === 404) {
+                    $scope.error = 'Không tìm thấy dữ liệu audit log.';
+                } else {
+                    $scope.error = 'Không thể tải audit log: ' + (error.data?.message || error.message || 'Lỗi không xác định');
+                }
                 $scope.loading = false;
             });
     };
@@ -438,7 +444,7 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
             
             return result;
         } catch (e) {
-            console.error('Error parsing JSON:', e);
+            LoggerService.error('Error parsing audit log JSON payload', e);
             return [];
         }
     };

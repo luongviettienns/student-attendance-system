@@ -10,7 +10,7 @@ namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
     [Authorize] // ✅ Yêu cầu authentication cho tất cả endpoints
-    [Route("api-edu/admin/users")]
+    [Route("api-edu/users")]
     public class UserController : ControllerBase
     {
         private readonly IWebHostEnvironment _env;

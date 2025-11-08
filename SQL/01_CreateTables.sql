@@ -376,12 +376,13 @@ CREATE TABLE dbo.gpas (
     gpa_id           VARCHAR(50) PRIMARY KEY,
     student_id       VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.students(student_id),
     academic_year_id VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.academic_years(academic_year_id),
+    school_year_id   VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.school_years(school_year_id),
     semester         INT NULL, -- NULL = cả năm học, 1/2/3 = học kỳ cụ thể
     gpa10            DECIMAL(4,2) NULL CHECK (gpa10 >= 0 AND gpa10 <= 10),
     gpa4             DECIMAL(4,2) NULL CHECK (gpa4 >= 0 AND gpa4 <= 4),
     total_credits    INT NULL DEFAULT 0,
     accumulated_credits INT NULL DEFAULT 0,
-    rank_text        NVARCHAR(50) NULL, -- Xuất sắc, Giỏi, Khá, Trung bình, Yếu
+    rank_text        NVARCHAR(50) NULL, -- Xuat sac, Gioi, Kha, Trung binh, Yeu (Tieng Viet khong dau - backend se chuyen doi)
     is_active        BIT NOT NULL DEFAULT 1,
     created_at       DATETIME NOT NULL DEFAULT(GETDATE()),
     created_by       VARCHAR(50) NULL,
@@ -391,7 +392,7 @@ CREATE TABLE dbo.gpas (
     deleted_by       VARCHAR(50) NULL,
     
     -- Unique constraint: Mỗi sinh viên chỉ có 1 GPA cho 1 năm học + học kỳ
-    CONSTRAINT uk_gpa_student_year_semester UNIQUE (student_id, academic_year_id, semester)
+    CONSTRAINT uk_gpa_student_schoolyear_semester UNIQUE (student_id, school_year_id, semester)
 );
 GO
 
@@ -423,10 +424,17 @@ CREATE TABLE dbo.permissions (
     permission_code VARCHAR(100) NOT NULL UNIQUE,
     permission_name NVARCHAR(200) NOT NULL,
     description     NVARCHAR(500) NULL,
+    -- 🔹 Menu structure fields
+    parent_code     VARCHAR(100) NULL,        -- Parent permission code for menu hierarchy
+    icon            VARCHAR(100) NULL,        -- FontAwesome icon class
+    sort_order      INT NULL,                 -- Display order in menu
+    is_active       BIT NOT NULL DEFAULT 1,   -- Active status
     created_at      DATETIME NOT NULL DEFAULT(GETDATE()),
     created_by      VARCHAR(50) NULL,
     updated_at      DATETIME NULL,
-    updated_by      VARCHAR(50) NULL
+    updated_by      VARCHAR(50) NULL,
+    deleted_at      DATETIME NULL,            -- Soft delete
+    deleted_by      VARCHAR(50) NULL          -- Audit
 );
 GO
 
@@ -1120,9 +1128,11 @@ PRINT '========================================';
 PRINT '';
 
 -- ===========================================
--- ALTER TABLES: Add school_year_id to gpas
+-- ALTER TABLES: Ensure school_year_id exists in gpas (for backward compatibility)
+-- Note: school_year_id is now included in the CREATE TABLE statement above,
+-- so this section is kept only for cases where the table was created before the fix
 -- ===========================================
--- Add school_year_id column to gpas table if not exists
+-- Add school_year_id column to gpas table if not exists (for backward compatibility)
 IF NOT EXISTS (
     SELECT * FROM sys.columns 
     WHERE object_id = OBJECT_ID('dbo.gpas') 
@@ -1138,6 +1148,28 @@ END
 ELSE
 BEGIN
     PRINT 'ℹ️  Column school_year_id already exists in gpas table';
+END
+GO
+
+-- Drop old constraint if it exists (for backward compatibility)
+IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'uk_gpa_student_year_semester' AND parent_object_id = OBJECT_ID('dbo.gpas'))
+BEGIN
+    ALTER TABLE dbo.gpas DROP CONSTRAINT uk_gpa_student_year_semester;
+    PRINT '✅ Dropped old constraint uk_gpa_student_year_semester';
+END
+GO
+
+-- Ensure the constraint exists (for backward compatibility)
+IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'uk_gpa_student_schoolyear_semester' AND parent_object_id = OBJECT_ID('dbo.gpas'))
+BEGIN
+    ALTER TABLE dbo.gpas 
+    ADD CONSTRAINT uk_gpa_student_schoolyear_semester 
+    UNIQUE (student_id, school_year_id, semester);
+    PRINT '✅ Created constraint uk_gpa_student_schoolyear_semester';
+END
+ELSE
+BEGIN
+    PRINT 'ℹ️  Constraint uk_gpa_student_schoolyear_semester already exists';
 END
 GO
 

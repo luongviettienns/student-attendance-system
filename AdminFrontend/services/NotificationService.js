@@ -65,7 +65,7 @@ app.service('NotificationService', ['ApiService', '$rootScope', function(ApiServ
                 self.setUnreadCount(response.data.length || 0);
             })
             .catch(function(error) {
-                console.error('Error loading unread count:', error);
+                // Error handled silently
             });
     };
 }]);

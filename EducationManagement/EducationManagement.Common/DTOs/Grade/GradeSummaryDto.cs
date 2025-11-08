@@ -14,7 +14,12 @@ namespace EducationManagement.Common.DTOs.Grade
         public decimal? Gpa4 { get; set; }
         public int TotalCredits { get; set; }
         public int AccumulatedCredits { get; set; }
+        
+        /// <summary>
+        /// Rank text từ database (tiếng Việt có dấu): "Xuất sắc", "Giỏi", "Khá", "Trung bình", "Yếu", "Kém"
+        /// </summary>
         public string? RankText { get; set; }
+        
         public int TotalSubjects { get; set; }
         public int PassedSubjects { get; set; }
         public int FailedSubjects { get; set; }

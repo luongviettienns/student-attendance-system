@@ -1,4 +1,4 @@
-app.controller('LecturerTimetableController', ['$scope', '$rootScope', '$location', 'TimetableApi', 'AuthService', function($scope, $rootScope, $location, TimetableApi, AuthService) {
+app.controller('LecturerTimetableController', ['$scope', '$rootScope', '$location', 'TimetableApi', 'AuthService', 'LoggerService', function($scope, $rootScope, $location, TimetableApi, AuthService, LoggerService) {
   function getIsoWeek(d) {
     var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     var dayNum = date.getUTCDay() || 7;
@@ -44,8 +44,8 @@ app.controller('LecturerTimetableController', ['$scope', '$rootScope', '$locatio
       $scope.raw = data;
       if(data.length === 0){ $scope.error = 'Không có dữ liệu thời khóa biểu cho tuần này'; }
     }).catch(function(err){
-      $scope.error = 'Lỗi: ' + (err.data && err.data.message) || err.statusText || 'Không thể tải thời khóa biểu';
-      console.error('Lecturer timetable load error:', err);
+      $scope.error = 'Lỗi: ' + ((err.data && err.data.message) || err.statusText || 'Không thể tải thời khóa biểu');
+      LoggerService.error('Lecturer timetable load error', err);
     }).finally(function(){ $scope.loading = false; });
   };
 

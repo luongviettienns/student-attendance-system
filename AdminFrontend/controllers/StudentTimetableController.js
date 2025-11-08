@@ -1,4 +1,4 @@
-app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location', 'TimetableApi', 'AuthService', function($scope, $rootScope, $location, TimetableApi, AuthService) {
+app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location', 'TimetableApi', 'AuthService', 'StudentService', 'LoggerService', function($scope, $rootScope, $location, TimetableApi, AuthService, StudentService, LoggerService) {
   function getIsoWeek(d) {
     var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     var dayNum = date.getUTCDay() || 7;
@@ -17,16 +17,37 @@ app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location
   $scope.loading = false;
   $scope.error = null;
   $scope.currentUser = AuthService.getCurrentUser() || {};
+  $scope.studentId = null;
   
-  // Lấy params qua $location (đúng cho hashbang routing): #!/student/timetable?studentId=STU001&week=12&year=2025
-  var qs = $location.search() || {};
-  // Lấy studentId từ currentUser hoặc query hoặc localStorage (để test)
-  $scope.studentId = $scope.currentUser.studentId || qs.studentId || localStorage.getItem('test_studentId') || '';
-  // Cho phép override tuần/năm từ query string
-  var qWeek = parseInt(qs.week);
-  var qYear = parseInt(qs.year);
-  if (!isNaN(qWeek) && qWeek >= 1 && qWeek <= 53) { $scope.week = qWeek; }
-  if (!isNaN(qYear) && qYear > 2000 && qYear < 3000) { $scope.year = qYear; }
+  // Load student ID from user
+  function loadStudentId() {
+    if (!$scope.currentUser || !$scope.currentUser.userId) {
+      $scope.error = 'Không tìm thấy thông tin người dùng';
+      $scope.loading = false;
+      return;
+    }
+    
+    StudentService.getByUserId($scope.currentUser.userId)
+      .then(function(response) {
+        if (response.data && response.data.data) {
+          $scope.studentId = response.data.data.studentId;
+          // Get params from query string
+          var qs = $location.search() || {};
+          var qWeek = parseInt(qs.week);
+          var qYear = parseInt(qs.year);
+          if (!isNaN(qWeek) && qWeek >= 1 && qWeek <= 53) { $scope.week = qWeek; }
+          if (!isNaN(qYear) && qYear > 2000 && qYear < 3000) { $scope.year = qYear; }
+          $scope.load();
+        } else {
+          $scope.error = 'Không tìm thấy thông tin sinh viên';
+          $scope.loading = false;
+        }
+      })
+      .catch(function(error) {
+        $scope.error = 'Không thể tải thông tin sinh viên';
+        $scope.loading = false;
+      });
+  }
 
   $scope.load = function() {
     if(!$scope.studentId){
@@ -52,15 +73,10 @@ app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location
         $scope.error = 'Không có dữ liệu thời khóa biểu cho tuần này';
       }
     }).catch(function(err){
-      $scope.error = 'Lỗi: ' + (err.data && err.data.message) || err.statusText || 'Không thể tải thời khóa biểu';
-      console.error('Timetable load error:', err);
+      var message = (err && err.data && err.data.message) || err.statusText || 'Không thể tải thời khóa biểu';
+      $scope.error = 'Lỗi: ' + message;
+      LoggerService.error('Student timetable load error', err);
     }).finally(function(){ $scope.loading = false; });
-  };
-  
-  $scope.setStudentId = function(id){
-    $scope.studentId = id;
-    localStorage.setItem('test_studentId', id);
-    $scope.load();
   };
 
   $scope.prevWeek = function(){
@@ -78,7 +94,8 @@ app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location
     $scope.year = i.year; $scope.week = i.week; $scope.load();
   };
 
-  $scope.load();
+  // Initialize
+  loadStudentId();
 }]);
 
 

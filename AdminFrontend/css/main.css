@@ -580,6 +580,13 @@ p {
     
     .header {
         padding: 0 20px;
+        gap: 12px;
+    }
+    
+    .header-right {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 12px;
     }
     
     /* Hide user details on tablet */
@@ -605,10 +612,63 @@ p {
     
     .header {
         padding: 0 15px;
+        flex-wrap: wrap;
+        gap: 12px;
     }
     
     .header-right {
-        gap: 10px;
+        gap: 12px;
+        justify-content: space-between;
+    }
+    
+    .header-left,
+    .header-right {
+        width: 100%;
+        display: flex;
+    }
+    
+    .header-left {
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .header-right > * {
+        flex: 1 1 48%;
+        margin-bottom: 8px;
+    }
+    
+    .header-right > *:last-child {
+        margin-bottom: 0;
+    }
+    
+    .header-right notification-bell,
+    .header-right .user-info {
+        flex: 1 1 100%;
+    }
+    
+    .header-right notification-bell {
+        display: block;
+    }
+    
+    .user-info {
+        justify-content: space-between;
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        background-color: var(--bg-primary);
+    }
+    
+    .user-info .user-avatar {
+        margin-right: 12px;
+    }
+    
+    .user-info .user-name {
+        font-size: 14px;
+    }
+    
+    .user-info .user-role {
+        font-size: 12px;
     }
     
     /* Responsive cards grid */
@@ -656,6 +716,15 @@ p {
     .quick-action-btn {
         width: 100%;
         min-width: unset;
+    }
+    
+    .card-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .card-actions .btn {
+        width: 100%;
     }
     
     /* Responsive pagination */
@@ -715,6 +784,22 @@ p {
 @media (max-width: 479px) {
     :root {
         --sidebar-width: 240px;
+    }
+    
+    .page-title {
+        font-size: 15px;
+    }
+    
+    .header {
+        padding: 0 12px;
+    }
+    
+    .header-right > * {
+        flex: 1 1 100%;
+    }
+    
+    .header-right .btn {
+        width: 100%;
     }
     
     .stats-grid {

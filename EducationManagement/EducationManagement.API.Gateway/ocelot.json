@@ -39,7 +39,7 @@
             "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
         },
         {
-            "DownstreamPathTemplate": "/api-edu/admin/users/{everything}",
+            "DownstreamPathTemplate": "/api-edu/users/{everything}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -55,7 +55,7 @@
             }
         },
         {
-            "DownstreamPathTemplate": "/api-edu/admin/users",
+            "DownstreamPathTemplate": "/api-edu/users",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -455,7 +455,7 @@
             }
         },
         {
-            "DownstreamPathTemplate": "/api-edu/admin/department",
+            "DownstreamPathTemplate": "/api-edu/departments",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -463,7 +463,7 @@
                     "Port": 5227
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/department",
+            "UpstreamPathTemplate": "/api-edu/departments",
             "UpstreamHttpMethod": [ "GET", "POST", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
@@ -471,7 +471,7 @@
             }
         },
         {
-            "DownstreamPathTemplate": "/api-edu/admin/department/{id}",
+            "DownstreamPathTemplate": "/api-edu/departments/{id}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -479,7 +479,7 @@
                     "Port": 5227
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/department/{id}",
+            "UpstreamPathTemplate": "/api-edu/departments/{id}",
             "UpstreamHttpMethod": [ "GET", "PUT", "DELETE", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
@@ -487,7 +487,7 @@
             }
         },
         {
-            "DownstreamPathTemplate": "/api-edu/admin/department/faculty/{facultyId}",
+            "DownstreamPathTemplate": "/api-edu/departments/faculty/{facultyId}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -495,7 +495,7 @@
                     "Port": 5227
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/department/faculty/{facultyId}",
+            "UpstreamPathTemplate": "/api-edu/departments/faculty/{facultyId}",
             "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
@@ -503,7 +503,7 @@
             }
         },
         {
-            "DownstreamPathTemplate": "/api-edu/admin/department/stats/subjects",
+            "DownstreamPathTemplate": "/api-edu/departments/stats/subjects",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -511,7 +511,7 @@
                     "Port": 5227
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/department/stats/subjects",
+            "UpstreamPathTemplate": "/api-edu/departments/stats/subjects",
             "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
@@ -519,7 +519,7 @@
             }
         },
         {
-            "DownstreamPathTemplate": "/api-edu/admin/department/stats/lecturers",
+            "DownstreamPathTemplate": "/api-edu/departments/stats/lecturers",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -527,7 +527,7 @@
                     "Port": 5227
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/department/stats/lecturers",
+            "UpstreamPathTemplate": "/api-edu/departments/stats/lecturers",
             "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
@@ -631,7 +631,7 @@
             }
         },
         {
-            "DownstreamPathTemplate": "/api-edu/admin/lecturersubject/lecturer/{lecturerId}",
+            "DownstreamPathTemplate": "/api-edu/lecturer-subjects/{everything}",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -639,15 +639,15 @@
                     "Port": 5227
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/lecturersubject/lecturer/{lecturerId}",
-            "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
+            "UpstreamPathTemplate": "/api-edu/lecturer-subjects/{everything}",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
             }
         },
         {
-            "DownstreamPathTemplate": "/api-edu/admin/lecturersubject/subject/{subjectId}",
+            "DownstreamPathTemplate": "/api-edu/lecturer-subjects",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [
                 {
@@ -655,24 +655,8 @@
                     "Port": 5227
                 }
             ],
-            "UpstreamPathTemplate": "/api-edu/admin/lecturersubject/subject/{subjectId}",
-            "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
-            "AuthenticationOptions": {
-                "AuthenticationProviderKey": "Bearer",
-                "AllowedScopes": []
-            }
-        },
-        {
-            "DownstreamPathTemplate": "/api-edu/admin/lecturersubject/available/{subjectId}",
-            "DownstreamScheme": "http",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "localhost",
-                    "Port": 5227
-                }
-            ],
-            "UpstreamPathTemplate": "/api-edu/admin/lecturersubject/available/{subjectId}",
-            "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
+            "UpstreamPathTemplate": "/api-edu/lecturer-subjects",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []

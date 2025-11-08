@@ -142,6 +142,90 @@ namespace EducationManagement.DAL.Repositories
             return grades;
         }
 
+        public async Task<EducationManagement.Common.DTOs.Grade.CumulativeGPADto?> GetCumulativeGPAAsync(string studentId)
+        {
+            var param = new SqlParameter("@StudentId", studentId);
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetCumulativeGPA", param);
+
+            if (dt.Rows.Count == 0)
+                return null;
+
+            var row = dt.Rows[0];
+            return new EducationManagement.Common.DTOs.Grade.CumulativeGPADto
+            {
+                StudentId = row["student_id"]?.ToString() ?? string.Empty,
+                StudentCode = row["student_code"]?.ToString() ?? string.Empty,
+                StudentName = row["student_name"]?.ToString() ?? string.Empty,
+                CumulativeGpa10 = row.Table.Columns.Contains("cumulative_gpa10") && row["cumulative_gpa10"] != DBNull.Value
+                    ? Convert.ToDecimal(row["cumulative_gpa10"]) : null,
+                CumulativeGpa4 = row.Table.Columns.Contains("cumulative_gpa4") && row["cumulative_gpa4"] != DBNull.Value
+                    ? Convert.ToDecimal(row["cumulative_gpa4"]) : null,
+                TotalCreditsEarned = row.Table.Columns.Contains("total_credits_earned") && row["total_credits_earned"] != DBNull.Value
+                    ? Convert.ToInt32(row["total_credits_earned"]) : 0,
+                AccumulatedCredits = row.Table.Columns.Contains("accumulated_credits") && row["accumulated_credits"] != DBNull.Value
+                    ? Convert.ToInt32(row["accumulated_credits"]) : 0,
+                TotalSubjects = row.Table.Columns.Contains("total_subjects") && row["total_subjects"] != DBNull.Value
+                    ? Convert.ToInt32(row["total_subjects"]) : 0,
+                PassedSubjects = row.Table.Columns.Contains("passed_subjects") && row["passed_subjects"] != DBNull.Value
+                    ? Convert.ToInt32(row["passed_subjects"]) : 0,
+                FailedSubjects = row.Table.Columns.Contains("failed_subjects") && row["failed_subjects"] != DBNull.Value
+                    ? Convert.ToInt32(row["failed_subjects"]) : 0,
+                OverallRank = row.Table.Columns.Contains("overall_rank") ? row["overall_rank"]?.ToString() : null
+            };
+        }
+
+        public async Task<List<EducationManagement.Common.DTOs.Grade.TranscriptDto>> GetStudentTranscriptAsync(string studentId)
+        {
+            var transcripts = new List<EducationManagement.Common.DTOs.Grade.TranscriptDto>();
+            var param = new SqlParameter("@StudentId", studentId);
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetStudentTranscript", param);
+
+            foreach (DataRow row in dt.Rows)
+            {
+                transcripts.Add(new EducationManagement.Common.DTOs.Grade.TranscriptDto
+                {
+                    GpaId = row["gpa_id"]?.ToString() ?? string.Empty,
+                    StudentId = row["student_id"]?.ToString() ?? string.Empty,
+                    StudentCode = row["student_code"]?.ToString() ?? string.Empty,
+                    StudentName = row["student_name"]?.ToString() ?? string.Empty,
+                    AcademicYearId = row.Table.Columns.Contains("academic_year_id") ? row["academic_year_id"]?.ToString() : null,
+                    AcademicYearName = row.Table.Columns.Contains("academic_year_name") ? row["academic_year_name"]?.ToString() : null,
+                    CohortCode = row.Table.Columns.Contains("cohort_code") ? row["cohort_code"]?.ToString() : null,
+                    SchoolYearId = row.Table.Columns.Contains("school_year_id") ? row["school_year_id"]?.ToString() : null,
+                    SchoolYearCode = row.Table.Columns.Contains("school_year_code") ? row["school_year_code"]?.ToString() : null,
+                    SchoolYearName = row.Table.Columns.Contains("school_year_name") ? row["school_year_name"]?.ToString() : null,
+                    Semester = row.Table.Columns.Contains("semester") && row["semester"] != DBNull.Value
+                        ? Convert.ToInt32(row["semester"]) : null,
+                    SemesterText = row.Table.Columns.Contains("semester_text") ? row["semester_text"]?.ToString() : null,
+                    Gpa10 = row.Table.Columns.Contains("gpa10") && row["gpa10"] != DBNull.Value
+                        ? Convert.ToDecimal(row["gpa10"]) : null,
+                    Gpa4 = row.Table.Columns.Contains("gpa4") && row["gpa4"] != DBNull.Value
+                        ? Convert.ToDecimal(row["gpa4"]) : null,
+                    TotalCredits = row.Table.Columns.Contains("total_credits") && row["total_credits"] != DBNull.Value
+                        ? Convert.ToInt32(row["total_credits"]) : null,
+                    AccumulatedCredits = row.Table.Columns.Contains("accumulated_credits") && row["accumulated_credits"] != DBNull.Value
+                        ? Convert.ToInt32(row["accumulated_credits"]) : null,
+                    RankText = row.Table.Columns.Contains("rank_text") ? row["rank_text"]?.ToString() : null,
+                    CalculatedAt = row.Table.Columns.Contains("calculated_at") && row["calculated_at"] != DBNull.Value
+                        ? Convert.ToDateTime(row["calculated_at"]) : null
+                });
+            }
+
+            return transcripts;
+        }
+
+        public async Task CalculateGPABySchoolYearAsync(string studentId, string schoolYearId, string? semester = null)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@StudentId", studentId),
+                new SqlParameter("@SchoolYearId", schoolYearId),
+                new SqlParameter("@Semester", (object?)semester ?? DBNull.Value)
+            };
+
+            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_CalculateGPABySchoolYear", parameters);
+        }
+
         private static Grade MapToGrade(DataRow row)
         {
             return new Grade

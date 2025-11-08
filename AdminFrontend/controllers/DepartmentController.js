@@ -19,7 +19,7 @@ app.controller('DepartmentController', ['$scope', '$location', '$routeParams', '
                 $scope.faculties = response.data;
             })
             .catch(function(error) {
-                console.error('Lỗi khi tải danh sách khoa:', error);
+                // Error handled silently
             });
     };
     
@@ -36,7 +36,6 @@ app.controller('DepartmentController', ['$scope', '$location', '$routeParams', '
             .catch(function(error) {
                 $scope.error = 'Không thể tải danh sách bộ môn';
                 $scope.loading = false;
-                console.error(error);
             });
     };
     
@@ -54,7 +53,6 @@ app.controller('DepartmentController', ['$scope', '$location', '$routeParams', '
             .catch(function(error) {
                 $scope.error = 'Không thể tải thông tin bộ môn';
                 $scope.loading = false;
-                console.error(error);
             });
     };
     
@@ -83,7 +81,6 @@ app.controller('DepartmentController', ['$scope', '$location', '$routeParams', '
             .catch(function(error) {
                 $scope.error = error.data?.message || 'Không thể lưu bộ môn';
                 $scope.loading = false;
-                console.error(error);
             });
     };
     
@@ -105,7 +102,6 @@ app.controller('DepartmentController', ['$scope', '$location', '$routeParams', '
             .catch(function(error) {
                 $scope.error = error.data?.message || 'Không thể xóa bộ môn';
                 $scope.loading = false;
-                console.error(error);
             });
     };
     

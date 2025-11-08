@@ -141,7 +141,7 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
             formData.append('userId', $scope.currentUser.userId);
             
             // Make API call to upload avatar
-            ApiService.uploadFile('/admin/users/avatar', formData)
+            ApiService.uploadFile('/users/avatar', formData)
                 .then(function(response) {
                     $scope.avatarModal.uploading = false;
                     

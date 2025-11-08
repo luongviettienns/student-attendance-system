@@ -133,7 +133,7 @@ app.controller('SubjectController', ['$scope', '$location', '$routeParams', '$ti
                 $scope.departments = response.data;
             })
             .catch(function(error) {
-                console.error('Lỗi khi tải danh sách bộ môn:', error);
+                // Error handled silently
             });
     };
     

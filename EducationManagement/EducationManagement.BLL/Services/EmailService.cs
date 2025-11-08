@@ -153,6 +153,83 @@ namespace EducationManagement.BLL.Services
 
             await SendEmailAsync(email, subject, body, true);
         }
+
+        /// <summary>
+        /// Gửi email cảnh báo học tập (GPA thấp)
+        /// </summary>
+        public async Task SendAcademicWarningAsync(string studentEmail, string studentName, string className, decimal gpa, string? customSubject = null, string? customMessage = null)
+        {
+            var subject = customSubject ?? "⚠️ Cảnh báo học tập - GPA thấp";
+            var body = customMessage ?? $@"
+                <html>
+                <body style='font-family: Arial, sans-serif;'>
+                    <h2 style='color: #ff6b6b;'>Cảnh báo học tập</h2>
+                    <p>Kính gửi <strong>{studentName}</strong>,</p>
+                    <p>Chúng tôi nhận thấy GPA tích lũy của bạn hiện tại là <strong>{gpa:F2}</strong>, thấp hơn ngưỡng quy định (2.0).</p>
+                    <p>Lớp: <strong>{className}</strong></p>
+                    <p>Vui lòng liên hệ với cố vấn học tập hoặc phòng đào tạo để được hỗ trợ cải thiện kết quả học tập.</p>
+                    <br/>
+                    <p>Trân trọng,</p>
+                    <p><strong>Phòng Đào tạo</strong></p>
+                </body>
+                </html>
+            ";
+
+            await SendEmailAsync(studentEmail, subject, body, true);
+        }
+
+        /// <summary>
+        /// Gửi email cảnh báo chuyên cần (tỷ lệ vắng cao)
+        /// </summary>
+        public async Task SendAttendanceWarningEmailAsync(string studentEmail, string studentName, string className, decimal absenceRate, string? customSubject = null, string? customMessage = null)
+        {
+            var subject = customSubject ?? "⚠️ Cảnh báo chuyên cần - Tỷ lệ vắng cao";
+            var body = customMessage ?? $@"
+                <html>
+                <body style='font-family: Arial, sans-serif;'>
+                    <h2 style='color: #ff6b6b;'>Cảnh báo chuyên cần</h2>
+                    <p>Kính gửi <strong>{studentName}</strong>,</p>
+                    <p>Chúng tôi nhận thấy tỷ lệ vắng mặt của bạn là <strong>{absenceRate:F1}%</strong>, vượt quá ngưỡng quy định (20%).</p>
+                    <p>Lớp: <strong>{className}</strong></p>
+                    <p>Theo quy định, nếu vắng quá 20% số buổi học, bạn sẽ không được dự thi.</p>
+                    <p>Vui lòng liên hệ với giảng viên hoặc phòng đào tạo nếu có lý do chính đáng.</p>
+                    <br/>
+                    <p>Trân trọng,</p>
+                    <p><strong>Phòng Đào tạo</strong></p>
+                </body>
+                </html>
+            ";
+
+            await SendEmailAsync(studentEmail, subject, body, true);
+        }
+
+        /// <summary>
+        /// Gửi email cảnh báo cả hai (GPA thấp + vắng cao)
+        /// </summary>
+        public async Task SendBothWarningEmailAsync(string studentEmail, string studentName, string className, decimal gpa, decimal absenceRate, string? customSubject = null, string? customMessage = null)
+        {
+            var subject = customSubject ?? "⚠️ Cảnh báo: GPA thấp và Tỷ lệ vắng cao";
+            var body = customMessage ?? $@"
+                <html>
+                <body style='font-family: Arial, sans-serif;'>
+                    <h2 style='color: #ff6b6b;'>Cảnh báo học tập và chuyên cần</h2>
+                    <p>Kính gửi <strong>{studentName}</strong>,</p>
+                    <p>Chúng tôi nhận thấy bạn đang gặp vấn đề về cả học tập và chuyên cần:</p>
+                    <ul>
+                        <li><strong>GPA tích lũy:</strong> {gpa:F2} (thấp hơn ngưỡng quy định 2.0)</li>
+                        <li><strong>Tỷ lệ vắng mặt:</strong> {absenceRate:F1}% (vượt quá ngưỡng quy định 20%)</li>
+                    </ul>
+                    <p>Lớp: <strong>{className}</strong></p>
+                    <p>Vui lòng liên hệ ngay với cố vấn học tập hoặc phòng đào tạo để được hỗ trợ kịp thời.</p>
+                    <br/>
+                    <p>Trân trọng,</p>
+                    <p><strong>Phòng Đào tạo</strong></p>
+                </body>
+                </html>
+            ";
+
+            await SendEmailAsync(studentEmail, subject, body, true);
+        }
     }
 }
 

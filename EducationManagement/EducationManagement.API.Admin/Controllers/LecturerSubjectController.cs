@@ -9,7 +9,7 @@ namespace EducationManagement.API.Admin.Controllers
     /// </summary>
     [ApiController]
     [Authorize]
-    [Route("api-edu/admin/lecturersubject")]
+    [Route("api-edu/lecturer-subjects")]
     public class LecturerSubjectController : ControllerBase
     {
         private readonly ClassRepository _classRepository;

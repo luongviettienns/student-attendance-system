@@ -31,6 +31,8 @@
                         class="login-input" 
                         ng-model="credentials.username" 
                         placeholder="Username"
+                        autocomplete="username"
+                        id="login-username"
                         required
                         autofocus>
                 </div>
@@ -45,6 +47,8 @@
                         class="login-input login-input-with-toggle" 
                         ng-model="credentials.password" 
                         placeholder="Password"
+                        autocomplete="current-password"
+                        id="login-password"
                         required>
                     <button 
                         type="button" 

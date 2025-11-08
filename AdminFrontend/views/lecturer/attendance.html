@@ -5,25 +5,7 @@
     <!-- Main Content -->
     <div class="main-content">
         <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
-                <h1 class="page-title">Điểm danh lớp học</h1>
-            </div>
-            <div class="header-right">
-                <div class="user-info" ng-init="currentUser = getCurrentUser()">
-                    <div class="user-avatar" ng-click="openAvatarModal()">
-                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
-                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
-                    </div>
-                    <div class="user-details">
-                        <span class="user-name">{{currentUser.fullName}}</span>
-                        <span class="user-role">{{currentUser.roleName || 'Giảng viên'}}</span>
-                    </div>
-                </div>
-                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
-            </div>
-        </header>
+        <app-topbar page-title="Điểm danh lớp học"></app-topbar>
         
         <!-- Content Body -->
         <div class="content-body">

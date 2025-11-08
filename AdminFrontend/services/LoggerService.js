@@ -1,6 +1,6 @@
 // Logger Service - Centralized logging with production/development modes
 app.service('LoggerService', ['$window', function($window) {
-    var isDevelopment = true; // Set to false in production build
+    var isDevelopment = false; // Set to false to disable console output
     var logs = []; // Store logs for debugging
     
     // Check if in development mode (can check from environment config later)

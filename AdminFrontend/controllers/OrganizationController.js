@@ -82,7 +82,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
 
     $scope.loadFacultyStats = function(faculty) {
         // Count departments
-        $http.get(API_CONFIG.BASE_URL + '/admin/department/faculty/' + faculty.facultyId)
+        $http.get(API_CONFIG.BASE_URL + '/departments/faculty/' + faculty.facultyId)
             .then(function(response) {
                 var departments = Array.isArray(response.data) ? response.data : 
                                  (response.data.data ? response.data.data : []);
@@ -184,7 +184,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
     // DEPARTMENT FUNCTIONS
     // =========================
     $scope.loadDepartments = function() {
-        $http.get(API_CONFIG.BASE_URL + '/admin/department')
+        $http.get(API_CONFIG.BASE_URL + '/departments')
             .then(function(response) {
                 // Handle different response formats
                 var data = response.data;
@@ -213,7 +213,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
             return;
         }
 
-        $http.get(API_CONFIG.BASE_URL + '/admin/department/faculty/' + $scope.filterDepartmentByFaculty)
+        $http.get(API_CONFIG.BASE_URL + '/departments/faculty/' + $scope.filterDepartmentByFaculty)
             .then(function(response) {
                 // Handle different response formats
                 var data = response.data;
@@ -280,7 +280,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
         }
 
         var method = $scope.departmentForm.departmentId ? 'PUT' : 'POST';
-        var url = API_CONFIG.BASE_URL + '/admin/department';
+        var url = API_CONFIG.BASE_URL + '/departments';
         if (method === 'PUT') {
             url += '/' + $scope.departmentForm.departmentId;
         }
@@ -306,7 +306,7 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
             return;
         }
 
-        $http.delete(API_CONFIG.BASE_URL + '/admin/department/' + departmentId)
+        $http.delete(API_CONFIG.BASE_URL + '/departments/' + departmentId)
             .then(function(response) {
                 ToastService.success(response.data?.message || 'Đã xóa Bộ môn thành công!');
                 $scope.loadDepartments();

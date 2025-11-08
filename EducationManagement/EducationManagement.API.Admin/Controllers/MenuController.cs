@@ -44,7 +44,7 @@
 
                     // Map sang cấu trúc cần thiết
                     var permissions = permissionsFromDb
-                        .OrderBy(p => p.SortOrder)
+                        .OrderBy(p => p.SortOrder ?? 999)
                         .ThenBy(p => p.PermissionName)
                         .Select(p => new
                         {
@@ -52,20 +52,32 @@
                             p.PermissionCode,
                             p.PermissionName,
                             p.ParentCode,
-                            p.Icon
+                            p.Icon,
+                            p.SortOrder
                         })
                         .ToList();
 
+                    // ✅ Debug: Log permissions để kiểm tra
+                    Console.WriteLine($"🔍 Total permissions: {permissions.Count}");
+                    Console.WriteLine($"🔍 Permissions with NULL ParentCode: {permissions.Count(p => string.IsNullOrEmpty(p.ParentCode))}");
+                    Console.WriteLine($"🔍 Permissions with ParentCode: {permissions.Count(p => !string.IsNullOrEmpty(p.ParentCode))}");
+
                     // ✅ Xây dựng cây menu cha - con (theo ParentCode)
+                    // Lọc chỉ lấy sections (parent_code IS NULL hoặc empty)
                     var menuTree = permissions
                         .Where(p => string.IsNullOrEmpty(p.ParentCode))
+                        .OrderBy(p => p.SortOrder ?? 999)
+                        .ThenBy(p => p.PermissionName)
                         .Select(parent => new
                         {
                             label = parent.PermissionName,
                             icon = string.IsNullOrWhiteSpace(parent.Icon) ? "fa fa-circle" : parent.Icon,
                             state = FormatState(parent.PermissionCode),
                             sub = permissions
-                                .Where(child => child.ParentCode == parent.PermissionCode)
+                                .Where(child => !string.IsNullOrEmpty(child.ParentCode) && 
+                                       child.ParentCode == parent.PermissionCode)
+                                .OrderBy(child => child.SortOrder ?? 999)
+                                .ThenBy(child => child.PermissionName)
                                 .Select(child => new
                                 {
                                     label = child.PermissionName,
@@ -75,6 +87,13 @@
                                 .ToList()
                         })
                         .ToList();
+
+                    // ✅ Debug: Log menu tree
+                    Console.WriteLine($"🔍 Menu tree sections: {menuTree.Count}");
+                    foreach (var section in menuTree)
+                    {
+                        Console.WriteLine($"  - {section.label}: {section.sub.Count} items");
+                    }
 
                     return Ok(new
                     {

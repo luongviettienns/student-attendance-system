@@ -34,13 +34,13 @@ BEGIN
         -- Check if student exists
         IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = @StudentId AND deleted_at IS NULL)
         BEGIN
-            THROW 50009, N'KhĂ´ng tĂ¬m tháº¥y sinh viĂªn', 1;
+            THROW 50009, N'Không tìm thấy sinh viên', 1;
         END
         
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
+            THROW 50002, N'Không tìm thấy lớp học nhạc', 1;
         END
         
         -- Check if class is full
@@ -51,7 +51,7 @@ BEGIN
         
         IF @CurrentStudents >= @MaxStudents
         BEGIN
-            THROW 50010, N'Lá»›p Ä‘Ă£ Ä‘áº§y', 1;
+            THROW 50010, N'Lớp đã đầy', 1;
         END
         
         -- Check if student already has a class
@@ -85,7 +85,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'PhĂ¢n sinh viĂªn vĂ o lá»›p thĂ nh cĂ´ng' AS Message;
+        SELECT 1 AS Success, N'Phân sinh viên vào lớp thành công' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -94,67 +94,6 @@ BEGIN
             
         DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
         THROW 50001, @ErrorMessage, 1;
-    END CATCH
-END
-GO
-
-IF OBJECT_ID('sp_AutoCreateCohort', 'P') IS NOT NULL 
-    DROP PROCEDURE sp_AutoCreateCohort;
-GO
-CREATE PROCEDURE sp_AutoCreateCohort
-    @StartYear INT,                    -- 2025
-    @DurationYears INT = 4,            -- Máº·c Ä‘á»‹nh 4 nÄƒm (Ä‘áº¡i há»c)
-    @CreatedBy VARCHAR(50) = 'system'
-AS
-BEGIN
-    SET NOCOUNT ON;
-    BEGIN TRY
-        -- Validate
-        IF @StartYear < 2020 OR @StartYear > 2050
-            THROW 50001, N'âŒ NÄƒm báº¯t Ä‘áº§u khĂ´ng há»£p lá»‡ (2020-2050)', 1;
-        
-        DECLARE @CohortId VARCHAR(50) = CONCAT('AY', CAST(@StartYear AS VARCHAR(4)));
-        DECLARE @CohortCode NVARCHAR(10) = CONCAT(N'K', CAST(RIGHT(CAST(@StartYear AS VARCHAR(4)), 2) AS NVARCHAR(2)));
-        DECLARE @EndYear INT = @StartYear + @DurationYears;
-        DECLARE @YearName NVARCHAR(50) = CONCAT(CAST(@StartYear AS NVARCHAR(4)), N'-', CAST(@EndYear AS NVARCHAR(4)));
-        DECLARE @Description NVARCHAR(500) = CONCAT(N'NiĂªn khĂ³a ', @CohortCode, N' (', CAST(@StartYear AS NVARCHAR(4)), N'-', CAST(@EndYear AS NVARCHAR(4)), N')');
-        
-        -- Check exists
-        IF EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = @CohortId)
-            THROW 50002, N'âŒ NiĂªn khĂ³a Ä‘Ă£ tá»“n táº¡i!', 1;
-        
-        -- Insert cohort
-        INSERT INTO academic_years (
-            academic_year_id, year_name, cohort_code, start_year, end_year, duration_years,
-            is_active, created_at, created_by
-        )
-        VALUES (
-            @CohortId, @YearName, @CohortCode, @StartYear, @EndYear, @DurationYears,
-            0, GETDATE(), @CreatedBy
-        );
-        
-        -- Auto-create school years for this cohort
-        DECLARE @i INT = 0;
-        WHILE @i < @DurationYears
-        BEGIN
-            EXEC sp_AutoCreateSchoolYear 
-                @StartYear = @StartYear + @i,
-                @AcademicYearId = @CohortId,
-                @CreatedBy = @CreatedBy;
-            SET @i = @i + 1;
-        END
-        
-        SELECT 
-            'SUCCESS' AS Status,
-            @CohortId AS CohortId,
-            @CohortCode AS CohortCode,
-            @YearName AS YearName,
-            @DurationYears AS DurationYears,
-            N'âœ… ÄĂ£ táº¡o niĂªn khĂ³a ' + @CohortCode + N' vĂ  ' + CAST(@DurationYears AS NVARCHAR) + N' nÄƒm há»c' AS Message;
-            
-    END TRY
-    BEGIN CATCH
-        THROW;
     END CATCH
 END
 GO
@@ -170,9 +109,9 @@ AS
 BEGIN
     SET NOCOUNT ON;
     BEGIN TRY
-        DECLARE @SchoolYearId VARCHAR(50) = 'SY' + CAST(@StartYear AS VARCHAR);
-        DECLARE @YearCode NVARCHAR(20) = CAST(@StartYear AS NVARCHAR) + N'-' + CAST(@StartYear + 1 AS NVARCHAR);
-        DECLARE @YearName NVARCHAR(100) = N'NÄƒm há»c ' + @YearCode;
+        DECLARE @SchoolYearId VARCHAR(50) = CONCAT('SY', CAST(@StartYear AS VARCHAR));
+        DECLARE @YearCode NVARCHAR(20) = CONCAT(CAST(@StartYear AS NVARCHAR), N'-', CAST(@StartYear + 1 AS NVARCHAR));
+        DECLARE @YearName NVARCHAR(100) = CONCAT(N'Năm học ', @YearCode);
         
         -- Dates according to Vietnamese university calendar
         DECLARE @StartDate DATE = DATEFROMPARTS(@StartYear, 9, 1);      -- 01-Sep
@@ -185,7 +124,7 @@ BEGIN
         -- Check exists
         IF EXISTS (SELECT 1 FROM school_years WHERE school_year_id = @SchoolYearId)
         BEGIN
-            PRINT '   â ï¸  School year ' + @YearCode + ' already exists';
+            PRINT CONCAT('   ⚠️  School year ', @YearCode, ' already exists');
             RETURN;
         END
         
@@ -205,7 +144,7 @@ BEGIN
             GETDATE(), @CreatedBy
         );
         
-        PRINT '   âœ… Created school year: ' + @YearCode;
+        PRINT CONCAT('   ✅ Created school year: ', @YearCode);
         
     END TRY
     BEGIN CATCH
@@ -250,7 +189,7 @@ BEGIN
             -- Calculate GPA for previous semester if exists
             IF @CurrentSemester IS NOT NULL
             BEGIN
-                PRINT '   đŸ“ Calculating GPA for Semester ' + CAST(@CurrentSemester AS VARCHAR) + '...';
+                PRINT CONCAT('   📊 Calculating GPA for Semester ', CAST(@CurrentSemester AS VARCHAR), '...');
                 EXEC sp_CalculateAllStudentGPA 
                     @AcademicYearId = @SchoolYearId,
                     @Semester = @CurrentSemester,
@@ -264,7 +203,7 @@ BEGIN
                 updated_by = @ExecutedBy
             WHERE school_year_id = @SchoolYearId;
             
-            PRINT '   âœ… Transitioned to Semester ' + CAST(@NewSemester AS VARCHAR);
+            PRINT CONCAT('   ✅ Transitioned to Semester ', CAST(@NewSemester AS VARCHAR));
             
             -- Log transition
             INSERT INTO audit_logs (user_id, action, entity_type, entity_id, new_values, created_at)
@@ -279,7 +218,7 @@ BEGIN
         END
         ELSE
         BEGIN
-            PRINT '   â„¹ï¸  No semester transition needed';
+            PRINT '   â„¹ï¸  No semester transition needed';
         END
         
         COMMIT TRANSACTION;
@@ -288,7 +227,7 @@ BEGIN
             'SUCCESS' AS Status,
             @SchoolYearId AS SchoolYearId,
             @NewSemester AS CurrentSemester,
-            N'âœ… ÄĂ£ kiá»ƒm tra vĂ  cáº­p nháº­t há»c ká»³' AS Message;
+            N'âœ… Đã kiá»ƒm tra và cáº­p nháº­t há»c ká»³' AS Message;
             
     END TRY
     BEGIN CATCH
@@ -323,7 +262,7 @@ BEGIN
         IF @OldSchoolYearId IS NOT NULL
         BEGIN
             -- Calculate GPA for entire old school year
-            PRINT '   đŸ“ Calculating yearly GPA for old school year...';
+            PRINT '   đŸ" Calculating yearly GPA for old school year...';
             EXEC sp_CalculateAllStudentGPA 
                 @AcademicYearId = @OldSchoolYearId,
                 @Semester = NULL,  -- NULL = yearly GPA
@@ -336,7 +275,7 @@ BEGIN
                 updated_by = @ExecutedBy
             WHERE school_year_id = @OldSchoolYearId;
             
-            PRINT '   âœ… Closed old school year: ' + @OldSchoolYearId;
+            PRINT CONCAT('   ✅ Closed old school year: ', @OldSchoolYearId);
         END
         
         -- Activate new school year
@@ -347,7 +286,7 @@ BEGIN
             updated_by = @ExecutedBy
         WHERE school_year_id = @NewSchoolYearId;
         
-        PRINT '   âœ… Activated new school year: ' + @NewSchoolYearId;
+        PRINT CONCAT('   ✅ Activated new school year: ', @NewSchoolYearId);
         
         -- Log transition
         INSERT INTO audit_logs (user_id, action, entity_type, entity_id, old_values, new_values, created_at)
@@ -367,12 +306,238 @@ BEGIN
             'SUCCESS' AS Status,
             @OldSchoolYearId AS OldSchoolYearId,
             @NewSchoolYearId AS NewSchoolYearId,
-            N'âœ… ÄĂ£ chuyá»ƒn sang nÄƒm há»c má»›i' AS Message;
+            N'âœ… Đã chuyá»ƒn sang nÄƒm há»c má»›i' AS Message;
             
     END TRY
     BEGIN CATCH
         ROLLBACK TRANSACTION;
         THROW;
+    END CATCH
+END
+GO
+
+-- ===========================================
+-- sp_CheckEnrollmentEligibility - Must be created before sp_CreateEnrollment
+-- ===========================================
+IF OBJECT_ID('sp_CheckEnrollmentEligibility', 'P') IS NOT NULL
+    DROP PROCEDURE sp_CheckEnrollmentEligibility;
+GO
+CREATE PROCEDURE sp_CheckEnrollmentEligibility
+    @StudentId VARCHAR(50),
+    @ClassId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        DECLARE @IsEligible BIT = 1;
+        DECLARE @ErrorMessage NVARCHAR(500) = NULL;
+        
+        -- Check 1: Student exists
+        IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = @StudentId AND deleted_at IS NULL)
+        BEGIN
+            SET @IsEligible = 0;
+            SET @ErrorMessage = N'Sinh viên không tồn tại';
+        END
+        
+        -- Check 2: Class exists
+        ELSE IF NOT EXISTS (SELECT 1 FROM classes WHERE class_id = @ClassId AND deleted_at IS NULL)
+        BEGIN
+            SET @IsEligible = 0;
+            SET @ErrorMessage = N'Lớp học không tồn tại';
+        END
+        
+        -- Check 3: Registration period is OPEN
+        ELSE IF NOT EXISTS (
+            SELECT 1 FROM registration_periods rp
+            INNER JOIN classes c ON rp.academic_year_id = c.academic_year_id AND rp.semester = c.semester
+            WHERE c.class_id = @ClassId
+            AND rp.status = 'OPEN'
+            AND GETDATE() BETWEEN rp.start_date AND rp.end_date
+            AND rp.deleted_at IS NULL
+        )
+        BEGIN
+            SET @IsEligible = 0;
+            SET @ErrorMessage = N'Không trong thời gian đăng ký';
+        END
+        
+        -- Check 4: Class not full
+        ELSE 
+        BEGIN
+            DECLARE @MaxStudents INT, @CurrentEnrollment INT;
+            SELECT @MaxStudents = max_students, @CurrentEnrollment = current_enrollment
+            FROM classes WHERE class_id = @ClassId;
+            
+            IF @CurrentEnrollment >= @MaxStudents
+            BEGIN
+                SET @IsEligible = 0;
+                SET @ErrorMessage = N'Lớp đã đầy';
+            END
+        END
+        
+        -- Check 5: Not already enrolled
+        IF @IsEligible = 1
+        BEGIN
+            IF EXISTS (
+                SELECT 1 FROM enrollments
+                WHERE student_id = @StudentId
+                AND class_id = @ClassId
+                AND enrollment_status IN ('PENDING', 'APPROVED')
+                AND deleted_at IS NULL
+            )
+            BEGIN
+                SET @IsEligible = 0;
+                SET @ErrorMessage = N'Đã đăng ký lớp này';
+            END
+        END
+        
+        -- Check 6: No schedule conflict (basic check on schedule string)
+        IF @IsEligible = 1
+        BEGIN
+            DECLARE @NewSchedule NVARCHAR(500);
+            SELECT @NewSchedule = schedule FROM classes WHERE class_id = @ClassId;
+            
+            IF EXISTS (
+                SELECT 1 FROM enrollments e
+                INNER JOIN classes c ON e.class_id = c.class_id
+                WHERE e.student_id = @StudentId
+                AND e.enrollment_status = 'APPROVED'
+                AND e.deleted_at IS NULL
+                AND c.schedule = @NewSchedule -- Simple string comparison
+                AND c.class_id != @ClassId
+            )
+            BEGIN
+                SET @IsEligible = 0;
+                SET @ErrorMessage = N'Trùng lịch học';
+            END
+        END
+        
+        -- Return result
+        SELECT 
+            @IsEligible AS is_eligible,
+            @ErrorMessage AS error_message,
+            @StudentId AS student_id,
+            @ClassId AS class_id;
+        
+    END TRY
+    BEGIN CATCH
+        DECLARE @Error NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @Error, 1;
+    END CATCH
+END
+GO
+
+-- ===========================================
+-- sp_CreateEnrollment - Uses sp_CheckEnrollmentEligibility
+-- ===========================================
+IF OBJECT_ID('sp_CreateEnrollment', 'P') IS NOT NULL
+    DROP PROCEDURE sp_CreateEnrollment;
+GO
+CREATE PROCEDURE sp_CreateEnrollment
+    @EnrollmentId VARCHAR(50),
+    @StudentId VARCHAR(50),
+    @ClassId VARCHAR(50),
+    @Notes NVARCHAR(500) = NULL,
+    @CreatedBy VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Check eligibility first using sp_CheckEnrollmentEligibility
+        DECLARE @IsEligible BIT, @ErrorMsg NVARCHAR(500);
+        
+        -- Call eligibility check and get result using temp table
+        CREATE TABLE #EligibilityResult (
+            is_eligible BIT,
+            error_message NVARCHAR(500),
+            student_id VARCHAR(50),
+            class_id VARCHAR(50)
+        );
+        
+        INSERT INTO #EligibilityResult
+        EXEC sp_CheckEnrollmentEligibility 
+            @StudentId = @StudentId,
+            @ClassId = @ClassId;
+        
+        SELECT @IsEligible = is_eligible, @ErrorMsg = error_message
+        FROM #EligibilityResult;
+        
+        -- Clean up temp table
+        DROP TABLE #EligibilityResult;
+        
+        -- If not eligible, throw error
+        IF @IsEligible = 0 OR @IsEligible IS NULL
+        BEGIN
+            IF @ErrorMsg IS NULL
+                SET @ErrorMsg = N'Không đủ điều kiện đăng ký';
+            THROW 50020, @ErrorMsg, 1;
+        END
+        
+        -- Calculate drop deadline (enrollment_date + 2 weeks)
+        DECLARE @DropDeadline DATE = CAST(DATEADD(WEEK, 2, GETDATE()) AS DATE);
+        
+        -- Insert enrollment
+        INSERT INTO enrollments (
+            enrollment_id,
+            student_id,
+            class_id,
+            enrollment_date,
+            enrollment_status,
+            drop_deadline,
+            notes,
+            created_at,
+            created_by
+        )
+        VALUES (
+            @EnrollmentId,
+            @StudentId,
+            @ClassId,
+            GETDATE(),
+            'APPROVED', -- Auto-approve
+            @DropDeadline,
+            @Notes,
+            GETDATE(),
+            @CreatedBy
+        );
+        
+        -- Update class enrollment count
+        UPDATE classes
+        SET current_enrollment = current_enrollment + 1
+        WHERE class_id = @ClassId;
+        
+        COMMIT TRANSACTION;
+        
+        -- Return enrollment info
+        SELECT 
+            e.enrollment_id,
+            e.student_id,
+            s.student_code,
+            s.full_name AS student_name,
+            e.class_id,
+            c.class_code,
+            c.class_name,
+            sub.subject_name,
+            e.enrollment_date,
+            e.enrollment_status,
+            e.drop_deadline,
+            1 AS success,
+            N'Đăng ký thành công' AS message
+        FROM enrollments e
+        INNER JOIN students s ON e.student_id = s.student_id
+        INNER JOIN classes c ON e.class_id = c.class_id
+        INNER JOIN subjects sub ON c.subject_id = sub.subject_id
+        WHERE e.enrollment_id = @EnrollmentId;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+            
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
     END CATCH
 END
 GO
@@ -426,7 +591,7 @@ BEGIN
                     SET @SuccessCount = @SuccessCount + 1;
                     
                     INSERT INTO @Results
-                    SELECT @ClassId, class_code, 1, N'ThĂ nh cĂ´ng'
+                    SELECT @ClassId, class_code, 1, N'Thành công'
                     FROM classes WHERE class_id = @ClassId;
                     
                 END TRY
@@ -448,114 +613,6 @@ BEGIN
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
         THROW 50001, @ErrorMessage, 1;
-    END CATCH
-END
-GO
-
-IF OBJECT_ID('sp_CheckEnrollmentEligibility', 'P') IS NOT NULL
-    DROP PROCEDURE sp_CheckEnrollmentEligibility;
-GO
-CREATE PROCEDURE sp_CheckEnrollmentEligibility
-    @StudentId VARCHAR(50),
-    @ClassId VARCHAR(50)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    BEGIN TRY
-        DECLARE @IsEligible BIT = 1;
-        DECLARE @ErrorMessage NVARCHAR(500) = NULL;
-        
-        -- Check 1: Student exists
-        IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = @StudentId AND deleted_at IS NULL)
-        BEGIN
-            SET @IsEligible = 0;
-            SET @ErrorMessage = N'Sinh viĂªn khĂ´ng tá»“n táº¡i';
-        END
-        
-        -- Check 2: Class exists
-        ELSE IF NOT EXISTS (SELECT 1 FROM classes WHERE class_id = @ClassId AND deleted_at IS NULL)
-        BEGIN
-            SET @IsEligible = 0;
-            SET @ErrorMessage = N'Lá»›p há»c khĂ´ng tá»“n táº¡i';
-        END
-        
-        -- Check 3: Registration period is OPEN
-        ELSE IF NOT EXISTS (
-            SELECT 1 FROM registration_periods rp
-            INNER JOIN classes c ON rp.academic_year_id = c.academic_year_id AND rp.semester = c.semester
-            WHERE c.class_id = @ClassId
-            AND rp.status = 'OPEN'
-            AND GETDATE() BETWEEN rp.start_date AND rp.end_date
-            AND rp.deleted_at IS NULL
-        )
-        BEGIN
-            SET @IsEligible = 0;
-            SET @ErrorMessage = N'KhĂ´ng trong thá»i gian Ä‘Äƒng kĂ½';
-        END
-        
-        -- Check 4: Class not full
-        ELSE 
-        BEGIN
-            DECLARE @MaxStudents INT, @CurrentEnrollment INT;
-            SELECT @MaxStudents = max_students, @CurrentEnrollment = current_enrollment
-            FROM classes WHERE class_id = @ClassId;
-            
-            IF @CurrentEnrollment >= @MaxStudents
-            BEGIN
-                SET @IsEligible = 0;
-                SET @ErrorMessage = N'Lá»›p Ä‘Ă£ Ä‘áº§y';
-            END
-        END
-        
-        -- Check 5: Not already enrolled
-        IF @IsEligible = 1
-        BEGIN
-            IF EXISTS (
-                SELECT 1 FROM enrollments
-                WHERE student_id = @StudentId
-                AND class_id = @ClassId
-                AND enrollment_status IN ('PENDING', 'APPROVED')
-                AND deleted_at IS NULL
-            )
-            BEGIN
-                SET @IsEligible = 0;
-                SET @ErrorMessage = N'ÄĂ£ Ä‘Äƒng kĂ½ lá»›p nĂ y';
-            END
-        END
-        
-        -- Check 6: No schedule conflict (basic check on schedule string)
-        IF @IsEligible = 1
-        BEGIN
-            DECLARE @NewSchedule NVARCHAR(500);
-            SELECT @NewSchedule = schedule FROM classes WHERE class_id = @ClassId;
-            
-            IF EXISTS (
-                SELECT 1 FROM enrollments e
-                INNER JOIN classes c ON e.class_id = c.class_id
-                WHERE e.student_id = @StudentId
-                AND e.enrollment_status = 'APPROVED'
-                AND e.deleted_at IS NULL
-                AND c.schedule = @NewSchedule -- Simple string comparison
-                AND c.class_id != @ClassId
-            )
-            BEGIN
-                SET @IsEligible = 0;
-                SET @ErrorMessage = N'TrĂ¹ng lá»‹ch há»c';
-            END
-        END
-        
-        -- Return result
-        SELECT 
-            @IsEligible AS is_eligible,
-            @ErrorMessage AS error_message,
-            @StudentId AS student_id,
-            @ClassId AS class_id;
-        
-    END TRY
-    BEGIN CATCH
-        DECLARE @Error NVARCHAR(4000) = ERROR_MESSAGE();
-        THROW 50001, @Error, 1;
     END CATCH
 END
 GO
@@ -593,7 +650,7 @@ BEGIN
         BEGIN
             SET @HasConflict = 1;
             
-            SELECT @ConflictDetails = STRING_AGG(c.class_code + ' (' + c.schedule + ')', ', ')
+            SELECT @ConflictDetails = STRING_AGG(CONCAT(c.class_code, ' (', c.schedule, ')'), ', ')
             FROM enrollments e
             INNER JOIN classes c ON e.class_id = c.class_id
             WHERE e.student_id = @StudentId
@@ -731,6 +788,58 @@ BEGIN
 END
 GO
 
+-- ===========================================
+-- sp_GetRegistrationPeriodById - Moved here to be available before sp_CloseRegistrationPeriod and sp_CreateRegistrationPeriod
+-- ===========================================
+IF OBJECT_ID('sp_GetRegistrationPeriodById', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetRegistrationPeriodById;
+GO
+CREATE PROCEDURE sp_GetRegistrationPeriodById
+    @PeriodId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        SELECT 
+            rp.period_id,
+            rp.period_name,
+            rp.academic_year_id,
+            ay.year_name,
+            rp.semester,
+            rp.start_date,
+            rp.end_date,
+            rp.status,
+            rp.description,
+            rp.is_active,
+            rp.created_at,
+            rp.created_by,
+            rp.updated_at,
+            rp.updated_by,
+            DATEDIFF(DAY, rp.start_date, rp.end_date) AS duration_days,
+            CASE 
+                WHEN GETDATE() < rp.start_date THEN DATEDIFF(DAY, GETDATE(), rp.start_date)
+                WHEN GETDATE() > rp.end_date THEN 0
+                ELSE DATEDIFF(DAY, GETDATE(), rp.end_date)
+            END AS days_remaining
+        FROM registration_periods rp
+        LEFT JOIN academic_years ay ON rp.academic_year_id = ay.academic_year_id
+        WHERE rp.period_id = @PeriodId
+        AND rp.deleted_at IS NULL;
+        
+        IF @@ROWCOUNT = 0
+        BEGIN
+            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
+        END
+        
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
 IF OBJECT_ID('sp_CloseRegistrationPeriod', 'P') IS NOT NULL
     DROP PROCEDURE sp_CloseRegistrationPeriod;
 GO
@@ -747,7 +856,7 @@ BEGIN
         -- Check if period exists
         IF NOT EXISTS (SELECT 1 FROM registration_periods WHERE period_id = @PeriodId AND deleted_at IS NULL)
         BEGIN
-            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
+            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
         END
         
         -- Close the period
@@ -809,114 +918,42 @@ BEGIN
 END
 GO
 
-IF OBJECT_ID('sp_CreateEnrollment', 'P') IS NOT NULL
-    DROP PROCEDURE sp_CreateEnrollment;
+-- ===========================================
+-- sp_GetPrerequisitesBySubject - Moved here to be available before sp_CreatePrerequisite
+-- ===========================================
+IF OBJECT_ID('sp_GetPrerequisitesBySubject', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetPrerequisitesBySubject;
 GO
-CREATE PROCEDURE sp_CreateEnrollment
-    @EnrollmentId VARCHAR(50),
-    @StudentId VARCHAR(50),
-    @ClassId VARCHAR(50),
-    @Notes NVARCHAR(500) = NULL,
-    @CreatedBy VARCHAR(50)
+CREATE PROCEDURE sp_GetPrerequisitesBySubject
+    @SubjectId VARCHAR(50)
 AS
 BEGIN
     SET NOCOUNT ON;
     
     BEGIN TRY
-        BEGIN TRANSACTION;
-        
-        -- Check eligibility first
-        DECLARE @IsEligible BIT, @ErrorMsg NVARCHAR(500);
-        
-        EXEC sp_CheckEnrollmentEligibility 
-            @StudentId = @StudentId,
-            @ClassId = @ClassId;
-        
-        -- Get eligibility result from temp table or variable
-        -- For simplicity, re-run checks inline
-        
-        -- Validate class not full
-        DECLARE @MaxStudents INT, @CurrentEnrollment INT;
-        SELECT @MaxStudents = max_students, @CurrentEnrollment = current_enrollment
-        FROM classes WHERE class_id = @ClassId;
-        
-        IF @CurrentEnrollment >= @MaxStudents
-        BEGIN
-            THROW 50020, N'Lá»›p Ä‘Ă£ Ä‘áº§y', 1;
-        END
-        
-        -- Check not already enrolled
-        IF EXISTS (
-            SELECT 1 FROM enrollments
-            WHERE student_id = @StudentId
-            AND class_id = @ClassId
-            AND enrollment_status IN ('PENDING', 'APPROVED')
-            AND deleted_at IS NULL
-        )
-        BEGIN
-            THROW 50021, N'ÄĂ£ Ä‘Äƒng kĂ½ lá»›p nĂ y', 1;
-        END
-        
-        -- Calculate drop deadline (enrollment_date + 2 weeks)
-        DECLARE @DropDeadline DATE = CAST(DATEADD(WEEK, 2, GETDATE()) AS DATE);
-        
-        -- Insert enrollment
-        INSERT INTO enrollments (
-            enrollment_id,
-            student_id,
-            class_id,
-            enrollment_date,
-            enrollment_status,
-            drop_deadline,
-            notes,
-            created_at,
-            created_by
-        )
-        VALUES (
-            @EnrollmentId,
-            @StudentId,
-            @ClassId,
-            GETDATE(),
-            'APPROVED', -- Auto-approve
-            @DropDeadline,
-            @Notes,
-            GETDATE(),
-            @CreatedBy
-        );
-        
-        -- Update class enrollment count
-        UPDATE classes
-        SET current_enrollment = current_enrollment + 1
-        WHERE class_id = @ClassId;
-        
-        COMMIT TRANSACTION;
-        
-        -- Return enrollment info
         SELECT 
-            e.enrollment_id,
-            e.student_id,
-            s.student_code,
-            s.full_name AS student_name,
-            e.class_id,
-            c.class_code,
-            c.class_name,
-            sub.subject_name,
-            e.enrollment_date,
-            e.enrollment_status,
-            e.drop_deadline,
-            1 AS success,
-            N'ÄÄƒng kĂ½ thĂ nh cĂ´ng' AS message
-        FROM enrollments e
-        INNER JOIN students s ON e.student_id = s.student_id
-        INNER JOIN classes c ON e.class_id = c.class_id
-        INNER JOIN subjects sub ON c.subject_id = sub.subject_id
-        WHERE e.enrollment_id = @EnrollmentId;
+            sp.prerequisite_id,
+            sp.subject_id,
+            s1.subject_name AS subject_name,
+            s1.subject_code AS subject_code,
+            sp.prerequisite_subject_id,
+            s2.subject_name AS prerequisite_name,
+            s2.subject_code AS prerequisite_code,
+            sp.minimum_grade,
+            sp.is_required,
+            sp.description,
+            sp.created_at,
+            sp.created_by
+        FROM subject_prerequisites sp
+        INNER JOIN subjects s1 ON sp.subject_id = s1.subject_id
+        INNER JOIN subjects s2 ON sp.prerequisite_subject_id = s2.subject_id
+        WHERE sp.subject_id = @SubjectId
+        AND sp.is_active = 1
+        AND sp.deleted_at IS NULL
+        ORDER BY sp.is_required DESC, s2.subject_name;
         
     END TRY
     BEGIN CATCH
-        IF @@TRANCOUNT > 0
-            ROLLBACK TRANSACTION;
-            
         DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
         THROW 50001, @ErrorMessage, 1;
     END CATCH
@@ -944,18 +981,18 @@ BEGIN
         -- Validate: Subject cannot be prerequisite of itself
         IF @SubjectId = @PrerequisiteSubjectId
         BEGIN
-            THROW 50026, N'MĂ´n há»c khĂ´ng thá»ƒ lĂ  Ä‘iá»u kiá»‡n tiĂªn quyáº¿t cá»§a chĂ­nh nĂ³', 1;
+            THROW 50026, N'Môn học không thể là  điều kiện tiên quyết của chính nó', 1;
         END
         
         -- Validate: Both subjects exist
         IF NOT EXISTS (SELECT 1 FROM subjects WHERE subject_id = @SubjectId AND deleted_at IS NULL)
         BEGIN
-            THROW 50027, N'MĂ´n há»c khĂ´ng tá»“n táº¡i', 1;
+            THROW 50027, N'Môn học không tồn tại', 1;
         END
         
         IF NOT EXISTS (SELECT 1 FROM subjects WHERE subject_id = @PrerequisiteSubjectId AND deleted_at IS NULL)
         BEGIN
-            THROW 50028, N'MĂ´n há»c Ä‘iá»u kiá»‡n tiĂªn quyáº¿t khĂ´ng tá»“n táº¡i', 1;
+            THROW 50028, N'Môn học điều kiện tiên quyết không tồn tại', 1;
         END
         
         -- Validate: No duplicate prerequisite
@@ -966,13 +1003,13 @@ BEGIN
             AND deleted_at IS NULL
         )
         BEGIN
-            THROW 50029, N'Äiá»u kiá»‡n tiĂªn quyáº¿t Ä‘Ă£ tá»“n táº¡i', 1;
+            THROW 50029, N'Điều kiện tiên quyết đã tồn tại', 1;
         END
         
         -- Validate: Minimum grade is valid (0-10)
         IF @MinimumGrade < 0 OR @MinimumGrade > 10
         BEGIN
-            THROW 50030, N'Äiá»ƒm tá»‘i thiá»ƒu pháº£i tá»« 0 Ä‘áº¿n 10', 1;
+            THROW 50030, N'Điểm tối thiểu phải từ 0 đến 10', 1;
         END
         
         -- Insert prerequisite
@@ -1037,19 +1074,19 @@ BEGIN
         -- Validate: Start date < End date
         IF @StartDate >= @EndDate
         BEGIN
-            THROW 50013, N'NgĂ y báº¯t Ä‘áº§u pháº£i nhá» hÆ¡n ngĂ y káº¿t thĂºc', 1;
+            THROW 50013, N'Ngày bắt đầu phải nhỏ hơn ngày kết thúc', 1;
         END
         
         -- Validate: Semester is 1, 2, or 3
         IF @Semester NOT IN (1, 2, 3)
         BEGIN
-            THROW 50014, N'Há»c ká»³ khĂ´ng há»£p lá»‡ (pháº£i lĂ  1, 2, hoáº·c 3)', 1;
+            THROW 50014, N'Học kỳ không hợp lệ (phải là  1, 2, hoặc 3)', 1;
         END
         
         -- Validate: Academic year exists
         IF NOT EXISTS (SELECT 1 FROM academic_years WHERE academic_year_id = @AcademicYearId AND deleted_at IS NULL)
         BEGIN
-            THROW 50006, N'NÄƒm há»c khĂ´ng tá»“n táº¡i', 1;
+            THROW 50006, N'Năm học không tồn tại', 1;
         END
         
         -- Validate: Check for overlapping periods (same academic year and semester)
@@ -1066,7 +1103,7 @@ BEGIN
             )
         )
         BEGIN
-            THROW 50015, N'ÄĂ£ cĂ³ Ä‘á»£t Ä‘Äƒng kĂ½ trĂ¹ng thá»i gian cho há»c ká»³ nĂ y', 1;
+            THROW 50015, N'Đã có đợt đăng ký trùng thời gian cho học kỳ này', 1;
         END
         
         -- Insert new period
@@ -1129,7 +1166,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
+            THROW 50002, N'Không tìm thấy lớp học nhạc', 1;
         END
         
         -- Check if class has students
@@ -1140,7 +1177,7 @@ BEGIN
         
         IF @StudentCount > 0
         BEGIN
-            THROW 50008, N'KhĂ´ng thá»ƒ xĂ³a lá»›p Ä‘ang cĂ³ sinh viĂªn', 1;
+            THROW 50008, N'Không thể xóa lớp đang có sinh viên', 1;
         END
         
         -- Soft delete
@@ -1153,7 +1190,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'XĂ³a lá»›p hĂ nh chĂ­nh thĂ nh cĂ´ng' AS Message;
+        SELECT 1 AS Success, N'Xóa lớp học nhạc thành công' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -1186,7 +1223,7 @@ BEGIN
             AND deleted_at IS NULL
         )
         BEGIN
-            THROW 50031, N'KhĂ´ng tĂ¬m tháº¥y Ä‘iá»u kiá»‡n tiĂªn quyáº¿t', 1;
+            THROW 50031, N'Không tìm thấy điều kiện tiên quyết', 1;
         END
         
         -- Soft delete
@@ -1199,7 +1236,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'XĂ³a Ä‘iá»u kiá»‡n tiĂªn quyáº¿t thĂ nh cĂ´ng' AS Message;
+        SELECT 1 AS Success, N'Xóa điều kiện tiên quyết thành công' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -1228,7 +1265,7 @@ BEGIN
         -- Check if period exists
         IF NOT EXISTS (SELECT 1 FROM registration_periods WHERE period_id = @PeriodId AND deleted_at IS NULL)
         BEGIN
-            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
+            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
         END
         
         -- Check if period is OPEN
@@ -1237,7 +1274,7 @@ BEGIN
         
         IF @Status = 'OPEN'
         BEGIN
-            THROW 50017, N'KhĂ´ng thá»ƒ xĂ³a Ä‘á»£t Ä‘Äƒng kĂ½ Ä‘ang má»Ÿ', 1;
+            THROW 50017, N'Không thể xóa đợt đăng ký đang mở', 1;
         END
         
         -- Soft delete
@@ -1250,7 +1287,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'XĂ³a Ä‘á»£t Ä‘Äƒng kĂ½ thĂ nh cĂ´ng' AS Message;
+        SELECT 1 AS Success, N'Xóa đợt đăng ký thành công' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -1280,7 +1317,7 @@ BEGIN
         -- Check if enrollment exists
         IF NOT EXISTS (SELECT 1 FROM enrollments WHERE enrollment_id = @EnrollmentId AND deleted_at IS NULL)
         BEGIN
-            THROW 50022, N'KhĂ´ng tĂ¬m tháº¥y Ä‘Äƒng kĂ½', 1;
+            THROW 50022, N'Không tìm thấy đăng ký', 1;
         END
         
         -- Get enrollment info
@@ -1295,13 +1332,13 @@ BEGIN
         -- Check if already dropped
         IF @EnrollmentStatus = 'DROPPED'
         BEGIN
-            THROW 50023, N'ÄĂ£ há»§y Ä‘Äƒng kĂ½ trÆ°á»›c Ä‘Ă³', 1;
+            THROW 50023, N'Đã hủy đăng ký trước đó', 1;
         END
         
         -- Check deadline
         IF @DropDeadline IS NOT NULL AND GETDATE() > @DropDeadline
         BEGIN
-            THROW 50024, N'ÄĂ£ quĂ¡ háº¡n há»§y Ä‘Äƒng kĂ½', 1;
+            THROW 50024, N'Đã quá hạn hủy đăng ký', 1;
         END
         
         -- Update enrollment status (chỉ đổi status, không xóa mềm)
@@ -1320,7 +1357,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Há»§y Ä‘Äƒng kĂ½ thĂ nh cĂ´ng' AS Message;
+        SELECT 1 AS Success, N'Hủy đăng ký thành công' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -1362,7 +1399,7 @@ BEGIN
         
         IF @@ROWCOUNT = 0
         BEGIN
-            SELECT NULL AS period_id, N'KhĂ´ng cĂ³ Ä‘á»£t Ä‘Äƒng kĂ½ nĂ o Ä‘ang má»Ÿ' AS message;
+            SELECT NULL AS period_id, N'Không có đợt đăng ký nào đang mở' AS message;
         END
         
     END TRY
@@ -1388,7 +1425,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
+            THROW 50002, N'Không tìm thấy lớp học nhạc', 1;
         END
         
         -- Get class basic info
@@ -1706,14 +1743,14 @@ BEGIN
             END AS is_enrolled,
             -- Eligibility check (basic - detailed check in sp_CheckEnrollmentEligibility)
             CASE 
-                WHEN c.current_enrollment >= c.max_students THEN N'Lá»›p Ä‘Ă£ Ä‘áº§y'
+                WHEN c.current_enrollment >= c.max_students THEN N'Lớp đã đầy'
                 WHEN EXISTS (
                     SELECT 1 FROM enrollments e
                     WHERE e.student_id = @StudentId
                     AND e.class_id = c.class_id
                     AND e.deleted_at IS NULL
                     AND e.enrollment_status IN ('PENDING', 'APPROVED')
-                ) THEN N'ÄĂ£ Ä‘Äƒng kĂ½ lá»›p nĂ y'
+                ) THEN N'Đã đăng ký lớp này'
                 ELSE NULL
             END AS ineligible_reason
         FROM classes c
@@ -1819,9 +1856,9 @@ BEGIN
         ay.cohort_code,
         @CurrentSemester AS current_semester,
         CASE @CurrentSemester
-            WHEN 1 THEN N'Há»c ká»³ 1'
-            WHEN 2 THEN N'Há»c ká»³ 2'
-            ELSE N'NgoĂ i há»c ká»³'
+            WHEN 1 THEN N'Học kỳ 1'
+            WHEN 2 THEN N'Học kỳ 2'
+            ELSE N'Ngoại học kỳ'
         END AS semester_name,
         sy.is_active,
         sy.start_date,
@@ -2018,94 +2055,6 @@ BEGIN
 END
 GO
 
-IF OBJECT_ID('sp_GetPrerequisitesBySubject', 'P') IS NOT NULL
-    DROP PROCEDURE sp_GetPrerequisitesBySubject;
-GO
-CREATE PROCEDURE sp_GetPrerequisitesBySubject
-    @SubjectId VARCHAR(50)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    BEGIN TRY
-        SELECT 
-            sp.prerequisite_id,
-            sp.subject_id,
-            s1.subject_name AS subject_name,
-            s1.subject_code AS subject_code,
-            sp.prerequisite_subject_id,
-            s2.subject_name AS prerequisite_name,
-            s2.subject_code AS prerequisite_code,
-            sp.minimum_grade,
-            sp.is_required,
-            sp.description,
-            sp.created_at,
-            sp.created_by
-        FROM subject_prerequisites sp
-        INNER JOIN subjects s1 ON sp.subject_id = s1.subject_id
-        INNER JOIN subjects s2 ON sp.prerequisite_subject_id = s2.subject_id
-        WHERE sp.subject_id = @SubjectId
-        AND sp.is_active = 1
-        AND sp.deleted_at IS NULL
-        ORDER BY sp.is_required DESC, s2.subject_name;
-        
-    END TRY
-    BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
-        THROW 50001, @ErrorMessage, 1;
-    END CATCH
-END
-GO
-
-IF OBJECT_ID('sp_GetRegistrationPeriodById', 'P') IS NOT NULL
-    DROP PROCEDURE sp_GetRegistrationPeriodById;
-GO
-CREATE PROCEDURE sp_GetRegistrationPeriodById
-    @PeriodId VARCHAR(50)
-AS
-BEGIN
-    SET NOCOUNT ON;
-    
-    BEGIN TRY
-        SELECT 
-            rp.period_id,
-            rp.period_name,
-            rp.academic_year_id,
-            ay.year_name,
-            rp.semester,
-            rp.start_date,
-            rp.end_date,
-            rp.status,
-            rp.description,
-            rp.is_active,
-            rp.created_at,
-            rp.created_by,
-            rp.updated_at,
-            rp.updated_by,
-            DATEDIFF(DAY, rp.start_date, rp.end_date) AS duration_days,
-            CASE 
-                WHEN GETDATE() < rp.start_date THEN DATEDIFF(DAY, GETDATE(), rp.start_date)
-                WHEN GETDATE() > rp.end_date THEN 0
-                ELSE DATEDIFF(DAY, GETDATE(), rp.end_date)
-            END AS days_remaining
-        FROM registration_periods rp
-        LEFT JOIN academic_years ay ON rp.academic_year_id = ay.academic_year_id
-        WHERE rp.period_id = @PeriodId
-        AND rp.deleted_at IS NULL;
-        
-        IF @@ROWCOUNT = 0
-        BEGIN
-            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
-        END
-        
-    END TRY
-    BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
-        THROW 50001, @ErrorMessage, 1;
-    END CATCH
-END
-GO
-
 IF OBJECT_ID('sp_GetScheduleById', 'P') IS NOT NULL DROP PROCEDURE sp_GetScheduleById;
 GO
 CREATE PROCEDURE sp_GetScheduleById
@@ -2298,7 +2247,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
+            THROW 50002, N'Không tìm thấy lớp học nhạc', 1;
         END
         
         SELECT 
@@ -2377,7 +2326,7 @@ BEGIN
         -- Check if period exists
         IF NOT EXISTS (SELECT 1 FROM registration_periods WHERE period_id = @PeriodId AND deleted_at IS NULL)
         BEGIN
-            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
+            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
         END
         
         -- Validate: Period dates are valid
@@ -2392,12 +2341,12 @@ BEGIN
         
         IF GETDATE() < @StartDate
         BEGIN
-            THROW 50018, N'ChÆ°a Ä‘áº¿n thá»i gian má»Ÿ Ä‘á»£t Ä‘Äƒng kĂ½', 1;
+            THROW 50018, N'Chưa đến thời gian mở đợt đăng ký', 1;
         END
         
         IF GETDATE() > @EndDate
         BEGIN
-            THROW 50019, N'ÄĂ£ quĂ¡ thá»i gian Ä‘Äƒng kĂ½', 1;
+            THROW 50019, N'Đã quá thời gian đăng ký', 1;
         END
         
         -- Close all other OPEN periods for the same academic year and semester
@@ -2452,7 +2401,7 @@ BEGIN
         -- Check if student exists
         IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = @StudentId AND deleted_at IS NULL)
         BEGIN
-            THROW 50009, N'KhĂ´ng tĂ¬m tháº¥y sinh viĂªn', 1;
+            THROW 50009, N'Không tìm thấy sinh viên', 1;
         END
         
         -- Get student's current class
@@ -2461,7 +2410,7 @@ BEGIN
         
         IF @AdminClassId IS NULL
         BEGIN
-            THROW 50011, N'Sinh viĂªn chÆ°a cĂ³ lá»›p hĂ nh chĂ­nh', 1;
+            THROW 50011, N'Sinh viên chưa có lớp học nhạc', 1;
         END
         
         -- Remove student from class
@@ -2478,7 +2427,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'XĂ³a sinh viĂªn khá»i lá»›p thĂ nh cĂ´ng' AS Message;
+        SELECT 1 AS Success, N'Xóa sinh viên khỏi lớp thành công' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -2515,7 +2464,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'KhĂ´ng tĂ¬m tháº¥y lá»›p hĂ nh chĂ­nh', 1;
+            THROW 50002, N'Không tìm thấy lớp học nhạc', 1;
         END
         
         -- Validate: Check duplicate class code (if changing)
@@ -2528,7 +2477,7 @@ BEGIN
                 AND deleted_at IS NULL
             )
             BEGIN
-                THROW 50003, N'MĂ£ lá»›p Ä‘Ă£ tá»“n táº¡i', 1;
+                THROW 50003, N'Mã lớp đã tồn tại', 1;
             END
         END
         
@@ -2542,7 +2491,7 @@ BEGIN
             
             IF @MaxStudents < @CurrentStudents
             BEGIN
-                THROW 50007, N'SÄ© sá»‘ tá»‘i Ä‘a khĂ´ng Ä‘Æ°á»£c nhá» hÆ¡n sÄ© sá»‘ hiá»‡n táº¡i', 1;
+                THROW 50007, N'Số số tối đa không được nhỏ hơn số số hiện tại', 1;
             END
         END
         
@@ -2594,13 +2543,13 @@ BEGIN
         -- Validate status
         IF @NewStatus NOT IN ('PENDING', 'APPROVED', 'DROPPED', 'WITHDRAWN')
         BEGIN
-            THROW 50025, N'Tráº¡ng thĂ¡i khĂ´ng há»£p lá»‡', 1;
+            THROW 50025, N'Trạng thái không hợp lệ', 1;
         END
         
         -- Check if enrollment exists
         IF NOT EXISTS (SELECT 1 FROM enrollments WHERE enrollment_id = @EnrollmentId AND deleted_at IS NULL)
         BEGIN
-            THROW 50022, N'KhĂ´ng tĂ¬m tháº¥y Ä‘Äƒng kĂ½', 1;
+            THROW 50022, N'Không tìm thấy đăng ký', 1;
         END
         
         -- Get old status
@@ -2630,7 +2579,7 @@ BEGIN
         
         COMMIT TRANSACTION;
         
-        SELECT 1 AS Success, N'Cáº­p nháº­t tráº¡ng thĂ¡i thĂ nh cĂ´ng' AS Message;
+        SELECT 1 AS Success, N'Cập nhật trạng thái thành công' AS Message;
         
     END TRY
     BEGIN CATCH
@@ -2663,7 +2612,7 @@ BEGIN
         -- Check if period exists
         IF NOT EXISTS (SELECT 1 FROM registration_periods WHERE period_id = @PeriodId AND deleted_at IS NULL)
         BEGIN
-            THROW 50012, N'KhĂ´ng tĂ¬m tháº¥y Ä‘á»£t Ä‘Äƒng kĂ½', 1;
+            THROW 50012, N'Không tìm thấy đợt đăng ký', 1;
         END
         
         -- Get current values
@@ -2682,13 +2631,13 @@ BEGIN
         -- Validate: Start date < End date
         IF @StartDate >= @EndDate
         BEGIN
-            THROW 50013, N'NgĂ y báº¯t Ä‘áº§u pháº£i nhá» hÆ¡n ngĂ y káº¿t thĂºc', 1;
+            THROW 50013, N'Ngày bắt đầu phải nhỏ hơn ngày kết thúc', 1;
         END
         
         -- Don't allow editing if status is CLOSED
         IF @CurrentStatus = 'CLOSED'
         BEGIN
-            THROW 50016, N'KhĂ´ng thá»ƒ sá»­a Ä‘á»£t Ä‘Äƒng kĂ½ Ä‘Ă£ Ä‘Ă³ng', 1;
+            THROW 50016, N'Không thể sửa đợt đăng ký đã đóng', 1;
         END
         
         -- Update period

@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer-when-downgrade">
     <title>Hệ thống Quản lý Điểm danh - Admin</title>
+    <!-- Favicon to prevent 404 error -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📚</text></svg>">
     
     <!-- ⚠️ CUSTOM CSS - KHÔNG DÙNG BOOTSTRAP -->
     <!-- Class names giống Bootstrap nhưng là CSS tự viết -->
@@ -23,7 +26,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Using integrity and crossorigin to prevent tracking prevention warnings -->
+    <link rel="stylesheet" 
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" 
+          crossorigin="anonymous" 
+          referrerpolicy="no-referrer">
     
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -62,10 +70,16 @@
     <script src="controllers/LecturerAttendanceController.js"></script>
     <script src="controllers/LecturerGradesController.js"></script>
     <script src="controllers/AdvisorDashboardController.js"></script>
+    <script src="controllers/AdvisorStudentController.js"></script>
+    <script src="controllers/AdvisorStudentListController.js"></script>
+    <script src="controllers/AdvisorProgressController.js"></script>
+    <script src="controllers/AdvisorWarningController.js"></script>
     <script src="controllers/StudentDashboardController.js"></script>
     <script src="controllers/StudentScheduleController.js"></script>
     <script src="controllers/StudentGradesController.js"></script>
     <script src="controllers/StudentTimetableController.js"></script>
+    <script src="controllers/StudentAttendanceController.js"></script>
+    <script src="controllers/StudentProfileController.js"></script>
     <script src="controllers/LecturerTimetableController.js"></script>
     <script src="controllers/AdminTimetableController.js"></script>
     
@@ -94,8 +108,10 @@
     <script src="services/StudentService.js"></script>
     <script src="services/LecturerService.js"></script>
     <script src="services/ClassService.js"></script>
+    <script src="services/GradeDashboardService.js"></script>
     <script src="services/LecturerSubjectService.js"></script>
     <script src="services/GradeService.js"></script>
+    <script src="services/AdvisorService.js"></script>
     
     <!-- New Services - Foundation Features -->
     <script src="services/PaginationService.js"></script>

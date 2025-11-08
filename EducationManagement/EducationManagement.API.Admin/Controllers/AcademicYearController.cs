@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
     [Route("api-edu/academic-years")]
     public class AcademicYearController : ControllerBase
     {
@@ -22,6 +22,7 @@ namespace EducationManagement.API.Admin.Controllers
         // ============================================================
 
         [HttpGet]
+        [Authorize(Roles = "Admin,Student,Lecturer")] // ✅ Cho phép tất cả roles đã authenticated
         public async Task<IActionResult> GetAll()
         {
             var list = await _service.GetAllAsync();
@@ -29,6 +30,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Student,Lecturer")] // ✅ Cho phép tất cả roles đã authenticated
         public async Task<IActionResult> GetById(string id)
         {
             var item = await _service.GetByIdAsync(id);
@@ -37,6 +39,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được tạo
         public async Task<IActionResult> Create([FromBody] AcademicYear model)
         {
             try
@@ -52,6 +55,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được cập nhật
         public async Task<IActionResult> Update(string id, [FromBody] AcademicYear model)
         {
             try
@@ -70,6 +74,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được xóa
         public async Task<IActionResult> Delete(string id)
         {
             try
@@ -93,6 +98,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// <param name="startYear">Năm bắt đầu (VD: 2025 → K25)</param>
         /// <param name="durationYears">Số năm (mặc định 4)</param>
         [HttpPost("auto-create-cohort")]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được tạo tự động
         public async Task<IActionResult> AutoCreateCohort([FromQuery] int startYear, [FromQuery] int durationYears = 4)
         {
             try
@@ -118,6 +124,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// <param name="startYears">Danh sách năm bắt đầu (VD: [2021,2022,2023,2024,2025])</param>
         /// <param name="durationYears">Số năm (mặc định 4)</param>
         [HttpPost("auto-create-multiple-cohorts")]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được tạo tự động
         public async Task<IActionResult> AutoCreateMultipleCohorts([FromBody] int[] startYears, [FromQuery] int durationYears = 4)
         {
             try

@@ -209,36 +209,132 @@
     color: #FFFFFF; /* Giữ màu chữ trắng */
 }
 
+/* Override browser's autofill styles để đảm bảo button toggle vẫn nổi bật */
+.login-input:-webkit-autofill,
+.login-input:-webkit-autofill:hover,
+.login-input:-webkit-autofill:focus,
+.login-input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px rgba(0, 0, 0, 0.3) inset !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    border: 3px solid rgba(33, 150, 243, 0.6) !important;
+    transition: background-color 5000s ease-in-out 0s; /* Prevent background color change */
+    animation-name: autofill-detected !important;
+    animation-duration: 0.01s !important;
+}
+
+/* Animation để phát hiện autofill */
+@keyframes autofill-detected {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Đảm bảo toggle button vẫn hiển thị khi autofill */
+/* Fallback */
+.login-input-wrapper.autofilled .password-toggle-btn {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+}
+
+/* Modern browser với :has() support */
+@supports selector(:has(*)) {
+    .login-input-wrapper:has(.login-input:-webkit-autofill) .password-toggle-btn {
+        opacity: 1 !important;
+        visibility: visible !important;
+        display: flex !important;
+    }
+}
+
 /* Input with Password Toggle */
 .login-input-with-toggle {
     padding-right: 50px;
 }
 
-/* Password Toggle Button */
+/* Hide browser's default password reveal button */
+.login-input[type="password"]::-webkit-credentials-auto-fill-button,
+.login-input[type="password"]::-webkit-strong-password-auto-fill-button,
+.login-input[type="password"]::-webkit-inner-spin-button,
+.login-input[type="password"]::-webkit-outer-spin-button {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    position: absolute !important;
+    right: -9999px !important;
+}
+
+/* Hide browser's default password reveal for Firefox */
+.login-input[type="password"]::-moz-reveal {
+    display: none !important;
+}
+
+/* Hide browser's default password reveal for Edge/IE */
+.login-input[type="password"]::-ms-reveal {
+    display: none !important;
+}
+
+/* Password Toggle Button - Nổi bật và rõ ràng */
 .password-toggle-btn {
     position: absolute;
-    right: 15px;
-    width: 35px;
-    height: 35px;
-    background: transparent;
-    border: none;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    background: rgba(33, 150, 243, 0.15); /* Background xanh nhạt để nổi bật */
+    border: 1px solid rgba(100, 181, 246, 0.4); /* Border xanh để thấy rõ */
     border-radius: 8px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
-    color: rgba(255, 255, 255, 0.7); /* Icon màu trắng mờ */
-    font-size: 14px;
+    color: #64B5F6; /* Icon màu xanh sáng - nổi bật hơn */
+    font-size: 16px;
+    z-index: 10; /* Đảm bảo luôn ở trên cùng */
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15); /* Shadow để nổi bật */
 }
 
 .password-toggle-btn:hover {
-    background: rgba(33, 150, 243, 0.2);
-    color: #64B5F6; /* Xanh sáng khi hover */
+    background: rgba(33, 150, 243, 0.3); /* Background xanh đậm hơn khi hover */
+    border-color: #64B5F6;
+    color: #FFFFFF; /* Icon trắng khi hover */
+    box-shadow: 0 3px 8px rgba(33, 150, 243, 0.4);
+    transform: translateY(-50%) scale(1.05);
 }
 
 .password-toggle-btn:active {
-    transform: scale(0.95);
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* Đảm bảo icon luôn nổi bật khi browser auto-fill */
+/* Fallback cho browser không hỗ trợ :has() */
+.login-input-wrapper.autofilled .password-toggle-btn {
+    background: rgba(33, 150, 243, 0.25) !important;
+    border-color: #2196F3 !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 2px 8px rgba(33, 150, 243, 0.5) !important;
+}
+
+/* Modern browser với :has() support */
+@supports selector(:has(*)) {
+    .login-input-wrapper:has(.login-input:-webkit-autofill) .password-toggle-btn,
+    .login-input-wrapper:has(.login-input:autofill) .password-toggle-btn {
+        background: rgba(33, 150, 243, 0.25) !important;
+        border-color: #2196F3 !important;
+        color: #FFFFFF !important;
+        box-shadow: 0 2px 8px rgba(33, 150, 243, 0.5) !important;
+    }
+}
+
+/* Icon inside button - đảm bảo luôn rõ ràng */
+.password-toggle-btn i {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); /* Shadow cho icon */
+    text-shadow: 0 0 4px rgba(100, 181, 246, 0.6); /* Glow effect */
 }
 
 /* ============================================

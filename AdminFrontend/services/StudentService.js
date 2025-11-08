@@ -1,3 +1,7 @@
+// @ts-check
+/* global angular */
+'use strict';
+
 // Student Service
 app.service('StudentService', ['ApiService', function(ApiService) {
     

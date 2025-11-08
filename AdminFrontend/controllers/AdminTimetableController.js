@@ -1,4 +1,4 @@
-app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location', '$timeout', 'TimetableApi', 'ClassService', 'SubjectService', 'LecturerService', 'AuthService', 'ToastService', function($scope, $rootScope, $location, $timeout, TimetableApi, ClassService, SubjectService, LecturerService, AuthService, ToastService) {
+app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location', '$timeout', 'TimetableApi', 'ClassService', 'SubjectService', 'LecturerService', 'AuthService', 'ToastService', 'LoggerService', function($scope, $rootScope, $location, $timeout, TimetableApi, ClassService, SubjectService, LecturerService, AuthService, ToastService, LoggerService) {
   function getIsoWeek(d) {
     var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     var dayNum = date.getUTCDay() || 7;
@@ -134,19 +134,19 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
   $scope.loadDropdowns = function() {
     ClassService.getAll().then(function(res) {
       $scope.classes = (res.data && res.data.data) || res.data || [];
-    }).catch(function(err) { console.error('Load classes error:', err); });
+  }).catch(function(err) { LoggerService.error('Load classes error', err); });
     
     SubjectService.getAll().then(function(res) {
       $scope.subjects = (res.data && res.data.data) || res.data || [];
-    }).catch(function(err) { console.error('Load subjects error:', err); });
+  }).catch(function(err) { LoggerService.error('Load subjects error', err); });
     
     LecturerService.getAll().then(function(res) {
       $scope.lecturers = (res.data && res.data.data) || res.data || [];
-    }).catch(function(err) { console.error('Load lecturers error:', err); });
+  }).catch(function(err) { LoggerService.error('Load lecturers error', err); });
     
     TimetableApi.getRooms(null, true).then(function(res) {
       $scope.rooms = (res.data && res.data.data) || res.data || [];
-    }).catch(function(err) { console.error('Load rooms error:', err); });
+  }).catch(function(err) { LoggerService.error('Load rooms error', err); });
   };
 
   // Load sessions for current week
@@ -167,7 +167,7 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       $scope.grid = map;
     }).catch(function(err) {
       $scope.error = 'Lỗi tải danh sách phiên: ' + (err.data && err.data.message) || err.statusText;
-      console.error('Load sessions error:', err);
+      LoggerService.error('Load sessions error', err);
     }).finally(function() {
       $scope.loading = false;
     });
@@ -204,7 +204,7 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       endTime: endTimeStr       // "HH:mm:ss" format
     };
     
-    console.log('Check conflicts input:', JSON.stringify(input, null, 2));
+    LoggerService.debug('Check conflicts input', input);
     
     TimetableApi.checkConflicts(input).then(function(res) {
       $scope.conflictResult = res.data.data || res.data;
@@ -237,8 +237,10 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
         errorMsg += ': ' + err.statusText;
       }
       ToastService.error(errorMsg);
-      console.error('Check conflicts error:', err);
-      if (err.data) console.error('Error data:', JSON.stringify(err.data, null, 2));
+      LoggerService.error('Check conflicts error', err);
+      if (err && err.data) {
+        LoggerService.debug('Check conflicts error payload', err.data);
+      }
     });
   };
 
@@ -282,7 +284,7 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       } else {
         ToastService.error('Lỗi tạo phiên: ' + (err.data && err.data.message) || err.statusText);
       }
-      console.error('Create session error:', err);
+      LoggerService.error('Create session error', err);
     }).finally(function() { $scope.loading = false; });
   };
 
@@ -321,7 +323,7 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       } else {
         ToastService.error('Lỗi cập nhật: ' + (err.data && err.data.message) || err.statusText);
       }
-      console.error('Update session error:', err);
+      LoggerService.error('Update session error', err);
     }).finally(function() { $scope.loading = false; });
   };
 
@@ -334,7 +336,7 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       $scope.loadSessions(); // Reload danh sách
     }).catch(function(err) {
       ToastService.error('Lỗi xóa phiên: ' + (err.data && err.data.message) || err.statusText);
-      console.error('Delete session error:', err);
+      LoggerService.error('Delete session error', err);
     });
   };
 

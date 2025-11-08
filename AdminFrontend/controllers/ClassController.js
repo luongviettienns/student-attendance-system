@@ -1,6 +1,6 @@
 // Class Management Controller
-app.controller('ClassController', ['$scope', '$location', '$routeParams', 'ClassService', 'SubjectService', 'LecturerService', 'AcademicYearService', 'AuthService', 'AvatarService',
-    function($scope, $location, $routeParams, ClassService, SubjectService, LecturerService, AcademicYearService, AuthService, AvatarService) {
+app.controller('ClassController', ['$scope', '$location', '$routeParams', 'ClassService', 'SubjectService', 'LecturerService', 'AcademicYearService', 'AuthService', 'AvatarService', 'LoggerService',
+    function($scope, $location, $routeParams, ClassService, SubjectService, LecturerService, AcademicYearService, AuthService, AvatarService, LoggerService) {
     
     $scope.classes = [];
     $scope.displayedClasses = [];
@@ -95,11 +95,11 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
         
         ClassService.getAll()
             .then(function(response) {
-                console.log('Classes response:', response);
-                console.log('Response data:', response.data);
+                LoggerService.debug('Classes response received', response);
+                LoggerService.debug('Classes response payload', response.data);
                 
-                       if (response.data) {
-                           $scope.classes = response.data.map(function(classItem) {
+                if (response.data) {
+                    $scope.classes = response.data.map(function(classItem) {
                         return {
                             classId: classItem.classId,
                             classCode: classItem.classCode,
@@ -119,16 +119,16 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
                     });
                     
                     $scope.displayedClasses = $scope.classes;
-                    console.log('Classes loaded:', $scope.classes.length);
+                    LoggerService.debug('Classes loaded', { total: $scope.classes.length });
                 } else {
                     $scope.classes = [];
                     $scope.displayedClasses = [];
-                    console.log('No classes data found');
+                    LoggerService.warn('No classes data found for the current filters.');
                 }
                 $scope.loading = false;
             })
             .catch(function(error) {
-                console.error('Error loading classes:', error);
+                LoggerService.error('Error loading classes', error);
                 $scope.error = 'Không thể tải danh sách lớp học: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
                 $scope.loading = false;
             });
@@ -139,12 +139,12 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
     $scope.loadSubjects = function() {
         SubjectService.getAll()
             .then(function(response) {
-                       if (response.data) {
-                           $scope.subjects = response.data;
+                if (response.data) {
+                    $scope.subjects = response.data;
                 }
             })
             .catch(function(error) {
-                console.error('Error loading subjects:', error);
+                LoggerService.error('Error loading subjects', error);
             });
     };
     
@@ -153,12 +153,12 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
     $scope.loadLecturers = function() {
         LecturerService.getAll()
             .then(function(response) {
-                       if (response.data) {
-                           $scope.lecturers = response.data;
+                if (response.data) {
+                    $scope.lecturers = response.data;
                 }
             })
             .catch(function(error) {
-                console.error('Error loading lecturers:', error);
+                LoggerService.error('Error loading lecturers', error);
             });
     };
     
@@ -172,7 +172,7 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
                 }
             })
             .catch(function(error) {
-                console.error('Error loading academic years:', error);
+                // Error handled silently
             });
     };
     
@@ -239,7 +239,6 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
                 $scope.loadClasses();
             })
             .catch(function(error) {
-                console.error('Error creating class:', error);
                 $scope.error = 'Không thể tạo lớp học: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
             });
     };
@@ -264,7 +263,6 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
                 $scope.loadClasses();
             })
             .catch(function(error) {
-                console.error('Error updating class:', error);
                 $scope.error = 'Không thể cập nhật lớp học: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
             });
     };
@@ -290,7 +288,6 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
                 $scope.loadClasses();
             })
             .catch(function(error) {
-                console.error('Error deleting class:', error);
                 $scope.error = 'Không thể xóa lớp học: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
             });
     };
