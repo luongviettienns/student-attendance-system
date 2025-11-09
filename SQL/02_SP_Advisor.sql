@@ -1,4 +1,4 @@
--- ===========================================
+﻿-- ===========================================
 -- 02_SP_Advisor.sql
 -- ===========================================
 -- Description: Advisor Dashboard and Student Management Stored Procedures
@@ -237,7 +237,7 @@ BEGIN
                 s.student_id,
                 s.student_code,
                 s.full_name,
-                ac.class_name,
+                COALESCE(ac.class_name, N'Chưa phân lớp') as class_name,
                 f.faculty_name,
                 m.major_name,
                 COALESCE(g.gpa10, calc_gpa.calculated_gpa) as gpa,
@@ -390,7 +390,7 @@ BEGIN
             s.academic_year_id,
             ay.year_name as academic_year_name,
             s.admin_class_id as class_id,
-            ac.class_name,
+            COALESCE(ac.class_name, N'Chưa phân lớp') as class_name,
             s.cohort_year,
             s.is_active,
             -- GPA (from gpas table or calculated)
@@ -702,32 +702,41 @@ BEGIN
                 s.student_id,
                 s.student_code,
                 s.full_name,
-                ac.class_name,
+                COALESCE(ac.class_name, N'Chưa phân lớp') as class_name,
                 f.faculty_name,
                 m.major_name,
-                s.cohort_year,
-                COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa) as gpa,
+                COALESCE(s.cohort_year, ay.start_year) as cohort_year,
+                COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0.0) as gpa,
                 CASE 
                     WHEN COUNT(a.attendance_id) > 0 
                     THEN CAST((COUNT(CASE WHEN a.status IN ('Present', 'Late', 'Excused') THEN 1 END) * 100.0 / COUNT(a.attendance_id)) AS DECIMAL(5,2))
-                    ELSE 100 
+                    ELSE 100.0 
                 END as attendance_rate,
                 CASE 
-                    WHEN COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 AND COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0 THEN 'both'
-                    WHEN COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 THEN 'attendance'
-                    WHEN COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0 THEN 'academic'
+                    WHEN COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0 
+                         AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 
+                    THEN 'both'
+                    WHEN COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0 
+                    THEN 'academic'
+                    WHEN COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 
+                    THEN 'attendance'
                     ELSE 'none'
                 END as warning_type,
                 CASE 
-                    WHEN COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 AND COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0 THEN 3
-                    WHEN COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 THEN 2
-                    WHEN COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0 THEN 1
+                    WHEN COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0 
+                         AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 
+                    THEN 1
+                    WHEN COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0 
+                    THEN 2
+                    WHEN COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 
+                    THEN 3
                     ELSE 0
                 END as priority
             FROM dbo.students s
             LEFT JOIN dbo.administrative_classes ac ON s.admin_class_id = ac.admin_class_id
-            LEFT JOIN dbo.faculties f ON s.faculty_id = f.faculty_id
             LEFT JOIN dbo.majors m ON s.major_id = m.major_id
+            LEFT JOIN dbo.faculties f ON COALESCE(s.faculty_id, m.faculty_id) = f.faculty_id
+            LEFT JOIN dbo.academic_years ay ON s.academic_year_id = ay.academic_year_id
             LEFT JOIN (
                 SELECT 
                     gp.student_id,
@@ -753,14 +762,14 @@ BEGIN
             LEFT JOIN dbo.enrollments e ON s.student_id = e.student_id AND e.deleted_at IS NULL
             LEFT JOIN dbo.attendances a ON e.enrollment_id = a.enrollment_id AND a.deleted_at IS NULL
             WHERE s.deleted_at IS NULL
-                AND (@FacultyId IS NULL OR s.faculty_id = @FacultyId)
+                AND (@FacultyId IS NULL OR COALESCE(s.faculty_id, m.faculty_id) = @FacultyId)
                 AND (@MajorId IS NULL OR s.major_id = @MajorId)
                 AND (@ClassId IS NULL OR s.admin_class_id = @ClassId)
-                AND (@CohortYear IS NULL OR s.cohort_year = @CohortYear)
-                AND (@Search IS NULL OR s.student_code LIKE '%' + @Search + '%' OR s.full_name LIKE '%' + @Search + '%')
+                AND (@CohortYear IS NULL OR COALESCE(s.cohort_year, ay.start_year) = @CohortYear)
+                AND (@Search IS NULL OR s.student_code LIKE '%' + @Search + '%' OR s.full_name COLLATE Latin1_General_CI_AI LIKE '%' + @Search + '%' COLLATE Latin1_General_CI_AI)
             GROUP BY 
                 s.student_id, s.student_code, s.full_name, 
-                ac.class_name, f.faculty_name, m.major_name, s.cohort_year,
+                ac.class_name, f.faculty_name, m.major_name, s.cohort_year, ay.start_year,
                 gpa_table.gpa10, calc_gpa.calculated_gpa
             HAVING 
                 -- Warning status filter
@@ -810,8 +819,9 @@ BEGIN
             SELECT s.student_id
             FROM dbo.students s
             LEFT JOIN dbo.administrative_classes ac ON s.admin_class_id = ac.admin_class_id
-            LEFT JOIN dbo.faculties f ON s.faculty_id = f.faculty_id
             LEFT JOIN dbo.majors m ON s.major_id = m.major_id
+            LEFT JOIN dbo.faculties f ON COALESCE(s.faculty_id, m.faculty_id) = f.faculty_id
+            LEFT JOIN dbo.academic_years ay ON s.academic_year_id = ay.academic_year_id
             LEFT JOIN (
                 SELECT 
                     gp.student_id,
@@ -836,11 +846,11 @@ BEGIN
             LEFT JOIN dbo.enrollments e ON s.student_id = e.student_id AND e.deleted_at IS NULL
             LEFT JOIN dbo.attendances a ON e.enrollment_id = a.enrollment_id AND a.deleted_at IS NULL
             WHERE s.deleted_at IS NULL
-                AND (@FacultyId IS NULL OR s.faculty_id = @FacultyId)
+                AND (@FacultyId IS NULL OR COALESCE(s.faculty_id, m.faculty_id) = @FacultyId)
                 AND (@MajorId IS NULL OR s.major_id = @MajorId)
                 AND (@ClassId IS NULL OR s.admin_class_id = @ClassId)
-                AND (@CohortYear IS NULL OR s.cohort_year = @CohortYear)
-                AND (@Search IS NULL OR s.student_code LIKE '%' + @Search + '%' OR s.full_name LIKE '%' + @Search + '%')
+                AND (@CohortYear IS NULL OR COALESCE(s.cohort_year, ay.start_year) = @CohortYear)
+                AND (@Search IS NULL OR s.student_code LIKE '%' + @Search + '%' OR s.full_name COLLATE Latin1_General_CI_AI LIKE '%' + @Search + '%' COLLATE Latin1_General_CI_AI)
             GROUP BY s.student_id, gpa_table.gpa10, calc_gpa.calculated_gpa
             HAVING 
                 (@WarningStatus IS NULL OR 
@@ -1258,7 +1268,7 @@ BEGIN
             s.student_code,
             s.full_name,
             s.email,
-            ac.class_name,
+            COALESCE(ac.class_name, N'Chưa phân lớp') as class_name,
             f.faculty_name,
             m.major_name,
             s.cohort_year,
@@ -1353,7 +1363,7 @@ BEGIN
             s.student_code,
             s.full_name,
             s.email,
-            ac.class_name,
+            COALESCE(ac.class_name, N'Chưa phân lớp') as class_name,
             f.faculty_name,
             m.major_name,
             s.cohort_year,

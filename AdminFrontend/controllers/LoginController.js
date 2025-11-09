@@ -65,7 +65,8 @@ app.controller('LoginController', ['$scope', '$location', 'AuthService', 'RoleSe
                     $scope.loading = false;
                     
                     // Redirect based on user role
-                    var roleName = response.roleName || 'Admin';
+                    // Backend returns 'Role' (capital R), not 'roleName'
+                    var roleName = response.Role || response.roleName || response.role || 'Admin';
                     
                     switch(roleName) {
                         case 'Lecturer':

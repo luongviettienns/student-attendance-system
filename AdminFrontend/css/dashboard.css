@@ -311,6 +311,32 @@
     align-items: center;
 }
 
+.student-profile-header {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+}
+
+.student-avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.student-info-main {
+    flex: 1;
+    min-width: 200px;
+}
+
+.student-info-main h2 {
+    margin: 0 0 8px 0;
+    font-size: 24px;
+    color: var(--text-primary);
+}
+
 .student-avatar-large {
     width: 120px;
     height: 120px;
@@ -347,12 +373,22 @@
     gap: 20px;
 }
 
+.student-stats-quick {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
 .stat-box {
     text-align: center;
     padding: 16px;
     background: var(--bg-secondary);
     border-radius: 8px;
     min-width: 100px;
+    flex: 0 0 auto;
 }
 
 .stat-value {
@@ -579,8 +615,23 @@
         text-align: center;
     }
     
+    .student-profile-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+    
+    .student-info-main {
+        text-align: center;
+    }
+    
     .student-stats {
         justify-content: center;
+    }
+    
+    .student-stats-quick {
+        justify-content: center;
+        width: 100%;
     }
     
     .gpa-summary {

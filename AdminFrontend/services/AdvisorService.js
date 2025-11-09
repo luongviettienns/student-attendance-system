@@ -6,6 +6,23 @@
 app.service('AdvisorService', ['ApiService', function(ApiService) {
     
     /**
+     * Remove Vietnamese accents from text
+     * @param {string} str - Input string
+     * @returns {string} - String without accents
+     */
+    function removeVietnameseAccents(str) {
+        if (!str) return str;
+        
+        // Normalize Unicode characters (decompose accented characters)
+        return str.normalize('NFD')
+            // Remove combining diacritical marks (accents)
+            .replace(/[\u0300-\u036f]/g, '')
+            // Replace đ/Đ with d/D
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D');
+    }
+    
+    /**
      * Get dashboard statistics
      * @param {object} filters - { facultyId, majorId, classId }
      * @param {boolean} useCache - Whether to use cache (default: true)
@@ -206,7 +223,7 @@ app.service('AdvisorService', ['ApiService', function(ApiService) {
             majorId: filters.majorId || null,
             classId: filters.classId || null,
             cohortYear: filters.cohortYear || null,
-            search: filters.search || null,
+            search: filters.search ? removeVietnameseAccents(filters.search) : null,
             warningStatus: filters.warningStatus || null,
             gpaMin: filters.gpaMin !== undefined ? filters.gpaMin : null,
             gpaMax: filters.gpaMax !== undefined ? filters.gpaMax : null,

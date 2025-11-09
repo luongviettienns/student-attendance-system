@@ -289,7 +289,20 @@ app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', function($ro
         // If authenticated and trying to access login, redirect based on role
         if (next.publicAccess && AuthService.isAuthenticated()) {
             var currentUser = AuthService.getCurrentUser();
-            var userRole = currentUser?.roleName || currentUser?.Role || 'Admin';
+            // Backend returns 'role' (lowercase) or 'Role' (capital), not 'roleName'
+            var userRole = currentUser?.role || currentUser?.Role || currentUser?.roleName || 'Admin';
+            
+            // Normalize role
+            if (userRole) {
+                userRole = userRole.trim();
+                var roleMap = {
+                    'Cố vấn': 'Advisor',
+                    'Giảng viên': 'Lecturer',
+                    'Sinh viên': 'Student',
+                    'Quản trị viên': 'Admin'
+                };
+                userRole = roleMap[userRole] || userRole;
+            }
             
             // Redirect based on user role
             var defaultRoute = '/dashboard';
