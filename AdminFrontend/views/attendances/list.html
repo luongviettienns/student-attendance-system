@@ -1,0 +1,298 @@
+<div class="admin-layout">
+    <app-sidebar></app-sidebar>
+    
+    <div class="main-content">
+        <app-topbar page-title="Quản lý Điểm danh"></app-topbar>
+        
+        <div class="content-body">
+            <!-- Alerts -->
+            <div ng-if="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{success}}</div>
+            <div ng-if="error" class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> {{error}}</div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-clipboard-check"></i>
+                        Danh sách Điểm danh
+                    </h3>
+                    <div class="card-actions">
+                        <button class="btn btn-success" ng-click="downloadTemplate()">
+                            <i class="fas fa-download"></i> Tải mẫu Import
+                        </button>
+                        <button class="btn btn-info" ng-click="openImportModal()">
+                            <i class="fas fa-file-import"></i> Import Excel
+                        </button>
+                        <button class="btn btn-success" ng-click="exportToExcel()">
+                            <i class="fas fa-file-excel"></i> Xuất Excel
+                        </button>
+                        <button class="btn btn-primary" ng-click="goToCreate()">
+                            <i class="fas fa-plus"></i> Thêm điểm danh
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Filters -->
+                    <div class="filters-bar" style="margin-bottom: 20px;">
+                        <div class="filter-group">
+                            <label class="filter-label">Lớp học</label>
+                            <select ng-model="filters.classId" ng-change="handleFilterChange()" class="filter-select">
+                                <option value="">Tất cả</option>
+                                <option ng-repeat="cls in classes" value="{{cls.classId}}">
+                                    {{cls.classCode}} - {{cls.className}}
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">Sinh viên</label>
+                            <select ng-model="filters.studentId" ng-change="handleFilterChange()" class="filter-select">
+                                <option value="">Tất cả</option>
+                                <option ng-repeat="student in students" value="{{student.studentId}}">
+                                    {{student.studentCode}} - {{student.fullName}}
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">Ngày điểm danh</label>
+                            <input type="date" ng-model="filters.attendanceDate" ng-change="handleFilterChange()" class="filter-select">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="filter-label">Trạng thái</label>
+                            <select ng-model="filters.status" ng-change="handleFilterChange()" class="filter-select">
+                                <option value="">Tất cả</option>
+                                <option ng-repeat="opt in statusOptions" value="{{opt.value}}">
+                                    {{opt.label}}
+                                </option>
+                            </select>
+                        </div>
+                        
+                        <button ng-click="resetFilters()" class="btn btn-outline" style="margin-top: 20px;">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                    </div>
+                    
+                    <!-- Statistics Warning (Tạch môn) -->
+                    <div ng-if="showStatistics && statistics.students" class="alert alert-warning" style="margin-bottom: 20px;">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Cảnh báo: Sinh viên nghỉ quá 3 buổi (Tạch môn)</h5>
+                        <div ng-repeat="student in statistics.students" ng-if="student.absentCount > 3" style="margin-top: 10px;">
+                            <strong>{{student.studentCode}} - {{student.studentName}}</strong>: 
+                            Nghỉ <span class="badge badge-danger">{{student.absentCount}}</span> buổi
+                            <span class="badge badge-danger">TẠCH MÔN</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Data Table -->
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Mã SV</th>
+                                    <th>Họ tên</th>
+                                    <th>Lớp</th>
+                                    <th>Môn học</th>
+                                    <th>Ngày điểm danh</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-if="loading">
+                                    <td colspan="7" class="text-center">
+                                        <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                                    </td>
+                                </tr>
+                                <tr ng-if="!loading && displayedAttendances.length === 0">
+                                    <td colspan="7" class="text-center">Không có dữ liệu</td>
+                                </tr>
+                                <tr ng-repeat="attendance in displayedAttendances" ng-if="!loading" ng-class="{'table-danger': isFailed(attendance.studentId)}">
+                                    <td>{{attendance.studentCode}}</td>
+                                    <td>{{attendance.studentName}}</td>
+                                    <td>{{attendance.className}}</td>
+                                    <td>{{attendance.subjectName}}</td>
+                                    <td>{{formatDate(attendance.attendanceDate)}}</td>
+                                    <td>
+                                        <span class="badge" ng-class="{
+                                            'badge-success': attendance.status === 'PRESENT',
+                                            'badge-danger': attendance.status === 'ABSENT',
+                                            'badge-warning': attendance.status === 'LATE',
+                                            'badge-info': attendance.status === 'EXCUSED'
+                                        }">
+                                            {{getStatusLabel(attendance.status)}}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-warning" ng-click="goToEdit(attendance.attendanceId)">
+                                            <i class="fas fa-edit"></i> Sửa
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" ng-click="deleteAttendance(attendance.attendanceId)">
+                                            <i class="fas fa-trash"></i> Xóa
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Create/Edit Form Modal -->
+            <div ng-if="isEditMode || (attendance && attendance.attendanceDate)" class="modal-overlay" ng-click="cancel()" style="display: flex !important;">
+                <div class="modal" ng-click="$event.stopPropagation()" style="display: block !important;">
+                    <div class="modal-header">
+                        <h3 class="modal-title">{{isEditMode ? 'Sửa' : 'Thêm'}} Điểm danh</h3>
+                        <button class="modal-close" ng-click="cancel()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <form ng-submit="saveAttendance()">
+                            <div class="form-group">
+                                <label class="form-label required">Lớp học</label>
+                                <select class="form-control" ng-model="attendance.classId" required>
+                                    <option value="">-- Chọn lớp --</option>
+                                    <option ng-repeat="cls in classes" value="{{cls.classId}}">
+                                        {{cls.classCode}} - {{cls.className}}
+                                    </option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label required">Enrollment ID</label>
+                                <input type="text" class="form-control" ng-model="attendance.enrollmentId" required placeholder="Nhập Enrollment ID">
+                                <small class="form-text text-muted">ID của bản ghi đăng ký học phần</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label required">Ngày điểm danh</label>
+                                <input type="date" class="form-control" ng-model="attendance.attendanceDate" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label required">Trạng thái</label>
+                                <select class="form-control" ng-model="attendance.status" required>
+                                    <option ng-repeat="opt in statusOptions" value="{{opt.value}}">
+                                        {{opt.label}}
+                                    </option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group mt-30">
+                                <button type="submit" class="btn btn-primary" ng-disabled="loading">
+                                    <i class="fas fa-save"></i> Lưu
+                                </button>
+                                <button type="button" class="btn btn-secondary" ng-click="cancel()">
+                                    <i class="fas fa-times"></i> Hủy
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div ng-if="showImportModal" class="modal-overlay" ng-click="closeImportModal()" style="display: flex !important;">
+    <div class="modal" ng-click="$event.stopPropagation()" style="display: block !important; width: 800px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Import Điểm danh từ Excel</h3>
+            <button class="modal-close" ng-click="closeImportModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label required">Lớp học</label>
+                <select class="form-control" ng-model="importData.selectedClass" ng-change="processImportFile()" required>
+                    <option value="">-- Chọn lớp --</option>
+                    <option ng-repeat="cls in classes" value="{{cls.classId}}">
+                        {{cls.classCode}} - {{cls.className}}
+                    </option>
+                </select>
+            </div>
+            
+            <file-upload 
+                on-file-select="onFileSelect(files)" 
+                accept=".xlsx,.xls,.csv">
+            </file-upload>
+            
+            <!-- Preview and Validation Results -->
+            <div ng-if="importData.validCount > 0 || importData.errorCount > 0" style="margin-top: 20px;">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <strong>Kết quả kiểm tra:</strong> 
+                    {{importData.validCount}} bản ghi hợp lệ, 
+                    {{importData.errorCount}} bản ghi lỗi
+                </div>
+                
+                <!-- Valid Data Preview -->
+                <div ng-if="importData.validCount > 0">
+                    <h4>Dữ liệu hợp lệ ({{importData.validCount}} bản ghi)</h4>
+                    <div class="table-container" style="max-height: 300px; overflow-y: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Mã SV</th>
+                                    <th>Ngày điểm danh</th>
+                                    <th>Trạng thái</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="row in importData.preview | limitTo:10">
+                                    <td>{{row['Mã SV']}}</td>
+                                    <td>{{row['Ngày điểm danh']}}</td>
+                                    <td>{{row['Trạng thái']}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <p ng-if="importData.validCount > 10" class="text-center" style="margin-top: 10px;">
+                            <small>Hiển thị 10/{{importData.validCount}} bản ghi</small>
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Error Data -->
+                <div ng-if="importData.errorCount > 0" style="margin-top: 20px;">
+                    <h4 class="text-danger">Dữ liệu lỗi ({{importData.errorCount}} bản ghi)</h4>
+                    <div class="table-container" style="max-height: 200px; overflow-y: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Dòng</th>
+                                    <th>Lỗi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="error in importData.errors">
+                                    <td>{{error.row}}</td>
+                                    <td>
+                                        <ul style="margin: 0; padding-left: 20px;">
+                                            <li ng-repeat="err in error.errors">{{err}}</li>
+                                        </ul>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn btn-outline" ng-click="closeImportModal()">Hủy</button>
+            <button class="btn btn-primary" 
+                    ng-click="confirmImport()" 
+                    ng-disabled="importData.validCount === 0 || loading || !importData.selectedClass">
+                <i class="fas fa-check"></i> 
+                <span ng-if="!loading">Import {{importData.validCount}} bản ghi</span>
+                <span ng-if="loading"><i class="fas fa-spinner fa-spin"></i> Đang import...</span>
+            </button>
+        </div>
+    </div>
+</div>
+

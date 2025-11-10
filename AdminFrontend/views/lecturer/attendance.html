@@ -1,3 +1,97 @@
+<style>
+/* Attendance Radio Buttons & Checkbox Styles */
+.attendance-table {
+    font-size: 14px;
+}
+
+.attendance-radio-label {
+    display: inline-block;
+    cursor: pointer;
+    position: relative;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.attendance-radio-label:hover {
+    background-color: #f1f5f9;
+}
+
+.attendance-radio-label input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.radio-custom {
+    position: relative;
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #cbd5e1;
+    border-radius: 50%;
+    background-color: white;
+    transition: all 0.2s;
+}
+
+.attendance-radio-label input[type="radio"]:checked + .radio-custom {
+    border-color: #3b82f6;
+    background-color: #3b82f6;
+}
+
+.attendance-radio-label input[type="radio"]:checked + .radio-custom::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: white;
+}
+
+/* Status-specific colors */
+.attendance-row td:nth-child(4) .attendance-radio-label input[type="radio"]:checked + .radio-custom {
+    border-color: #10b981;
+    background-color: #10b981;
+}
+
+.attendance-row td:nth-child(5) .attendance-radio-label input[type="radio"]:checked + .radio-custom {
+    border-color: #ef4444;
+    background-color: #ef4444;
+}
+
+.attendance-row td:nth-child(6) .attendance-radio-label input[type="radio"]:checked + .radio-custom {
+    border-color: #f59e0b;
+    background-color: #f59e0b;
+}
+
+.attendance-row td:nth-child(7) .attendance-radio-label input[type="radio"]:checked + .radio-custom {
+    border-color: #3b82f6;
+    background-color: #3b82f6;
+}
+
+.attendance-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.attendance-checkbox-label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.attendance-row:hover {
+    background-color: #f8fafc;
+}
+</style>
+
 <div class="admin-layout">
     <!-- Sidebar -->
     <app-sidebar></app-sidebar>
@@ -41,8 +135,8 @@
                             <label class="form-label">Môn học - Lớp</label>
                             <select class="form-control" ng-model="selectedClass" ng-change="loadStudents()">
                                 <option value="">-- Chọn lớp học --</option>
-                                <option ng-repeat="class in classes" value="{{class.id}}">
-                                    {{class.subjectName}} - {{class.className}}
+                                <option ng-repeat="class in classes" ng-value="class.classId">
+                                    {{class.subjectName || class.className}} - {{class.classCode || class.className}}
                                 </option>
                             </select>
                         </div>
@@ -85,33 +179,67 @@
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table">
+                        <table class="table attendance-table">
                             <thead>
                                 <tr>
                                     <th style="width: 60px;">STT</th>
                                     <th>MSSV</th>
                                     <th>Họ và tên</th>
-                                    <th style="width: 150px;">Trạng thái</th>
-                                    <th style="width: 300px;">Ghi chú</th>
+                                    <th style="width: 120px; text-align: center;">
+                                        <label class="attendance-checkbox-label">
+                                            <input type="checkbox" ng-model="allPresent" ng-change="markAllPresent()">
+                                            <span>Có mặt</span>
+                                        </label>
+                                    </th>
+                                    <th style="width: 120px; text-align: center;">Vắng mặt</th>
+                                    <th style="width: 120px; text-align: center;">Đi muộn</th>
+                                    <th style="width: 120px; text-align: center;">Có phép</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr ng-repeat="student in students">
+                                <tr ng-repeat="student in students" class="attendance-row">
                                     <td>{{$index + 1}}</td>
-                                    <td>{{student.studentCode}}</td>
+                                    <td><strong>{{student.studentCode}}</strong></td>
                                     <td>{{student.fullName}}</td>
-                                    <td>
-                                        <select class="form-control form-control-sm" ng-model="student.status">
-                                            <option value="present">Có mặt</option>
-                                            <option value="absent">Vắng mặt</option>
-                                            <option value="late">Đi muộn</option>
-                                            <option value="excused">Có phép</option>
-                                        </select>
+                                    <td style="text-align: center;">
+                                        <label class="attendance-radio-label">
+                                            <input type="radio" 
+                                                   name="status_{{student.enrollmentId}}" 
+                                                   value="PRESENT" 
+                                                   ng-model="student.status"
+                                                   ng-change="allPresent = false">
+                                            <span class="radio-custom"></span>
+                                        </label>
                                     </td>
-                                    <td>
-                                        <input type="text" class="form-control form-control-sm" 
-                                               ng-model="student.note" 
-                                               placeholder="Ghi chú (nếu có)">
+                                    <td style="text-align: center;">
+                                        <label class="attendance-radio-label">
+                                            <input type="radio" 
+                                                   name="status_{{student.enrollmentId}}" 
+                                                   value="ABSENT" 
+                                                   ng-model="student.status"
+                                                   ng-change="allPresent = false">
+                                            <span class="radio-custom"></span>
+                                        </label>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <label class="attendance-radio-label">
+                                            <input type="radio" 
+                                                   name="status_{{student.enrollmentId}}" 
+                                                   value="LATE" 
+                                                   ng-model="student.status"
+                                                   ng-change="allPresent = false">
+                                            <span class="radio-custom"></span>
+                                        </label>
+                                    </td>
+                                    <td style="text-align: center;">
+                                        <label class="attendance-radio-label">
+                                            <input type="radio" 
+                                                   name="status_{{student.enrollmentId}}" 
+                                                   value="EXCUSED" 
+                                                   ng-model="student.status"
+                                                   ng-change="allPresent = false">
+                                            <span class="radio-custom"></span>
+                                        </label>
                                     </td>
                                 </tr>
                             </tbody>
@@ -122,19 +250,19 @@
                     <div class="attendance-summary" style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px;">
                         <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">
                             <div style="text-align: center;">
-                                <div style="font-size: 24px; font-weight: bold; color: #10b981;">{{getCountByStatus('present')}}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #10b981;">{{getCountByStatus('PRESENT')}}</div>
                                 <div style="color: #64748b;">Có mặt</div>
                             </div>
                             <div style="text-align: center;">
-                                <div style="font-size: 24px; font-weight: bold; color: #ef4444;">{{getCountByStatus('absent')}}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #ef4444;">{{getCountByStatus('ABSENT')}}</div>
                                 <div style="color: #64748b;">Vắng mặt</div>
                             </div>
                             <div style="text-align: center;">
-                                <div style="font-size: 24px; font-weight: bold; color: #f59e0b;">{{getCountByStatus('late')}}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #f59e0b;">{{getCountByStatus('LATE')}}</div>
                                 <div style="color: #64748b;">Đi muộn</div>
                             </div>
                             <div style="text-align: center;">
-                                <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">{{getCountByStatus('excused')}}</div>
+                                <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">{{getCountByStatus('EXCUSED')}}</div>
                                 <div style="color: #64748b;">Có phép</div>
                             </div>
                         </div>
