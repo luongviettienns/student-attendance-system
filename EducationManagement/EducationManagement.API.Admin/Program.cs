@@ -76,6 +76,16 @@ else
 }
 
 // ============================================================
+// 🔹 2.8️⃣ MEMORY CACHE (for quick lookups, faster than distributed cache)
+// ============================================================
+builder.Services.AddMemoryCache(options =>
+{
+    options.SizeLimit = 1024; // Limit number of entries
+    options.CompactionPercentage = 0.25; // Compact when 25% full
+    options.ExpirationScanFrequency = TimeSpan.FromMinutes(5); // Scan for expired items every 5 minutes
+});
+
+// ============================================================
 // 🔹 2.6️⃣ RESPONSE COMPRESSION (Gzip + Brotli)
 // ============================================================
 builder.Services.AddResponseCompression(options =>
@@ -158,12 +168,25 @@ builder.Services.AddRateLimiter(options =>
 // ============================================================
 // 🔹 3️⃣ Cấu hình Controller, Swagger, CORS, SignalR
 // ============================================================
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // ✅ Tối ưu JSON serialization
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+        options.JsonSerializerOptions.WriteIndented = false; // Smaller payload
+        options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles; // Prevent circular references
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// ✅ SignalR for real-time notifications
-builder.Services.AddSignalR();
+// ✅ SignalR for real-time notifications (with performance optimizations)
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.MaximumReceiveMessageSize = 32 * 1024; // 32KB max message size
+    options.StreamBufferCapacity = 10; // Buffer capacity for streaming
+});
 
 builder.Services.AddCors(options =>
 {
@@ -242,6 +265,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 // ============================================================
+// 🔹 4.5️⃣ Health Checks (MUST be before builder.Build())
+// ============================================================
+builder.Services.AddHealthChecks()
+    .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy());
+
+// ============================================================
 // 🔹 5️⃣ Build app
 // ============================================================
 var app = builder.Build();
@@ -299,6 +328,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+// ✅ Health check endpoint
+app.MapHealthChecks("/health");
 
 // ✅ Controller endpoints
 app.MapControllers();

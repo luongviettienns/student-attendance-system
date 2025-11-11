@@ -10,7 +10,6 @@ namespace EducationManagement.BLL.Services
     public class EmailService
     {
         private readonly IConfiguration _configuration;
-        private readonly EmailTemplateService _templateService;
         private readonly string _smtpServer;
         private readonly int _smtpPort;
         private readonly string _smtpUsername;
@@ -18,10 +17,9 @@ namespace EducationManagement.BLL.Services
         private readonly string _fromEmail;
         private readonly string _fromName;
 
-        public EmailService(IConfiguration configuration, EmailTemplateService? templateService = null)
+        public EmailService(IConfiguration configuration)
         {
             _configuration = configuration;
-            _templateService = templateService ?? new EmailTemplateService();
             _smtpServer = configuration["Email:SmtpServer"] ?? "smtp.gmail.com";
             _smtpPort = int.Parse(configuration["Email:SmtpPort"] ?? "587");
             _smtpUsername = (configuration["Email:Username"] ?? "").Trim();
@@ -99,11 +97,198 @@ namespace EducationManagement.BLL.Services
         }
 
         /// <summary>
-        /// Template email chuyên nghiệp với header và footer (sử dụng EmailTemplateService)
+        /// Template email chuyên nghiệp với header và footer (sử dụng EmailTemplateHelper)
         /// </summary>
-        private string GetEmailTemplate(string title, string greeting, string content, string icon = "📧", string iconColor = "#3b82f6")
+        private string GetEmailTemplate(string title, string greeting, string content, string icon = "📧", string iconColor = "#3b82f6", string? actionButtonText = null, string? actionButtonUrl = null)
         {
-            return _templateService.GetBaseTemplate(title, greeting, content, icon, iconColor);
+            return EmailTemplateHelper.GetBaseTemplate(title, greeting, content, icon, iconColor, actionButtonText, actionButtonUrl);
+        }
+
+        // ===========================================
+        // PREVIEW METHODS - Generate HTML để preview
+        // ===========================================
+
+        /// <summary>
+        /// Generate HTML cho preview email cảnh báo vắng học
+        /// </summary>
+        public string PreviewAttendanceWarning(string studentName, string className, double absentRate)
+        {
+            var isCritical = absentRate >= 20;
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    Chúng tôi nhận thấy tỷ lệ vắng mặt của bạn đã vượt quá ngưỡng cho phép. Thông tin chi tiết như sau:
+                </p>
+                
+                {EmailTemplateHelper.CreateGradientCard(
+                    "",
+                    new Dictionary<string, string>
+                    {
+                        { "Lớp học", className },
+                        { "Tỷ lệ vắng mặt", $"{absentRate:F1}%" },
+                        { "Ngưỡng cho phép", "20%" }
+                    },
+                    "#fef2f2", "#fee2e2", "#ef4444"
+                )}
+                
+                {EmailTemplateHelper.CreateWarningBox(
+                    isCritical 
+                        ? "<strong style='display: block; margin-bottom: 4px;'>🚨 Cảnh báo nghiêm trọng:</strong>Theo quy định của nhà trường, sinh viên vắng mặt quá <strong>20%</strong> số buổi học sẽ <strong>không được dự thi</strong> môn học này."
+                        : "<strong style='display: block; margin-bottom: 4px;'>⚠️ Lưu ý:</strong>Nếu tỷ lệ vắng mặt tiếp tục tăng và vượt quá 20%, bạn sẽ không được dự thi môn học này.",
+                    isCritical
+                )}
+                
+                {EmailTemplateHelper.CreateActionList(
+                    "💡 Hành động cần thực hiện:",
+                    new List<string>
+                    {
+                        "Liên hệ ngay với <strong>giảng viên phụ trách</strong> để giải thích lý do vắng mặt",
+                        "Nộp đơn xin phép vắng mặt (nếu có) cho <strong>Phòng Đào tạo</strong>",
+                        "Tham gia đầy đủ các buổi học còn lại để đảm bảo tỷ lệ vắng mặt không vượt quá 20%"
+                    },
+                    "#ef4444"
+                )}
+                
+                <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
+                    Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với Phòng Đào tạo để được hỗ trợ.
+                </p>
+            ";
+
+            return EmailTemplateHelper.GetWarningTemplate(
+                "Cảnh báo vắng học",
+                $"Kính gửi <strong>{studentName}</strong>,",
+                content
+            );
+        }
+
+        /// <summary>
+        /// Generate HTML cho preview email thông báo điểm
+        /// </summary>
+        public string PreviewGradeNotification(string studentName, string className, double finalGrade)
+        {
+            var status = finalGrade >= 4.0 ? "Đạt" : "Không đạt";
+            var statusColor = finalGrade >= 4.0 ? "#10b981" : "#ef4444";
+            var statusBg = finalGrade >= 4.0 ? "#d1fae5" : "#fee2e2";
+            var gradeLevel = finalGrade >= 9.0 ? "Xuất sắc" : finalGrade >= 8.0 ? "Giỏi" : finalGrade >= 6.5 ? "Khá" : finalGrade >= 5.0 ? "Trung bình" : finalGrade >= 4.0 ? "Trung bình yếu" : "Kém";
+            
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    Điểm môn học của bạn đã được cập nhật trên hệ thống. Thông tin chi tiết như sau:
+                </p>
+                
+                <div style='background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #3b82f6; border-radius: 16px; padding: 32px; margin: 24px 0; text-align: center; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);'>
+                    <p style='font-size: 14px; color: #64748b; margin: 0 0 12px 0; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;'>
+                        {className}
+                    </p>
+                    {EmailTemplateHelper.CreateLargeNumber(finalGrade.ToString("F2"), statusColor)}
+                    <div style='margin-top: 16px;'>
+                        {EmailTemplateHelper.CreateStatusBadge($"{status} ({gradeLevel})", statusColor, statusBg)}
+                    </div>
+                </div>
+                
+                {EmailTemplateHelper.CreateGradientCard(
+                    "📋 Thông tin chi tiết",
+                    new Dictionary<string, string>
+                    {
+                        { "Môn học", className },
+                        { "Điểm số", $"{finalGrade:F2} / 10.0" },
+                        { "Kết quả", status },
+                        { "Xếp loại", gradeLevel }
+                    },
+                    "#f8fafc", "#f1f5f9", "#64748b"
+                )}
+                
+                <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
+                    Bạn có thể đăng nhập vào hệ thống để xem chi tiết điểm thành phần và nhận xét từ giảng viên.
+                </p>
+            ";
+
+            return EmailTemplateHelper.GetInfoTemplate(
+                "Thông báo điểm môn học",
+                $"Kính gửi <strong>{studentName}</strong>,",
+                content
+            );
+        }
+
+        /// <summary>
+        /// Generate HTML cho preview email đăng ký được duyệt
+        /// </summary>
+        public string PreviewEnrollmentApproved(string studentName, string className, string subjectName, DateTime enrollmentDate)
+        {
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    Chúc mừng! Đăng ký học phần của bạn đã được duyệt thành công. Thông tin chi tiết như sau:
+                </p>
+                
+                {EmailTemplateHelper.CreateGradientCard(
+                    "",
+                    new Dictionary<string, string>
+                    {
+                        { "Môn học", subjectName },
+                        { "Lớp học", className },
+                        { "Ngày đăng ký", enrollmentDate.ToString("dd/MM/yyyy HH:mm") }
+                    },
+                    "#d1fae5", "#a7f3d0", "#10b981"
+                )}
+                
+                {EmailTemplateHelper.CreateSuccessBox(
+                    "<strong style='display: block; margin-bottom: 4px;'>🎉 Thông tin quan trọng:</strong>Bạn đã được xác nhận tham gia lớp học này. Vui lòng tham gia đầy đủ các buổi học và tuân thủ quy định của lớp."
+                )}
+                
+                {EmailTemplateHelper.CreateActionList(
+                    "📅 Bước tiếp theo:",
+                    new List<string>
+                    {
+                        "Đăng nhập vào hệ thống để xem <strong>lịch học</strong> và <strong>thông tin lớp học</strong>",
+                        "Kiểm tra <strong>thời khóa biểu</strong> và <strong>địa điểm học</strong>",
+                        "Tham gia đầy đủ các buổi học và hoàn thành các yêu cầu của môn học"
+                    },
+                    "#10b981"
+                )}
+                
+                <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
+                    Chúc bạn học tập tốt! Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với Phòng Đào tạo.
+                </p>
+            ";
+
+            return EmailTemplateHelper.GetSuccessTemplate(
+                "Đăng ký học phần thành công",
+                $"Kính gửi <strong>{studentName}</strong>,",
+                content
+            );
+        }
+
+        /// <summary>
+        /// Generate HTML cho preview email OTP
+        /// </summary>
+        public string PreviewOTP(string fullName, string otp)
+        {
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình. Vui lòng sử dụng mã OTP sau để xác thực:
+                </p>
+                
+                <div style='background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #3b82f6; border-radius: 16px; padding: 32px; text-align: center; margin: 32px 0; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);'>
+                    <p style='font-size: 14px; color: #64748b; margin: 0 0 12px 0; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;'>
+                        Mã xác thực của bạn
+                    </p>
+                    {EmailTemplateHelper.CreateLargeNumber(otp, "#1e40af", "")}
+                </div>
+                
+                {EmailTemplateHelper.CreateWarningBox(
+                    "<strong style='display: block; margin-bottom: 4px;'>⚠️ Lưu ý quan trọng:</strong>Mã OTP có hiệu lực trong <strong>5 phút</strong>. Không chia sẻ mã này với bất kỳ ai, kể cả nhân viên hỗ trợ.",
+                    false
+                )}
+                
+                <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
+                    Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này hoặc liên hệ với bộ phận hỗ trợ ngay lập tức.
+                </p>
+            ";
+
+            return EmailTemplateHelper.GetInfoTemplate(
+                "Mã xác thực OTP",
+                $"Kính gửi <strong>{fullName}</strong>,",
+                content
+            );
         }
 
         /// <summary>
@@ -113,62 +298,50 @@ namespace EducationManagement.BLL.Services
         {
             var subject = "⚠️ Cảnh báo vắng học";
             var isCritical = absentRate >= 20;
-            var body = GetEmailTemplate(
-                title: "Cảnh báo vắng học",
-                greeting: $"Kính gửi <strong>{studentName}</strong>,",
-                content: $@"
-                    <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.6;'>
-                        Chúng tôi nhận thấy tỷ lệ vắng mặt của bạn đã vượt quá ngưỡng cho phép. Thông tin chi tiết như sau:
-                    </p>
-                    
-                    <div style='background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%); border: 2px solid #ef4444; border-radius: 12px; padding: 24px; margin: 24px 0;'>
-                        <div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;'>
-                            <span style='font-size: 14px; color: #64748b; font-weight: 500;'>Lớp học:</span>
-                            <strong style='font-size: 16px; color: #1e293b;'>{className}</strong>
-                        </div>
-                        <div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;'>
-                            <span style='font-size: 14px; color: #64748b; font-weight: 500;'>Tỷ lệ vắng mặt:</span>
-                            <strong style='font-size: 20px; color: #dc2626;'>{absentRate:F1}%</strong>
-                        </div>
-                        <div style='display: flex; align-items: center; justify-content: space-between;'>
-                            <span style='font-size: 14px; color: #64748b; font-weight: 500;'>Ngưỡng cho phép:</span>
-                            <span style='font-size: 14px; color: #64748b;'>20%</span>
-                        </div>
-                    </div>
-                    
-                    {(isCritical ? $@"
-                    <div style='background: #fee2e2; border-left: 4px solid #dc2626; border-radius: 8px; padding: 16px; margin: 24px 0;'>
-                        <p style='margin: 0; font-size: 14px; color: #991b1b; line-height: 1.6;'>
-                            <strong style='display: block; margin-bottom: 4px;'>🚨 Cảnh báo nghiêm trọng:</strong>
-                            Theo quy định của nhà trường, sinh viên vắng mặt quá <strong>20%</strong> số buổi học sẽ <strong>không được dự thi</strong> môn học này.
-                        </p>
-                    </div>
-                    " : $@"
-                    <div style='background: #fff7ed; border-left: 4px solid #f59e0b; border-radius: 8px; padding: 16px; margin: 24px 0;'>
-                        <p style='margin: 0; font-size: 14px; color: #92400e; line-height: 1.6;'>
-                            <strong style='display: block; margin-bottom: 4px;'>⚠️ Lưu ý:</strong>
-                            Nếu tỷ lệ vắng mặt tiếp tục tăng và vượt quá 20%, bạn sẽ không được dự thi môn học này.
-                        </p>
-                    </div>
-                    ")}
-                    
-                    <div style='background: #f0f9ff; border-radius: 12px; padding: 20px; margin: 24px 0;'>
-                        <p style='margin: 0 0 12px 0; font-size: 15px; color: #1e293b; font-weight: 600;'>
-                            💡 Hành động cần thực hiện:
-                        </p>
-                        <ul style='margin: 0; padding-left: 20px; color: #334155; line-height: 1.8;'>
-                            <li>Liên hệ ngay với <strong>giảng viên phụ trách</strong> để giải thích lý do vắng mặt</li>
-                            <li>Nộp đơn xin phép vắng mặt (nếu có) cho <strong>Phòng Đào tạo</strong></li>
-                            <li>Tham gia đầy đủ các buổi học còn lại để đảm bảo tỷ lệ vắng mặt không vượt quá 20%</li>
-                        </ul>
-                    </div>
-                    
-                    <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
-                        Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với Phòng Đào tạo để được hỗ trợ.
-                    </p>
-                ",
-                icon: "⚠️",
-                iconColor: "#ef4444"
+            
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    Chúng tôi nhận thấy tỷ lệ vắng mặt của bạn đã vượt quá ngưỡng cho phép. Thông tin chi tiết như sau:
+                </p>
+                
+                {EmailTemplateHelper.CreateGradientCard(
+                    "",
+                    new Dictionary<string, string>
+                    {
+                        { "Lớp học", className },
+                        { "Tỷ lệ vắng mặt", $"{absentRate:F1}%" },
+                        { "Ngưỡng cho phép", "20%" }
+                    },
+                    "#fef2f2", "#fee2e2", "#ef4444"
+                )}
+                
+                {EmailTemplateHelper.CreateWarningBox(
+                    isCritical 
+                        ? "<strong style='display: block; margin-bottom: 4px;'>🚨 Cảnh báo nghiêm trọng:</strong>Theo quy định của nhà trường, sinh viên vắng mặt quá <strong>20%</strong> số buổi học sẽ <strong>không được dự thi</strong> môn học này."
+                        : "<strong style='display: block; margin-bottom: 4px;'>⚠️ Lưu ý:</strong>Nếu tỷ lệ vắng mặt tiếp tục tăng và vượt quá 20%, bạn sẽ không được dự thi môn học này.",
+                    isCritical
+                )}
+                
+                {EmailTemplateHelper.CreateActionList(
+                    "💡 Hành động cần thực hiện:",
+                    new List<string>
+                    {
+                        "Liên hệ ngay với <strong>giảng viên phụ trách</strong> để giải thích lý do vắng mặt",
+                        "Nộp đơn xin phép vắng mặt (nếu có) cho <strong>Phòng Đào tạo</strong>",
+                        "Tham gia đầy đủ các buổi học còn lại để đảm bảo tỷ lệ vắng mặt không vượt quá 20%"
+                    },
+                    "#ef4444"
+                )}
+                
+                <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
+                    Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với Phòng Đào tạo để được hỗ trợ.
+                </p>
+            ";
+
+            var body = EmailTemplateHelper.GetWarningTemplate(
+                "Cảnh báo vắng học",
+                $"Kính gửi <strong>{studentName}</strong>,",
+                content
             );
 
             await SendEmailAsync(studentEmail, subject, body, true);
@@ -185,177 +358,73 @@ namespace EducationManagement.BLL.Services
             var statusBg = finalGrade >= 4.0 ? "#d1fae5" : "#fee2e2";
             var gradeLevel = finalGrade >= 9.0 ? "Xuất sắc" : finalGrade >= 8.0 ? "Giỏi" : finalGrade >= 6.5 ? "Khá" : finalGrade >= 5.0 ? "Trung bình" : finalGrade >= 4.0 ? "Trung bình yếu" : "Kém";
             
-            var body = GetEmailTemplate(
-                title: "Thông báo điểm môn học",
-                greeting: $"Kính gửi <strong>{studentName}</strong>,",
-                content: $@"
-                    <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.6;'>
-                        Điểm môn học của bạn đã được cập nhật trên hệ thống. Thông tin chi tiết như sau:
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    Điểm môn học của bạn đã được cập nhật trên hệ thống. Thông tin chi tiết như sau:
+                </p>
+                
+                <div style='background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #3b82f6; border-radius: 16px; padding: 32px; margin: 24px 0; text-align: center; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);'>
+                    <p style='font-size: 14px; color: #64748b; margin: 0 0 12px 0; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;'>
+                        {className}
                     </p>
-                    
-                    <div style='background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); border: 2px solid #3b82f6; border-radius: 16px; padding: 28px; margin: 24px 0; text-align: center;'>
-                        <p style='font-size: 14px; color: #64748b; margin: 0 0 12px 0; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;'>
-                            {className}
-                        </p>
-                        <div style='font-size: 56px; font-weight: 700; color: {statusColor}; margin: 16px 0; line-height: 1;'>
-                            {finalGrade:F2}
-                        </div>
-                        <div style='display: inline-block; background: {statusBg}; color: {statusColor}; padding: 8px 20px; border-radius: 20px; font-weight: 600; font-size: 14px; margin-top: 12px;'>
-                            {status} ({gradeLevel})
-                        </div>
+                    {EmailTemplateHelper.CreateLargeNumber(finalGrade.ToString("F2"), statusColor)}
+                    <div style='margin-top: 16px;'>
+                        {EmailTemplateHelper.CreateStatusBadge($"{status} ({gradeLevel})", statusColor, statusBg)}
                     </div>
-                    
-                    <div style='background: #f8fafc; border-radius: 12px; padding: 20px; margin: 24px 0;'>
-                        <p style='margin: 0 0 12px 0; font-size: 15px; color: #1e293b; font-weight: 600;'>
-                            📋 Thông tin chi tiết:
-                        </p>
-                        <table style='width: 100%; border-collapse: collapse;'>
-                            <tr>
-                                <td style='padding: 8px 0; color: #64748b; font-size: 14px;'>Môn học:</td>
-                                <td style='padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600; text-align: right;'>{className}</td>
-                            </tr>
-                            <tr>
-                                <td style='padding: 8px 0; color: #64748b; font-size: 14px;'>Điểm số:</td>
-                                <td style='padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600; text-align: right;'>{finalGrade:F2} / 10.0</td>
-                            </tr>
-                            <tr>
-                                <td style='padding: 8px 0; color: #64748b; font-size: 14px;'>Kết quả:</td>
-                                <td style='padding: 8px 0; color: {statusColor}; font-size: 14px; font-weight: 600; text-align: right;'>{status}</td>
-                            </tr>
-                            <tr>
-                                <td style='padding: 8px 0; color: #64748b; font-size: 14px;'>Xếp loại:</td>
-                                <td style='padding: 8px 0; color: #1e293b; font-size: 14px; font-weight: 600; text-align: right;'>{gradeLevel}</td>
-                            </tr>
-                        </table>
-                    </div>
-                    
-                    <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
-                        Bạn có thể đăng nhập vào hệ thống để xem chi tiết điểm thành phần và nhận xét từ giảng viên.
-                    </p>
-                ",
-                icon: "📊",
-                iconColor: "#3b82f6"
+                </div>
+                
+                {EmailTemplateHelper.CreateGradientCard(
+                    "📋 Thông tin chi tiết",
+                    new Dictionary<string, string>
+                    {
+                        { "Môn học", className },
+                        { "Điểm số", $"{finalGrade:F2} / 10.0" },
+                        { "Kết quả", status },
+                        { "Xếp loại", gradeLevel }
+                    },
+                    "#f8fafc", "#f1f5f9", "#64748b"
+                )}
+                
+                <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
+                    Bạn có thể đăng nhập vào hệ thống để xem chi tiết điểm thành phần và nhận xét từ giảng viên.
+                </p>
+            ";
+
+            var body = EmailTemplateHelper.GetInfoTemplate(
+                "Thông báo điểm môn học",
+                $"Kính gửi <strong>{studentName}</strong>,",
+                content
             );
 
             await SendEmailAsync(studentEmail, subject, body, true);
         }
 
         /// <summary>
-        /// Gửi email reset mật khẩu (dùng token - cải thiện)
+        /// Gửi email reset mật khẩu (dùng token - cũ)
         /// </summary>
-        public async Task SendPasswordResetAsync(string email, string resetToken, string resetUrl, string fullName = "Người dùng")
+        public async Task SendPasswordResetAsync(string email, string resetToken, string resetUrl)
         {
             var subject = "🔐 Yêu cầu đặt lại mật khẩu";
-            var resetLink = $"{resetUrl}?token={resetToken}";
-            var button = _templateService.CreateButton("Đặt lại mật khẩu", resetLink, "#3b82f6", "#ffffff");
-            var warningBox = _templateService.CreateInfoBox(
-                "Liên kết này có hiệu lực trong <strong>30 phút</strong>. Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này hoặc liên hệ với bộ phận hỗ trợ ngay lập tức.",
-                "warning",
-                "⚠️"
-            );
-
-            var body = GetEmailTemplate(
-                title: "Đặt lại mật khẩu",
-                greeting: $"Kính gửi <strong>{fullName}</strong>,",
-                content: $@"
-                    <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.6;'>
-                        Bạn đã yêu cầu đặt lại mật khẩu cho tài khoản của mình. Vui lòng nhấp vào nút bên dưới để tiếp tục quá trình đặt lại mật khẩu.
+            var body = $@"
+                <html>
+                <body style='font-family: Arial, sans-serif;'>
+                    <h2 style='color: #2196F3;'>Đặt lại mật khẩu</h2>
+                    <p>Bạn đã yêu cầu đặt lại mật khẩu.</p>
+                    <p>Nhấp vào liên kết bên dưới để đặt lại mật khẩu (có hiệu lực trong 30 phút):</p>
+                    <p>
+                        <a href='{resetUrl}?token={resetToken}' 
+                           style='background-color: #2196F3; color: white; padding: 10px 20px; 
+                                  text-decoration: none; border-radius: 5px; display: inline-block;'>
+                            Đặt lại mật khẩu
+                        </a>
                     </p>
-                    
-                    {button}
-                    
-                    <div style='background: #f8fafc; border-radius: 12px; padding: 20px; margin: 24px 0; border-left: 4px solid #3b82f6;'>
-                        <p style='margin: 0 0 12px 0; font-size: 15px; color: #1e293b; font-weight: 600;'>
-                            🔗 Hoặc sao chép liên kết sau:
-                        </p>
-                        <p style='margin: 0; font-size: 12px; color: #64748b; word-break: break-all; font-family: monospace; padding: 8px; background: white; border-radius: 4px;'>
-                            {resetLink}
-                        </p>
-                    </div>
-                    
-                    {warningBox}
-                    
-                    <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
-                        Nếu bạn gặp bất kỳ vấn đề nào, vui lòng liên hệ với bộ phận hỗ trợ để được giúp đỡ.
-                    </p>
-                ",
-                icon: "🔐",
-                iconColor: "#3b82f6"
-            );
-
-            await SendEmailAsync(email, subject, body, true);
-        }
-
-        /// <summary>
-        /// Gửi email chào mừng cho user mới
-        /// </summary>
-        public async Task SendWelcomeEmailAsync(string email, string fullName, string username, string roleName, string? loginUrl = null)
-        {
-            var subject = "🎉 Chào mừng đến với Hệ thống Quản lý Giáo dục";
-            var loginButton = !string.IsNullOrEmpty(loginUrl) 
-                ? _templateService.CreateButton("Đăng nhập ngay", loginUrl, "#10b981", "#ffffff")
-                : "";
-
-            var dataTable = _templateService.CreateDataTable(new Dictionary<string, string>
-            {
-                { "Họ và tên", fullName },
-                { "Tên đăng nhập", username },
-                { "Vai trò", roleName },
-                { "Email", email }
-            });
-
-            var body = GetEmailTemplate(
-                title: "Chào mừng",
-                greeting: $"Xin chào <strong>{fullName}</strong>,",
-                content: $@"
-                    <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.6;'>
-                        Chúc mừng! Tài khoản của bạn đã được tạo thành công trong hệ thống Quản lý Giáo dục. Chúng tôi rất vui được chào đón bạn!
-                    </p>
-                    
-                    <div style='background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border: 2px solid #10b981; border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center;'>
-                        <p style='margin: 0; font-size: 18px; color: #065f46; font-weight: 600;'>
-                            🎉 Tài khoản của bạn đã sẵn sàng!
-                        </p>
-                    </div>
-                    
-                    <div style='background: #f0f9ff; border-radius: 12px; padding: 20px; margin: 24px 0;'>
-                        <p style='margin: 0 0 12px 0; font-size: 15px; color: #1e293b; font-weight: 600;'>
-                            📋 Thông tin tài khoản:
-                        </p>
-                        {dataTable}
-                    </div>
-                    
-                    {(!string.IsNullOrEmpty(loginButton) ? $@"
-                    <div style='margin: 24px 0;'>
-                        {loginButton}
-                    </div>
-                    " : "")}
-                    
-                    <div style='background: #f0f9ff; border-radius: 12px; padding: 20px; margin: 24px 0;'>
-                        <p style='margin: 0 0 12px 0; font-size: 15px; color: #1e293b; font-weight: 600;'>
-                            💡 Bước tiếp theo:
-                        </p>
-                        <ul style='margin: 0; padding-left: 20px; color: #334155; line-height: 1.8;'>
-                            <li>Đăng nhập vào hệ thống bằng tên đăng nhập và mật khẩu đã được cung cấp</li>
-                            <li>Thay đổi mật khẩu sau lần đăng nhập đầu tiên để bảo mật tài khoản</li>
-                            <li>Khám phá các tính năng của hệ thống phù hợp với vai trò của bạn</li>
-                            <li>Nếu có thắc mắc, vui lòng liên hệ với bộ phận hỗ trợ</li>
-                        </ul>
-                    </div>
-                    
-                    {_templateService.CreateInfoBox(
-                        "Để bảo mật tài khoản, vui lòng không chia sẻ thông tin đăng nhập với bất kỳ ai.",
-                        "info",
-                        "🔒"
-                    )}
-                    
-                    <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
-                        Chúng tôi hy vọng bạn sẽ có trải nghiệm tuyệt vời với hệ thống. Chúc bạn học tập và làm việc hiệu quả!
-                    </p>
-                ",
-                icon: "🎉",
-                iconColor: "#10b981"
-            );
+                    <p>Nếu bạn không yêu cầu đặt lại mật khẩu, vui lòng bỏ qua email này.</p>
+                    <br/>
+                    <p>Trân trọng,</p>
+                    <p><strong>Hệ thống Quản lý Giáo dục</strong></p>
+                </body>
+                </html>
+            ";
 
             await SendEmailAsync(email, subject, body, true);
         }
@@ -857,53 +926,388 @@ namespace EducationManagement.BLL.Services
         public async Task SendEnrollmentApprovedEmailAsync(string studentEmail, string studentName, string className, string subjectName, DateTime enrollmentDate)
         {
             var subject = "✅ Đăng ký học phần đã được duyệt";
-            var body = GetEmailTemplate(
-                title: "Đăng ký học phần thành công",
-                greeting: $"Kính gửi <strong>{studentName}</strong>,",
-                content: $@"
-                    <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.6;'>
-                        Chúc mừng! Đăng ký học phần của bạn đã được duyệt thành công. Thông tin chi tiết như sau:
+            
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    Chúc mừng! Đăng ký học phần của bạn đã được duyệt thành công. Thông tin chi tiết như sau:
+                </p>
+                
+                {EmailTemplateHelper.CreateGradientCard(
+                    "",
+                    new Dictionary<string, string>
+                    {
+                        { "Môn học", subjectName },
+                        { "Lớp học", className },
+                        { "Ngày đăng ký", enrollmentDate.ToString("dd/MM/yyyy HH:mm") }
+                    },
+                    "#d1fae5", "#a7f3d0", "#10b981"
+                )}
+                
+                {EmailTemplateHelper.CreateSuccessBox(
+                    "<strong style='display: block; margin-bottom: 4px;'>🎉 Thông tin quan trọng:</strong>Bạn đã được xác nhận tham gia lớp học này. Vui lòng tham gia đầy đủ các buổi học và tuân thủ quy định của lớp."
+                )}
+                
+                {EmailTemplateHelper.CreateActionList(
+                    "📅 Bước tiếp theo:",
+                    new List<string>
+                    {
+                        "Đăng nhập vào hệ thống để xem <strong>lịch học</strong> và <strong>thông tin lớp học</strong>",
+                        "Kiểm tra <strong>thời khóa biểu</strong> và <strong>địa điểm học</strong>",
+                        "Tham gia đầy đủ các buổi học và hoàn thành các yêu cầu của môn học"
+                    },
+                    "#10b981"
+                )}
+                
+                <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
+                    Chúc bạn học tập tốt! Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với Phòng Đào tạo.
+                </p>
+            ";
+
+            var body = EmailTemplateHelper.GetSuccessTemplate(
+                "Đăng ký học phần thành công",
+                $"Kính gửi <strong>{studentName}</strong>,",
+                content
+            );
+
+            await SendEmailAsync(studentEmail, subject, body, true);
+        }
+
+        /// <summary>
+        /// Gửi email thông báo đăng ký học phần bị từ chối
+        /// </summary>
+        public async Task SendEnrollmentRejectedEmailAsync(string studentEmail, string studentName, string className, string subjectName, string? reason = null)
+        {
+            var subject = "❌ Đăng ký học phần không được duyệt";
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    Chúng tôi rất tiếc phải thông báo rằng đăng ký học phần của bạn không được duyệt. Thông tin chi tiết như sau:
+                </p>
+                
+                {EmailTemplateHelper.CreateGradientCard(
+                    "",
+                    new Dictionary<string, string>
+                    {
+                        { "Môn học", subjectName },
+                        { "Lớp học", className },
+                        { "Trạng thái", "Không được duyệt" }
+                    },
+                    "#fee2e2", "#fecaca", "#ef4444"
+                )}
+                
+                {(string.IsNullOrEmpty(reason) ? "" : EmailTemplateHelper.CreateInfoBox(
+                    $@"<p style='margin: 0 0 8px 0; font-size: 15px; color: #1e293b; font-weight: 600;'>📝 Lý do:</p>
+                       <p style='margin: 0; font-size: 14px; color: #334155; line-height: 1.8;'>{reason}</p>",
+                    "#ef4444", "#fee2e2"
+                ))}
+                
+                {EmailTemplateHelper.CreateActionList(
+                    "💡 Bạn có thể:",
+                    new List<string>
+                    {
+                        "Đăng ký lớp học khác của cùng môn học (nếu còn chỗ)",
+                        "Liên hệ với <strong>Cố vấn học tập</strong> để được tư vấn",
+                        "Đăng ký vào đợt đăng ký bổ sung (nếu có)",
+                        "Liên hệ <strong>Phòng Đào tạo</strong> nếu có thắc mắc"
+                    },
+                    "#ef4444"
+                )}
+                
+                <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
+                    Nếu bạn có bất kỳ thắc mắc nào về quyết định này, vui lòng liên hệ với Phòng Đào tạo để được hỗ trợ.
+                </p>
+            ";
+
+            var body = EmailTemplateHelper.GetErrorTemplate(
+                "Đăng ký học phần không được duyệt",
+                $"Kính gửi <strong>{studentName}</strong>,",
+                content
+            );
+
+            await SendEmailAsync(studentEmail, subject, body, true);
+        }
+
+        /// <summary>
+        /// Gửi email thông báo đợt đăng ký học phần mở
+        /// </summary>
+        public async Task SendRegistrationPeriodOpenEmailAsync(string studentEmail, string studentName, string periodName, DateTime startDate, DateTime endDate, string? registrationUrl = null)
+        {
+            var subject = "📅 Đợt đăng ký học phần đã mở";
+            var daysRemaining = (endDate - DateTime.Now).Days;
+            
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    Đợt đăng ký học phần mới đã được mở. Bạn có thể đăng ký các môn học cho học kỳ tiếp theo ngay bây giờ!
+                </p>
+                
+                {EmailTemplateHelper.CreateGradientCard(
+                    "📋 Thông tin đợt đăng ký",
+                    new Dictionary<string, string>
+                    {
+                        { "Tên đợt", periodName },
+                        { "Bắt đầu", startDate.ToString("dd/MM/yyyy HH:mm") },
+                        { "Kết thúc", endDate.ToString("dd/MM/yyyy HH:mm") },
+                        { "Còn lại", $"{daysRemaining} ngày" }
+                    },
+                    "#f0f9ff", "#e0f2fe", "#3b82f6"
+                )}
+                
+                {EmailTemplateHelper.CreateWarningBox(
+                    $"<strong style='display: block; margin-bottom: 4px;'>⏰ Lưu ý:</strong>Đợt đăng ký sẽ kết thúc sau <strong>{daysRemaining} ngày</strong>. Vui lòng hoàn tất đăng ký trước thời hạn để đảm bảo có chỗ trong các lớp học mong muốn.",
+                    false
+                )}
+                
+                {EmailTemplateHelper.CreateActionList(
+                    "📝 Hướng dẫn đăng ký:",
+                    new List<string>
+                    {
+                        "Đăng nhập vào hệ thống để xem danh sách các môn học có sẵn",
+                        "Kiểm tra <strong>lịch học</strong> để tránh trùng lịch",
+                        "Xem <strong>điều kiện tiên quyết</strong> của từng môn học",
+                        "Chọn các môn học phù hợp và gửi đăng ký",
+                        "Chờ <strong>Cố vấn học tập</strong> duyệt đăng ký"
+                    },
+                    "#3b82f6"
+                )}
+            ";
+
+            var body = EmailTemplateHelper.GetInfoTemplate(
+                "Đợt đăng ký học phần",
+                $"Kính gửi <strong>{studentName}</strong>,",
+                content,
+                "Đăng ký ngay",
+                registrationUrl
+            );
+
+            await SendEmailAsync(studentEmail, subject, body, true);
+        }
+
+        /// <summary>
+        /// Gửi email nhắc nhở deadline đăng ký sắp đến
+        /// </summary>
+        public async Task SendRegistrationDeadlineReminderEmailAsync(string studentEmail, string studentName, string periodName, DateTime endDate, string? registrationUrl = null)
+        {
+            var hoursRemaining = (endDate - DateTime.Now).TotalHours;
+            var daysRemaining = (int)Math.Ceiling(hoursRemaining / 24);
+            var isUrgent = hoursRemaining < 24;
+            
+            var subject = isUrgent ? "🚨 CẢNH BÁO: Deadline đăng ký sắp hết!" : "⏰ Nhắc nhở: Deadline đăng ký sắp đến";
+            
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    {(isUrgent ? "Cảnh báo!" : "Nhắc nhở")} - Đợt đăng ký học phần <strong>{periodName}</strong> sẽ kết thúc sớm!
+                </p>
+                
+                {EmailTemplateHelper.CreateGradientCard(
+                    "",
+                    new Dictionary<string, string>
+                    {
+                        { "Đợt đăng ký", periodName },
+                        { "Thời hạn kết thúc", endDate.ToString("dd/MM/yyyy HH:mm") },
+                        { "Còn lại", isUrgent ? $"{(int)hoursRemaining} giờ" : $"{daysRemaining} ngày" }
+                    },
+                    isUrgent ? "#fee2e2" : "#fff7ed",
+                    isUrgent ? "#fecaca" : "#fed7aa",
+                    isUrgent ? "#ef4444" : "#f59e0b"
+                )}
+                
+                {EmailTemplateHelper.CreateWarningBox(
+                    $"<strong style='display: block; margin-bottom: 4px;'>{(isUrgent ? "🚨" : "⚠️")} {(isUrgent ? "Cảnh báo khẩn cấp:" : "Lưu ý quan trọng:")}</strong>Đợt đăng ký sẽ kết thúc sau <strong>{(isUrgent ? $"{(int)hoursRemaining} giờ" : $"{daysRemaining} ngày")}</strong>. Nếu bạn chưa hoàn tất đăng ký, vui lòng thực hiện ngay để không bỏ lỡ cơ hội.",
+                    isUrgent
+                )}
+                
+                {EmailTemplateHelper.CreateActionList(
+                    "⚡ Hành động cần thực hiện:",
+                    new List<string>
+                    {
+                        "<strong>Đăng nhập ngay</strong> vào hệ thống để kiểm tra trạng thái đăng ký",
+                        "Hoàn tất đăng ký các môn học còn thiếu (nếu có)",
+                        "Kiểm tra và xác nhận các đăng ký đã gửi",
+                        "Liên hệ <strong>Cố vấn học tập</strong> nếu cần hỗ trợ"
+                    },
+                    isUrgent ? "#ef4444" : "#f59e0b"
+                )}
+            ";
+
+            var body = EmailTemplateHelper.GetWarningTemplate(
+                isUrgent ? "Cảnh báo deadline đăng ký" : "Nhắc nhở deadline đăng ký",
+                $"Kính gửi <strong>{studentName}</strong>,",
+                content,
+                "Đăng ký ngay",
+                registrationUrl
+            );
+
+            await SendEmailAsync(studentEmail, subject, body, true);
+        }
+
+        /// <summary>
+        /// Gửi email thông báo lịch học mới
+        /// </summary>
+        public async Task SendTimetableNotificationEmailAsync(string studentEmail, string studentName, string schoolYear, int semester, string? timetableUrl = null)
+        {
+            var subject = "📅 Thông báo lịch học mới";
+            
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    Lịch học cho <strong>{schoolYear}</strong> - Học kỳ <strong>{semester}</strong> đã được cập nhật trên hệ thống.
+                </p>
+                
+                {EmailTemplateHelper.CreateGradientCard(
+                    "📚 Thông tin học kỳ",
+                    new Dictionary<string, string>
+                    {
+                        { "Năm học", schoolYear },
+                        { "Học kỳ", $"Học kỳ {semester}" },
+                        { "Ngày cập nhật", DateTime.Now.ToString("dd/MM/yyyy") }
+                    },
+                    "#f0f9ff", "#e0f2fe", "#3b82f6"
+                )}
+                
+                {EmailTemplateHelper.CreateInfoBox(
+                    "<p style='margin: 0 0 8px 0; font-size: 15px; color: #1e293b; font-weight: 600;'>ℹ️ Thông tin:</p><p style='margin: 0; font-size: 14px; color: #334155; line-height: 1.8;'>Vui lòng kiểm tra lịch học để biết thời gian và địa điểm của các lớp học đã đăng ký. Lịch học có thể được cập nhật, vui lòng thường xuyên kiểm tra để không bỏ lỡ thông tin quan trọng.</p>",
+                    "#3b82f6", "#f0f9ff"
+                )}
+                
+                {EmailTemplateHelper.CreateActionList(
+                    "📋 Bạn nên:",
+                    new List<string>
+                    {
+                        "Đăng nhập vào hệ thống để xem <strong>thời khóa biểu chi tiết</strong>",
+                        "Kiểm tra <strong>địa điểm học</strong> và <strong>phòng học</strong>",
+                        "Ghi chú lại <strong>lịch học</strong> để không bỏ lỡ buổi học nào",
+                        "Liên hệ <strong>Phòng Đào tạo</strong> nếu có thắc mắc về lịch học"
+                    },
+                    "#3b82f6"
+                )}
+            ";
+
+            var body = EmailTemplateHelper.GetInfoTemplate(
+                "Lịch học mới",
+                $"Kính gửi <strong>{studentName}</strong>,",
+                content,
+                "Xem lịch học",
+                timetableUrl
+            );
+
+            await SendEmailAsync(studentEmail, subject, body, true);
+        }
+
+        /// <summary>
+        /// Gửi email thông báo GPA học kỳ
+        /// </summary>
+        public async Task SendGPANotificationEmailAsync(string studentEmail, string studentName, string schoolYear, int semester, decimal gpa10, decimal gpa4, string rankText, int totalCredits)
+        {
+            var subject = "📊 Thông báo kết quả học tập học kỳ";
+            var gpaColor = gpa10 >= 8.0m ? "#10b981" : gpa10 >= 6.5m ? "#3b82f6" : gpa10 >= 5.0m ? "#f59e0b" : "#ef4444";
+            var gpaBg = gpa10 >= 8.0m ? "#d1fae5" : gpa10 >= 6.5m ? "#dbeafe" : gpa10 >= 5.0m ? "#fef3c7" : "#fee2e2";
+            
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    Kết quả học tập của bạn cho <strong>{schoolYear}</strong> - Học kỳ <strong>{semester}</strong> đã được cập nhật.
+                </p>
+                
+                <div style='background: linear-gradient(135deg, {gpaBg} 0%, {gpaBg} 100%); border: 2px solid {gpaColor}; border-radius: 16px; padding: 32px; margin: 24px 0; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.1);'>
+                    {EmailTemplateHelper.CreateLargeNumber(gpa10.ToString("F2"), gpaColor, "GPA (thang 10)")}
+                    <div style='margin-top: 20px;'>
+                        {EmailTemplateHelper.CreateStatusBadge(rankText, gpaColor, gpaBg)}
+                    </div>
+                </div>
+                
+                {EmailTemplateHelper.CreateGradientCard(
+                    "📈 Chi tiết kết quả",
+                    new Dictionary<string, string>
+                    {
+                        { "Năm học", schoolYear },
+                        { "Học kỳ", $"Học kỳ {semester}" },
+                        { "GPA (thang 10)", gpa10.ToString("F2") },
+                        { "GPA (thang 4)", gpa4.ToString("F2") },
+                        { "Xếp loại", rankText },
+                        { "Tổng số tín chỉ", $"{totalCredits} tín chỉ" }
+                    },
+                    "#f8fafc", "#f1f5f9", "#64748b"
+                )}
+                
+                {(gpa10 < 5.0m ? EmailTemplateHelper.CreateWarningBox(
+                    "<strong style='display: block; margin-bottom: 4px;'>⚠️ Lưu ý:</strong>GPA của bạn đang ở mức thấp. Hãy cố gắng cải thiện kết quả học tập trong học kỳ tiếp theo. Liên hệ với <strong>Cố vấn học tập</strong> để được tư vấn và hỗ trợ.",
+                    true
+                ) : gpa10 >= 8.0m ? EmailTemplateHelper.CreateSuccessBox(
+                    "<strong style='display: block; margin-bottom: 4px;'>🎉 Chúc mừng!</strong>Bạn đã đạt kết quả học tập xuất sắc. Hãy tiếp tục phát huy trong các học kỳ tiếp theo!"
+                ) : "")}
+                
+                <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
+                    Bạn có thể đăng nhập vào hệ thống để xem chi tiết điểm số từng môn học và bảng điểm đầy đủ.
+                </p>
+            ";
+
+            var body = EmailTemplateHelper.GetInfoTemplate(
+                "Kết quả học tập",
+                $"Kính gửi <strong>{studentName}</strong>,",
+                content
+            );
+
+            await SendEmailAsync(studentEmail, subject, body, true);
+        }
+
+        /// <summary>
+        /// Gửi email thông báo học lại
+        /// </summary>
+        public async Task SendRetakeNotificationEmailAsync(string studentEmail, string studentName, string subjectName, string className, string reason, string status, string? advisorNotes = null)
+        {
+            var subject = "🔄 Thông báo học lại môn học";
+            var statusColor = status == "APPROVED" ? "#10b981" : status == "REJECTED" ? "#ef4444" : "#f59e0b";
+            var statusBg = status == "APPROVED" ? "#d1fae5" : status == "REJECTED" ? "#fee2e2" : "#fef3c7";
+            var statusText = status == "APPROVED" ? "Đã được duyệt" : status == "REJECTED" ? "Bị từ chối" : "Đang chờ duyệt";
+            
+            var content = $@"
+                <p style='font-size: 16px; color: #334155; margin-bottom: 24px; line-height: 1.8;'>
+                    Yêu cầu học lại môn học của bạn đã được xử lý. Thông tin chi tiết như sau:
+                </p>
+                
+                {EmailTemplateHelper.CreateGradientCard(
+                    "📚 Thông tin môn học",
+                    new Dictionary<string, string>
+                    {
+                        { "Môn học", subjectName },
+                        { "Lớp học", className },
+                        { "Lý do", reason },
+                        { "Trạng thái", statusText }
+                    },
+                    "#f0f9ff", "#e0f2fe", statusColor
+                )}
+                
+                <div style='background: {statusBg}; border: 2px solid {statusColor}; border-radius: 12px; padding: 24px; margin: 24px 0; text-align: center;'>
+                    <p style='font-size: 14px; color: #64748b; margin: 0 0 12px 0; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;'>
+                        Trạng thái
                     </p>
-                    
-                    <div style='background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border: 2px solid #10b981; border-radius: 12px; padding: 24px; margin: 24px 0;'>
-                        <div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(16, 185, 129, 0.2);'>
-                            <span style='font-size: 14px; color: #64748b; font-weight: 500;'>Môn học:</span>
-                            <strong style='font-size: 16px; color: #1e293b;'>{subjectName}</strong>
-                        </div>
-                        <div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid rgba(16, 185, 129, 0.2);'>
-                            <span style='font-size: 14px; color: #64748b; font-weight: 500;'>Lớp học:</span>
-                            <strong style='font-size: 16px; color: #1e293b;'>{className}</strong>
-                        </div>
-                        <div style='display: flex; align-items: center; justify-content: space-between;'>
-                            <span style='font-size: 14px; color: #64748b; font-weight: 500;'>Ngày đăng ký:</span>
-                            <strong style='font-size: 14px; color: #1e293b;'>{enrollmentDate:dd/MM/yyyy HH:mm}</strong>
-                        </div>
+                    <div style='display: inline-block; background: {statusColor}; color: white; padding: 12px 32px; border-radius: 24px; font-weight: 700; font-size: 18px; margin-top: 8px;'>
+                        {statusText}
                     </div>
-                    
-                    <div style='background: #d1fae5; border-left: 4px solid #10b981; border-radius: 8px; padding: 16px; margin: 24px 0;'>
-                        <p style='margin: 0; font-size: 14px; color: #065f46; line-height: 1.6;'>
-                            <strong style='display: block; margin-bottom: 4px;'>🎉 Thông tin quan trọng:</strong>
-                            Bạn đã được xác nhận tham gia lớp học này. Vui lòng tham gia đầy đủ các buổi học và tuân thủ quy định của lớp.
-                        </p>
-                    </div>
-                    
-                    <div style='background: #f0f9ff; border-radius: 12px; padding: 20px; margin: 24px 0;'>
-                        <p style='margin: 0 0 12px 0; font-size: 15px; color: #1e293b; font-weight: 600;'>
-                            📅 Bước tiếp theo:
-                        </p>
-                        <ul style='margin: 0; padding-left: 20px; color: #334155; line-height: 1.8;'>
-                            <li>Đăng nhập vào hệ thống để xem <strong>lịch học</strong> và <strong>thông tin lớp học</strong></li>
-                            <li>Kiểm tra <strong>thời khóa biểu</strong> và <strong>địa điểm học</strong></li>
-                            <li>Tham gia đầy đủ các buổi học và hoàn thành các yêu cầu của môn học</li>
-                        </ul>
-                    </div>
-                    
-                    <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
-                        Chúc bạn học tập tốt! Nếu có bất kỳ thắc mắc nào, vui lòng liên hệ với Phòng Đào tạo.
-                    </p>
-                ",
-                icon: "✅",
-                iconColor: "#10b981"
+                </div>
+                
+                {(string.IsNullOrEmpty(advisorNotes) ? "" : EmailTemplateHelper.CreateInfoBox(
+                    $@"<p style='margin: 0 0 8px 0; font-size: 15px; color: #1e293b; font-weight: 600;'>💬 Ghi chú từ Cố vấn học tập:</p>
+                       <p style='margin: 0; font-size: 14px; color: #334155; line-height: 1.8;'>{advisorNotes}</p>",
+                    statusColor, statusBg
+                ))}
+                
+                {(status == "APPROVED" ? EmailTemplateHelper.CreateSuccessBox(
+                    "<strong style='display: block; margin-bottom: 4px;'>✅ Thông tin:</strong>Yêu cầu học lại của bạn đã được duyệt. Bạn có thể đăng ký học lại môn học này trong đợt đăng ký tiếp theo."
+                ) : status == "REJECTED" ? EmailTemplateHelper.CreateWarningBox(
+                    "<strong style='display: block; margin-bottom: 4px;'>ℹ️ Thông tin:</strong>Yêu cầu học lại của bạn đã bị từ chối. Nếu có thắc mắc, vui lòng liên hệ với <strong>Cố vấn học tập</strong> hoặc <strong>Phòng Đào tạo</strong>.",
+                    true
+                ) : EmailTemplateHelper.CreateInfoBox(
+                    "<p style='margin: 0 0 8px 0; font-size: 15px; color: #1e293b; font-weight: 600;'>⏳ Đang xử lý:</p><p style='margin: 0; font-size: 14px; color: #334155; line-height: 1.8;'>Yêu cầu học lại của bạn đang được xem xét. Bạn sẽ nhận được thông báo khi có kết quả.</p>",
+                    "#f59e0b", "#fef3c7"
+                ))}
+                
+                <p style='font-size: 14px; color: #64748b; margin-top: 24px; line-height: 1.6;'>
+                    Bạn có thể đăng nhập vào hệ thống để xem chi tiết và theo dõi trạng thái yêu cầu học lại.
+                </p>
+            ";
+
+            var body = EmailTemplateHelper.GetInfoTemplate(
+                "Thông báo học lại",
+                $"Kính gửi <strong>{studentName}</strong>,",
+                content
             );
 
             await SendEmailAsync(studentEmail, subject, body, true);
