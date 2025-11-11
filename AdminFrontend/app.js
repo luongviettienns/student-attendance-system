@@ -158,6 +158,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'views/lecturer/grades.html',
             controller: 'LecturerGradesController'
         })
+        .when('/lecturer/appeals', {
+            templateUrl: 'views/lecturer/appeals.html',
+            controller: 'LecturerGradeAppealController'
+        })
         .when('/lecturer/timetable', {
             templateUrl: 'views/lecturer/timetable.html',
             controller: 'LecturerTimetableController'
@@ -184,6 +188,18 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'views/advisor/warnings.html',
             controller: 'AdvisorWarningController'
         })
+        .when('/advisor/appeals', {
+            templateUrl: 'views/advisor/appeals.html',
+            controller: 'AdvisorGradeAppealController'
+        })
+        .when('/advisor/grade-formula', {
+            templateUrl: 'views/advisor/grade-formula.html',
+            controller: 'AdvisorGradeFormulaConfigController'
+        })
+        .when('/advisor/enrollments', {
+            templateUrl: 'views/advisor/enrollments.html',
+            controller: 'AdvisorEnrollmentController'
+        })
         
         // Student Portal
         .when('/student/dashboard', {
@@ -201,6 +217,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/student/grades', {
             templateUrl: 'views/student/grades.html',
             controller: 'StudentGradesController'
+        })
+        .when('/student/appeals', {
+            templateUrl: 'views/student/appeals.html',
+            controller: 'StudentGradeAppealController'
         })
         .when('/student/attendance', {
             templateUrl: 'views/student/attendance.html',
@@ -268,13 +288,26 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
 }]);
 
 // Run block - Check authentication and add global logout
-app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', function($rootScope, $location, AuthService, LoggerService) {
+app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', 'NotificationService', function($rootScope, $location, AuthService, LoggerService, NotificationService) {
     // Global logout function available in all views
     $rootScope.logout = function() {
         LoggerService.log('Logging out...');
         AuthService.logout();
         $location.path('/login');
     };
+    
+    // Load unread notification count on app start (if user is authenticated)
+    $rootScope.$on('$routeChangeStart', function(event, next, current) {
+        if (AuthService.isAuthenticated() && next && !next.publicAccess) {
+            // Load unread count when navigating to authenticated pages
+            NotificationService.loadUnreadCount();
+        }
+    });
+    
+    // Initial load if already authenticated
+    if (AuthService.isAuthenticated()) {
+        NotificationService.loadUnreadCount();
+    }
     
     // Get current user for display in header
     $rootScope.getCurrentUser = function() {

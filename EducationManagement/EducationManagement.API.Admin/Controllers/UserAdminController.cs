@@ -5,7 +5,6 @@ using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
 using EducationManagement.Common.Helpers;
 using EducationManagement.Common.DTOs.User;
-using EducationManagement.Common.Helpers;
 using EducationManagement.BLL.Services;
 
 namespace EducationManagement.API.Admin.Controllers
@@ -64,7 +63,7 @@ namespace EducationManagement.API.Admin.Controllers
                 Email = u.Email,
                 Phone = u.Phone,
                 RoleId = u.RoleId,
-                RoleName = u.RoleName,
+                RoleName = u.RoleName ?? string.Empty,
                 AvatarUrl = string.IsNullOrEmpty(u.AvatarUrl) 
                     ? $"{_gatewayUrl}/avatars/default.png"
                     : $"{_gatewayUrl}{u.AvatarUrl}",
@@ -114,8 +113,8 @@ namespace EducationManagement.API.Admin.Controllers
                 Email = user.Email,
                 Phone = user.Phone,
                 RoleId = user.RoleId,
-                RoleName = user.RoleName, // UserRepository đã lấy từ SP
-                AvatarUrl = FileHelper.BuildFullAvatarUrl(_gatewayUrl, avatarPath),
+                RoleName = user.RoleName ?? string.Empty, // UserRepository đã lấy từ SP
+                AvatarUrl = FileHelper.BuildFullAvatarUrl(_gatewayUrl, avatarPath) ?? string.Empty,
                 IsActive = user.IsActive,
                 LastLoginAt = user.LastLoginAt,
                 CreatedAt = user.CreatedAt,

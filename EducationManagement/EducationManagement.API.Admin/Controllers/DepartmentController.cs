@@ -183,16 +183,16 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 GET: Thống kê số môn học theo bộ môn
         // ============================================================
         [HttpGet("stats/subjects")]
-        public async Task<IActionResult> GetSubjectStats()
+        public Task<IActionResult> GetSubjectStats()
         {
             try
             {
                 // TODO: Implement stored procedure for statistics
-                return Ok(new { data = new List<object>(), message = "Chức năng đang phát triển" });
+                return Task.FromResult<IActionResult>(Ok(new { data = new List<object>(), message = "Chức năng đang phát triển" }));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                return Task.FromResult<IActionResult>(StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message }));
             }
         }
 
@@ -200,16 +200,16 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 GET: Thống kê số giảng viên theo bộ môn
         // ============================================================
         [HttpGet("stats/lecturers")]
-        public async Task<IActionResult> GetLecturerStats()
+        public Task<IActionResult> GetLecturerStats()
         {
             try
             {
                 // TODO: Implement stored procedure for statistics
-                return Ok(new { data = new List<object>(), message = "Chức năng đang phát triển" });
+                return Task.FromResult<IActionResult>(Ok(new { data = new List<object>(), message = "Chức năng đang phát triển" }));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                return Task.FromResult<IActionResult>(StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message }));
             }
         }
     }

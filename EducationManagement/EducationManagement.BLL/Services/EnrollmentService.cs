@@ -254,6 +254,26 @@ namespace EducationManagement.BLL.Services
             await UpdateEnrollmentStatusAsync(enrollmentId, "APPROVED", approvedBy);
         }
 
+        // GET PENDING ENROLLMENTS (For Advisor Approval)
+        public async Task<(List<EnrollmentDetailDto> Enrollments, int TotalCount)> GetPendingEnrollmentsAsync(
+            string? studentId = null,
+            string? classId = null,
+            string? subjectId = null,
+            string? schoolYearId = null,
+            int? semester = null,
+            int page = 1,
+            int pageSize = 50)
+        {
+            if (page < 1)
+                throw new ArgumentException("Page phải lớn hơn 0");
+
+            if (pageSize < 1 || pageSize > 100)
+                throw new ArgumentException("PageSize phải từ 1 đến 100");
+
+            return await _enrollmentRepository.GetPendingEnrollmentsAsync(
+                studentId, classId, subjectId, schoolYearId, semester, page, pageSize);
+        }
+
         // DROP (with deadline check)
         public async Task DropAsync(string enrollmentId, string reason, string deletedBy)
         {

@@ -136,10 +136,10 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         // ============================================================
-        // 6️⃣ APPROVE (Admin Only)
+        // 6️⃣ APPROVE (Admin & Advisor)
         // ============================================================
         [HttpPost("{id}/approve")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Advisor")]
         public async Task<IActionResult> Approve(string id)
         {
             try
@@ -250,6 +250,45 @@ namespace EducationManagement.API.Admin.Controllers
                     data = classes,
                     totalCount = classes.Count
                 });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        // ============================================================
+        // 1️⃣1️⃣ GET PENDING ENROLLMENTS (Admin & Advisor)
+        // ============================================================
+        [HttpGet("pending")]
+        [Authorize(Roles = "Admin,Advisor")]
+        public async Task<IActionResult> GetPendingEnrollments(
+            [FromQuery] string? studentId = null,
+            [FromQuery] string? classId = null,
+            [FromQuery] string? subjectId = null,
+            [FromQuery] string? schoolYearId = null,
+            [FromQuery] int? semester = null,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 50)
+        {
+            try
+            {
+                var (enrollments, totalCount) = await _service.GetPendingEnrollmentsAsync(
+                    studentId, classId, subjectId, schoolYearId, semester, page, pageSize);
+
+                return Ok(new
+                {
+                    success = true,
+                    data = enrollments,
+                    page = page,
+                    pageSize = pageSize,
+                    totalCount = totalCount,
+                    totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {

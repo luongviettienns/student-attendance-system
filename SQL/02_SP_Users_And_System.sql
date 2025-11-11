@@ -450,17 +450,19 @@ BEGIN
 END
 GO
 
-IF OBJECT_ID('sp_GetNotificationsByUser', 'P') IS NOT NULL DROP PROCEDURE sp_GetNotificationsByUser;
-GO
-CREATE PROCEDURE sp_GetNotificationsByUser
-    @UserId VARCHAR(50)
-AS
-BEGIN
-    SELECT * FROM dbo.notifications
-    WHERE user_id = @UserId
-    ORDER BY created_at DESC;
-END
-GO
+-- sp_GetNotificationsByUser has been moved to 02_SP_Notifications.sql with pagination support
+-- This old version is removed to avoid conflicts
+-- IF OBJECT_ID('sp_GetNotificationsByUser', 'P') IS NOT NULL DROP PROCEDURE sp_GetNotificationsByUser;
+-- GO
+-- CREATE PROCEDURE sp_GetNotificationsByUser
+--     @UserId VARCHAR(50)
+-- AS
+-- BEGIN
+--     SELECT * FROM dbo.notifications
+--     WHERE user_id = @UserId
+--     ORDER BY created_at DESC;
+-- END
+-- GO
 
 IF OBJECT_ID('sp_GetPermissionIdsByRole', 'P') IS NOT NULL DROP PROCEDURE sp_GetPermissionIdsByRole;
 GO

@@ -23,7 +23,7 @@ namespace EducationManagement.API.Admin.Controllers
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
-            [FromQuery] string search = null)
+            [FromQuery] string? search = null)
         {
             try
             {

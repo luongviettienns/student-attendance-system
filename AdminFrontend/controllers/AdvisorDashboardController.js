@@ -1,5 +1,5 @@
 // Advisor Dashboard Controller
-app.controller('AdvisorDashboardController', ['$scope', '$location', 'AuthService', 'AvatarService', 'AdvisorService', 'ToastService', function($scope, $location, AuthService, AvatarService, AdvisorService, ToastService) {
+app.controller('AdvisorDashboardController', ['$scope', '$location', 'AuthService', 'AvatarService', 'AdvisorService', 'EnrollmentService', 'ToastService', function($scope, $location, AuthService, AvatarService, AdvisorService, EnrollmentService, ToastService) {
     $scope.currentUser = AuthService.getCurrentUser();
     
     // Initialize Avatar Modal Functions
@@ -13,7 +13,8 @@ app.controller('AdvisorDashboardController', ['$scope', '$location', 'AuthServic
         excellentStudents: 0,
         averageAttendanceRate: 0,
         averagePassRate: 0,
-        averageGpa: 0
+        averageGpa: 0,
+        pendingEnrollments: 0
     };
     
     // Warning students
@@ -28,27 +29,9 @@ app.controller('AdvisorDashboardController', ['$scope', '$location', 'AuthServic
     // Loading and error states
     $scope.loadingStats = true;
     $scope.loadingWarningStudents = true;
+    $scope.loadingPendingEnrollments = false;
     $scope.errorStats = null;
     $scope.errorWarningStudents = null;
-    
-    // Demo recent consultations (can be replaced with API later)
-    $scope.recentConsultations = [
-        {
-            studentName: 'Nguyễn Văn A',
-            date: '21/10/2025 14:30',
-            content: 'Tư vấn về việc cải thiện điểm chuyên cần và kế hoạch học tập'
-        },
-        {
-            studentName: 'Trần Thị B',
-            date: '20/10/2025 10:15',
-            content: 'Hướng dẫn đăng ký học phần và lựa chọn môn tự chọn'
-        },
-        {
-            studentName: 'Lê Văn C',
-            date: '19/10/2025 16:00',
-            content: 'Tư vấn về khó khăn trong học tập và phương pháp cải thiện'
-        }
-    ];
     
     // Load dashboard stats
     $scope.loadDashboardStats = function() {
@@ -105,10 +88,39 @@ app.controller('AdvisorDashboardController', ['$scope', '$location', 'AuthServic
         });
     };
     
+    // Load pending enrollments count
+    $scope.loadPendingEnrollmentsCount = function() {
+        $scope.loadingPendingEnrollments = true;
+        
+        EnrollmentService.getPendingEnrollments(null, 1, 1).then(function(response) {
+            // API returns: { data: { success: true, data: [...], totalCount: X, totalPages: Y, ... } }
+            var totalCount = 0;
+            if (response.data && response.data.success) {
+                totalCount = response.data.totalCount || 0;
+            } else if (response.data) {
+                // Fallback: check if totalCount exists directly
+                totalCount = response.data.totalCount || 0;
+            }
+            $scope.stats.pendingEnrollments = totalCount;
+            $scope.loadingPendingEnrollments = false;
+        }).catch(function(error) {
+            console.error('Error loading pending enrollments count:', error);
+            $scope.stats.pendingEnrollments = 0;
+            $scope.loadingPendingEnrollments = false;
+            // Don't show error toast for this - it's just a count widget
+        });
+    };
+    
+    // Navigate to pending enrollments page
+    $scope.goToPendingEnrollments = function() {
+        $location.path('/advisor/enrollments');
+    };
+    
     // Refresh all data
     $scope.refreshData = function() {
         $scope.loadDashboardStats();
         $scope.loadWarningStudents();
+        $scope.loadPendingEnrollmentsCount();
     };
     
     // View student detail
@@ -134,5 +146,6 @@ app.controller('AdvisorDashboardController', ['$scope', '$location', 'AuthServic
     // Initialize on load
     $scope.loadDashboardStats();
     $scope.loadWarningStudents();
+    $scope.loadPendingEnrollmentsCount();
 }]);
 

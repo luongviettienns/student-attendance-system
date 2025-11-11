@@ -2667,6 +2667,98 @@ BEGIN
 END
 GO
 
+-- ============================================================
+-- 🔹 GET PENDING ENROLLMENTS (For Advisor Approval)
+-- ============================================================
+IF OBJECT_ID('sp_GetPendingEnrollments', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetPendingEnrollments;
+GO
+CREATE PROCEDURE sp_GetPendingEnrollments
+    @StudentId VARCHAR(50) = NULL,
+    @ClassId VARCHAR(50) = NULL,
+    @SubjectId VARCHAR(50) = NULL,
+    @SchoolYearId VARCHAR(50) = NULL,
+    @Semester INT = NULL,
+    @Page INT = 1,
+    @PageSize INT = 50
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        DECLARE @Offset INT = (@Page - 1) * @PageSize;
+        
+        -- Get total count
+        DECLARE @TotalCount INT;
+        SELECT @TotalCount = COUNT(*)
+        FROM enrollments e
+        INNER JOIN classes c ON e.class_id = c.class_id
+        INNER JOIN students s ON e.student_id = s.student_id
+        INNER JOIN subjects sub ON c.subject_id = sub.subject_id
+        LEFT JOIN school_years sy ON c.school_year_id = sy.school_year_id
+        WHERE e.enrollment_status = 'PENDING'
+        AND e.deleted_at IS NULL
+        AND (@StudentId IS NULL OR e.student_id = @StudentId)
+        AND (@ClassId IS NULL OR e.class_id = @ClassId)
+        AND (@SubjectId IS NULL OR c.subject_id = @SubjectId)
+        AND (@SchoolYearId IS NULL OR c.school_year_id = @SchoolYearId)
+        AND (@Semester IS NULL OR c.semester = @Semester);
+        
+        -- Get paginated results
+        SELECT 
+            e.enrollment_id,
+            e.student_id,
+            s.student_code,
+            s.full_name AS student_name,
+            s.email AS student_email,
+            e.class_id,
+            c.class_code,
+            c.class_name,
+            c.subject_id,
+            sub.subject_code,
+            sub.subject_name,
+            sub.credits,
+            c.lecturer_id,
+            l.full_name AS lecturer_name,
+            c.schedule,
+            c.room,
+            c.semester,
+            c.academic_year_id,
+            ay.year_name AS academic_year_name,
+            c.school_year_id,
+            sy.year_code AS school_year_code,
+            e.enrollment_date,
+            e.enrollment_status,
+            e.notes,
+            e.created_at,
+            e.created_by,
+            @TotalCount AS total_count
+        FROM enrollments e
+        INNER JOIN classes c ON e.class_id = c.class_id
+        INNER JOIN students s ON e.student_id = s.student_id
+        INNER JOIN subjects sub ON c.subject_id = sub.subject_id
+        LEFT JOIN lecturers l ON c.lecturer_id = l.lecturer_id
+        LEFT JOIN academic_years ay ON c.academic_year_id = ay.academic_year_id
+        LEFT JOIN school_years sy ON c.school_year_id = sy.school_year_id
+        WHERE e.enrollment_status = 'PENDING'
+        AND e.deleted_at IS NULL
+        AND (@StudentId IS NULL OR e.student_id = @StudentId)
+        AND (@ClassId IS NULL OR e.class_id = @ClassId)
+        AND (@SubjectId IS NULL OR c.subject_id = @SubjectId)
+        AND (@SchoolYearId IS NULL OR c.school_year_id = @SchoolYearId)
+        AND (@Semester IS NULL OR c.semester = @Semester)
+        ORDER BY e.enrollment_date DESC, e.created_at DESC
+        OFFSET @Offset ROWS
+        FETCH NEXT @PageSize ROWS ONLY;
+        
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
 PRINT '========================================';
 PRINT '[OK] Scheduling Management SPs completed';
 PRINT '========================================';

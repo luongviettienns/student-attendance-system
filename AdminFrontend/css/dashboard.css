@@ -26,6 +26,16 @@
     box-shadow: var(--box-shadow-lg);
 }
 
+.stat-card.clickable {
+    cursor: pointer;
+}
+
+.stat-card.clickable:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--box-shadow-lg);
+    background-color: var(--bg-secondary);
+}
+
 .stat-icon {
     width: 60px;
     height: 60px;

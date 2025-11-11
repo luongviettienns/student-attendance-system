@@ -383,6 +383,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/advisor/dashboard',
                 '/advisor/students',
                 '/advisor/warnings', // Warnings page (cảnh báo và gửi email)
+                '/advisor/enrollments', // Enrollments approval page
                 '/notifications'
             ]
         };
@@ -459,6 +460,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'ADVISOR_DASHBOARD': '/advisor/dashboard',
         'ADVISOR_STUDENTS': '/advisor/students', // Fixed: route is /advisor/students, not /students
         'ADVISOR_WARNINGS': '/advisor/warnings', // Task 1.5: Cảnh báo và gửi email
+        'ADVISOR_ENROLLMENTS': '/advisor/enrollments', // Task 2: Duyệt đăng ký học phần
         'ADVISOR_NOTIFICATIONS': '/notifications',
         
         // Admin permissions
@@ -614,6 +616,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('dashboard')) return '/advisor/dashboard';
             if (labelLower.includes('student') || labelLower.includes('sinh viên')) return '/advisor/students';
             if (labelLower.includes('warning') || labelLower.includes('cảnh báo')) return '/advisor/warnings';
+            if (labelLower.includes('enrollment') || labelLower.includes('đăng ký học phần') || labelLower.includes('duyệt đăng ký')) return '/advisor/enrollments';
             if (labelLower.includes('notification') || labelLower.includes('thông báo')) return '/notifications';
         }
         

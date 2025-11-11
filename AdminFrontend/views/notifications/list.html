@@ -50,13 +50,12 @@
                                     ng-change="handleFilterChange()" 
                                     class="filter-select">
                                 <option value="">Tất cả</option>
-                                <option value="info">Thông tin</option>
-                                <option value="success">Thành công</option>
-                                <option value="warning">Cảnh báo</option>
-                                <option value="error">Lỗi</option>
-                                <option value="grade">Điểm</option>
-                                <option value="attendance">Điểm danh</option>
-                                <option value="system">Hệ thống</option>
+                                <option value="GradeAppeal">Phúc khảo điểm</option>
+                                <option value="Enrollment">Đăng ký học phần</option>
+                                <option value="GradeUpdate">Cập nhật điểm</option>
+                                <option value="AttendanceWarning">Cảnh báo chuyên cần</option>
+                                <option value="AcademicWarning">Cảnh báo học tập</option>
+                                <option value="System">Hệ thống</option>
                             </select>
                         </div>
                         
@@ -79,25 +78,33 @@
                         <div ng-repeat="notif in displayedNotifications" 
                              class="notification-item" 
                              ng-class="{'unread': !notif.isRead}"
-                             ng-if="!loading">
+                             ng-if="!loading"
+                             ng-click="navigateToRelated(notif)"
+                             style="cursor: pointer;">
                             <div class="notification-icon">
                                 <i class="fas {{getNotificationIcon(notif.type)}}" 
                                    ng-class="getNotificationClass(notif.type)"></i>
                             </div>
                             <div class="notification-content">
                                 <div class="notification-header">
-                                    <h4 class="notification-title">{{notif.title}}</h4>
-                                    <span class="notification-time">{{timeAgo(notif.createdAt)}}</span>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <h4 class="notification-title">{{notif.title}}</h4>
+                                        <span ng-if="!notif.isRead" class="badge badge-warning" style="font-size: 10px;">Chưa đọc</span>
+                                        <span class="badge" ng-class="getNotificationClass(notif.type)" style="font-size: 10px;">
+                                            {{getNotificationTypeName(notif.type)}}
+                                        </span>
+                                    </div>
+                                    <span class="notification-time">{{timeAgo(notif.createdAt || notif.sentDate)}}</span>
                                 </div>
-                                <p class="notification-message">{{notif.message}}</p>
-                                <div class="notification-actions">
+                                <p class="notification-message">{{notif.content || notif.message}}</p>
+                                <div class="notification-actions" ng-click="$event.stopPropagation()">
                                     <button ng-if="!notif.isRead" 
                                             class="btn btn-sm btn-outline" 
-                                            ng-click="markAsRead(notif.id)">
+                                            ng-click="markAsRead(notif.notificationId || notif.id)">
                                         <i class="fas fa-check"></i> Đánh dấu đã đọc
                                     </button>
                                     <button class="btn btn-sm btn-danger" 
-                                            ng-click="deleteNotification(notif.id)">
+                                            ng-click="deleteNotification(notif.notificationId || notif.id)">
                                         <i class="fas fa-trash"></i> Xóa
                                     </button>
                                 </div>

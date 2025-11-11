@@ -110,7 +110,7 @@
             // ============================================================
             // 🔧 Helper: Format PermissionCode → State FE
             // ============================================================
-            private static string FormatState(string code)
+            private static string? FormatState(string code)
             {
                 if (string.IsNullOrEmpty(code))
                     return null;

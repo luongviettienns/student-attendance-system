@@ -86,5 +86,25 @@ app.service('EnrollmentService', ['ApiService', function(ApiService) {
         
         return ApiService.get('/enrollments/student/' + studentId + '/available-classes', params);
     };
+    
+    // ============================================================
+    // 1️⃣1️⃣ GET PENDING ENROLLMENTS (Admin & Advisor)
+    // ============================================================
+    this.getPendingEnrollments = function(filters, page, pageSize) {
+        const params = {
+            page: page || 1,
+            pageSize: pageSize || 50
+        };
+        
+        if (filters) {
+            if (filters.studentId) params.studentId = filters.studentId;
+            if (filters.classId) params.classId = filters.classId;
+            if (filters.subjectId) params.subjectId = filters.subjectId;
+            if (filters.schoolYearId) params.schoolYearId = filters.schoolYearId;
+            if (filters.semester) params.semester = filters.semester;
+        }
+        
+        return ApiService.get('/enrollments/pending', params, { cache: false });
+    };
 }]);
 

@@ -679,7 +679,7 @@ GO
 CREATE PROCEDURE sp_GetAdvisorStudents
     @Page INT = 1,
     @PageSize INT = 20,
-    @Search VARCHAR(200) = NULL,
+    @Search NVARCHAR(200) = NULL,
     @FacultyId VARCHAR(50) = NULL,
     @MajorId VARCHAR(50) = NULL,
     @ClassId VARCHAR(50) = NULL,
@@ -706,27 +706,27 @@ BEGIN
                 f.faculty_name,
                 m.major_name,
                 COALESCE(s.cohort_year, ay.start_year) as cohort_year,
-                COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0.0) as gpa,
+                COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0.0) as gpa,
                 CASE 
                     WHEN COUNT(a.attendance_id) > 0 
                     THEN CAST((COUNT(CASE WHEN a.status IN ('Present', 'Late', 'Excused') THEN 1 END) * 100.0 / COUNT(a.attendance_id)) AS DECIMAL(5,2))
                     ELSE 100.0 
                 END as attendance_rate,
                 CASE 
-                    WHEN COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0 
+                    WHEN COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) < 2.0 
                          AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 
                     THEN 'both'
-                    WHEN COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0 
+                    WHEN COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) < 2.0 
                     THEN 'academic'
                     WHEN COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 
                     THEN 'attendance'
                     ELSE 'none'
                 END as warning_type,
                 CASE 
-                    WHEN COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0 
+                    WHEN COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) < 2.0 
                          AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 
                     THEN 1
-                    WHEN COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0 
+                    WHEN COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) < 2.0 
                     THEN 2
                     WHEN COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 
                     THEN 3
@@ -740,7 +740,7 @@ BEGIN
             LEFT JOIN (
                 SELECT 
                     gp.student_id,
-                    gp.gpa10,
+                    gp.gpa4, -- Dùng gpa4 (thang điểm 4) thay vì gpa10
                     ROW_NUMBER() OVER (PARTITION BY gp.student_id ORDER BY gp.created_at DESC) as rn
                 FROM dbo.gpas gp
                 WHERE gp.deleted_at IS NULL
@@ -748,9 +748,10 @@ BEGIN
             ) gpa_table ON s.student_id = gpa_table.student_id AND gpa_table.rn = 1
             LEFT JOIN (
                 -- Calculate GPA from grades if not in gpas table
+                -- total_score là thang điểm 10, chuyển sang thang điểm 4: total_score / 10 * 4
                 SELECT 
                     e2.student_id,
-                    CAST(ROUND(SUM(gr2.total_score * sub2.credits) / NULLIF(SUM(sub2.credits), 0), 2) AS DECIMAL(4,2)) as calculated_gpa
+                    CAST(ROUND(SUM(gr2.total_score * sub2.credits) / NULLIF(SUM(sub2.credits), 0) / 10.0 * 4.0, 2) AS DECIMAL(4,2)) as calculated_gpa
                 FROM dbo.enrollments e2
                 INNER JOIN dbo.grades gr2 ON e2.enrollment_id = gr2.enrollment_id
                 INNER JOIN dbo.classes c2 ON e2.class_id = c2.class_id
@@ -758,7 +759,7 @@ BEGIN
                 WHERE e2.deleted_at IS NULL
                     AND gr2.total_score IS NOT NULL
                 GROUP BY e2.student_id
-            ) calc_gpa ON s.student_id = calc_gpa.student_id AND (gpa_table.gpa10 IS NULL OR gpa_table.rn IS NULL)
+            ) calc_gpa ON s.student_id = calc_gpa.student_id AND (gpa_table.gpa4 IS NULL OR gpa_table.rn IS NULL)
             LEFT JOIN dbo.enrollments e ON s.student_id = e.student_id AND e.deleted_at IS NULL
             LEFT JOIN dbo.attendances a ON e.enrollment_id = a.enrollment_id AND a.deleted_at IS NULL
             WHERE s.deleted_at IS NULL
@@ -766,22 +767,22 @@ BEGIN
                 AND (@MajorId IS NULL OR s.major_id = @MajorId)
                 AND (@ClassId IS NULL OR s.admin_class_id = @ClassId)
                 AND (@CohortYear IS NULL OR COALESCE(s.cohort_year, ay.start_year) = @CohortYear)
-                AND (@Search IS NULL OR s.student_code LIKE '%' + @Search + '%' OR s.full_name COLLATE Latin1_General_CI_AI LIKE '%' + @Search + '%' COLLATE Latin1_General_CI_AI)
+                AND (@Search IS NULL OR s.student_code LIKE '%' + @Search + '%' OR s.full_name LIKE '%' + @Search + '%')
             GROUP BY 
                 s.student_id, s.student_code, s.full_name, 
                 ac.class_name, f.faculty_name, m.major_name, s.cohort_year, ay.start_year,
-                gpa_table.gpa10, calc_gpa.calculated_gpa
+                gpa_table.gpa4, calc_gpa.calculated_gpa
             HAVING 
                 -- Warning status filter
                 (@WarningStatus IS NULL OR 
-                 (@WarningStatus = 'attendance' AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 AND COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) >= 2.0) OR
-                 (@WarningStatus = 'academic' AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) <= 20 AND COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0) OR
-                 (@WarningStatus = 'both' AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 AND COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0) OR
-                 (@WarningStatus = 'none' AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) <= 20 AND COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) >= 2.0))
+                 (@WarningStatus = 'attendance' AND COUNT(a.attendance_id) > 0 AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 AND COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) >= 2.0) OR
+                 (@WarningStatus = 'academic' AND (COUNT(a.attendance_id) = 0 OR COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) <= 20) AND COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) < 2.0) OR
+                 (@WarningStatus = 'both' AND COUNT(a.attendance_id) > 0 AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 AND COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) < 2.0) OR
+                 (@WarningStatus = 'none' AND (COUNT(a.attendance_id) = 0 OR COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) <= 20) AND COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) >= 2.0))
                 AND
                 -- GPA range filter
-                (@GpaMin IS NULL OR COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) >= @GpaMin)
-                AND (@GpaMax IS NULL OR COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) <= @GpaMax)
+                (@GpaMin IS NULL OR COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) >= @GpaMin)
+                AND (@GpaMax IS NULL OR COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) <= @GpaMax)
                 AND
                 -- Attendance rate filter
                 (@AttendanceRateMin IS NULL OR 
@@ -825,7 +826,7 @@ BEGIN
             LEFT JOIN (
                 SELECT 
                     gp.student_id,
-                    gp.gpa10,
+                    gp.gpa4, -- Dùng gpa4 (thang điểm 4) thay vì gpa10
                     ROW_NUMBER() OVER (PARTITION BY gp.student_id ORDER BY gp.created_at DESC) as rn
                 FROM dbo.gpas gp
                 WHERE gp.deleted_at IS NULL
@@ -834,7 +835,8 @@ BEGIN
             LEFT JOIN (
                 SELECT 
                     e2.student_id,
-                    CAST(ROUND(SUM(gr2.total_score * sub2.credits) / NULLIF(SUM(sub2.credits), 0), 2) AS DECIMAL(4,2)) as calculated_gpa
+                    -- total_score là thang điểm 10, chuyển sang thang điểm 4: total_score / 10 * 4
+                    CAST(ROUND(SUM(gr2.total_score * sub2.credits) / NULLIF(SUM(sub2.credits), 0) / 10.0 * 4.0, 2) AS DECIMAL(4,2)) as calculated_gpa
                 FROM dbo.enrollments e2
                 INNER JOIN dbo.grades gr2 ON e2.enrollment_id = gr2.enrollment_id
                 INNER JOIN dbo.classes c2 ON e2.class_id = c2.class_id
@@ -842,7 +844,7 @@ BEGIN
                 WHERE e2.deleted_at IS NULL
                     AND gr2.total_score IS NOT NULL
                 GROUP BY e2.student_id
-            ) calc_gpa ON s.student_id = calc_gpa.student_id AND (gpa_table.gpa10 IS NULL OR gpa_table.rn IS NULL)
+            ) calc_gpa ON s.student_id = calc_gpa.student_id AND (gpa_table.gpa4 IS NULL OR gpa_table.rn IS NULL)
             LEFT JOIN dbo.enrollments e ON s.student_id = e.student_id AND e.deleted_at IS NULL
             LEFT JOIN dbo.attendances a ON e.enrollment_id = a.enrollment_id AND a.deleted_at IS NULL
             WHERE s.deleted_at IS NULL
@@ -850,17 +852,17 @@ BEGIN
                 AND (@MajorId IS NULL OR s.major_id = @MajorId)
                 AND (@ClassId IS NULL OR s.admin_class_id = @ClassId)
                 AND (@CohortYear IS NULL OR COALESCE(s.cohort_year, ay.start_year) = @CohortYear)
-                AND (@Search IS NULL OR s.student_code LIKE '%' + @Search + '%' OR s.full_name COLLATE Latin1_General_CI_AI LIKE '%' + @Search + '%' COLLATE Latin1_General_CI_AI)
-            GROUP BY s.student_id, gpa_table.gpa10, calc_gpa.calculated_gpa
+                AND (@Search IS NULL OR s.student_code LIKE '%' + @Search + '%' OR s.full_name LIKE '%' + @Search + '%')
+            GROUP BY s.student_id, gpa_table.gpa4, calc_gpa.calculated_gpa
             HAVING 
                 (@WarningStatus IS NULL OR 
-                 (@WarningStatus = 'attendance' AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 AND COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) >= 2.0) OR
-                 (@WarningStatus = 'academic' AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) <= 20 AND COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0) OR
-                 (@WarningStatus = 'both' AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 AND COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) < 2.0) OR
-                 (@WarningStatus = 'none' AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) <= 20 AND COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) >= 2.0))
+                 (@WarningStatus = 'attendance' AND COUNT(a.attendance_id) > 0 AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 AND COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) >= 2.0) OR
+                 (@WarningStatus = 'academic' AND (COUNT(a.attendance_id) = 0 OR COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) <= 20) AND COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) < 2.0) OR
+                 (@WarningStatus = 'both' AND COUNT(a.attendance_id) > 0 AND COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) > 20 AND COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) < 2.0) OR
+                 (@WarningStatus = 'none' AND (COUNT(a.attendance_id) = 0 OR COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / NULLIF(COUNT(a.attendance_id), 0) <= 20) AND COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) >= 2.0))
                 AND
-                (@GpaMin IS NULL OR COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) >= @GpaMin)
-                AND (@GpaMax IS NULL OR COALESCE(gpa_table.gpa10, calc_gpa.calculated_gpa, 0) <= @GpaMax)
+                (@GpaMin IS NULL OR COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) >= @GpaMin)
+                AND (@GpaMax IS NULL OR COALESCE(gpa_table.gpa4, calc_gpa.calculated_gpa, 0) <= @GpaMax)
                 AND
                 (@AttendanceRateMin IS NULL OR 
                  CASE 

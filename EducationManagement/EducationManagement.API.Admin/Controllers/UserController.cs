@@ -254,10 +254,10 @@ namespace EducationManagement.API.Admin.Controllers
                 Username = user.Username,
                 FullName = user.FullName,
                 Email = user.Email,
-                Phone = user.Phone,
+                Phone = user.Phone ?? string.Empty,
                 RoleId = user.RoleId,
-                RoleName = user.Role?.RoleName,
-                AvatarUrl = FileHelper.BuildFullAvatarUrl(_gatewayUrl, relativePath)
+                RoleName = user.Role?.RoleName ?? user.RoleName,
+                AvatarUrl = FileHelper.BuildFullAvatarUrl(_gatewayUrl, relativePath) ?? string.Empty
             };
         }
         #endregion

@@ -192,6 +192,86 @@ namespace EducationManagement.DAL.Repositories
         }
 
         // ============================================================
+        // 🔹 LẤY DANH SÁCH USER IDS THEO ROLE
+        // ============================================================
+        public async Task<List<string>> GetUserIdsByRoleNameAsync(string roleName)
+        {
+            var userIds = new List<string>();
+            var query = @"
+                SELECT DISTINCT u.user_id
+                FROM dbo.users u
+                INNER JOIN dbo.roles r ON u.role_id = r.role_id
+                WHERE r.role_name = @RoleName
+                    AND u.is_active = 1
+                    AND u.deleted_at IS NULL
+                    AND r.deleted_at IS NULL";
+
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@RoleName", roleName);
+                
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+                
+                while (await reader.ReadAsync())
+                {
+                    var userId = reader["user_id"]?.ToString();
+                    if (!string.IsNullOrEmpty(userId))
+                        userIds.Add(userId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting user IDs by role: {ex.Message}");
+            }
+
+            return userIds;
+        }
+
+        // ============================================================
+        // 🔹 LẤY DANH SÁCH USER IDS VÀ EMAILS THEO ROLE
+        // ============================================================
+        public async Task<List<(string UserId, string Email, string FullName)>> GetUsersByRoleNameAsync(string roleName)
+        {
+            var users = new List<(string UserId, string Email, string FullName)>();
+            var query = @"
+                SELECT DISTINCT u.user_id, u.email, u.full_name
+                FROM dbo.users u
+                INNER JOIN dbo.roles r ON u.role_id = r.role_id
+                WHERE r.role_name = @RoleName
+                    AND u.is_active = 1
+                    AND u.deleted_at IS NULL
+                    AND r.deleted_at IS NULL";
+
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@RoleName", roleName);
+                
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+                
+                while (await reader.ReadAsync())
+                {
+                    var userId = reader["user_id"]?.ToString() ?? "";
+                    var email = reader["email"]?.ToString() ?? "";
+                    var fullName = reader["full_name"]?.ToString() ?? "";
+                    if (!string.IsNullOrEmpty(userId))
+                        users.Add((userId, email, fullName));
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error getting users by role: {ex.Message}");
+            }
+
+            return users;
+        }
+
+        // ============================================================
         // 🔹 KIỂM TRA EMAIL ĐÃ TỒN TẠI
         // ============================================================
         public async Task<bool> ExistsByEmailAsync(string email, string? excludeUserId = null)

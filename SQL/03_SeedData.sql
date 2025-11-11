@@ -519,6 +519,9 @@ BEGIN
     ('PERM_ADV_DASHBOARD', 'ADVISOR_DASHBOARD', N'Dashboard', 'ADVISOR_SECTION_OVERVIEW', 'fas fa-tachometer-alt', 1, N'Dashboard cố vấn', 1),
     ('PERM_ADV_STUDENTS', 'ADVISOR_STUDENTS', N'Sinh viên', 'ADVISOR_SECTION_ADVISING', 'fas fa-user-graduate', 1, N'Quản lý sinh viên được phụ trách', 1),
     ('PERM_ADV_WARNINGS', 'ADVISOR_WARNINGS', N'Cảnh báo', 'ADVISOR_SECTION_ADVISING', 'fas fa-exclamation-triangle', 2, N'Cảnh báo và gửi email cho sinh viên', 1),
+    ('PERM_ADV_APPEALS', 'ADVISOR_APPEALS', N'Phúc khảo', 'ADVISOR_SECTION_ADVISING', 'fas fa-gavel', 3, N'Quản lý phúc khảo điểm', 1),
+    ('PERM_ADV_GRADE_FORMULA', 'ADVISOR_GRADE_FORMULA', N'Công thức điểm', 'ADVISOR_SECTION_ADVISING', 'fas fa-calculator', 4, N'Cấu hình công thức tính điểm', 1),
+    ('PERM_ADV_ENROLLMENTS', 'ADVISOR_ENROLLMENTS', N'Duyệt đăng ký', 'ADVISOR_SECTION_ADVISING', 'fas fa-clipboard-check', 5, N'Duyệt và quản lý đăng ký học phần của sinh viên', 1),
     ('PERM_ADV_NOTIFICATIONS', 'ADVISOR_NOTIFICATIONS', N'Thông báo', 'ADVISOR_SECTION_SYSTEM', 'fas fa-bell', 1, N'Xem thông báo', 1);
 END
 
@@ -616,6 +619,9 @@ BEGIN
     ('ROLE_ADVISOR', 'PERM_ADV_ADVISING'),
     ('ROLE_ADVISOR', 'PERM_ADV_STUDENTS'),
     ('ROLE_ADVISOR', 'PERM_ADV_WARNINGS'),
+    ('ROLE_ADVISOR', 'PERM_ADV_APPEALS'),
+    ('ROLE_ADVISOR', 'PERM_ADV_GRADE_FORMULA'),
+    ('ROLE_ADVISOR', 'PERM_ADV_ENROLLMENTS'),
     -- Advisor System
     ('ROLE_ADVISOR', 'PERM_ADV_SYSTEM'),
     ('ROLE_ADVISOR', 'PERM_ADV_NOTIFICATIONS');

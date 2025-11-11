@@ -1,9 +1,9 @@
-﻿namespace EducationManagement.API.Adnin.Helpers
+﻿namespace EducationManagement.API.Admin.Helpers
 {
     public static class HttpRequestExtensions
     {
         // Hàm chuyển đường dẫn tương đối ("/uploads/...") thành tuyệt đối ("https://host/uploads/...")
-        public static string ToAbsoluteUrl(this HttpRequest request, string relativeOrAbsolute)
+        public static string? ToAbsoluteUrl(this HttpRequest request, string? relativeOrAbsolute)
         {
             if (string.IsNullOrWhiteSpace(relativeOrAbsolute))
                 return null;

@@ -22,7 +22,10 @@ app.controller('NotificationController', ['$scope', '$location', 'NotificationSe
     };
     
     // Pagination
-    $scope.pagination = PaginationService.init(20);
+    $scope.pagination = PaginationService.init(50);
+    $scope.pagination.currentPage = 1;
+    $scope.pagination.pageSize = 50;
+    $scope.pagination.totalItems = 0;
     
     // Filters
     $scope.filters = {
@@ -30,90 +33,76 @@ app.controller('NotificationController', ['$scope', '$location', 'NotificationSe
         type: ''
     };
     
-    // Load notifications
+    // Load notifications from backend with pagination
     $scope.loadNotifications = function() {
         $scope.loading = true;
-        NotificationService.getAll()
-            .then(function(response) {
-                $scope.notifications = response.data;
-                $scope.applyFiltersAndSort();
+        $scope.error = null;
+        
+        var page = $scope.pagination.currentPage;
+        var pageSize = $scope.pagination.pageSize;
+        var type = $scope.filters.type || null;
+        var isRead = $scope.filters.isRead !== '' ? ($scope.filters.isRead === 'true') : null;
+        
+        NotificationService.getAll(page, pageSize, type, isRead)
+            .then(function(result) {
+                $scope.notifications = result.data || [];
+                $scope.pagination.totalItems = result.totalCount || result.data.length;
+                $scope.pagination.currentPage = result.page || page;
+                $scope.pagination.pageSize = result.pageSize || pageSize;
+                
+                // Apply client-side search if needed
+                if ($scope.pagination.searchTerm) {
+                    var searchLower = $scope.pagination.searchTerm.toLowerCase();
+                    $scope.notifications = $scope.notifications.filter(function(notif) {
+                        return (notif.title && notif.title.toLowerCase().includes(searchLower)) ||
+                               (notif.content && notif.content.toLowerCase().includes(searchLower));
+                    });
+                }
+                
+                // Map field names for compatibility
+                $scope.notifications = $scope.notifications.map(function(notif) {
+                    return {
+                        notificationId: notif.notificationId || notif.id,
+                        id: notif.notificationId || notif.id,
+                        title: notif.title,
+                        content: notif.content || notif.message,
+                        message: notif.content || notif.message,
+                        type: notif.type || 'System',
+                        isRead: notif.isRead || false,
+                        createdAt: notif.createdAt || notif.sentDate,
+                        sentDate: notif.sentDate || notif.createdAt
+                    };
+                });
+                
+                $scope.displayedNotifications = $scope.notifications;
+                $scope.pagination = PaginationService.calculate($scope.pagination);
                 $scope.loading = false;
             })
             .catch(function(error) {
-                $scope.error = 'Không thể tải thông báo';
+                $scope.error = 'Không thể tải thông báo: ' + (error.data?.message || error.message || 'Lỗi không xác định');
                 $scope.loading = false;
+                console.error('Error loading notifications:', error);
             });
-    };
-    
-    // Apply filters and sorting
-    $scope.applyFiltersAndSort = function() {
-        var filtered = $scope.notifications;
-        
-        // Apply search
-        if ($scope.pagination.searchTerm) {
-            var searchLower = $scope.pagination.searchTerm.toLowerCase();
-            filtered = filtered.filter(function(notif) {
-                return (notif.title && notif.title.toLowerCase().includes(searchLower)) ||
-                       (notif.message && notif.message.toLowerCase().includes(searchLower));
-            });
-        }
-        
-        // Apply filters
-        if ($scope.filters.isRead !== '') {
-            var isRead = $scope.filters.isRead === 'true';
-            filtered = filtered.filter(function(notif) {
-                return notif.isRead === isRead;
-            });
-        }
-        
-        if ($scope.filters.type) {
-            filtered = filtered.filter(function(notif) {
-                return notif.type === $scope.filters.type;
-            });
-        }
-        
-        // Apply sorting (default by createdAt DESC)
-        if (!$scope.pagination.sortField) {
-            $scope.pagination.sortField = 'createdAt';
-            $scope.pagination.sortDirection = 'desc';
-        }
-        
-        filtered.sort(function(a, b) {
-            var aVal = a[$scope.pagination.sortField] || '';
-            var bVal = b[$scope.pagination.sortField] || '';
-            
-            if (aVal < bVal) return $scope.pagination.sortDirection === 'asc' ? -1 : 1;
-            if (aVal > bVal) return $scope.pagination.sortDirection === 'asc' ? 1 : -1;
-            return 0;
-        });
-        
-        // Update pagination
-        $scope.pagination.totalItems = filtered.length;
-        $scope.pagination = PaginationService.calculate($scope.pagination);
-        
-        // Apply pagination
-        var start = ($scope.pagination.currentPage - 1) * $scope.pagination.pageSize;
-        var end = start + parseInt($scope.pagination.pageSize);
-        $scope.displayedNotifications = filtered.slice(start, end);
     };
     
     // Event handlers
     $scope.handleSearch = function() {
         $scope.pagination.currentPage = 1;
-        $scope.applyFiltersAndSort();
+        $scope.loadNotifications();
     };
     
     $scope.handleSort = function() {
-        $scope.applyFiltersAndSort();
+        // Backend handles sorting, just reload
+        $scope.loadNotifications();
     };
     
     $scope.handlePageChange = function() {
-        $scope.applyFiltersAndSort();
+        $scope.loadNotifications();
     };
     
     $scope.handleFilterChange = function() {
         $scope.pagination.currentPage = 1;
-        $scope.applyFiltersAndSort();
+        $scope.loadNotifications();
     };
     
     $scope.resetFilters = function() {
@@ -122,7 +111,8 @@ app.controller('NotificationController', ['$scope', '$location', 'NotificationSe
             isRead: '',
             type: ''
         };
-        $scope.handleFilterChange();
+        $scope.pagination.currentPage = 1;
+        $scope.loadNotifications();
     };
     
     // Mark as read
@@ -131,30 +121,39 @@ app.controller('NotificationController', ['$scope', '$location', 'NotificationSe
             .then(function() {
                 // Update local data
                 var notif = $scope.notifications.find(function(n) {
-                    return n.id === notificationId;
+                    return (n.notificationId === notificationId) || (n.id === notificationId);
                 });
                 if (notif) {
                     notif.isRead = true;
+                    notif.content = notif.content || notif.message;
+                    notif.message = notif.content || notif.message;
                 }
-                $scope.applyFiltersAndSort();
+                $scope.success = 'Đã đánh dấu đã đọc';
+                // Reload to refresh count
+                $scope.loadNotifications();
             })
             .catch(function(error) {
-                $scope.error = 'Không thể đánh dấu đã đọc';
+                $scope.error = 'Không thể đánh dấu đã đọc: ' + (error.data?.message || error.message || 'Lỗi không xác định');
             });
     };
     
     // Mark all as read
     $scope.markAllAsRead = function() {
+        if (!confirm('Bạn có chắc chắn muốn đánh dấu tất cả thông báo là đã đọc?')) {
+            return;
+        }
+        
         NotificationService.markAllAsRead()
             .then(function() {
                 $scope.notifications.forEach(function(notif) {
                     notif.isRead = true;
                 });
-                $scope.applyFiltersAndSort();
                 $scope.success = 'Đã đánh dấu tất cả là đã đọc';
+                // Reload to refresh
+                $scope.loadNotifications();
             })
             .catch(function(error) {
-                $scope.error = 'Không thể đánh dấu tất cả';
+                $scope.error = 'Không thể đánh dấu tất cả: ' + (error.data?.message || error.message || 'Lỗi không xác định');
             });
     };
     
@@ -166,95 +165,240 @@ app.controller('NotificationController', ['$scope', '$location', 'NotificationSe
         
         NotificationService.deleteNotification(notificationId)
             .then(function() {
-                $scope.notifications = $scope.notifications.filter(function(n) {
-                    return n.id !== notificationId;
-                });
-                $scope.applyFiltersAndSort();
                 $scope.success = 'Xóa thông báo thành công';
+                // Reload to refresh list
+                $scope.loadNotifications();
             })
             .catch(function(error) {
-                $scope.error = 'Không thể xóa thông báo';
+                $scope.error = 'Không thể xóa thông báo: ' + (error.data?.message || error.message || 'Lỗi không xác định');
             });
     };
     
     // Get notification icon
     $scope.getNotificationIcon = function(type) {
+        if (!type) return 'fa-bell';
+        
+        var typeLower = type.toLowerCase();
         var icons = {
             'info': 'fa-info-circle',
             'success': 'fa-check-circle',
             'warning': 'fa-exclamation-triangle',
             'error': 'fa-times-circle',
             'grade': 'fa-star',
+            'gradeappeal': 'fa-gavel',
+            'gradeupdate': 'fa-star',
+            'enrollment': 'fa-clipboard-check',
             'attendance': 'fa-clipboard-check',
+            'attendancewarning': 'fa-exclamation-triangle',
+            'academicwarning': 'fa-exclamation-circle',
             'system': 'fa-cog'
         };
-        return icons[type] || 'fa-bell';
+        return icons[typeLower] || 'fa-bell';
     };
     
     // Get notification badge class
     $scope.getNotificationClass = function(type) {
+        if (!type) return 'badge-secondary';
+        
+        var typeLower = type.toLowerCase();
         var classes = {
             'info': 'badge-info',
             'success': 'badge-success',
             'warning': 'badge-warning',
             'error': 'badge-danger',
             'grade': 'badge-primary',
+            'gradeappeal': 'badge-warning',
+            'gradeupdate': 'badge-primary',
+            'enrollment': 'badge-info',
             'attendance': 'badge-info',
+            'attendancewarning': 'badge-warning',
+            'academicwarning': 'badge-danger',
             'system': 'badge-secondary'
         };
-        return classes[type] || 'badge-secondary';
+        return classes[typeLower] || 'badge-secondary';
+    };
+    
+    // Get notification type display name
+    $scope.getNotificationTypeName = function(type) {
+        if (!type) return 'Hệ thống';
+        
+        var typeLower = type.toLowerCase();
+        var names = {
+            'info': 'Thông tin',
+            'success': 'Thành công',
+            'warning': 'Cảnh báo',
+            'error': 'Lỗi',
+            'grade': 'Điểm',
+            'gradeappeal': 'Phúc khảo điểm',
+            'gradeupdate': 'Cập nhật điểm',
+            'enrollment': 'Đăng ký học phần',
+            'attendance': 'Điểm danh',
+            'attendancewarning': 'Cảnh báo chuyên cần',
+            'academicwarning': 'Cảnh báo học tập',
+            'system': 'Hệ thống'
+        };
+        return names[typeLower] || type;
     };
     
     // Format date
     $scope.formatDate = function(dateString) {
         if (!dateString) return '';
-        var date = new Date(dateString);
-        return date.toLocaleString('vi-VN');
+        try {
+            var date = new Date(dateString);
+            if (isNaN(date.getTime())) return '';
+            return date.toLocaleString('vi-VN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (e) {
+            return '';
+        }
     };
     
     // Time ago helper
     $scope.timeAgo = function(dateString) {
         if (!dateString) return '';
-        var date = new Date(dateString);
-        var now = new Date();
-        var diff = now - date;
+        try {
+            var date = new Date(dateString);
+            if (isNaN(date.getTime())) return '';
+            
+            var now = new Date();
+            var diff = now - date;
+            
+            if (diff < 0) return 'Vừa xong';
+            
+            var seconds = Math.floor(diff / 1000);
+            var minutes = Math.floor(diff / 60000);
+            var hours = Math.floor(diff / 3600000);
+            var days = Math.floor(diff / 86400000);
+            var weeks = Math.floor(days / 7);
+            var months = Math.floor(days / 30);
+            
+            if (seconds < 60) return 'Vừa xong';
+            if (minutes < 60) return minutes + ' phút trước';
+            if (hours < 24) return hours + ' giờ trước';
+            if (days < 7) return days + ' ngày trước';
+            if (weeks < 4) return weeks + ' tuần trước';
+            if (months < 12) return months + ' tháng trước';
+            return date.toLocaleDateString('vi-VN');
+        } catch (e) {
+            return '';
+        }
+    };
+    
+    // Navigate to related page based on notification type
+    $scope.navigateToRelated = function(notification) {
+        // Mark as read first
+        if (!notification.isRead) {
+            $scope.markAsRead(notification.notificationId || notification.id);
+        }
         
-        var minutes = Math.floor(diff / 60000);
-        var hours = Math.floor(diff / 3600000);
-        var days = Math.floor(diff / 86400000);
+        // Get current user role
+        var currentUser = AuthService.getCurrentUser();
+        var userRole = (currentUser?.role || currentUser?.Role || currentUser?.roleName || 'Admin').trim();
         
-        if (minutes < 1) return 'Vừa xong';
-        if (minutes < 60) return minutes + ' phút trước';
-        if (hours < 24) return hours + ' giờ trước';
-        if (days < 7) return days + ' ngày trước';
-        return date.toLocaleDateString('vi-VN');
+        // Normalize role
+        var roleMap = {
+            'Cố vấn': 'Advisor',
+            'Giảng viên': 'Lecturer',
+            'Sinh viên': 'Student',
+            'Quản trị viên': 'Admin'
+        };
+        userRole = roleMap[userRole] || userRole;
+        
+        // Navigate based on type and user role
+        var type = (notification.type || '').toLowerCase();
+        if (type === 'gradeappeal') {
+            // Navigate to grade appeals page based on role
+            if (userRole === 'Advisor') {
+                $location.path('/advisor/appeals');
+            } else if (userRole === 'Lecturer') {
+                $location.path('/lecturer/appeals');
+            } else if (userRole === 'Student') {
+                $location.path('/student/appeals');
+            } else {
+                $location.path('/notifications'); // Fallback
+            }
+        } else if (type === 'enrollment') {
+            // Navigate to enrollments page based on role
+            if (userRole === 'Student') {
+                $location.path('/student/enrollments');
+            } else if (userRole === 'Advisor' || userRole === 'Admin') {
+                $location.path('/enrollments');
+            } else {
+                $location.path('/notifications'); // Fallback
+            }
+        } else {
+            // Stay on notifications page for other types
+            // Already on notifications page, just refresh
+        }
     };
     
     // Initialize
     $scope.loadNotifications();
+    
+    // Auto-refresh every 30 seconds when page is visible
+    var refreshInterval = setInterval(function() {
+        if (document.visibilityState === 'visible' && !$scope.loading) {
+            $scope.loadNotifications();
+        }
+    }, 30000);
+    
+    // Cleanup on destroy
+    $scope.$on('$destroy', function() {
+        if (refreshInterval) {
+            clearInterval(refreshInterval);
+        }
+    });
 }]);
 
 // Notification Bell Controller (for header)
-app.controller('NotificationBellController', ['$scope', '$interval', 'NotificationService',
-    function($scope, $interval, NotificationService) {
+app.controller('NotificationBellController', ['$scope', '$interval', '$location', 'NotificationService', 'AuthService',
+    function($scope, $interval, $location, NotificationService, AuthService) {
     
     $scope.unreadNotifications = [];
     $scope.unreadCount = 0;
     $scope.showDropdown = false;
+    $scope.loading = false;
     
     // Load unread notifications
     $scope.loadUnread = function() {
-        NotificationService.getUnread()
-            .then(function(response) {
-                $scope.unreadNotifications = response.data.slice(0, 5); // Show only 5 latest
-                $scope.unreadCount = response.data.length;
-                NotificationService.setUnreadCount(response.data.length);
+        $scope.loading = true;
+        NotificationService.getUnread(10) // Get latest 10 unread notifications
+            .then(function(result) {
+                var notifications = result.data || [];
+                // Map field names for compatibility
+                $scope.unreadNotifications = notifications.slice(0, 5).map(function(notif) {
+                    return {
+                        notificationId: notif.notificationId || notif.id,
+                        id: notif.notificationId || notif.id,
+                        title: notif.title,
+                        content: notif.content || notif.message,
+                        message: notif.content || notif.message,
+                        type: notif.type || 'System',
+                        isRead: notif.isRead || false,
+                        createdAt: notif.createdAt || notif.sentDate,
+                        sentDate: notif.sentDate || notif.createdAt
+                    };
+                });
+                
+                // Update count from service
+                NotificationService.fetchUnreadCount().then(function(count) {
+                    $scope.unreadCount = count;
+                });
             })
             .catch(function(error) {
-                // LoggerService may not be available here
-                if (typeof LoggerService !== 'undefined') {
-                    LoggerService.error('Error loading unread notifications', error);
-                }
+                console.error('Error loading unread notifications:', error);
+                // Try to get count anyway
+                NotificationService.fetchUnreadCount().then(function(count) {
+                    $scope.unreadCount = count;
+                });
+            })
+            .finally(function() {
+                $scope.loading = false;
             });
     };
     
@@ -268,19 +412,115 @@ app.controller('NotificationBellController', ['$scope', '$interval', 'Notificati
     
     // Mark as read and navigate
     $scope.markAndView = function(notification) {
-        NotificationService.markAsRead(notification.id)
+        var notificationId = notification.notificationId || notification.id;
+        NotificationService.markAsRead(notificationId)
             .then(function() {
-                $scope.loadUnread();
-                // Navigate to related page if applicable
-                if (notification.link) {
-                    window.location.href = notification.link;
+                // Remove from unread list
+                $scope.unreadNotifications = $scope.unreadNotifications.filter(function(n) {
+                    return (n.notificationId || n.id) !== notificationId;
+                });
+                
+                // Refresh unread count
+                NotificationService.fetchUnreadCount().then(function(count) {
+                    $scope.unreadCount = count;
+                });
+                
+                // Get current user role
+                var currentUser = AuthService.getCurrentUser();
+                if (!currentUser) {
+                    $location.path('/notifications');
+                    $scope.$apply();
+                    return;
                 }
+                
+                var userRole = (currentUser.role || currentUser.Role || currentUser.roleName || 'Admin').trim();
+                
+                // Normalize role
+                var roleMap = {
+                    'Cố vấn': 'Advisor',
+                    'Giảng viên': 'Lecturer',
+                    'Sinh viên': 'Student',
+                    'Quản trị viên': 'Admin'
+                };
+                userRole = roleMap[userRole] || userRole;
+                
+                // Navigate to related page based on type and user role
+                var type = (notification.type || '').toLowerCase();
+                if (type === 'gradeappeal') {
+                    // Navigate to grade appeals page based on role
+                    if (userRole === 'Advisor') {
+                        $location.path('/advisor/appeals');
+                    } else if (userRole === 'Lecturer') {
+                        $location.path('/lecturer/appeals');
+                    } else if (userRole === 'Student') {
+                        $location.path('/student/appeals');
+                    } else {
+                        $location.path('/notifications');
+                    }
+                } else if (type === 'enrollment') {
+                    // Navigate to enrollments page based on role
+                    if (userRole === 'Student') {
+                        $location.path('/student/enrollments');
+                    } else if (userRole === 'Advisor' || userRole === 'Admin') {
+                        $location.path('/enrollments');
+                    } else {
+                        $location.path('/notifications');
+                    }
+                } else {
+                    // Navigate to notifications page
+                    $location.path('/notifications');
+                }
+                $scope.$apply();
+            })
+            .catch(function(error) {
+                console.error('Error marking notification as read:', error);
             });
     };
     
     // View all notifications
     $scope.viewAll = function() {
-        window.location.href = '#!/notifications';
+        $location.path('/notifications');
+        $scope.$apply();
+    };
+    
+    // Get notification icon for bell dropdown
+    $scope.getNotificationIcon = function(type) {
+        if (!type) return 'fa-bell';
+        var typeLower = type.toLowerCase();
+        var icons = {
+            'gradeappeal': 'fa-gavel',
+            'enrollment': 'fa-clipboard-check',
+            'gradeupdate': 'fa-star',
+            'attendancewarning': 'fa-exclamation-triangle',
+            'academicwarning': 'fa-exclamation-circle',
+            'system': 'fa-cog'
+        };
+        return icons[typeLower] || 'fa-bell';
+    };
+    
+    // Format time ago for bell dropdown
+    $scope.timeAgo = function(dateString) {
+        if (!dateString) return '';
+        try {
+            var date = new Date(dateString);
+            if (isNaN(date.getTime())) return '';
+            
+            var now = new Date();
+            var diff = now - date;
+            if (diff < 0) return 'Vừa xong';
+            
+            var minutes = Math.floor(diff / 60000);
+            var hours = Math.floor(diff / 3600000);
+            var days = Math.floor(diff / 86400000);
+            
+            if (minutes < 1) return 'Vừa xong';
+            if (minutes < 60) return minutes + ' phút trước';
+            if (hours < 24) return hours + ' giờ trước';
+            if (days < 7) return days + ' ngày trước';
+            return date.toLocaleDateString('vi-VN');
+        } catch (e) {
+            return '';
+        }
     };
     
     // Listen to count changes
@@ -291,12 +531,18 @@ app.controller('NotificationBellController', ['$scope', '$interval', 'Notificati
     // Initialize
     $scope.loadUnread();
     
-    // Refresh every 60 seconds (chỉ khi tab đang hiển thị) - Use $interval instead of setInterval
+    // Refresh every 30 seconds when tab is visible
     var intervalPromise = $interval(function() {
         if (document.visibilityState === 'visible') {
-            $scope.loadUnread();
+            NotificationService.fetchUnreadCount().then(function(count) {
+                $scope.unreadCount = count;
+            });
+            // Reload notifications if dropdown is open
+            if ($scope.showDropdown) {
+                $scope.loadUnread();
+            }
         }
-    }, 60000);
+    }, 30000);
 
     // Cleanup interval khi destroy để tránh nhân bản interval khi điều hướng
     $scope.$on('$destroy', function() {

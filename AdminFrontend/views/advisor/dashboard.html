@@ -50,6 +50,24 @@
                         <p>Sinh viên giỏi (GPA >= 3.5)</p>
                     </div>
                 </div>
+                
+                <div class="stat-card clickable" ng-click="goToPendingEnrollments()" title="Xem danh sách đăng ký chờ duyệt">
+                    <div class="stat-icon purple">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>
+                            <span ng-if="loadingPendingEnrollments">
+                                <i class="fas fa-spinner fa-spin"></i>
+                            </span>
+                            <span ng-if="!loadingPendingEnrollments">{{stats.pendingEnrollments || 0}}</span>
+                        </h3>
+                        <p>Đăng ký chờ duyệt</p>
+                        <span class="badge badge-danger" ng-if="stats.pendingEnrollments > 10 && !loadingPendingEnrollments" style="margin-top: 5px;">
+                            Cần xử lý
+                        </span>
+                    </div>
+                </div>
             </div>
             
             <!-- Loading Stats -->
@@ -175,29 +193,6 @@
                                 Trang {{warningStudentsPagination.page}} / {{warningStudentsPagination.totalPages}} 
                                 (Tổng: {{warningStudentsPagination.totalCount}} sinh viên)
                             </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Recent Consultations -->
-            <div class="card">
-                <div class="card-header">
-                    <h2><i class="fas fa-comments"></i> Tư vấn gần đây</h2>
-                </div>
-                <div class="card-body">
-                    <div class="timeline">
-                        <div class="timeline-item" ng-repeat="consultation in recentConsultations">
-                            <div class="timeline-marker"></div>
-                            <div class="timeline-content">
-                                <div class="timeline-header">
-                                    <strong>{{consultation.studentName}}</strong>
-                                    <span class="text-muted">{{consultation.date}}</span>
-                                </div>
-                                <div class="timeline-body">
-                                    {{consultation.content}}
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>

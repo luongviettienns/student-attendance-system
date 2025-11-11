@@ -230,6 +230,148 @@ namespace EducationManagement.BLL.Services
 
             await SendEmailAsync(studentEmail, subject, body, true);
         }
+
+        /// <summary>
+        /// Gửi email thông báo có phúc khảo mới (cho Advisor)
+        /// </summary>
+        public async Task SendGradeAppealCreatedEmailAsync(string advisorEmail, string advisorName, string studentName, string subjectName, string appealId, string appealReason)
+        {
+            var subject = "📋 Yêu cầu phúc khảo mới";
+            var body = $@"
+                <html>
+                <body style='font-family: Arial, sans-serif;'>
+                    <h2 style='color: #2196F3;'>Yêu cầu phúc khảo mới</h2>
+                    <p>Kính gửi <strong>{advisorName}</strong>,</p>
+                    <p>Sinh viên <strong>{studentName}</strong> đã tạo yêu cầu phúc khảo điểm cho môn học <strong>{subjectName}</strong>.</p>
+                    <div style='background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;'>
+                        <p><strong>Mã yêu cầu:</strong> {appealId}</p>
+                        <p><strong>Lý do phúc khảo:</strong></p>
+                        <p style='margin-left: 20px;'>{appealReason}</p>
+                    </div>
+                    <p>Vui lòng đăng nhập vào hệ thống để xem chi tiết và xử lý yêu cầu phúc khảo.</p>
+                    <br/>
+                    <p>Trân trọng,</p>
+                    <p><strong>Hệ thống Quản lý Giáo dục</strong></p>
+                </body>
+                </html>
+            ";
+
+            await SendEmailAsync(advisorEmail, subject, body, true);
+        }
+
+        /// <summary>
+        /// Gửi email thông báo phản hồi từ giảng viên (cho Student)
+        /// </summary>
+        public async Task SendGradeAppealLecturerResponseEmailAsync(string studentEmail, string studentName, string lecturerName, string subjectName, string decision, string? response)
+        {
+            var decisionText = decision switch
+            {
+                "APPROVE" => "đồng ý",
+                "REJECT" => "từ chối",
+                "NEED_REVIEW" => "yêu cầu xem xét thêm",
+                _ => decision
+            };
+
+            var decisionColor = decision switch
+            {
+                "APPROVE" => "#4CAF50",
+                "REJECT" => "#ff6b6b",
+                "NEED_REVIEW" => "#FF9800",
+                _ => "#2196F3"
+            };
+
+            var subject = "📨 Phản hồi từ giảng viên về phúc khảo";
+            var body = $@"
+                <html>
+                <body style='font-family: Arial, sans-serif;'>
+                    <h2 style='color: #2196F3;'>Phản hồi từ giảng viên</h2>
+                    <p>Kính gửi <strong>{studentName}</strong>,</p>
+                    <p>Giảng viên <strong>{lecturerName}</strong> đã phản hồi yêu cầu phúc khảo của bạn cho môn học <strong>{subjectName}</strong>.</p>
+                    <div style='background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;'>
+                        <p style='font-size: 16px; margin: 5px 0;'>
+                            Quyết định: <strong style='color: {decisionColor};'>{decisionText}</strong>
+                        </p>
+                        {(string.IsNullOrEmpty(response) ? "" : $@"
+                        <p><strong>Phản hồi:</strong></p>
+                        <p style='margin-left: 20px;'>{response}</p>
+                        ")}
+                    </div>
+                    {(decision == "NEED_REVIEW" ? "<p>Yêu cầu phúc khảo của bạn đã được chuyển đến cố vấn học tập để xem xét và quyết định cuối cùng.</p>" : "")}
+                    <p>Bạn có thể xem chi tiết trên hệ thống.</p>
+                    <br/>
+                    <p>Trân trọng,</p>
+                    <p><strong>Hệ thống Quản lý Giáo dục</strong></p>
+                </body>
+                </html>
+            ";
+
+            await SendEmailAsync(studentEmail, subject, body, true);
+        }
+
+        /// <summary>
+        /// Gửi email thông báo quyết định từ cố vấn (cho Student)
+        /// </summary>
+        public async Task SendGradeAppealAdvisorDecisionEmailAsync(string studentEmail, string studentName, string advisorName, string subjectName, string decision, decimal? finalScore, string? response)
+        {
+            var decisionText = decision == "APPROVE" ? "đồng ý" : "từ chối";
+            var decisionColor = decision == "APPROVE" ? "#4CAF50" : "#ff6b6b";
+
+            var subject = decision == "APPROVE" ? "✅ Phúc khảo đã được duyệt" : "❌ Phúc khảo đã bị từ chối";
+            var body = $@"
+                <html>
+                <body style='font-family: Arial, sans-serif;'>
+                    <h2 style='color: {decisionColor};'>Quyết định phúc khảo</h2>
+                    <p>Kính gửi <strong>{studentName}</strong>,</p>
+                    <p>Cố vấn học tập <strong>{advisorName}</strong> đã quyết định <strong style='color: {decisionColor};'>{decisionText}</strong> yêu cầu phúc khảo của bạn cho môn học <strong>{subjectName}</strong>.</p>
+                    <div style='background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;'>
+                        {(finalScore.HasValue ? $@"
+                        <p style='font-size: 18px; margin: 5px 0;'>
+                            Điểm sau phúc khảo: <strong style='color: {decisionColor};'>{finalScore.Value:F2}</strong>
+                        </p>
+                        " : "")}
+                        {(string.IsNullOrEmpty(response) ? "" : $@"
+                        <p><strong>Phản hồi:</strong></p>
+                        <p style='margin-left: 20px;'>{response}</p>
+                        ")}
+                    </div>
+                    <p>Bạn có thể xem chi tiết trên hệ thống.</p>
+                    <br/>
+                    <p>Trân trọng,</p>
+                    <p><strong>Hệ thống Quản lý Giáo dục</strong></p>
+                </body>
+                </html>
+            ";
+
+            await SendEmailAsync(studentEmail, subject, body, true);
+        }
+
+        /// <summary>
+        /// Gửi email thông báo đăng ký học phần đã được duyệt
+        /// </summary>
+        public async Task SendEnrollmentApprovedEmailAsync(string studentEmail, string studentName, string className, string subjectName, DateTime enrollmentDate)
+        {
+            var subject = "✅ Đăng ký học phần đã được duyệt";
+            var body = $@"
+                <html>
+                <body style='font-family: Arial, sans-serif;'>
+                    <h2 style='color: #4CAF50;'>Đăng ký học phần thành công</h2>
+                    <p>Kính gửi <strong>{studentName}</strong>,</p>
+                    <p>Đăng ký học phần của bạn đã được duyệt:</p>
+                    <div style='background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 10px 0;'>
+                        <p><strong>Lớp học:</strong> {className}</p>
+                        <p><strong>Môn học:</strong> {subjectName}</p>
+                        <p><strong>Ngày đăng ký:</strong> {enrollmentDate:dd/MM/yyyy HH:mm}</p>
+                    </div>
+                    <p>Bạn có thể xem lịch học và thông tin lớp học trên hệ thống.</p>
+                    <br/>
+                    <p>Trân trọng,</p>
+                    <p><strong>Phòng Đào tạo</strong></p>
+                </body>
+                </html>
+            ";
+
+            await SendEmailAsync(studentEmail, subject, body, true);
+        }
     }
 }
 

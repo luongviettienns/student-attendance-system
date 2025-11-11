@@ -346,6 +346,46 @@ namespace EducationManagement.DAL.Repositories
             return enrollments;
         }
 
+        // 1️⃣3️⃣ GET PENDING ENROLLMENTS (For Advisor Approval)
+        public async Task<(List<EnrollmentDetailDto> Enrollments, int TotalCount)> GetPendingEnrollmentsAsync(
+            string? studentId = null,
+            string? classId = null,
+            string? subjectId = null,
+            string? schoolYearId = null,
+            int? semester = null,
+            int page = 1,
+            int pageSize = 50)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@StudentId", (object?)studentId ?? DBNull.Value),
+                new SqlParameter("@ClassId", (object?)classId ?? DBNull.Value),
+                new SqlParameter("@SubjectId", (object?)subjectId ?? DBNull.Value),
+                new SqlParameter("@SchoolYearId", (object?)schoolYearId ?? DBNull.Value),
+                new SqlParameter("@Semester", (object?)semester ?? DBNull.Value),
+                new SqlParameter("@Page", page),
+                new SqlParameter("@PageSize", pageSize)
+            };
+
+            var dt = await DatabaseHelper.ExecuteQueryAsync(
+                _connectionString, "sp_GetPendingEnrollments", parameters);
+
+            var enrollments = new List<EnrollmentDetailDto>();
+            int totalCount = 0;
+
+            foreach (DataRow row in dt.Rows)
+            {
+                enrollments.Add(MapToEnrollmentDetailDto(row));
+                // Get total count from first row
+                if (totalCount == 0 && row.Table.Columns.Contains("total_count"))
+                {
+                    totalCount = Convert.ToInt32(row["total_count"]);
+                }
+            }
+
+            return (enrollments, totalCount);
+        }
+
         // ============================================================
         // MAPPING HELPERS
         // ============================================================
@@ -424,11 +464,11 @@ namespace EducationManagement.DAL.Repositories
             {
                 EnrollmentId = row["enrollment_id"].ToString()!,
                 StudentId = row["student_id"].ToString()!,
-                StudentCode = row["student_code"]?.ToString(),
-                StudentName = row["student_name"]?.ToString(),
+                StudentCode = row.Table.Columns.Contains("student_code") ? row["student_code"]?.ToString() : null,
+                StudentName = row.Table.Columns.Contains("student_name") ? row["student_name"]?.ToString() : null,
                 ClassId = row["class_id"].ToString()!,
-                ClassCode = row["class_code"]?.ToString(),
-                ClassName = row["class_name"]?.ToString(),
+                ClassCode = row.Table.Columns.Contains("class_code") ? row["class_code"]?.ToString() : null,
+                ClassName = row.Table.Columns.Contains("class_name") ? row["class_name"]?.ToString() : null,
                 SubjectId = row.Table.Columns.Contains("subject_id") ? row["subject_id"]?.ToString() : null,
                 SubjectCode = row.Table.Columns.Contains("subject_code") ? row["subject_code"]?.ToString() : null,
                 SubjectName = row.Table.Columns.Contains("subject_name") ? row["subject_name"]?.ToString() : null,
@@ -437,9 +477,9 @@ namespace EducationManagement.DAL.Repositories
                 Schedule = row.Table.Columns.Contains("schedule") ? row["schedule"]?.ToString() : null,
                 Room = row.Table.Columns.Contains("room") ? row["room"]?.ToString() : null,
                 EnrollmentDate = Convert.ToDateTime(row["enrollment_date"]),
-                EnrollmentStatus = row["enrollment_status"]?.ToString() ?? "APPROVED",
-                DropDeadline = row["drop_deadline"] != DBNull.Value ? Convert.ToDateTime(row["drop_deadline"]) : null,
-                Notes = row["notes"]?.ToString(),
+                EnrollmentStatus = row.Table.Columns.Contains("enrollment_status") ? (row["enrollment_status"]?.ToString() ?? "APPROVED") : "APPROVED",
+                DropDeadline = row.Table.Columns.Contains("drop_deadline") && row["drop_deadline"] != DBNull.Value ? Convert.ToDateTime(row["drop_deadline"]) : null,
+                Notes = row.Table.Columns.Contains("notes") ? row["notes"]?.ToString() : null,
                 DropReason = row.Table.Columns.Contains("drop_reason") ? row["drop_reason"]?.ToString() : null
             };
         }
