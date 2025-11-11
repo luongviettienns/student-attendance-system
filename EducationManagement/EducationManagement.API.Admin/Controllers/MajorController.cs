@@ -6,25 +6,47 @@ using Microsoft.AspNetCore.Authorization;
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
     [Route("api-edu/majors")]
-    public class MajorController : ControllerBase
+    public class MajorController : BaseController
     {
         private readonly MajorService _service;
 
-        public MajorController(MajorService service)
+        public MajorController(MajorService service, AuditLogService auditLogService) : base(auditLogService)
         {
             _service = service;
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        [ResponseCache(Duration = 3600, VaryByQueryKeys = new[] { "page", "pageSize", "search" })] // Cache 1 hour
+        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
+        public async Task<IActionResult> GetAll(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null)
         {
-            var data = await _service.GetAllAsync();
-            return Ok(data);
+            try
+            {
+                var (items, totalCount) = await _service.GetAllPagedAsync(page, pageSize, search);
+                
+                return Ok(new
+                {
+                    success = true,
+                    data = items,
+                    totalCount = totalCount,
+                    page = page,
+                    pageSize = pageSize,
+                    totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
         }
 
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
         public async Task<IActionResult> GetById(string id)
         {
             var major = await _service.GetByIdAsync(id);
@@ -33,6 +55,8 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("by-faculty/{facultyId}")]
+        [ResponseCache(Duration = 3600)] // Cache 1 hour
+        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
         public async Task<IActionResult> GetByFaculty(string facultyId)
         {
             var list = await _service.GetByFacultyAsync(facultyId);
@@ -40,12 +64,21 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được tạo
         public async Task<IActionResult> Create([FromBody] Major model)
         {
             try
             {
                 await _service.AddAsync(model);
-                return Ok(new { message = "✅ Thêm ngành học thành công!" });
+
+                // ✅ Audit Log: Create Major
+                await LogCreateAsync("Major", model.MajorId, new {
+                    major_code = model.MajorCode,
+                    major_name = model.MajorName,
+                    faculty_id = model.FacultyId
+                });
+
+                return Ok(new { message = "Thêm ngành học thành công!" });
             }
             catch (Exception ex)
             {
@@ -54,20 +87,43 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được cập nhật
         public async Task<IActionResult> Update(string id, [FromBody] Major model)
         {
             if (id != model.MajorId)
                 return BadRequest(new { message = "ID không khớp!" });
 
+            var oldMajor = await _service.GetByIdAsync(id);
             await _service.UpdateAsync(model);
-            return Ok(new { message = "✅ Cập nhật ngành học thành công!" });
+
+            // ✅ Audit Log: Update Major
+            if (oldMajor != null)
+            {
+                await LogUpdateAsync("Major", model.MajorId,
+                    new { major_name = oldMajor.MajorName, faculty_id = oldMajor.FacultyId },
+                    new { major_name = model.MajorName, faculty_id = model.FacultyId });
+            }
+
+            return Ok(new { message = "Cập nhật ngành học thành công!" });
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được xóa
         public async Task<IActionResult> Delete(string id)
         {
+            var major = await _service.GetByIdAsync(id);
             await _service.DeleteAsync(id);
-            return Ok(new { message = "🗑 Xóa ngành học thành công!" });
+
+            // ✅ Audit Log: Delete Major
+            if (major != null)
+            {
+                await LogDeleteAsync("Major", id, new {
+                    major_code = major.MajorCode,
+                    major_name = major.MajorName
+                });
+            }
+
+            return Ok(new { message = "Xóa ngành học thành công!" });
         }
     }
 }

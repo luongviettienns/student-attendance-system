@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
+using EducationManagement.Common.Helpers;
+using EducationManagement.BLL.Services;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -12,10 +14,12 @@ namespace EducationManagement.API.Admin.Controllers
     public class RolesController : ControllerBase
     {
         private readonly RoleRepository _roleRepository;
+        private readonly CachingService? _cache;
 
-        public RolesController(RoleRepository roleRepository)
+        public RolesController(RoleRepository roleRepository, CachingService? cache = null)
         {
             _roleRepository = roleRepository;
+            _cache = cache;
         }
 
         #region 🔹 GET: Danh sách và chi tiết
@@ -25,7 +29,19 @@ namespace EducationManagement.API.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var roles = await _roleRepository.GetAllAsync();
+            List<Role> roles;
+            if (_cache != null)
+            {
+                roles = await _cache.GetOrSetAsync(
+                    CacheKeys.AllRoles,
+                    async () => await _roleRepository.GetAllAsync(),
+                    CacheKeys.RoleExpiration
+                ) ?? new List<Role>();
+            }
+            else
+            {
+                roles = await _roleRepository.GetAllAsync();
+            }
             
             var result = roles.Select(r => new
             {
@@ -46,7 +62,20 @@ namespace EducationManagement.API.Admin.Controllers
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(string id)
         {
-            var role = await _roleRepository.GetByIdAsync(id);
+            Role? role;
+            if (_cache != null)
+            {
+                var cacheKey = string.Format(CacheKeys.RoleById, id);
+                role = await _cache.GetOrSetAsync(
+                    cacheKey,
+                    async () => await _roleRepository.GetByIdAsync(id),
+                    CacheKeys.RoleExpiration
+                );
+            }
+            else
+            {
+                role = await _roleRepository.GetByIdAsync(id);
+            }
 
             if (role == null || role.DeletedAt != null)
                 return NotFound(new { message = "Không tìm thấy vai trò" });
@@ -68,7 +97,8 @@ namespace EducationManagement.API.Admin.Controllers
             if (await _roleRepository.ExistsByNameAsync(request.RoleName))
                 return BadRequest(new { message = "Tên vai trò đã tồn tại" });
 
-            request.RoleId = Guid.NewGuid().ToString();
+            // Tạo ID ngắn, có tiền tố role-
+            request.RoleId = IdGenerator.Generate("role");
             request.CreatedAt = DateTime.UtcNow;
             request.CreatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
             request.IsActive = true;
@@ -103,6 +133,13 @@ namespace EducationManagement.API.Admin.Controllers
             role.UpdatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             await _roleRepository.UpdateAsync(role);
+            
+            // Invalidate cache after update
+            if (_cache != null)
+            {
+                await _cache.RemoveAsync(CacheKeys.AllRoles);
+                await _cache.RemoveAsync(string.Format(CacheKeys.RoleById, role.RoleId));
+            }
 
             return Ok(new { message = "Cập nhật vai trò thành công" });
         }
@@ -121,6 +158,13 @@ namespace EducationManagement.API.Admin.Controllers
 
             var deletedBy = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "system";
             await _roleRepository.SoftDeleteAsync(id, deletedBy);
+            
+            // Invalidate cache after delete
+            if (_cache != null)
+            {
+                await _cache.RemoveAsync(CacheKeys.AllRoles);
+                await _cache.RemoveAsync(string.Format(CacheKeys.RoleById, id));
+            }
 
             return Ok(new { message = "Đã xoá vai trò thành công" });
         }

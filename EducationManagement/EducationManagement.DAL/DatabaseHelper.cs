@@ -23,22 +23,59 @@ namespace EducationManagement.DAL
 
             try
             {
+                // Connection pooling is enabled by default in .NET
+                // Optimize connection string with pooling settings if not already set
                 using var conn = new SqlConnection(connectionString);
                 using var cmd = new SqlCommand(storedProc, conn)
                 {
-                    CommandType = CommandType.StoredProcedure
+                    CommandType = CommandType.StoredProcedure,
+                    CommandTimeout = 30 // 30 seconds timeout
                 };
 
                 if (parameters?.Length > 0)
                     cmd.Parameters.AddRange(PrepareParameters(parameters));
 
                 await conn.OpenAsync().ConfigureAwait(false);
-                using var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SequentialAccess).ConfigureAwait(false);
                 dt.Load(reader);
             }
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi khi thực thi Stored Procedure [{storedProc}]: {ex.Message}", ex);
+            }
+
+            return dt;
+        }
+
+        /// <summary>
+        /// Thực thi Raw SQL Query (SELECT) và trả về DataTable.
+        /// </summary>
+        public static async Task<DataTable> ExecuteRawQueryAsync(
+            string connectionString,
+            string sqlQuery,
+            params SqlParameter[] parameters)
+        {
+            var dt = new DataTable();
+
+            try
+            {
+                using var conn = new SqlConnection(connectionString);
+                using var cmd = new SqlCommand(sqlQuery, conn)
+                {
+                    CommandType = CommandType.Text,
+                    CommandTimeout = 30 // 30 seconds timeout
+                };
+
+                if (parameters?.Length > 0)
+                    cmd.Parameters.AddRange(PrepareParameters(parameters));
+
+                await conn.OpenAsync().ConfigureAwait(false);
+                using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SequentialAccess).ConfigureAwait(false);
+                dt.Load(reader);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi thực thi SQL Query [{sqlQuery.Substring(0, Math.Min(100, sqlQuery.Length))}...]: {ex.Message}", ex);
             }
 
             return dt;
@@ -91,7 +128,7 @@ namespace EducationManagement.DAL
                     }
                     
                     ds.Tables.Add(dt);
-                    Console.WriteLine($"🔍 Loaded Table[{tableIndex}]: {dt.Rows.Count} rows, {dt.Columns.Count} columns");
+                    // Console.WriteLine($"🔍 Loaded Table[{tableIndex}]: {dt.Rows.Count} rows, {dt.Columns.Count} columns"); // Tắt log để tránh spam
                     tableIndex++;
                 } while (await reader.NextResultAsync());
             }
@@ -128,34 +165,6 @@ namespace EducationManagement.DAL
             catch (Exception ex)
             {
                 throw new Exception($"Lỗi khi thực thi Stored Procedure [{storedProc}]: {ex.Message}", ex);
-            }
-        }
-
-        /// <summary>
-        /// Thực thi Raw SQL Query không trả dữ liệu (INSERT, UPDATE, DELETE).
-        /// </summary>
-        public static async Task<int> ExecuteRawNonQueryAsync(
-            string connectionString,
-            string sqlQuery,
-            params SqlParameter[] parameters)
-        {
-            try
-            {
-                using var conn = new SqlConnection(connectionString);
-                using var cmd = new SqlCommand(sqlQuery, conn)
-                {
-                    CommandType = CommandType.Text
-                };
-
-                if (parameters?.Length > 0)
-                    cmd.Parameters.AddRange(PrepareParameters(parameters));
-
-                await conn.OpenAsync().ConfigureAwait(false);
-                return await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Lỗi khi thực thi SQL Query [{sqlQuery.Substring(0, Math.Min(100, sqlQuery.Length))}...]: {ex.Message}", ex);
             }
         }
 

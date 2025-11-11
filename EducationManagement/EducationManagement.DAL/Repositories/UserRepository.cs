@@ -43,37 +43,29 @@ namespace EducationManagement.DAL.Repositories
 
             var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(_connectionString, "sp_GetAllUsers", parameters);
 
-            // 🔍 DEBUG
-            Console.WriteLine($"🔍 DataSet info: Tables count = {ds.Tables.Count}");
-            for (int i = 0; i < ds.Tables.Count; i++)
-            {
-                Console.WriteLine($"   Table[{i}]: {ds.Tables[i].Rows.Count} rows, {ds.Tables[i].Columns.Count} columns");
-                if (ds.Tables[i].Rows.Count > 0)
-                {
-                    Console.WriteLine($"   First column: {ds.Tables[i].Columns[0].ColumnName}");
-                }
-            }
-
+            // DEBUG logs đã tắt để tránh spam console
+            // Console.WriteLine($"🔍 DataSet info: Tables count = {ds.Tables.Count}");
+            
             // First result set: TotalCount
             if (ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0)
             {
                 totalCount = Convert.ToInt32(ds.Tables[0].Rows[0]["TotalCount"]);
-                Console.WriteLine($"✅ TotalCount extracted: {totalCount}");
+                // Console.WriteLine($"✅ TotalCount extracted: {totalCount}");
             }
 
             // Second result set: Data
             if (ds.Tables.Count > 1)
             {
-                Console.WriteLine($"🔍 Processing Table[1] with {ds.Tables[1].Rows.Count} rows...");
+                // Console.WriteLine($"🔍 Processing Table[1] with {ds.Tables[1].Rows.Count} rows...");
                 foreach (DataRow row in ds.Tables[1].Rows)
                 {
                     users.Add(MapToUser(row));
                 }
-                Console.WriteLine($"✅ Users mapped: {users.Count}");
+                // Console.WriteLine($"✅ Users mapped: {users.Count}");
             }
             else
             {
-                Console.WriteLine($"❌ No second result set! Tables.Count = {ds.Tables.Count}");
+                // Console.WriteLine($"❌ No second result set! Tables.Count = {ds.Tables.Count}");
             }
 
             return (users, totalCount);
@@ -105,6 +97,65 @@ namespace EducationManagement.DAL.Repositories
                 return null;
 
             return MapToUser(dt.Rows[0]);
+        }
+
+        // ============================================================
+        // 🔹 LẤY NGƯỜI DÙNG THEO EMAIL (CHO FORGOT PASSWORD)
+        // ============================================================
+        public async Task<User?> GetByEmailAsync(string email)
+        {
+            var normalizedEmail = email.Trim().ToLower();
+            var query = @"
+                SELECT u.*, r.role_name
+                FROM dbo.users u
+                LEFT JOIN dbo.roles r ON u.role_id = r.role_id
+                WHERE LOWER(LTRIM(RTRIM(u.email))) = LOWER(LTRIM(RTRIM(@Email)))
+                    AND u.deleted_at IS NULL
+                    AND u.is_active = 1";
+
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@Email", normalizedEmail);
+                
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+                
+                if (await reader.ReadAsync())
+                {
+                    return MapToUserFromReader(reader);
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        // Helper method để map từ DataReader
+        private User MapToUserFromReader(System.Data.Common.DbDataReader reader)
+        {
+            return new User
+            {
+                UserId = reader["user_id"]?.ToString() ?? string.Empty,
+                Username = reader["username"]?.ToString() ?? string.Empty,
+                PasswordHash = reader["password_hash"]?.ToString() ?? string.Empty,
+                Email = reader["email"]?.ToString() ?? string.Empty,
+                Phone = reader["phone"]?.ToString(),
+                FullName = reader["full_name"]?.ToString() ?? string.Empty,
+                AvatarUrl = reader["avatar_url"]?.ToString(),
+                RoleId = reader["role_id"]?.ToString() ?? string.Empty,
+                RoleName = reader["role_name"]?.ToString(),
+                IsActive = Convert.ToBoolean(reader["is_active"]),
+                LastLoginAt = reader["last_login_at"] != DBNull.Value ? (DateTime?)reader["last_login_at"] : null,
+                CreatedAt = reader["created_at"] != DBNull.Value ? Convert.ToDateTime(reader["created_at"]) : DateTime.UtcNow,
+                CreatedBy = reader["created_by"]?.ToString(),
+                UpdatedAt = reader["updated_at"] != DBNull.Value ? (DateTime?)reader["updated_at"] : null,
+                UpdatedBy = reader["updated_by"]?.ToString()
+            };
         }
 
         // ============================================================
@@ -148,6 +199,36 @@ namespace EducationManagement.DAL.Repositories
             };
 
             return await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_UpdateUser", parameters);
+        }
+
+        // ============================================================
+        // 🔹 CẬP NHẬT MẬT KHẨU (CHO FORGOT PASSWORD)
+        // ============================================================
+        public async Task<bool> UpdatePasswordAsync(string userId, string newPasswordHash)
+        {
+            var query = @"
+                UPDATE dbo.users 
+                SET password_hash = @PasswordHash, 
+                    updated_at = GETUTCDATE()
+                WHERE user_id = @UserId 
+                    AND deleted_at IS NULL
+                    AND is_active = 1";
+
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@PasswordHash", newPasswordHash);
+                
+                await conn.OpenAsync();
+                var rowsAffected = await cmd.ExecuteNonQueryAsync();
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
 
         // ============================================================
@@ -200,6 +281,84 @@ namespace EducationManagement.DAL.Repositories
         }
 
         // ============================================================
+        // 🔹 LẤY DANH SÁCH USER IDS THEO ROLE
+        // ============================================================
+        public async Task<List<string>> GetUserIdsByRoleNameAsync(string roleName)
+        {
+            var userIds = new List<string>();
+            var query = @"
+                SELECT DISTINCT u.user_id
+                FROM dbo.users u
+                INNER JOIN dbo.roles r ON u.role_id = r.role_id
+                WHERE r.role_name = @RoleName
+                    AND u.is_active = 1
+                    AND u.deleted_at IS NULL
+                    AND r.deleted_at IS NULL";
+
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@RoleName", roleName);
+                
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+                
+                while (await reader.ReadAsync())
+                {
+                    var userId = reader["user_id"]?.ToString();
+                    if (!string.IsNullOrEmpty(userId))
+                        userIds.Add(userId);
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+
+            return userIds;
+        }
+
+        // ============================================================
+        // 🔹 LẤY DANH SÁCH USER IDS VÀ EMAILS THEO ROLE
+        // ============================================================
+        public async Task<List<(string UserId, string Email, string FullName)>> GetUsersByRoleNameAsync(string roleName)
+        {
+            var users = new List<(string UserId, string Email, string FullName)>();
+            var query = @"
+                SELECT DISTINCT u.user_id, u.email, u.full_name
+                FROM dbo.users u
+                INNER JOIN dbo.roles r ON u.role_id = r.role_id
+                WHERE r.role_name = @RoleName
+                    AND u.is_active = 1
+                    AND u.deleted_at IS NULL
+                    AND r.deleted_at IS NULL";
+
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@RoleName", roleName);
+                
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+                
+                while (await reader.ReadAsync())
+                {
+                    var userId = reader["user_id"]?.ToString() ?? "";
+                    var email = reader["email"]?.ToString() ?? "";
+                    var fullName = reader["full_name"]?.ToString() ?? "";
+                    if (!string.IsNullOrEmpty(userId))
+                        users.Add((userId, email, fullName));
+                }
+            }
+            catch (Exception ex)
+            {
+            }
+
+            return users;
+        }
+
+        // ============================================================
         // 🔹 KIỂM TRA EMAIL ĐÃ TỒN TẠI
         // ============================================================
         public async Task<bool> ExistsByEmailAsync(string email, string? excludeUserId = null)
@@ -237,7 +396,7 @@ namespace EducationManagement.DAL.Repositories
                 UserId = row["user_id"].ToString()!,
                 Username = row["username"].ToString()!,
                 // ✅ Thêm map PasswordHash
-                PasswordHash = row.Table.Columns.Contains("password_hash") ? row["password_hash"]?.ToString() : null,
+                PasswordHash = row.Table.Columns.Contains("password_hash") ? row["password_hash"]?.ToString() ?? string.Empty : string.Empty,
                 FullName = row["full_name"].ToString()!,
                 Email = row["email"].ToString()!,
                 Phone = row["phone"]?.ToString(),

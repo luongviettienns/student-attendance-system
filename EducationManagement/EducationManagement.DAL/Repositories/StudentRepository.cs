@@ -6,6 +6,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using EducationManagement.Common.Models;
 using EducationManagement.Common.DTOs.Student;
+using EducationManagement.DAL;
 
 namespace EducationManagement.DAL.Repositories
 {

@@ -5,6 +5,7 @@ using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
 using EducationManagement.Common.DTOs.User;
 using EducationManagement.Common.Helpers;
+using EducationManagement.BLL.Services;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -15,12 +16,14 @@ namespace EducationManagement.API.Admin.Controllers
     {
         private readonly IWebHostEnvironment _env;
         private readonly UserRepository _userRepository;
+        private readonly CachingService? _cache;
         private readonly string _gatewayUrl;
 
-        public UserController(IWebHostEnvironment env, UserRepository userRepository, IConfiguration configuration)
+        public UserController(IWebHostEnvironment env, UserRepository userRepository, IConfiguration configuration, CachingService? cache = null)
         {
             _env = env;
             _userRepository = userRepository;
+            _cache = cache;
             _gatewayUrl = configuration["GatewayUrl"] ?? "https://localhost:7033";
         }
 
@@ -97,6 +100,16 @@ namespace EducationManagement.API.Admin.Controllers
             }
 
             await _userRepository.UpdateAsync(user);
+            
+            // Invalidate cache after update
+            if (_cache != null)
+            {
+                await _cache.RemoveAsync(string.Format(CacheKeys.UserById, user.UserId));
+                if (!string.IsNullOrEmpty(user.Username))
+                    await _cache.RemoveAsync(string.Format(CacheKeys.UserByUsername, user.Username.ToLower()));
+                if (!string.IsNullOrEmpty(user.Email))
+                    await _cache.RemoveAsync(string.Format(CacheKeys.UserByEmail, user.Email.ToLower()));
+            }
 
             // ✅ Tạo URL đầy đủ để FE hiển thị qua Gateway
             var fullAvatarUrl = FileHelper.BuildFullAvatarUrl(
@@ -171,6 +184,16 @@ namespace EducationManagement.API.Admin.Controllers
             user.UpdatedAt = DateTime.UtcNow;
             user.UpdatedBy = currentUserId;
             await _userRepository.UpdateAsync(user);
+            
+            // Invalidate cache after update
+            if (_cache != null)
+            {
+                await _cache.RemoveAsync(string.Format(CacheKeys.UserById, user.UserId));
+                if (!string.IsNullOrEmpty(user.Username))
+                    await _cache.RemoveAsync(string.Format(CacheKeys.UserByUsername, user.Username.ToLower()));
+                if (!string.IsNullOrEmpty(user.Email))
+                    await _cache.RemoveAsync(string.Format(CacheKeys.UserByEmail, user.Email.ToLower()));
+            }
 
             // ✅ Tạo URL đầy đủ để FE hiển thị
             var fullAvatarUrl = FileHelper.BuildFullAvatarUrl(_gatewayUrl, user.AvatarUrl);
