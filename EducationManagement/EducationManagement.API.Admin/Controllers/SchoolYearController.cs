@@ -2,11 +2,12 @@ using Microsoft.AspNetCore.Mvc;
 using EducationManagement.BLL.Services;
 using EducationManagement.Common.Models;
 using Microsoft.AspNetCore.Authorization;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
     [Route("api-edu/school-years")]
     public class SchoolYearController : ControllerBase
     {
@@ -25,7 +26,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Lấy tất cả năm học
         /// </summary>
         [HttpGet]
-        [AllowAnonymous] // Cho phép student/lecturer xem danh sách năm học
+        [RequirePermission("ADMIN_SCHOOL_YEARS")] // ✅ Permission từ database
         public async Task<IActionResult> GetAll()
         {
             var list = await _service.GetAllAsync();
@@ -36,6 +37,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Lấy năm học theo ID
         /// </summary>
         [HttpGet("{id}")]
+        [RequirePermission("ADMIN_SCHOOL_YEARS")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
             var item = await _service.GetByIdAsync(id);
@@ -47,6 +49,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Tạo năm học mới (thủ công)
         /// </summary>
         [HttpPost]
+        [RequirePermission("ADMIN_SCHOOL_YEARS")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] SchoolYear model)
         {
             try
@@ -65,6 +68,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Cập nhật năm học
         /// </summary>
         [HttpPut("{id}")]
+        [RequirePermission("ADMIN_SCHOOL_YEARS")] // ✅ Permission từ database
         public async Task<IActionResult> Update(string id, [FromBody] SchoolYear model)
         {
             try
@@ -86,6 +90,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Xóa năm học
         /// </summary>
         [HttpDelete("{id}")]
+        [RequirePermission("ADMIN_SCHOOL_YEARS")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id)
         {
             try
@@ -110,6 +115,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// <param name="startYear">Năm bắt đầu (VD: 2024 → 2024-2025)</param>
         /// <param name="academicYearId">Niên khóa liên kết (optional)</param>
         [HttpPost("auto-create")]
+        [RequirePermission("ADMIN_SCHOOL_YEARS")] // ✅ Permission từ database
         public async Task<IActionResult> AutoCreate([FromQuery] int startYear, [FromQuery] string? academicYearId = null)
         {
             try
@@ -133,6 +139,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// TỰ ĐỘNG tạo 4 năm học cho một niên khóa
         /// </summary>
         [HttpPost("auto-create-for-cohort")]
+        [RequirePermission("ADMIN_SCHOOL_YEARS")] // ✅ Permission từ database
         public async Task<IActionResult> AutoCreateForCohort([FromQuery] string academicYearId)
         {
             try
@@ -219,6 +226,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// TỰ ĐỘNG chuyển học kỳ (gọi trong background job hoặc thủ công)
         /// </summary>
         [HttpPost("auto-transition-semester")]
+        [RequirePermission("ADMIN_SCHOOL_YEARS")] // ✅ Permission từ database
         public async Task<IActionResult> AutoTransitionSemester()
         {
             try
@@ -238,6 +246,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// TỰ ĐỘNG chuyển sang năm học mới
         /// </summary>
         [HttpPost("auto-transition-year")]
+        [RequirePermission("ADMIN_SCHOOL_YEARS")] // ✅ Permission từ database
         public async Task<IActionResult> AutoTransitionToNewYear([FromQuery] string newSchoolYearId)
         {
             try
@@ -257,6 +266,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Kích hoạt năm học (set active)
         /// </summary>
         [HttpPost("{id}/activate")]
+        [RequirePermission("ADMIN_SCHOOL_YEARS")] // ✅ Permission từ database
         public async Task<IActionResult> Activate(string id, [FromQuery] int initialSemester = 1)
         {
             try

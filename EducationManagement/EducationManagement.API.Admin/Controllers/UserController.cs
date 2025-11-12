@@ -5,25 +5,22 @@ using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
 using EducationManagement.Common.DTOs.User;
 using EducationManagement.Common.Helpers;
-using EducationManagement.BLL.Services;
 
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
     [Authorize] // ✅ Yêu cầu authentication cho tất cả endpoints
-    [Route("api-edu/admin/users")]
+    [Route("api-edu/users")]
     public class UserController : ControllerBase
     {
         private readonly IWebHostEnvironment _env;
         private readonly UserRepository _userRepository;
-        private readonly CachingService? _cache;
         private readonly string _gatewayUrl;
 
-        public UserController(IWebHostEnvironment env, UserRepository userRepository, IConfiguration configuration, CachingService? cache = null)
+        public UserController(IWebHostEnvironment env, UserRepository userRepository, IConfiguration configuration)
         {
             _env = env;
             _userRepository = userRepository;
-            _cache = cache;
             _gatewayUrl = configuration["GatewayUrl"] ?? "https://localhost:7033";
         }
 
@@ -68,10 +65,10 @@ namespace EducationManagement.API.Admin.Controllers
             user.UpdatedAt = DateTime.UtcNow;
             user.UpdatedBy = userId;
 
-            // ✅ Xác định đúng thư mục EducationManagement\Avatar_User\uploads\avatars
+            // ✅ Xác định đúng thư mục EducationManagement\Avatar_User
             var projectRoot = Directory.GetParent(Directory.GetCurrentDirectory())?.FullName;
             var avatarRoot = Path.Combine(projectRoot!, "Avatar_User");
-            var uploadPath = Path.Combine(avatarRoot, "uploads", "avatars");
+            var uploadPath = avatarRoot;
 
             if (!Directory.Exists(uploadPath))
                 Directory.CreateDirectory(uploadPath);
@@ -80,7 +77,13 @@ namespace EducationManagement.API.Admin.Controllers
             if (request.Avatar != null && request.Avatar.Length > 0)
             {
                 var extension = Path.GetExtension(request.Avatar.FileName).ToLower();
-                var fileName = $"{user.UserId}{extension}";
+                // Convert USER001 → user-001, LEC001 → lec-001
+                var userIdFormatted = System.Text.RegularExpressions.Regex.Replace(
+                    user.UserId.ToLower(), 
+                    @"([a-z]+)(\d+)", 
+                    "$1-$2"
+                );
+                var fileName = $"{userIdFormatted}{extension}";
                 var filePath = Path.Combine(uploadPath, fileName);
 
                 // Xóa file cũ nếu tồn tại
@@ -95,21 +98,11 @@ namespace EducationManagement.API.Admin.Controllers
                     await request.Avatar.CopyToAsync(stream);
                 }
 
-                // ✅ Lưu đường dẫn tương đối (không có /avatars/ prefix)
-                user.AvatarUrl = $"/uploads/avatars/{fileName}";
+                // ✅ Lưu đường dẫn tương đối
+                user.AvatarUrl = $"/avatars/{fileName}";
             }
 
             await _userRepository.UpdateAsync(user);
-            
-            // Invalidate cache after update
-            if (_cache != null)
-            {
-                await _cache.RemoveAsync(string.Format(CacheKeys.UserById, user.UserId));
-                if (!string.IsNullOrEmpty(user.Username))
-                    await _cache.RemoveAsync(string.Format(CacheKeys.UserByUsername, user.Username.ToLower()));
-                if (!string.IsNullOrEmpty(user.Email))
-                    await _cache.RemoveAsync(string.Format(CacheKeys.UserByEmail, user.Email.ToLower()));
-            }
 
             // ✅ Tạo URL đầy đủ để FE hiển thị qua Gateway
             var fullAvatarUrl = FileHelper.BuildFullAvatarUrl(
@@ -158,13 +151,19 @@ namespace EducationManagement.API.Admin.Controllers
             // ✅ Xác định thư mục upload
             var projectRoot = Directory.GetParent(Directory.GetCurrentDirectory())?.FullName;
             var avatarRoot = Path.Combine(projectRoot!, "Avatar_User");
-            var uploadPath = Path.Combine(avatarRoot, "uploads", "avatars");
+            var uploadPath = avatarRoot;
 
             if (!Directory.Exists(uploadPath))
                 Directory.CreateDirectory(uploadPath);
 
-            // ✅ Tạo tên file unique
-            var fileName = $"{user.UserId}{extension}";
+            // ✅ Tạo tên file unique (format: user-001.jpg)
+            // Convert USER001 → user-001, LEC001 → lec-001
+            var userIdFormatted = System.Text.RegularExpressions.Regex.Replace(
+                user.UserId.ToLower(), 
+                @"([a-z]+)(\d+)", 
+                "$1-$2"
+            );
+            var fileName = $"{userIdFormatted}{extension}";
             var filePath = Path.Combine(uploadPath, fileName);
 
             // Xóa file cũ nếu tồn tại
@@ -179,29 +178,15 @@ namespace EducationManagement.API.Admin.Controllers
                 await request.Avatar.CopyToAsync(stream);
             }
 
-            // ✅ Cập nhật DB - LƯU PATH TƯƠNG ĐỐI (không có /avatars/ prefix)
-            user.AvatarUrl = $"/uploads/avatars/{fileName}";
+            // ✅ Cập nhật DB - LƯU PATH TƯƠNG ĐỐI
+            user.AvatarUrl = $"/avatars/{fileName}";
             user.UpdatedAt = DateTime.UtcNow;
             user.UpdatedBy = currentUserId;
             await _userRepository.UpdateAsync(user);
-            
-            // Invalidate cache after update
-            if (_cache != null)
-            {
-                await _cache.RemoveAsync(string.Format(CacheKeys.UserById, user.UserId));
-                if (!string.IsNullOrEmpty(user.Username))
-                    await _cache.RemoveAsync(string.Format(CacheKeys.UserByUsername, user.Username.ToLower()));
-                if (!string.IsNullOrEmpty(user.Email))
-                    await _cache.RemoveAsync(string.Format(CacheKeys.UserByEmail, user.Email.ToLower()));
-            }
 
             // ✅ Tạo URL đầy đủ để FE hiển thị
             var fullAvatarUrl = FileHelper.BuildFullAvatarUrl(_gatewayUrl, user.AvatarUrl);
 
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"✅ Avatar uploaded successfully: {fullAvatarUrl}");
-            Console.WriteLine($"   File saved to: {filePath}");
-            Console.ResetColor();
 
             return Ok(new
             {
@@ -265,10 +250,10 @@ namespace EducationManagement.API.Admin.Controllers
                 Username = user.Username,
                 FullName = user.FullName,
                 Email = user.Email,
-                Phone = user.Phone,
+                Phone = user.Phone ?? string.Empty,
                 RoleId = user.RoleId,
-                RoleName = user.Role?.RoleName,
-                AvatarUrl = FileHelper.BuildFullAvatarUrl(_gatewayUrl, relativePath)
+                RoleName = user.Role?.RoleName ?? user.RoleName,
+                AvatarUrl = FileHelper.BuildFullAvatarUrl(_gatewayUrl, relativePath) ?? string.Empty
             };
         }
         #endregion

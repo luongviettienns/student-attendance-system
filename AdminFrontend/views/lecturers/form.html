@@ -2,15 +2,7 @@
     <app-sidebar></app-sidebar>
     
     <div class="main-content">
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
-                <h1 class="page-title">{{isEditMode ? 'Sửa' : 'Thêm'}} Giảng viên</h1>
-            </div>
-            <div class="header-right">
-                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
-            </div>
-        </header>
+        <app-topbar page-title="{{isEditMode ? 'Sửa' : 'Thêm'}} Giảng viên"></app-topbar>
         
         <div class="content-body">
             <div ng-if="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{success}}</div>
@@ -58,7 +50,9 @@
                             
                             <div class="form-group">
                                 <label class="form-label">Ngày vào làm</label>
-                                <input type="date" class="form-control" ng-model="lecturer.joinDate">
+                                <input type="date" class="form-control" 
+                                       ng-model="lecturer.joinDate"
+                                       ng-model-options="{ timezone: 'UTC' }">
                             </div>
                         </div>
                         
@@ -109,7 +103,9 @@
                                 
                                 <div class="form-group">
                                     <label class="form-label">Ngày chứng nhận</label>
-                                    <input type="date" class="form-control" ng-model="newAssignment.certifiedDate">
+                                    <input type="date" class="form-control" 
+                                           ng-model="newAssignment.certifiedDate"
+                                           ng-model-options="{ timezone: 'UTC' }">
                                 </div>
                             </div>
                             
@@ -136,50 +132,89 @@
                     
                     <!-- Danh sách môn đã phân -->
                     <div class="card-section mt-30">
-                        <h4>Môn đang dạy ({{assignedSubjects.length}})</h4>
-                        
-                        <div ng-if="assignedSubjects.length === 0" class="empty-state-small">
-                            <i class="fas fa-info-circle"></i>
-                            <p>Chưa có môn học nào được phân công</p>
+                        <div class="zone-header">
+                            <h4 class="zone-title">
+                                <i class="fas fa-book-reader"></i>
+                                Môn đang dạy 
+                                <span class="zone-badge primary">{{assignedSubjects.length}} môn</span>
+                            </h4>
                         </div>
                         
-                        <table ng-if="assignedSubjects.length > 0" class="data-table mt-10">
-                            <thead>
-                                <tr>
-                                    <th>Mã môn</th>
-                                    <th>Tên môn học</th>
-                                    <th>Tín chỉ</th>
-                                    <th>Kinh nghiệm</th>
-                                    <th>Môn chủ đạo</th>
-                                    <th>Ghi chú</th>
-                                    <th class="text-center">Thao tác</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr ng-repeat="assignment in assignedSubjects">
-                                    <td><strong>{{assignment.subjectCode}}</strong></td>
-                                    <td>{{assignment.subjectName}}</td>
-                                    <td>{{assignment.credits}} TC</td>
-                                    <td>{{assignment.experienceYears || 0}} năm</td>
-                                    <td>
-                                        <span ng-if="assignment.isPrimary" class="badge badge-primary">
-                                            <i class="fas fa-star"></i> Chủ đạo
-                                        </span>
-                                        <span ng-if="!assignment.isPrimary" class="badge badge-secondary">
-                                            Phụ trách
-                                        </span>
-                                    </td>
-                                    <td>{{assignment.notes || '-'}}</td>
-                                    <td class="text-center">
-                                        <button class="btn btn-sm btn-danger" 
-                                                ng-click="removeSubjectAssignment(assignment.lecturerSubjectId, assignment.subjectName)" 
-                                                title="Xóa">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div ng-if="assignedSubjects.length === 0" class="empty-state">
+                            <i class="fas fa-book-open"></i>
+                            <h3>Chưa có môn học nào</h3>
+                            <p>Chưa có môn học nào được phân công cho giảng viên này</p>
+                        </div>
+                        
+                        <!-- Subject Cards Grid -->
+                        <div ng-if="assignedSubjects.length > 0" class="subject-cards-grid">
+                            <div class="subject-card" ng-repeat="assignment in paginatedSubjects = (assignedSubjects | limitTo:subjectPageSize:((subjectCurrentPage-1)*subjectPageSize))">
+                                <div class="subject-card-header">
+                                    <div class="subject-code">
+                                        <i class="fas fa-graduation-cap"></i>
+                                        <strong>{{assignment.subjectCode}}</strong>
+                                    </div>
+                                    <span ng-if="assignment.isPrimary" class="badge badge-primary">
+                                        <i class="fas fa-star"></i> Chủ đạo
+                                    </span>
+                                    <span ng-if="!assignment.isPrimary" class="badge badge-secondary">
+                                        Phụ trách
+                                    </span>
+                                </div>
+                                <div class="subject-card-body">
+                                    <h4 class="subject-name">{{assignment.subjectName}}</h4>
+                                    <div class="subject-info-grid">
+                                        <div class="subject-info-item">
+                                            <i class="fas fa-book"></i>
+                                            <span>{{assignment.credits}} Tín chỉ</span>
+                                        </div>
+                                        <div class="subject-info-item">
+                                            <i class="fas fa-award"></i>
+                                            <span>{{assignment.experienceYears || 0}} năm KN</span>
+                                        </div>
+                                        <div class="subject-info-item" ng-if="assignment.certifiedDate">
+                                            <i class="fas fa-calendar-check"></i>
+                                            <span>{{assignment.certifiedDate | date:'dd/MM/yyyy'}}</span>
+                                        </div>
+                                    </div>
+                                    <div class="subject-notes" ng-if="assignment.notes">
+                                        <i class="fas fa-sticky-note"></i>
+                                        <span>{{assignment.notes}}</span>
+                                    </div>
+                                </div>
+                                <div class="subject-card-footer">
+                                    <button class="btn btn-sm btn-danger" 
+                                            ng-click="removeSubjectAssignment(assignment.lecturerSubjectId, assignment.subjectName)" 
+                                            title="Xóa phân môn">
+                                        <i class="fas fa-trash"></i> Xóa
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Pagination for Subjects -->
+                        <div ng-if="assignedSubjects.length > subjectPageSize" class="pagination-container mt-20">
+                            <div class="pagination-info">
+                                Hiển thị {{(subjectCurrentPage-1)*subjectPageSize + 1}} - {{Math.min(subjectCurrentPage*subjectPageSize, assignedSubjects.length)}} 
+                                trong tổng số {{assignedSubjects.length}} môn học
+                            </div>
+                            <div class="pagination">
+                                <button class="btn btn-sm" ng-click="previousSubjectPage()" ng-disabled="subjectCurrentPage === 1">
+                                    <i class="fas fa-chevron-left"></i> Trước
+                                </button>
+                                <span class="page-numbers">
+                                    <button class="btn btn-sm" 
+                                            ng-repeat="page in getSubjectPages()" 
+                                            ng-class="{'btn-primary': page === subjectCurrentPage, 'btn-outline': page !== subjectCurrentPage}"
+                                            ng-click="goToSubjectPage(page)">
+                                        {{page}}
+                                    </button>
+                                </span>
+                                <button class="btn btn-sm" ng-click="nextSubjectPage()" ng-disabled="subjectCurrentPage === subjectTotalPages">
+                                    Sau <i class="fas fa-chevron-right"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

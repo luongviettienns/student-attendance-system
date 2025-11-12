@@ -111,11 +111,63 @@ namespace EducationManagement.DAL.Repositories
         // ============================================================
         private static Permission MapToPermission(DataRow row)
         {
+            // 🔹 Map parent_code (có thể là NULL hoặc empty string)
+            string? parentCode = null;
+            if (row.Table.Columns.Contains("parent_code"))
+            {
+                var parentCodeValue = row["parent_code"]?.ToString();
+                // Nếu là empty string hoặc chỉ có khoảng trắng, set thành null
+                if (!string.IsNullOrWhiteSpace(parentCodeValue))
+                {
+                    parentCode = parentCodeValue;
+                }
+            }
+
+            // 🔹 Map icon
+            string? icon = null;
+            if (row.Table.Columns.Contains("icon"))
+            {
+                var iconValue = row["icon"]?.ToString();
+                if (!string.IsNullOrWhiteSpace(iconValue))
+                {
+                    icon = iconValue;
+                }
+            }
+
+            // 🔹 Map sort_order
+            int? sortOrder = null;
+            if (row.Table.Columns.Contains("sort_order"))
+            {
+                var sortOrderValue = row["sort_order"];
+                if (sortOrderValue != DBNull.Value && sortOrderValue != null)
+                {
+                    if (int.TryParse(sortOrderValue.ToString(), out int parsedSortOrder))
+                    {
+                        sortOrder = parsedSortOrder;
+                    }
+                }
+            }
+
+            // 🔹 Map is_active
+            bool isActive = true;
+            if (row.Table.Columns.Contains("is_active"))
+            {
+                var isActiveValue = row["is_active"];
+                if (isActiveValue != DBNull.Value && isActiveValue != null)
+                {
+                    isActive = Convert.ToBoolean(isActiveValue);
+                }
+            }
+
             return new Permission
             {
                 PermissionId = row["permission_id"].ToString()!,
                 PermissionCode = row["permission_code"].ToString()!,
                 PermissionName = row["permission_name"].ToString()!,
+                ParentCode = parentCode, // ✅ Map ParentCode
+                Icon = icon, // ✅ Map Icon
+                SortOrder = sortOrder, // ✅ Map SortOrder
+                IsActive = isActive, // ✅ Map IsActive
                 Description = row.Table.Columns.Contains("description") ? row["description"]?.ToString() : null,
                 CreatedAt = row.Table.Columns.Contains("created_at") && row["created_at"] != DBNull.Value
                     ? Convert.ToDateTime(row["created_at"])
@@ -124,11 +176,17 @@ namespace EducationManagement.DAL.Repositories
                 UpdatedAt = row.Table.Columns.Contains("updated_at") && row["updated_at"] != DBNull.Value
                     ? Convert.ToDateTime(row["updated_at"])
                     : null,
-                UpdatedBy = row.Table.Columns.Contains("updated_by") ? row["updated_by"]?.ToString() : null
+                UpdatedBy = row.Table.Columns.Contains("updated_by") ? row["updated_by"]?.ToString() : null,
+                DeletedAt = row.Table.Columns.Contains("deleted_at") && row["deleted_at"] != DBNull.Value
+                    ? Convert.ToDateTime(row["deleted_at"])
+                    : null
             };
         }
     }
 }
+
+
+
 
 
 

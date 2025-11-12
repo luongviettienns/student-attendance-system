@@ -1,10 +1,11 @@
 using EducationManagement.BLL.Services;
+using EducationManagement.Common.DTOs.Notification;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using System.Collections.Generic;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -24,7 +25,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 GET: Lấy tất cả notifications
         // ============================================================
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] string? type = null, [FromQuery] bool? isRead = null)
         {
             try
             {
@@ -32,8 +33,26 @@ namespace EducationManagement.API.Admin.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "Token không hợp lệ" });
 
-                var notifications = await _notificationService.GetNotificationsByUserAsync(userId);
-                return Ok(new { data = notifications });
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 50;
+                if (pageSize > 100) pageSize = 100;
+
+                var (notifications, totalCount) = await _notificationService.GetNotificationsByUserAsync(userId, page, pageSize, type, isRead);
+                
+                var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+                
+                return Ok(new 
+                { 
+                    data = notifications, 
+                    page = page, 
+                    pageSize = pageSize,
+                    totalCount = totalCount,
+                    totalPages = totalPages
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -45,7 +64,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 GET: Lấy notifications chưa đọc
         // ============================================================
         [HttpGet("unread")]
-        public async Task<IActionResult> GetUnread()
+        public async Task<IActionResult> GetUnread([FromQuery] int limit = 10)
         {
             try
             {
@@ -53,9 +72,64 @@ namespace EducationManagement.API.Admin.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "Token không hợp lệ" });
 
-                // TODO: Implement GetUnreadNotificationsAsync in NotificationService
-                // Tạm thời trả về empty list để không bị lỗi
-                return Ok(new List<object>());
+                if (limit < 1) limit = 10;
+                if (limit > 50) limit = 50;
+
+                var notifications = await _notificationService.GetUnreadNotificationsAsync(userId, limit);
+                return Ok(new { data = notifications });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        // ============================================================
+        // 🔹 GET: Lấy số lượng notifications chưa đọc
+        // ============================================================
+        [HttpGet("unread/count")]
+        public async Task<IActionResult> GetUnreadCount()
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                    return Unauthorized(new { message = "Token không hợp lệ" });
+
+                var count = await _notificationService.GetUnreadCountAsync(userId);
+                return Ok(new { count = count });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        // ============================================================
+        // 🔹 GET: Lấy notification theo ID
+        // ============================================================
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(string id)
+        {
+            try
+            {
+                var notification = await _notificationService.GetNotificationByIdAsync(id);
+                if (notification == null)
+                    return NotFound(new { message = "Không tìm thấy notification" });
+
+                return Ok(new { data = notification });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -64,7 +138,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("my-notifications")]
-        public async Task<IActionResult> GetMyNotifications()
+        public async Task<IActionResult> GetMyNotifications([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
         {
             try
             {
@@ -72,8 +146,26 @@ namespace EducationManagement.API.Admin.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "Token không hợp lệ" });
 
-                var notifications = await _notificationService.GetNotificationsByUserAsync(userId);
-                return Ok(new { data = notifications });
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 50;
+                if (pageSize > 100) pageSize = 100;
+
+                var (notifications, totalCount) = await _notificationService.GetNotificationsByUserAsync(userId, page, pageSize);
+                
+                var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+                
+                return Ok(new 
+                { 
+                    data = notifications, 
+                    page = page, 
+                    pageSize = pageSize,
+                    totalCount = totalCount,
+                    totalPages = totalPages
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -82,12 +174,31 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("user/{userId}")]
-        public async Task<IActionResult> GetByUser(string userId)
+        [RequirePermission("ADMIN_NOTIFICATIONS")] // ✅ Permission từ database
+        public async Task<IActionResult> GetByUser(string userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
         {
             try
             {
-                var notifications = await _notificationService.GetNotificationsByUserAsync(userId);
-                return Ok(new { data = notifications });
+                if (page < 1) page = 1;
+                if (pageSize < 1) pageSize = 50;
+                if (pageSize > 100) pageSize = 100;
+
+                var (notifications, totalCount) = await _notificationService.GetNotificationsByUserAsync(userId, page, pageSize);
+                
+                var totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+                
+                return Ok(new 
+                { 
+                    data = notifications, 
+                    page = page, 
+                    pageSize = pageSize,
+                    totalCount = totalCount,
+                    totalPages = totalPages
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -103,8 +214,13 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                // TODO: Implement MarkAsReadAsync in NotificationService
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                await _notificationService.MarkAsReadAsync(id, userId);
                 return Ok(new { message = "Đánh dấu đã đọc thành công" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -124,8 +240,12 @@ namespace EducationManagement.API.Admin.Controllers
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized(new { message = "Token không hợp lệ" });
 
-                // TODO: Implement MarkAllAsReadAsync in NotificationService
-                return Ok(new { message = "Đánh dấu tất cả đã đọc thành công" });
+                var updatedCount = await _notificationService.MarkAllAsReadAsync(userId, userId);
+                return Ok(new { message = "Đánh dấu tất cả đã đọc thành công", updatedCount = updatedCount });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -141,8 +261,13 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                // TODO: Implement DeleteNotificationAsync in NotificationService
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                await _notificationService.DeleteNotificationAsync(id, userId);
                 return Ok(new { message = "Xóa notification thành công" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -154,29 +279,29 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 POST: Tạo notification
         // ============================================================
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] dynamic notification)
+        [RequirePermission("ADMIN_NOTIFICATIONS")] // ✅ Permission từ database
+        public async Task<IActionResult> Create([FromBody] NotificationCreateDto dto)
         {
             try
             {
-                // TODO: Implement CreateNotificationAsync in NotificationService
-                return Ok(new { message = "Tạo notification thành công" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
-            }
-        }
+                if (!ModelState.IsValid)
+                    return BadRequest(ModelState);
 
-        // ============================================================
-        // 🔹 POST: Gửi email
-        // ============================================================
-        [HttpPost("send-email")]
-        public async Task<IActionResult> SendEmail([FromBody] dynamic emailData)
-        {
-            try
+                var createdBy = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "system";
+                var notificationId = await _notificationService.CreateNotificationAsync(
+                    dto.RecipientId,
+                    dto.Title,
+                    dto.Content,
+                    dto.Type,
+                    dto.CreatedBy ?? createdBy,
+                    dto.SentDate
+                );
+
+                return Ok(new { message = "Tạo notification thành công", notificationId = notificationId });
+            }
+            catch (ArgumentException ex)
             {
-                // TODO: Implement SendEmailAsync
-                return Ok(new { message = "Gửi email thành công" });
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {

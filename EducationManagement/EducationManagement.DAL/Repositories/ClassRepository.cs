@@ -19,17 +19,17 @@ namespace EducationManagement.DAL.Repositories
         }
 
         /// <summary>
-        /// Lấy tất cả classes
+        /// Lấy tất cả classes - KHÔNG PAGINATION
         /// </summary>
         public async Task<List<Class>> GetAllAsync()
         {
             var classes = new List<Class>();
 
-            // Stored procedure with required parameters
+            // sp_GetAllClasses yêu cầu parameters và trả về multiple result sets
             var parameters = new[]
             {
                 new SqlParameter("@Page", 1),
-                new SqlParameter("@PageSize", 1000), // Get all
+                new SqlParameter("@PageSize", 9999), // Get all
                 new SqlParameter("@Search", DBNull.Value),
                 new SqlParameter("@SubjectId", DBNull.Value),
                 new SqlParameter("@LecturerId", DBNull.Value),
@@ -42,8 +42,8 @@ namespace EducationManagement.DAL.Repositories
                 parameters
             );
 
-            // Skip Table[0] (TotalCount) and use Table[1] (Data)
-            if (ds.Tables.Count > 1)
+            // Table[0] = TotalCount, Table[1] = Data
+            if (ds.Tables.Count > 1 && ds.Tables[1].Rows.Count > 0)
             {
                 foreach (DataRow row in ds.Tables[1].Rows)
                 {
@@ -52,6 +52,50 @@ namespace EducationManagement.DAL.Repositories
             }
 
             return classes;
+        }
+
+        /// <summary>
+        /// Lấy tất cả classes với pagination
+        /// </summary>
+        public async Task<(List<Class> items, int totalCount)> GetAllPagedAsync(
+            int page = 1,
+            int pageSize = 10,
+            string? search = null,
+            string? subjectId = null,
+            string? lecturerId = null,
+            string? academicYearId = null)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@Page", page),
+                new SqlParameter("@PageSize", pageSize),
+                new SqlParameter("@Search", (object?)search ?? DBNull.Value),
+                new SqlParameter("@SubjectId", (object?)subjectId ?? DBNull.Value),
+                new SqlParameter("@LecturerId", (object?)lecturerId ?? DBNull.Value),
+                new SqlParameter("@AcademicYearId", (object?)academicYearId ?? DBNull.Value)
+            };
+
+            var dataSet = await DatabaseHelper.ExecuteQueryMultipleAsync(
+                _connectionString, "sp_GetAllClasses", parameters);
+
+            // Table[0] = TotalCount
+            int totalCount = 0;
+            if (dataSet.Tables[0].Rows.Count > 0)
+            {
+                totalCount = Convert.ToInt32(dataSet.Tables[0].Rows[0]["TotalCount"]);
+            }
+
+            // Table[1] = Data
+            var items = new List<Class>();
+            if (dataSet.Tables.Count > 1)
+            {
+                foreach (DataRow row in dataSet.Tables[1].Rows)
+                {
+                    items.Add(MapToClass(row));
+                }
+            }
+
+            return (items, totalCount);
         }
 
         /// <summary>
@@ -129,6 +173,22 @@ namespace EducationManagement.DAL.Repositories
             await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_DeleteClass", parameters);
         }
 
+        public async Task UpdateIsActiveAsync(string classId, bool isActive, string updatedBy)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"UPDATE dbo.classes 
+                                SET is_active = @isActive, 
+                                    updated_at = GETDATE(), 
+                                    updated_by = @updatedBy
+                                WHERE class_id = @classId AND deleted_at IS NULL";
+            cmd.Parameters.AddWithValue("@classId", classId);
+            cmd.Parameters.AddWithValue("@isActive", isActive);
+            cmd.Parameters.AddWithValue("@updatedBy", updatedBy);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
         /// <summary>
         /// Lấy classes theo lecturer ID
         /// </summary>
@@ -176,16 +236,13 @@ namespace EducationManagement.DAL.Repositories
                 ClassCode = row["class_code"].ToString()!,
                 ClassName = row["class_name"].ToString()!,
                 SubjectId = row["subject_id"].ToString()!,
-                SubjectName = row.Table.Columns.Contains("subject_name") ? row["subject_name"]?.ToString() : null,
-                Credits = row.Table.Columns.Contains("credits") && row["credits"] != DBNull.Value
-                    ? Convert.ToInt32(row["credits"])
-                    : null,
                 LecturerId = row["lecturer_id"].ToString()!,
-                LecturerName = row.Table.Columns.Contains("lecturer_name") ? row["lecturer_name"]?.ToString() : null,
                 Semester = row["semester"].ToString()!,
                 AcademicYearId = row["academic_year_id"].ToString()!,
-                YearCode = row.Table.Columns.Contains("year_code") ? row["year_code"]?.ToString() : null,
                 MaxStudents = row.Table.Columns.Contains("max_students") ? Convert.ToInt32(row["max_students"]) : 0,
+                SubjectName = row.Table.Columns.Contains("subject_name") ? row["subject_name"]?.ToString() : null,
+                LecturerName = row.Table.Columns.Contains("lecturer_name") ? row["lecturer_name"]?.ToString() : null,
+                AcademicYearName = row.Table.Columns.Contains("year_name") ? row["year_name"]?.ToString() : null,
                 IsActive = row.Table.Columns.Contains("is_active") && row["is_active"] != DBNull.Value
                     ? Convert.ToBoolean(row["is_active"])
                     : true,

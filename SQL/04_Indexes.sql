@@ -31,7 +31,7 @@ END
 ELSE
     PRINT '   ⏭️  Skipped: IX_Users_CreatedAt_IsActive (already exists)';
 
--- Index cho search Users
+-- Index cho search Users (Email)
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Users_Username_Email')
 BEGIN
     CREATE NONCLUSTERED INDEX IX_Users_Username_Email
@@ -41,6 +41,18 @@ BEGIN
 END
 ELSE
     PRINT '   ⏭️  Skipped: IX_Users_Username_Email (already exists)';
+
+-- ✅ PERFORMANCE: Dedicated index for username lookup (CRITICAL for login speed!)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Users_Username_Lookup')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Users_Username_Lookup
+    ON dbo.users(username)
+    INCLUDE (user_id, password_hash, full_name, email, phone, role_id, avatar_url, is_active, last_login_at)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_Users_Username_Lookup (OPTIMIZED for login)';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_Users_Username_Lookup (already exists)';
 
 -- =============================================
 -- 2. STUDENTS TABLE INDEXES
@@ -93,6 +105,17 @@ BEGIN
 END
 ELSE
     PRINT '   ⏭️  Skipped: IX_Students_Email (already exists)';
+
+-- Index cho last_warning_sent (warning system)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Students_LastWarningSent')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Students_LastWarningSent
+    ON dbo.students(last_warning_sent)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_Students_LastWarningSent';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_Students_LastWarningSent (already exists)';
 
 -- =============================================
 -- 3. LECTURERS TABLE INDEXES

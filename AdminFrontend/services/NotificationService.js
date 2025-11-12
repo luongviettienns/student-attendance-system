@@ -3,40 +3,119 @@ app.service('NotificationService', ['ApiService', '$rootScope', function(ApiServ
     
     var unreadCount = 0;
     
-    this.getAll = function() {
-        return ApiService.get('/notifications').then(function(response) {
+    /**
+     * Get all notifications with pagination and filters
+     * @param {number} page - Page number (default: 1)
+     * @param {number} pageSize - Page size (default: 50)
+     * @param {string} type - Filter by type (optional)
+     * @param {boolean} isRead - Filter by read status (optional)
+     */
+    this.getAll = function(page, pageSize, type, isRead) {
+        var params = {};
+        if (page !== undefined) params.page = page;
+        if (pageSize !== undefined) params.pageSize = pageSize;
+        if (type) params.type = type;
+        if (isRead !== undefined && isRead !== null && isRead !== '') {
+            params.isRead = isRead === true || isRead === 'true';
+        }
+        
+        return ApiService.get('/notifications', params, { cache: false }).then(function(response) {
+            // Backend returns: { data: [...], page: 1, pageSize: 50, totalCount: 100, totalPages: 2 }
             if (response.data && response.data.data) {
-                response.data = response.data.data;
+                return {
+                    data: response.data.data,
+                    page: response.data.page || page || 1,
+                    pageSize: response.data.pageSize || pageSize || 50,
+                    totalCount: response.data.totalCount || response.data.data.length,
+                    totalPages: response.data.totalPages || Math.ceil((response.data.totalCount || response.data.data.length) / (response.data.pageSize || pageSize || 50))
+                };
             }
-            return response;
+            return { data: response.data || [], page: 1, pageSize: 50, totalCount: 0, totalPages: 0 };
         });
     };
     
-    this.getUnread = function() {
-        return ApiService.get('/notifications/unread');
+    /**
+     * Get unread notifications
+     * @param {number} limit - Limit number of notifications (default: 10)
+     */
+    this.getUnread = function(limit) {
+        var params = {};
+        if (limit) params.limit = limit;
+        
+        return ApiService.get('/notifications/unread', params, { cache: false }).then(function(response) {
+            // Backend returns: { data: [...] }
+            return {
+                data: response.data.data || response.data || [],
+                count: (response.data.data || response.data || []).length
+            };
+        });
     };
     
+    /**
+     * Get unread count
+     */
     this.getUnreadCount = function() {
         return unreadCount;
     };
     
+    /**
+     * Set unread count (internal)
+     */
     this.setUnreadCount = function(count) {
         unreadCount = count;
         $rootScope.$broadcast('notificationCountChanged', count);
     };
     
+    /**
+     * Fetch unread count from API
+     */
+    this.fetchUnreadCount = function() {
+        var self = this;
+        return ApiService.get('/notifications/unread/count', {}, { cache: false })
+            .then(function(response) {
+                var count = response.data.count || 0;
+                self.setUnreadCount(count);
+                return count;
+            })
+            .catch(function(error) {
+                // If endpoint fails, try getting unread list and count
+                return self.getUnread(1).then(function(result) {
+                    // Estimate from unread list if count endpoint not available
+                    self.setUnreadCount(0);
+                    return 0;
+                });
+            });
+    };
+    
+    /**
+     * Get notification by ID
+     * @param {string} id - Notification ID
+     */
+    this.getById = function(id) {
+        return ApiService.get('/notifications/' + id, {}, { cache: false }).then(function(response) {
+            return response.data.data || response.data;
+        });
+    };
+    
+    /**
+     * Mark notification as read
+     * @param {string} id - Notification ID
+     */
     this.markAsRead = function(id) {
+        var self = this;
         return ApiService.put('/notifications/' + id + '/read', {})
             .then(function(response) {
-                if (unreadCount > 0) {
-                    unreadCount--;
-                    $rootScope.$broadcast('notificationCountChanged', unreadCount);
-                }
+                // Refresh unread count
+                self.fetchUnreadCount();
                 return response;
             });
     };
     
+    /**
+     * Mark all notifications as read
+     */
     this.markAllAsRead = function() {
+        var self = this;
         return ApiService.put('/notifications/mark-all-read', {})
             .then(function(response) {
                 unreadCount = 0;
@@ -45,27 +124,40 @@ app.service('NotificationService', ['ApiService', '$rootScope', function(ApiServ
             });
     };
     
+    /**
+     * Delete notification
+     * @param {string} id - Notification ID
+     */
     this.deleteNotification = function(id) {
-        return ApiService.delete('/notifications/' + id);
+        var self = this;
+        return ApiService.delete('/notifications/' + id)
+            .then(function(response) {
+                // Refresh unread count in case deleted notification was unread
+                self.fetchUnreadCount();
+                return response;
+            });
     };
     
+    /**
+     * Create notification (Admin only)
+     * @param {object} notification - Notification object
+     */
     this.create = function(notification) {
         return ApiService.post('/notifications', notification);
     };
     
-    this.sendEmail = function(emailData) {
-        return ApiService.post('/notifications/send-email', emailData);
-    };
-    
-    // Load unread count on init
+    /**
+     * Load unread count on init
+     */
     this.loadUnreadCount = function() {
         var self = this;
-        this.getUnread()
-            .then(function(response) {
-                self.setUnreadCount(response.data.length || 0);
-            })
+        // Try to fetch count from API first
+        this.fetchUnreadCount()
             .catch(function(error) {
-                console.error('Error loading unread count:', error);
+                // Fallback: get unread list and count
+                return self.getUnread(10).then(function(result) {
+                    self.setUnreadCount(result.count || 0);
+                });
             });
     };
 }]);

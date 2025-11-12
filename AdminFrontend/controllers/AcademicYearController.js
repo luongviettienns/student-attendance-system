@@ -1,6 +1,6 @@
 // Academic Year Controller
-app.controller('AcademicYearController', ['$scope', '$location', '$routeParams', 'AcademicYearService', 'AuthService', 'AvatarService',
-    function($scope, $location, $routeParams, AcademicYearService, AuthService, AvatarService) {
+app.controller('AcademicYearController', ['$scope', '$location', '$routeParams', '$timeout', 'AcademicYearService', 'AuthService', 'AvatarService',
+    function($scope, $location, $routeParams, $timeout, AcademicYearService, AuthService, AvatarService) {
     
     $scope.academicYears = [];
     $scope.academicYear = {};
@@ -67,9 +67,8 @@ app.controller('AcademicYearController', ['$scope', '$location', '$routeParams',
             .then(function(response) {
                 $scope.success = 'Lưu niên khóa thành công';
                 $scope.loading = false;
-                setTimeout(function() {
+                $timeout(function() {
                     $location.path('/academic-years');
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {

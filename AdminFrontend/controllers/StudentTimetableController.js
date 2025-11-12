@@ -1,4 +1,4 @@
-app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location', 'TimetableApi', 'AuthService', 'AcademicYearService', function($scope, $rootScope, $location, TimetableApi, AuthService, AcademicYearService) {
+app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location', 'TimetableApi', 'AuthService', 'StudentService', 'LoggerService', function($scope, $rootScope, $location, TimetableApi, AuthService, StudentService, LoggerService) {
   function getIsoWeek(d) {
     var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     var dayNum = date.getUTCDay() || 7;
@@ -17,148 +17,37 @@ app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location
   $scope.loading = false;
   $scope.error = null;
   $scope.currentUser = AuthService.getCurrentUser() || {};
+  $scope.studentId = null;
   
-  // Dropdown data
-  $scope.schoolYears = [];
-  $scope.selectedSchoolYearId = null;
-  $scope.selectedWeek = null;
-  $scope.availableWeeks = [];
-  
-  // Lấy params qua $location (đúng cho hashbang routing): #!/student/timetable?studentId=STU001&week=12&year=2025
-  var qs = $location.search() || {};
-  // Lấy studentId từ currentUser hoặc query hoặc localStorage (để test)
-  $scope.studentId = $scope.currentUser.studentId || qs.studentId || localStorage.getItem('test_studentId') || '';
-  // Cho phép override tuần/năm từ query string
-  var qWeek = parseInt(qs.week);
-  var qYear = parseInt(qs.year);
-  if (!isNaN(qWeek) && qWeek >= 1 && qWeek <= 53) { $scope.week = qWeek; }
-  if (!isNaN(qYear) && qYear > 2000 && qYear < 3000) { $scope.year = qYear; }
-
-  // Helper: Get start date of a week based on week 12 starting from 3/11/2025
-  function getWeekStartDate(year, week) {
-    // Week 12 starts on 3/11/2025 (Monday)
-    var week12StartDate = new Date(2025, 10, 3); // Month is 0-indexed, so 10 = November
-    // Calculate the start date for the requested week
-    // Week 1 is 11 weeks before week 12
-    var week1StartDate = new Date(week12StartDate);
-    week1StartDate.setDate(week1StartDate.getDate() - (12 - 1) * 7);
-    
-    // Calculate the start date for the requested week
-    var weekStartDate = new Date(week1StartDate);
-    weekStartDate.setDate(weekStartDate.getDate() + (week - 1) * 7);
-    
-    return weekStartDate;
-  }
-
-  // Helper: Format date to DD/MM/YYYY
-  function formatDate(date) {
-    var day = ('0' + date.getDate()).slice(-2);
-    var month = ('0' + (date.getMonth() + 1)).slice(-2);
-    var year = date.getFullYear();
-    return day + '/' + month + '/' + year;
-  }
-
-  // Generate available weeks for selected school year
-  $scope.generateWeeks = function() {
-    if (!$scope.selectedSchoolYearId) {
-      $scope.availableWeeks = [];
+  // Load student ID from user
+  function loadStudentId() {
+    if (!$scope.currentUser || !$scope.currentUser.userId) {
+      $scope.error = 'Không tìm thấy thông tin người dùng';
+      $scope.loading = false;
       return;
     }
-
-    var selectedYear = $scope.schoolYears.find(function(sy) {
-      return sy.schoolYearId === $scope.selectedSchoolYearId;
-    });
-
-    if (!selectedYear) {
-      $scope.availableWeeks = [];
-      return;
-    }
-
-    // Parse school year code (e.g., "2024-2025") to get start year
-    var yearMatch = selectedYear.schoolYearCode.match(/(\d{4})/);
-    var startYear = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
-
-    // Generate 53 weeks for the school year
-    var weeks = [];
-    for (var i = 1; i <= 53; i++) {
-      var weekStart = getWeekStartDate(startYear, i);
-      var weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      
-      weeks.push({
-        weekNo: i,
-        label: 'Tuần ' + i + ' [Từ ' + formatDate(weekStart) + ' -- Đến ' + formatDate(weekEnd) + ']',
-        startDate: weekStart,
-        endDate: weekEnd
-      });
-    }
-    $scope.availableWeeks = weeks;
-  };
-
-  // Handle school year change
-  $scope.onSchoolYearChange = function() {
-    $scope.generateWeeks();
-    // Set default week to 1 or current week if available
-    if ($scope.availableWeeks.length > 0) {
-      var currentWeek = $scope.week || 12;
-      if (currentWeek >= 1 && currentWeek <= 53) {
-        $scope.selectedWeek = currentWeek;
-      } else {
-        $scope.selectedWeek = 1;
-      }
-      $scope.onWeekChange();
-    }
-  };
-
-  // Handle week change
-  $scope.onWeekChange = function() {
-    if ($scope.selectedWeek) {
-      $scope.week = parseInt($scope.selectedWeek);
-      // Extract year from selected school year
-      var selectedYear = $scope.schoolYears.find(function(sy) {
-        return sy.schoolYearId === $scope.selectedSchoolYearId;
-      });
-      if (selectedYear) {
-        var yearMatch = selectedYear.schoolYearCode.match(/(\d{4})/);
-        $scope.year = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
-      }
-      $scope.load();
-    }
-  };
-
-  // Load academic years
-  $scope.loadAcademicYears = function() {
-    AcademicYearService.getAll().then(function(res) {
-      $scope.schoolYears = (res.data && res.data.data) || res.data || [];
-      if ($scope.schoolYears.length > 0) {
-        // Set default to first school year or current year
-        var currentYear = new Date().getFullYear();
-        var defaultYear = $scope.schoolYears.find(function(sy) {
-          return sy.schoolYearCode && sy.schoolYearCode.includes(currentYear.toString());
-        });
-        $scope.selectedSchoolYearId = defaultYear ? defaultYear.schoolYearId : $scope.schoolYears[0].schoolYearId;
-        $scope.generateWeeks();
-        // Set default week
-        if ($scope.availableWeeks.length > 0) {
-          $scope.selectedWeek = $scope.week || 12;
-          if ($scope.selectedWeek < 1 || $scope.selectedWeek > 53) {
-            $scope.selectedWeek = 12;
-          }
-          $scope.onWeekChange();
+    
+    StudentService.getByUserId($scope.currentUser.userId)
+      .then(function(response) {
+        if (response.data && response.data.data) {
+          $scope.studentId = response.data.data.studentId;
+          // Get params from query string
+          var qs = $location.search() || {};
+          var qWeek = parseInt(qs.week);
+          var qYear = parseInt(qs.year);
+          if (!isNaN(qWeek) && qWeek >= 1 && qWeek <= 53) { $scope.week = qWeek; }
+          if (!isNaN(qYear) && qYear > 2000 && qYear < 3000) { $scope.year = qYear; }
+          $scope.load();
+        } else {
+          $scope.error = 'Không tìm thấy thông tin sinh viên';
+          $scope.loading = false;
         }
-      }
-    }).catch(function(err) { 
-      console.error('Load academic years error:', err);
-      // Fallback to default
-      $scope.schoolYears = [{ schoolYearId: 'SY2024', schoolYearCode: '2024-2025' }];
-      $scope.selectedSchoolYearId = 'SY2024';
-      $scope.generateWeeks();
-      if ($scope.availableWeeks.length > 0) {
-        $scope.selectedWeek = $scope.week || 12;
-        $scope.onWeekChange();
-      }
-    });
-  };
+      })
+      .catch(function(error) {
+        $scope.error = 'Không thể tải thông tin sinh viên';
+        $scope.loading = false;
+      });
+  }
 
   $scope.load = function() {
     if(!$scope.studentId){
@@ -184,32 +73,37 @@ app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location
         $scope.error = 'Không có dữ liệu thời khóa biểu cho tuần này';
       }
     }).catch(function(err){
-      $scope.error = 'Lỗi: ' + (err.data && err.data.message) || err.statusText || 'Không thể tải thời khóa biểu';
-      console.error('Timetable load error:', err);
+      var message = (err && err.data && err.data.message) || err.statusText || 'Không thể tải thời khóa biểu';
+      $scope.error = 'Lỗi: ' + message;
+      LoggerService.error('Student timetable load error', err);
     }).finally(function(){ $scope.loading = false; });
-  };
-  
-  $scope.setStudentId = function(id){
-    $scope.studentId = id;
-    localStorage.setItem('test_studentId', id);
-    $scope.load();
   };
 
   $scope.prevWeek = function(){
-    if ($scope.selectedWeek && $scope.selectedWeek > 1) {
-      $scope.selectedWeek = $scope.selectedWeek - 1;
-      $scope.onWeekChange();
-    }
+    var d = new Date($scope.today);
+    d.setDate(d.getDate() - 7);
+    $scope.today = d;
+    var i = getIsoWeek(d);
+    $scope.year = i.year; $scope.week = i.week; $scope.load();
   };
   $scope.nextWeek = function(){
-    if ($scope.selectedWeek && $scope.selectedWeek < 53) {
-      $scope.selectedWeek = $scope.selectedWeek + 1;
-      $scope.onWeekChange();
-    }
+    var d = new Date($scope.today);
+    d.setDate(d.getDate() + 7);
+    $scope.today = d;
+    var i = getIsoWeek(d);
+    $scope.year = i.year; $scope.week = i.week; $scope.load();
+  };
+  
+  $scope.goToToday = function(){
+    $scope.today = new Date();
+    var i = getIsoWeek($scope.today);
+    $scope.year = i.year;
+    $scope.week = i.week;
+    $scope.load();
   };
 
   // Initialize
-  $scope.loadAcademicYears();
+  loadStudentId();
 }]);
 
 

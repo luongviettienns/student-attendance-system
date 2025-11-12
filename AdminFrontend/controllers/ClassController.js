@@ -1,6 +1,6 @@
 // Class Management Controller
-app.controller('ClassController', ['$scope', '$location', '$routeParams', 'ClassService', 'SubjectService', 'LecturerService', 'AcademicYearService', 'AuthService', 'AvatarService',
-    function($scope, $location, $routeParams, ClassService, SubjectService, LecturerService, AcademicYearService, AuthService, AvatarService) {
+app.controller('ClassController', ['$scope', '$location', '$routeParams', 'ClassService', 'SubjectService', 'LecturerService', 'AcademicYearService', 'AuthService', 'AvatarService', 'LoggerService', 'PaginationService',
+    function($scope, $location, $routeParams, ClassService, SubjectService, LecturerService, AcademicYearService, AuthService, AvatarService, LoggerService, PaginationService) {
     
     $scope.classes = [];
     $scope.displayedClasses = [];
@@ -10,6 +10,9 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
     $scope.isEditMode = false;
     $scope.currentUser = null;
     
+    // Pagination
+    $scope.pagination = PaginationService.init(10);
+    
     // Initialize page
     $scope.initPage = function() {
         $scope.currentUser = AuthService.getCurrentUser();
@@ -17,16 +20,27 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
         // Initialize sidebar toggle
         var menuToggle = document.getElementById('menuToggle');
         if (menuToggle) {
-            menuToggle.addEventListener('click', function() {
+            // Store handler reference for cleanup
+            $scope.menuToggleHandler = function() {
                 var sidebar = document.querySelector('.sidebar');
                 var mainContent = document.querySelector('.main-content');
                 if (sidebar && mainContent) {
                     sidebar.classList.toggle('collapsed');
                     mainContent.classList.toggle('expanded');
                 }
-            });
+            };
+            
+            menuToggle.addEventListener('click', $scope.menuToggleHandler);
         }
     };
+    
+    // Cleanup event listeners on controller destroy
+    $scope.$on('$destroy', function() {
+        var menuToggle = document.getElementById('menuToggle');
+        if (menuToggle && $scope.menuToggleHandler) {
+            menuToggle.removeEventListener('click', $scope.menuToggleHandler);
+        }
+    });
     
     // Get initial for avatar
     $scope.getInitial = function(user) {
@@ -77,18 +91,36 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
         { value: '3', label: 'Học kỳ hè' }
     ];
     
-    // Load classes
+    // Load classes with server-side pagination
     $scope.loadClasses = function() {
         $scope.loading = true;
         $scope.error = null;
         
-        ClassService.getAll()
+        var params = {
+            page: $scope.pagination.currentPage,
+            pageSize: $scope.pagination.pageSize,
+            search: $scope.pagination.searchTerm || null,
+            subjectId: $scope.filters.subjectId || null,
+            lecturerId: $scope.filters.lecturerId || null,
+            academicYearId: $scope.filters.academicYearId || null
+        };
+        
+        // Remove empty values
+        Object.keys(params).forEach(function(key) {
+            if (params[key] === null || params[key] === '' || params[key] === undefined) {
+                delete params[key];
+            }
+        });
+        
+        ClassService.getAll(params)
             .then(function(response) {
-                console.log('Classes response:', response);
-                console.log('Response data:', response.data);
+                LoggerService.debug('Classes response received', response);
+                LoggerService.debug('Classes response payload', response.data);
                 
-                       if (response.data) {
-                           $scope.classes = response.data.map(function(classItem) {
+                var result = response.data;
+                
+                if (result && result.data) {
+                    $scope.displayedClasses = result.data.map(function(classItem) {
                         return {
                             classId: classItem.classId,
                             classCode: classItem.classCode,
@@ -107,20 +139,56 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
                         };
                     });
                     
-                    $scope.displayedClasses = $scope.classes;
-                    console.log('Classes loaded:', $scope.classes.length);
+                    $scope.classes = $scope.displayedClasses;
+                    
+                    // Update pagination info from server
+                    if (result.totalCount !== undefined) {
+                        $scope.pagination.totalItems = result.totalCount;
+                        $scope.pagination.totalPages = result.totalPages;
+                        $scope.pagination.currentPage = result.page;
+                        $scope.pagination.pageSize = result.pageSize;
+                    }
+                    
+                    // Recalculate pagination UI
+                    $scope.pagination = PaginationService.calculate($scope.pagination);
+                    
+                    LoggerService.debug('Classes loaded', { total: $scope.classes.length });
                 } else {
                     $scope.classes = [];
                     $scope.displayedClasses = [];
-                    console.log('No classes data found');
+                    LoggerService.warn('No classes data found for the current filters.');
                 }
                 $scope.loading = false;
             })
             .catch(function(error) {
-                console.error('Error loading classes:', error);
+                LoggerService.error('Error loading classes', error);
                 $scope.error = 'Không thể tải danh sách lớp học: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
                 $scope.loading = false;
             });
+    };
+    
+    // Search handler
+    $scope.handleSearch = function() {
+        $scope.pagination.currentPage = 1;
+        $scope.loadClasses();
+    };
+    
+    // Filter handler
+    $scope.handleFilter = function() {
+        $scope.pagination.currentPage = 1;
+        $scope.loadClasses();
+    };
+    
+    // Page change handler
+    $scope.handlePageChange = function(page) {
+        $scope.pagination.currentPage = page;
+        $scope.loadClasses();
+    };
+    
+    // Page size change handler
+    $scope.handlePageSizeChange = function() {
+        $scope.pagination.currentPage = 1;
+        $scope.loadClasses();
     };
     
     // Load subjects for dropdown
@@ -128,12 +196,12 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
     $scope.loadSubjects = function() {
         SubjectService.getAll()
             .then(function(response) {
-                       if (response.data) {
-                           $scope.subjects = response.data;
+                if (response.data) {
+                    $scope.subjects = response.data;
                 }
             })
             .catch(function(error) {
-                console.error('Error loading subjects:', error);
+                LoggerService.error('Error loading subjects', error);
             });
     };
     
@@ -142,12 +210,12 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
     $scope.loadLecturers = function() {
         LecturerService.getAll()
             .then(function(response) {
-                       if (response.data) {
-                           $scope.lecturers = response.data;
+                if (response.data) {
+                    $scope.lecturers = response.data;
                 }
             })
             .catch(function(error) {
-                console.error('Error loading lecturers:', error);
+                LoggerService.error('Error loading lecturers', error);
             });
     };
     
@@ -161,7 +229,7 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
                 }
             })
             .catch(function(error) {
-                console.error('Error loading academic years:', error);
+                // Error handled silently
             });
     };
     
@@ -228,7 +296,6 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
                 $scope.loadClasses();
             })
             .catch(function(error) {
-                console.error('Error creating class:', error);
                 $scope.error = 'Không thể tạo lớp học: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
             });
     };
@@ -253,7 +320,6 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
                 $scope.loadClasses();
             })
             .catch(function(error) {
-                console.error('Error updating class:', error);
                 $scope.error = 'Không thể cập nhật lớp học: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
             });
     };
@@ -279,7 +345,6 @@ app.controller('ClassController', ['$scope', '$location', '$routeParams', 'Class
                 $scope.loadClasses();
             })
             .catch(function(error) {
-                console.error('Error deleting class:', error);
                 $scope.error = 'Không thể xóa lớp học: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
             });
     };

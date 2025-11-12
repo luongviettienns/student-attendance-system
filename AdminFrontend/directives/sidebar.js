@@ -26,13 +26,7 @@ app.directive('appSidebar', ['$location', 'AuthService', 'RoleService', function
             };
 
             // Toggle một section theo index
-            scope.toggleSection = function(sectionIndex, event) {
-                // Prevent any default behavior or navigation
-                if (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                
+            scope.toggleSection = function(sectionIndex) {
                 var willOpen = !scope.openSections[sectionIndex];
                 // Đóng tất cả section khác
                 Object.keys(scope.openSections).forEach(function(key) {

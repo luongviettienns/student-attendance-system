@@ -1,4 +1,4 @@
-app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location', '$timeout', 'TimetableApi', 'ClassService', 'SubjectService', 'LecturerService', 'AuthService', 'ToastService', 'SchoolYearService', function($scope, $rootScope, $location, $timeout, TimetableApi, ClassService, SubjectService, LecturerService, AuthService, ToastService, SchoolYearService) {
+app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location', '$timeout', 'TimetableApi', 'ClassService', 'SubjectService', 'LecturerService', 'AuthService', 'ToastService', 'LoggerService', function($scope, $rootScope, $location, $timeout, TimetableApi, ClassService, SubjectService, LecturerService, AuthService, ToastService, LoggerService) {
   function getIsoWeek(d) {
     var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     var dayNum = date.getUTCDay() || 7;
@@ -82,12 +82,7 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
   
   // Watch for time values to ensure they're always strings in "HH:mm" format
   $scope.$watch('form.startTime', function(newVal, oldVal) {
-    if (newVal === null || newVal === undefined || newVal === '') {
-      $timeout(function() {
-        $scope.form.startTime = '07:00';
-      }, 0);
-      return;
-    }
+    if (newVal === null || newVal === undefined) return;
     if (typeof newVal !== 'string') {
       // If it's somehow not a string, convert it
       if (newVal instanceof Date) {
@@ -96,32 +91,17 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
         $timeout(function() {
           $scope.form.startTime = hours + ':' + minutes;
         }, 0);
-      } else {
-        // Convert to string
-        $timeout(function() {
-          $scope.form.startTime = String(newVal).substring(0, 5);
-        }, 0);
       }
     } else if (newVal.length === 8) {
       // If it's "HH:mm:ss", convert to "HH:mm"
       $timeout(function() {
         $scope.form.startTime = newVal.substring(0, 5);
       }, 0);
-    } else if (newVal.length !== 5) {
-      // If format is wrong, set default
-      $timeout(function() {
-        $scope.form.startTime = '07:00';
-      }, 0);
     }
   });
-
+  
   $scope.$watch('form.endTime', function(newVal, oldVal) {
-    if (newVal === null || newVal === undefined || newVal === '') {
-      $timeout(function() {
-        $scope.form.endTime = '09:00';
-      }, 0);
-      return;
-    }
+    if (newVal === null || newVal === undefined) return;
     if (typeof newVal !== 'string') {
       // If it's somehow not a string, convert it
       if (newVal instanceof Date) {
@@ -130,21 +110,11 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
         $timeout(function() {
           $scope.form.endTime = hours + ':' + minutes;
         }, 0);
-      } else {
-        // Convert to string
-        $timeout(function() {
-          $scope.form.endTime = String(newVal).substring(0, 5);
-        }, 0);
       }
     } else if (newVal.length === 8) {
       // If it's "HH:mm:ss", convert to "HH:mm"
       $timeout(function() {
         $scope.form.endTime = newVal.substring(0, 5);
-      }, 0);
-    } else if (newVal.length !== 5) {
-      // If format is wrong, set default
-      $timeout(function() {
-        $scope.form.endTime = '09:00';
       }, 0);
     }
   });
@@ -154,201 +124,162 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
   $scope.subjects = [];
   $scope.lecturers = [];
   $scope.rooms = [];
-  $scope.schoolYears = [];
-  $scope.selectedSchoolYearId = null;
-  $scope.selectedWeek = null;
-  $scope.availableWeeks = [];
+  $scope.schoolYears = [{ schoolYearId: 'SY2024', schoolYearCode: '2024-2025' }];
+
+  // Class selection
+  $scope.selectedClassId = null;
+  $scope.selectedClassInfo = null;
+  $scope.classSearchText = '';
+  $scope.filteredClasses = [];
+  $scope.showOnlyActive = true;
 
   // Timetable grid
   $scope.grid = {};
   $scope.allSessions = [];
 
-  // Helper: Get start date of a week based on week 12 starting from 3/11/2025
-  function getWeekStartDate(year, week) {
-    // Week 12 starts on 3/11/2025 (Monday)
-    var week12StartDate = new Date(2025, 10, 3); // Month is 0-indexed, so 10 = November
-    // Calculate the start date for the requested week
-    // Week 1 is 11 weeks before week 12
-    var week1StartDate = new Date(week12StartDate);
-    week1StartDate.setDate(week1StartDate.getDate() - (12 - 1) * 7);
-    
-    // Calculate the start date for the requested week
-    var weekStartDate = new Date(week1StartDate);
-    weekStartDate.setDate(weekStartDate.getDate() + (week - 1) * 7);
-    
-    return weekStartDate;
-  }
-
-  // Helper: Format date to DD/MM/YYYY
-  function formatDate(date) {
-    var day = ('0' + date.getDate()).slice(-2);
-    var month = ('0' + (date.getMonth() + 1)).slice(-2);
-    var year = date.getFullYear();
-    return day + '/' + month + '/' + year;
-  }
-
-  // Generate available weeks for selected school year
-  $scope.generateWeeks = function() {
-    if (!$scope.selectedSchoolYearId) {
-      $scope.availableWeeks = [];
-      return;
-    }
-
-    if (!$scope.schoolYears || $scope.schoolYears.length === 0) {
-      $scope.availableWeeks = [];
-      return;
-    }
-
-    var selectedYear = $scope.schoolYears.find(function(sy) {
-      return sy.schoolYearId === $scope.selectedSchoolYearId;
-    });
-
-    if (!selectedYear) {
-      $scope.availableWeeks = [];
-      return;
-    }
-
-    // Parse school year code (e.g., "2024-2025") to get start year
-    // SchoolYear has yearCode (e.g., "2024-2025") and startDate
-    var startYear = new Date().getFullYear();
-    if (selectedYear.startDate) {
-      var startDate = new Date(selectedYear.startDate);
-      startYear = startDate.getFullYear();
-    } else if (selectedYear.yearCode) {
-      var yearMatch = selectedYear.yearCode.match(/(\d{4})/);
-      startYear = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
-    } else if (selectedYear.schoolYearCode) {
-      var yearMatch2 = selectedYear.schoolYearCode.match(/(\d{4})/);
-      startYear = yearMatch2 ? parseInt(yearMatch2[1]) : new Date().getFullYear();
-    }
-
-    // Generate 53 weeks for the school year
-    var weeks = [];
-    for (var i = 1; i <= 53; i++) {
-      var weekStart = getWeekStartDate(startYear, i);
-      var weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      
-      weeks.push({
-        weekNo: i,
-        label: 'Tuần ' + i + ' [Từ ' + formatDate(weekStart) + ' -- Đến ' + formatDate(weekEnd) + ']',
-        startDate: weekStart,
-        endDate: weekEnd
-      });
-    }
-    $scope.availableWeeks = weeks;
-    console.log('Generated weeks:', weeks.length, 'for school year:', selectedYear.yearCode || selectedYear.schoolYearCode || selectedYear.yearName);
-  };
-
-  // Handle school year change
-  $scope.onSchoolYearChange = function() {
-    $scope.generateWeeks();
-    // Set default week to 1 or current week if available
-    if ($scope.availableWeeks.length > 0) {
-      var currentWeek = parseInt($scope.week) || 12;
-      if (currentWeek >= 1 && currentWeek <= 53) {
-        $scope.selectedWeek = String(currentWeek); // Ensure string for ng-model
-      } else {
-        $scope.selectedWeek = '1';
-      }
-      $scope.onWeekChange();
-    }
-  };
-
-  // Handle week change
-  $scope.onWeekChange = function() {
-    if ($scope.selectedWeek) {
-      $scope.week = parseInt($scope.selectedWeek);
-      // Extract year from selected school year
-      var selectedYear = $scope.schoolYears.find(function(sy) {
-        return sy.schoolYearId === $scope.selectedSchoolYearId;
-      });
-      if (selectedYear) {
-        if (selectedYear.startDate) {
-          var startDate = new Date(selectedYear.startDate);
-          $scope.year = startDate.getFullYear();
-        } else if (selectedYear.yearCode) {
-          var yearMatch = selectedYear.yearCode.match(/(\d{4})/);
-          $scope.year = yearMatch ? parseInt(yearMatch[1]) : new Date().getFullYear();
-        } else if (selectedYear.schoolYearCode) {
-          var yearMatch2 = selectedYear.schoolYearCode.match(/(\d{4})/);
-          $scope.year = yearMatch2 ? parseInt(yearMatch2[1]) : new Date().getFullYear();
-        }
-      }
-      $scope.loadSessions();
-    }
-  };
-
   // Load dropdowns
   $scope.loadDropdowns = function() {
     ClassService.getAll().then(function(res) {
       $scope.classes = (res.data && res.data.data) || res.data || [];
-    }).catch(function(err) { console.error('Load classes error:', err); });
+      $scope.filterClasses();
+  }).catch(function(err) { LoggerService.error('Load classes error', err); });
     
     SubjectService.getAll().then(function(res) {
       $scope.subjects = (res.data && res.data.data) || res.data || [];
-    }).catch(function(err) { console.error('Load subjects error:', err); });
+  }).catch(function(err) { LoggerService.error('Load subjects error', err); });
     
     LecturerService.getAll().then(function(res) {
       $scope.lecturers = (res.data && res.data.data) || res.data || [];
-    }).catch(function(err) { console.error('Load lecturers error:', err); });
+  }).catch(function(err) { LoggerService.error('Load lecturers error', err); });
     
     TimetableApi.getRooms(null, true).then(function(res) {
       $scope.rooms = (res.data && res.data.data) || res.data || [];
-    }).catch(function(err) { console.error('Load rooms error:', err); });
+  }).catch(function(err) { LoggerService.error('Load rooms error', err); });
+  };
 
-    // Load school years (not academic years - backend needs schoolYearId from school_years table)
-    SchoolYearService.getAll().then(function(res) {
-      console.log('School years response:', res);
-      // Backend returns array directly: [...]
-      // Check if it's wrapped in data property or direct array
-      $scope.schoolYears = Array.isArray(res.data) ? res.data : (res.data && Array.isArray(res.data.data) ? res.data.data : []);
-      console.log('Loaded school years:', $scope.schoolYears.length, $scope.schoolYears);
-      
-      if ($scope.schoolYears.length > 0) {
-        // Set default to active school year or current year
-        var currentYear = new Date().getFullYear();
-        var activeYear = $scope.schoolYears.find(function(sy) {
-          return sy.isActive === true;
-        });
-        var defaultYear = activeYear || $scope.schoolYears.find(function(sy) {
-          return sy.yearCode && sy.yearCode.includes(currentYear.toString());
-        });
-        $scope.selectedSchoolYearId = defaultYear ? defaultYear.schoolYearId : $scope.schoolYears[0].schoolYearId;
-        console.log('Selected school year ID:', $scope.selectedSchoolYearId);
-        $scope.generateWeeks();
-        // Set default week
-        if ($scope.availableWeeks.length > 0) {
-          // Ensure selectedWeek is a string for ng-model
-          var weekValue = String($scope.week || 12);
-          if (parseInt(weekValue) < 1 || parseInt(weekValue) > 53) {
-            weekValue = '12';
-          }
-          $scope.selectedWeek = weekValue;
-          console.log('Selected week:', $scope.selectedWeek);
-          $scope.onWeekChange();
-        }
-      } else {
-        console.warn('No school years found');
-      }
-    }).catch(function(err) { 
-      console.error('Load school years error:', err);
-      // Fallback to default
-      $scope.schoolYears = [{ schoolYearId: 'SY2024', yearCode: '2024-2025' }];
-      $scope.selectedSchoolYearId = 'SY2024';
-      $scope.generateWeeks();
-      if ($scope.availableWeeks.length > 0) {
-        $scope.selectedWeek = String($scope.week || 12);
-        $scope.onWeekChange();
-      }
+  // Filter classes
+  $scope.filterClasses = function() {
+    var classesToFilter = $scope.classes;
+    
+    // Filter theo active status
+    if ($scope.showOnlyActive) {
+      classesToFilter = classesToFilter.filter(function(c) {
+        return c.isActive === true || c.is_active_computed === 1 || c.isActive === 1;
+      });
+    }
+    
+    // Filter theo search text
+    if (!$scope.classSearchText || $scope.classSearchText.trim() === '') {
+      $scope.filteredClasses = classesToFilter;
+      return;
+    }
+    
+    var search = $scope.classSearchText.toLowerCase().trim();
+    $scope.filteredClasses = classesToFilter.filter(function(c) {
+      var codeMatch = c.classCode && c.classCode.toLowerCase().includes(search);
+      var nameMatch = c.className && c.className.toLowerCase().includes(search);
+      var subjectMatch = c.subjectName && c.subjectName.toLowerCase().includes(search);
+      var lecturerMatch = c.lecturerName && c.lecturerName.toLowerCase().includes(search);
+      return codeMatch || nameMatch || subjectMatch || lecturerMatch;
     });
+  };
+
+  // Auto filter khi search text thay đổi
+  $scope.$watch('classSearchText', function() {
+    $scope.filterClasses();
+  });
+
+  // Filter khi load classes
+  $scope.$watch('classes', function() {
+    $scope.filterClasses();
+  }, true);
+
+  // Watch showOnlyActive
+  $scope.$watch('showOnlyActive', function() {
+    $scope.filterClasses();
+  });
+
+  // Helper function để format text hiển thị lớp ngắn gọn
+  $scope.getClassDisplayText = function(c) {
+    if (!c) return '';
+    var code = c.classCode || c.class_code || '';
+    var name = c.className || c.class_name || '';
+    var display = code + ' - ' + name;
+    
+    // Giới hạn độ dài tối đa 60 ký tự
+    if (display.length > 60) {
+      display = display.substring(0, 57) + '...';
+    }
+    
+    // Thêm trạng thái nếu không active
+    if (!(c.isActive || c.is_active_computed || c.isActive === 1)) {
+      display += ' (Đã tắt)';
+    }
+    
+    return display;
+  };
+  
+  // Helper function để tạo title đầy đủ cho tooltip
+  $scope.getClassFullTitle = function(c) {
+    if (!c) return '';
+    var parts = [];
+    var code = c.classCode || c.class_code || '';
+    var name = c.className || c.class_name || '';
+    if (code || name) {
+      parts.push(code + ' - ' + name);
+    }
+    if (c.subjectName || c.subject_name) {
+      parts.push(c.subjectName || c.subject_name);
+    }
+    if (c.lecturerName || c.lecturer_name) {
+      parts.push('GV: ' + (c.lecturerName || c.lecturer_name));
+    }
+    if (c.semester) {
+      parts.push('HK' + c.semester);
+    }
+    return parts.join(' | ');
+  };
+
+  // Class selection handler
+  $scope.onClassChange = function() {
+    if (!$scope.selectedClassId) {
+      $scope.selectedClassInfo = null;
+      $scope.loadSessions();
+      return;
+    }
+    
+    var selectedClass = $scope.classes.find(function(c) {
+      return c.classId === $scope.selectedClassId || c.class_id === $scope.selectedClassId;
+    });
+    
+    if (selectedClass) {
+      $scope.selectedClassInfo = {
+        classId: selectedClass.classId || selectedClass.class_id,
+        classCode: selectedClass.classCode || selectedClass.class_code,
+        className: selectedClass.className || selectedClass.class_name,
+        subjectName: selectedClass.subjectName || selectedClass.subject_name,
+        lecturerName: selectedClass.lecturerName || selectedClass.lecturer_name,
+        semester: selectedClass.semester,
+        isActive: selectedClass.isActive || selectedClass.is_active_computed || selectedClass.isActive === 1
+      };
+    }
+    
+    $scope.loadSessions();
   };
 
   // Load sessions for current week
   $scope.loadSessions = function() {
     $scope.loading = true;
     $scope.error = null;
-    TimetableApi.getAllSessionsByWeek($scope.year, $scope.week).then(function(res) {
+    
+    var apiCall;
+    if ($scope.selectedClassId) {
+      apiCall = TimetableApi.getSessionsByClass($scope.selectedClassId, $scope.week);
+    } else {
+      apiCall = TimetableApi.getAllSessionsByWeek($scope.year, $scope.week);
+    }
+    
+    apiCall.then(function(res) {
       var data = (res.data && res.data.data) || [];
       $scope.allSessions = data;
       // Map theo weekday để hiển thị grid
@@ -362,7 +293,7 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       $scope.grid = map;
     }).catch(function(err) {
       $scope.error = 'Lỗi tải danh sách phiên: ' + (err.data && err.data.message) || err.statusText;
-      console.error('Load sessions error:', err);
+      LoggerService.error('Load sessions error', err);
     }).finally(function() {
       $scope.loading = false;
     });
@@ -399,7 +330,7 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       endTime: endTimeStr       // "HH:mm:ss" format
     };
     
-    console.log('Check conflicts input:', JSON.stringify(input, null, 2));
+    LoggerService.debug('Check conflicts input', input);
     
     TimetableApi.checkConflicts(input).then(function(res) {
       $scope.conflictResult = res.data.data || res.data;
@@ -432,31 +363,33 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
         errorMsg += ': ' + err.statusText;
       }
       ToastService.error(errorMsg);
-      console.error('Check conflicts error:', err);
-      if (err.data) console.error('Error data:', JSON.stringify(err.data, null, 2));
+      LoggerService.error('Check conflicts error', err);
+      if (err && err.data) {
+        LoggerService.debug('Check conflicts error payload', err.data);
+      }
     });
   };
 
   // Create session
   $scope.createSession = function() {
+    // Check class is active
+    if ($scope.selectedClassInfo && !$scope.selectedClassInfo.isActive) {
+      ToastService.error('Không thể tạo phiên học cho lớp đã bị vô hiệu hóa');
+      return;
+    }
+    
+    if ($scope.form.classId) {
+      var formClass = $scope.classes.find(function(c) {
+        return (c.classId === $scope.form.classId || c.class_id === $scope.form.classId);
+      });
+      if (formClass && !(formClass.isActive || formClass.is_active_computed || formClass.isActive === 1)) {
+        ToastService.error('Không thể tạo phiên học cho lớp đã bị vô hiệu hóa');
+        return;
+      }
+    }
     if (!$scope.conflictResult || $scope.conflictResult.lecturerConflicts.length > 0 || 
         $scope.conflictResult.roomConflicts.length > 0 || $scope.conflictResult.isOverCapacity) {
       ToastService.warning('Vui lòng kiểm tra xung đột trước');
-      return;
-    }
-    
-    // Validate schoolYearId - must have a valid value
-    var schoolYearId = $scope.form.schoolYearId || $scope.selectedSchoolYearId;
-    if (!schoolYearId || schoolYearId === '') {
-      ToastService.error('Vui lòng chọn năm học');
-      return;
-    }
-    
-    // Validate time values
-    var startTimeStr = timeToApi($scope.form.startTime);
-    var endTimeStr = timeToApi($scope.form.endTime);
-    if (!startTimeStr || !endTimeStr) {
-      ToastService.error('Vui lòng nhập đầy đủ giờ bắt đầu và kết thúc');
       return;
     }
     
@@ -466,11 +399,11 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       subjectId: $scope.form.subjectId,
       lecturerId: $scope.form.lecturerId || null,
       roomId: $scope.form.roomId || null,
-      schoolYearId: schoolYearId, // Use validated schoolYearId
+      schoolYearId: $scope.form.schoolYearId,
       weekNo: parseInt($scope.form.weekNo),
       weekday: parseInt($scope.form.weekday),
-      startTime: startTimeStr, // Convert "HH:mm" -> "HH:mm:ss"
-      endTime: endTimeStr,     // Convert "HH:mm" -> "HH:mm:ss"
+      startTime: timeToApi($scope.form.startTime), // Convert "HH:mm" -> "HH:mm:ss"
+      endTime: timeToApi($scope.form.endTime),     // Convert "HH:mm" -> "HH:mm:ss"
       periodFrom: parseInt($scope.form.periodFrom),
       periodTo: parseInt($scope.form.periodTo),
       recurrence: $scope.form.recurrence,
@@ -492,7 +425,7 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       } else {
         ToastService.error('Lỗi tạo phiên: ' + (err.data && err.data.message) || err.statusText);
       }
-      console.error('Create session error:', err);
+      LoggerService.error('Create session error', err);
     }).finally(function() { $scope.loading = false; });
   };
 
@@ -500,32 +433,17 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
   $scope.updateSession = function() {
     if (!$scope.form.sessionId) return;
     
-    // Validate schoolYearId - must have a valid value
-    var schoolYearId = $scope.form.schoolYearId || $scope.selectedSchoolYearId;
-    if (!schoolYearId || schoolYearId === '') {
-      ToastService.error('Vui lòng chọn năm học');
-      return;
-    }
-    
-    // Validate time values
-    var startTimeStr = timeToApi($scope.form.startTime);
-    var endTimeStr = timeToApi($scope.form.endTime);
-    if (!startTimeStr || !endTimeStr) {
-      ToastService.error('Vui lòng nhập đầy đủ giờ bắt đầu và kết thúc');
-      return;
-    }
-    
     $scope.loading = true;
     var input = {
       classId: $scope.form.classId,
       subjectId: $scope.form.subjectId,
       lecturerId: $scope.form.lecturerId || null,
       roomId: $scope.form.roomId || null,
-      schoolYearId: schoolYearId, // Use validated schoolYearId
+      schoolYearId: $scope.form.schoolYearId,
       weekNo: parseInt($scope.form.weekNo),
       weekday: parseInt($scope.form.weekday),
-      startTime: startTimeStr, // Convert "HH:mm" -> "HH:mm:ss"
-      endTime: endTimeStr,     // Convert "HH:mm" -> "HH:mm:ss"
+      startTime: timeToApi($scope.form.startTime), // Convert "HH:mm" -> "HH:mm:ss"
+      endTime: timeToApi($scope.form.endTime),     // Convert "HH:mm" -> "HH:mm:ss"
       periodFrom: parseInt($scope.form.periodFrom),
       periodTo: parseInt($scope.form.periodTo),
       recurrence: $scope.form.recurrence,
@@ -546,7 +464,7 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       } else {
         ToastService.error('Lỗi cập nhật: ' + (err.data && err.data.message) || err.statusText);
       }
-      console.error('Update session error:', err);
+      LoggerService.error('Update session error', err);
     }).finally(function() { $scope.loading = false; });
   };
 
@@ -559,7 +477,7 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       $scope.loadSessions(); // Reload danh sách
     }).catch(function(err) {
       ToastService.error('Lỗi xóa phiên: ' + (err.data && err.data.message) || err.statusText);
-      console.error('Delete session error:', err);
+      LoggerService.error('Delete session error', err);
     });
   };
 
@@ -574,9 +492,8 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
     $scope.form.subjectId = '';
     $scope.form.lecturerId = '';
     $scope.form.roomId = '';
-    // Use selectedSchoolYearId if available, otherwise use default
-    $scope.form.schoolYearId = $scope.selectedSchoolYearId || ($scope.schoolYears.length > 0 ? $scope.schoolYears[0].schoolYearId : 'SY2024');
-    $scope.form.weekNo = $scope.selectedWeek || $scope.week || 12;
+    $scope.form.schoolYearId = 'SY2024';
+    $scope.form.weekNo = $scope.week;
     $scope.form.weekday = 2;
     $scope.form.periodFrom = 1;
     $scope.form.periodTo = 3;
@@ -586,13 +503,8 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
     
     // Set time values after a short delay to avoid Angular parsing issues
     $timeout(function() {
-      // Ensure time values are strings in "HH:mm" format
-      if (!$scope.form.startTime || typeof $scope.form.startTime !== 'string' || $scope.form.startTime.length !== 5) {
-        $scope.form.startTime = '07:00';
-      }
-      if (!$scope.form.endTime || typeof $scope.form.endTime !== 'string' || $scope.form.endTime.length !== 5) {
-        $scope.form.endTime = '09:00';
-      }
+      $scope.form.startTime = '07:00'; // Format cho input type="time"
+      $scope.form.endTime = '09:00';   // Format cho input type="time"
     }, 10);
   };
 
@@ -632,23 +544,29 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
     }, 10);
   };
 
-  // Week navigation (kept for backward compatibility, but now uses dropdown)
+  // Week navigation
   $scope.prevWeek = function() {
-    if ($scope.selectedWeek && $scope.selectedWeek > 1) {
-      $scope.selectedWeek = $scope.selectedWeek - 1;
-      $scope.onWeekChange();
+    $scope.week = $scope.week - 1;
+    if ($scope.week < 1) {
+      $scope.week = 53;
+      $scope.year = $scope.year - 1;
     }
+    $scope.form.weekNo = $scope.week;
+    $scope.loadSessions();
   };
   
   $scope.nextWeek = function() {
-    if ($scope.selectedWeek && $scope.selectedWeek < 53) {
-      $scope.selectedWeek = $scope.selectedWeek + 1;
-      $scope.onWeekChange();
+    $scope.week = $scope.week + 1;
+    if ($scope.week > 53) {
+      $scope.week = 1;
+      $scope.year = $scope.year + 1;
     }
+    $scope.form.weekNo = $scope.week;
+    $scope.loadSessions();
   };
 
   // Initialize
   $scope.loadDropdowns();
-  // loadSessions will be called automatically in onWeekChange() after dropdowns are loaded
+  $scope.loadSessions();
 }]);
 

@@ -3,27 +3,7 @@
     <app-sidebar></app-sidebar>
     
     <div class="main-content">
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
-                <h1 class="page-title"><i class="fas fa-shield-alt"></i> Nhật ký Hệ thống</h1>
-            </div>
-            <div class="header-right">
-                <div class="user-info" ng-init="currentUser = getCurrentUser()">
-                    <div class="user-avatar" ng-click="openAvatarModal()">
-                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
-                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
-                    </div>
-                    <div class="user-details">
-                        <span class="user-name">{{currentUser.fullName}}</span>
-                        <span class="user-role">{{currentUser.roleName || 'Admin'}}</span>
-                    </div>
-                </div>
-                <button ng-click="logout()" class="btn btn-outline">
-                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                </button>
-            </div>
-        </header>
+        <app-topbar page-title="Nhật ký Hệ thống"></app-topbar>
         
         <div class="content-body audit-log-container">
             <!-- Alerts -->
@@ -106,22 +86,11 @@
                     <!-- Advanced Search and Filters -->
                     <div class="audit-filters-section">
                         <!-- Search Bar -->
-                        <div class="search-wrapper">
-                            <div class="search-input-group">
-                                <input type="text" 
-                                       class="form-control search-input" 
-                                       ng-model="pagination.searchTerm"
-                                       ng-keyup="$event.keyCode === 13 && handleSearch()"
-                                       placeholder="Tìm kiếm theo người dùng, hành động, đối tượng, IP...">
-                                <button class="btn-clear" ng-if="pagination.searchTerm" ng-click="clearSearch()">
-                                    <i class="fas fa-times"></i>
-                                </button>
-                            </div>
-                            <button class="btn-search" ng-click="handleSearch()">
-                                <i class="fas fa-search"></i>
-                                Tìm kiếm
-                            </button>
-                        </div>
+                        <search-bar 
+                            search-term="pagination.searchTerm" 
+                            on-search="handleSearch()" 
+                            placeholder="Tìm kiếm theo người dùng, hành động, đối tượng, IP...">
+                        </search-bar>
                         
                         <!-- Filters Toggle -->
                         <button class="btn-filter-toggle" ng-click="showFilters = !showFilters">
@@ -170,7 +139,8 @@
                                         <i class="fas fa-calendar-alt"></i> Từ ngày
                                     </label>
                                     <input type="date" 
-                                           ng-model="filters.dateFrom" 
+                                           ng-model="filters.dateFrom"
+                                           ng-model-options="{ timezone: 'UTC' }"
                                            ng-change="handleFilterChange()" 
                                            class="form-control">
                                 </div>
@@ -181,7 +151,8 @@
                                         <i class="fas fa-calendar-check"></i> Đến ngày
                                     </label>
                                     <input type="date" 
-                                           ng-model="filters.dateTo" 
+                                           ng-model="filters.dateTo"
+                                           ng-model-options="{ timezone: 'UTC' }"
                                            ng-change="handleFilterChange()" 
                                            class="form-control">
                                 </div>
@@ -246,16 +217,40 @@
                                         <strong>{{log.userName}}</strong>
                                     </div>
                                     <div class="log-details" ng-if="log.details">
-                                        <div class="detail-preview">
-                                            {{log.details | limitTo: 100}}
-                                            <span ng-if="log.details.length > 100">...</span>
+                                        <!-- Readable format -->
+                                        <div ng-if="!log.showRawJson" ng-init="log.readableData = parseJsonToReadable(log.details)">
+                                            <div class="readable-details">
+                                                <div class="readable-item" ng-repeat="item in log.readableData | limitTo: (log.expanded ? undefined : 5)">
+                                                    <span class="readable-label">{{item.label}}:</span>
+                                                    <span class="readable-value">{{item.value}}</span>
+                                                </div>
+                                                <div class="more-items-indicator" ng-if="!log.expanded && log.readableData.length > 5">
+                                                    <span class="more-count">+ {{log.readableData.length - 5}} thông tin khác</span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <button class="btn-expand" ng-click="log.expanded = !log.expanded" ng-if="log.details.length > 100">
-                                            <i class="fas" ng-class="log.expanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
-                                            {{log.expanded ? 'Thu gọn' : 'Xem thêm'}}
-                                        </button>
-                                        <div class="detail-full" ng-if="log.expanded">
-                                            <pre>{{log.details}}</pre>
+                                        
+                                        <!-- Raw JSON format -->
+                                        <div ng-if="log.showRawJson">
+                                            <div class="detail-preview" ng-if="!log.expanded">
+                                                {{log.details | limitTo: 100}}
+                                                <span ng-if="log.details.length > 100">...</span>
+                                            </div>
+                                            <div class="detail-full" ng-if="log.expanded">
+                                                <pre>{{log.details}}</pre>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Action buttons -->
+                                        <div class="detail-actions">
+                                            <button class="btn-expand" ng-click="log.expanded = !log.expanded">
+                                                <i class="fas" ng-class="log.expanded ? 'fa-chevron-up' : 'fa-chevron-down'"></i>
+                                                {{log.expanded ? 'Thu gọn' : 'Xem thêm'}}
+                                            </button>
+                                            <button class="btn-toggle-format" ng-click="log.showRawJson = !log.showRawJson" title="{{log.showRawJson ? 'Xem dạng dễ hiểu' : 'Xem dạng JSON'}}">
+                                                <i class="fas" ng-class="log.showRawJson ? 'fa-align-left' : 'fa-code'"></i>
+                                                {{log.showRawJson ? 'Dễ hiểu' : 'JSON'}}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -398,7 +393,31 @@
             </div>
             <div class="detail-row full-width" ng-if="selectedLog.details">
                 <label>Chi tiết:</label>
-                <pre class="detail-pre">{{selectedLog.details}}</pre>
+                
+                <!-- Toggle between readable and raw format -->
+                <div class="format-toggle-buttons">
+                    <button class="btn-format-toggle" 
+                            ng-class="{'active': !selectedLog.showRawJson}"
+                            ng-click="selectedLog.showRawJson = false">
+                        <i class="fas fa-align-left"></i> Dễ hiểu
+                    </button>
+                    <button class="btn-format-toggle" 
+                            ng-class="{'active': selectedLog.showRawJson}"
+                            ng-click="selectedLog.showRawJson = true">
+                        <i class="fas fa-code"></i> JSON gốc
+                    </button>
+                </div>
+                
+                <!-- Readable format -->
+                <div class="readable-details-modal" ng-if="!selectedLog.showRawJson">
+                    <div class="readable-item-modal" ng-repeat="item in selectedLog.readableData">
+                        <div class="readable-label-modal">{{item.label}}</div>
+                        <div class="readable-value-modal">{{item.value}}</div>
+                    </div>
+                </div>
+                
+                <!-- Raw JSON format -->
+                <pre class="detail-pre" ng-if="selectedLog.showRawJson">{{selectedLog.details}}</pre>
             </div>
         </div>
         <div class="modal-footer">

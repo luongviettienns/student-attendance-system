@@ -4,68 +4,97 @@
 
 /* Modal Overlay */
 .modal-overlay {
-    display: none;
+    display: none !important;
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
     z-index: 9998;
     animation: fadeIn 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
+/* Modal overlay base styles đã được định nghĩa trong components.css */
+
 .modal-overlay.active {
-    display: block;
+    display: block !important;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 /* Modal Container */
 .modal {
-    display: none;
+    display: none !important;
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    background: var(--bg-primary);
+    border-radius: var(--border-radius-lg);
+    border: 2px solid var(--border-color);
+    box-shadow: var(--box-shadow-xl);
     z-index: 9999;
     max-width: 600px;
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
-    animation: slideDown 0.3s ease;
+    animation: fadeIn 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .modal.active {
-    display: block;
+    display: block !important;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 /* Modal Header */
 .modal-header {
     padding: 20px 24px;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
 .modal-header.bg-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--gradient-primary);
     color: white;
-    border-radius: 8px 8px 0 0;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.modal-header.bg-primary i {
+    color: white !important;
 }
 
 .modal-header.bg-info {
-    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+    background: var(--gradient-info);
     color: white;
-    border-radius: 8px 8px 0 0;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.modal-header.bg-info i {
+    color: white !important;
 }
 
 .modal-header.bg-success {
-    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+    background: var(--gradient-success);
     color: white;
-    border-radius: 8px 8px 0 0;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.modal-header.bg-success i {
+    color: white !important;
 }
 
 .modal-title {
@@ -75,26 +104,56 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    letter-spacing: -0.01em;
 }
 
-.modal-close {
-    background: transparent;
-    border: none;
-    font-size: 1.5rem;
+/* ==============================================
+   MODAL CLOSE BUTTON - UNIFIED STYLE
+   Áp dụng cho tất cả modal trong hệ thống
+   ============================================== */
+
+/* Override cho tất cả modal close button */
+.modal .modal-close,
+#assignSubjectsModal .modal-close,
+#lecturerModal .modal-close,
+.modal-header .modal-close {
+    background: white !important;
+    border: 2px solid #ef4444 !important;
+    font-size: 20px;
     cursor: pointer;
-    color: inherit;
-    opacity: 0.8;
-    transition: opacity 0.2s;
+    color: #ef4444 !important;
     padding: 0;
-    width: 32px;
-    height: 32px;
-    display: flex;
+    width: 38px;
+    height: 38px;
+    border-radius: 8px;
+    display: flex !important;
     align-items: center;
     justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.modal-close:hover {
-    opacity: 1;
+/* Hover state - Đảo màu */
+.modal .modal-close:hover,
+#assignSubjectsModal .modal-close:hover,
+#lecturerModal .modal-close:hover,
+.modal-header .modal-close:hover {
+    background: #ef4444 !important;
+    border-color: #dc2626 !important;
+    color: white !important;
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+}
+
+/* Icon styling */
+.modal .modal-close i,
+#assignSubjectsModal .modal-close i,
+#lecturerModal .modal-close i,
+.modal-header .modal-close i {
+    font-size: 18px;
+    color: inherit !important;
+    font-weight: 700;
+    transition: color 0.3s ease;
 }
 
 /* Modal Body */
@@ -105,7 +164,7 @@
 /* Modal Footer */
 .modal-footer {
     padding: 16px 24px;
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: flex-end;
     gap: 12px;
@@ -120,7 +179,7 @@
     display: block;
     margin-bottom: 8px;
     font-weight: 500;
-    color: #374151;
+    color: var(--text-primary);
 }
 
 .form-group input,
@@ -128,8 +187,8 @@
 .form-group textarea {
     width: 100%;
     padding: 10px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
     font-size: 0.95rem;
     transition: all 0.2s;
 }
@@ -138,8 +197,8 @@
 .form-group select:focus,
 .form-group textarea:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .form-group textarea {
@@ -148,64 +207,14 @@
 }
 
 .text-danger {
-    color: #dc3545;
+    color: var(--danger-color);
 }
 
-/* Buttons */
-.btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-}
-
-.btn-info {
-    background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-    color: white;
-}
-
-.btn-success {
-    background: linear-gradient(135deg, #28a745 0%, #218838 100%);
-    color: white;
-}
-
-.btn-secondary {
-    background: #6c757d;
-    color: white;
-}
-
-.btn-warning {
-    background: #ffc107;
-    color: #000;
-}
-
-.btn-danger {
-    background: #dc3545;
-    color: white;
-}
-
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 0.875rem;
-}
+/* Button styles đã được định nghĩa trong components.css và semantic-colors.css */
+/* Chỉ giữ modal-specific button styles nếu cần */
 
 /* Animations */
+/* Animation: Fade In - Đơn giản, chỉ mờ sang rõ */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -215,21 +224,10 @@
     }
 }
 
-@keyframes slideDown {
-    from {
-        transform: translate(-50%, -60%);
-        opacity: 0;
-    }
-    to {
-        transform: translate(-50%, -50%);
-        opacity: 1;
-    }
-}
-
 /* Tabs */
 .nav-tabs {
     display: flex;
-    border-bottom: 2px solid #e5e7eb;
+    border-bottom: 2px solid var(--border-color);
     margin-bottom: 24px;
     gap: 0;
 }
@@ -241,7 +239,7 @@
 .nav-link {
     padding: 12px 24px;
     text-decoration: none;
-    color: #6b7280;
+    color: var(--text-secondary);
     border-bottom: 3px solid transparent;
     transition: all 0.2s;
     display: flex;
@@ -252,13 +250,13 @@
 }
 
 .nav-link:hover {
-    color: #667eea;
-    background: rgba(102, 126, 234, 0.05);
+    color: var(--primary-color);
+    background: rgba(59, 130, 246, 0.05);
 }
 
 .nav-link.active {
-    color: #667eea;
-    border-bottom-color: #667eea;
+    color: var(--primary-color);
+    border-bottom-color: var(--primary-color);
 }
 
 .tab-content {
@@ -266,110 +264,23 @@
 }
 
 /* Tab panes - AngularJS sẽ handle hiển thị qua ng-show */
-.tab-pane {
-    /* Không set display: none ở đây, để ng-show xử lý */
-}
 
-/* Tables */
-.table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-.table thead {
-    background: #f9fafb;
-}
-
-.table th,
-.table td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.table th {
-    font-weight: 600;
-    color: #374151;
-}
-
-.table tbody tr:hover {
-    background: #f9fafb;
-}
-
-.table-bordered {
-    border: 1px solid #e5e7eb;
-}
-
-.table-bordered th,
-.table-bordered td {
-    border: 1px solid #e5e7eb;
-}
+/* Table styles đã được định nghĩa trong components.css */
+/* Chỉ giữ modal-specific table styles nếu cần */
 
 .text-center {
     text-align: center;
 }
 
 .text-muted {
-    color: #6b7280;
+    color: var(--text-secondary);
 }
 
-/* Badges */
-.badge {
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 0.875rem;
-    font-weight: 500;
-    display: inline-block;
-}
+/* Badge styles đã được định nghĩa trong components.css */
+/* Chỉ giữ modal-specific badge styles nếu cần */
 
-.badge-primary {
-    background: #667eea;
-    color: white;
-}
-
-.badge-info {
-    background: #17a2b8;
-    color: white;
-}
-
-.badge-success {
-    background: #28a745;
-    color: white;
-}
-
-.badge-secondary {
-    background: #6c757d;
-    color: white;
-}
-
-/* Cards */
-.card {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    margin-bottom: 24px;
-}
-
-.card-header {
-    padding: 16px 20px;
-    border-bottom: 1px solid #e5e7eb;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.card-title {
-    margin: 0;
-    font-size: 1.125rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.card-body {
-    padding: 20px;
-}
+/* Card styles đã được định nghĩa trong components.css */
+/* Chỉ giữ modal-specific card styles nếu cần */
 
 .card-tools {
     display: flex;
@@ -427,6 +338,409 @@
     .nav-link {
         padding: 10px 16px;
         font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 575px) {
+    .modal {
+        width: 100%;
+        max-width: calc(100% - 20px);
+        height: calc(100vh - 20px);
+        max-height: none;
+        border-radius: 16px;
+        padding-bottom: 8px;
+    }
+    
+    .modal-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    
+    .modal-body {
+        padding: 16px 14px;
+    }
+    
+    .modal-footer {
+        flex-direction: column-reverse;
+        align-items: stretch;
+        gap: 8px;
+    }
+    
+    .modal-footer .btn {
+        width: 100%;
+    }
+    
+    .modal .modal-close {
+        align-self: flex-end;
+    }
+}
+
+/* ==============================================
+   ASSIGN SUBJECTS MODAL - CUSTOM STYLES  
+   ============================================== */
+
+/* Modal XL size */
+.modal-dialog.modal-xl {
+    max-width: 1400px;
+    width: 95%;
+    margin: 20px auto;
+}
+
+.modal-dialog.modal-xl .modal-content {
+    border-radius: 16px;
+    border: 3px solid #10b981;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(16, 185, 129, 0.2),
+                0 0 40px rgba(16, 185, 129, 0.3);
+    overflow: hidden;
+}
+
+/* Remove horizontal padding for assignSubjectsModal */
+#assignSubjectsModal .modal-body {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+}
+
+/* Section styles */
+.subject-section {
+    background: white;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    height: 100%;
+}
+
+/* Add colored border for the form section (right column) */
+#assignSubjectsModal .col-md-4 .subject-section {
+    border: 2px solid #10b981;
+    background: linear-gradient(to bottom, #f0fdf4 0%, #ffffff 100%);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.section-header i {
+    font-size: 20px;
+    color: var(--primary-color, #3b82f6);
+}
+
+.section-header h6 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+/* Assigned subjects list */
+.assigned-subjects-list {
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 4px;
+    margin-right: -4px;
+}
+
+.assigned-subjects-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.assigned-subjects-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+.assigned-subjects-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.assigned-subjects-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Subject cards grid - Scoped to assignSubjectsModal */
+#assignSubjectsModal .subjects-grid {
+    display: grid;
+    gap: 8px;
+}
+
+#assignSubjectsModal .subject-card {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    border: 1px solid #10b981;
+    border-radius: 10px;
+    padding: 12px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+#assignSubjectsModal .subject-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: #10b981;
+}
+
+#assignSubjectsModal .subject-card:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+}
+
+#assignSubjectsModal .subject-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+#assignSubjectsModal .subject-info {
+    flex: 1;
+}
+
+#assignSubjectsModal .subject-code {
+    font-size: 15px;
+    font-weight: 700;
+    color: #059669;
+    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+}
+
+#assignSubjectsModal .subject-name {
+    font-size: 14px;
+    color: #064e3b;
+    line-height: 1.4;
+}
+
+#assignSubjectsModal .remove-btn {
+    background: #ef4444;
+    color: white;
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+#assignSubjectsModal .remove-btn:hover {
+    background: #dc2626;
+    transform: scale(1.1);
+}
+
+#assignSubjectsModal .remove-btn i {
+    font-size: 14px;
+    color: white !important;
+}
+
+#assignSubjectsModal .subject-card-footer {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #a7f3d0;
+}
+
+#assignSubjectsModal .primary-badge,
+#assignSubjectsModal .exp-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+#assignSubjectsModal .primary-badge {
+    background: #fbbf24;
+    color: #78350f;
+}
+
+#assignSubjectsModal .primary-badge i {
+    color: #f59e0b;
+}
+
+#assignSubjectsModal .exp-badge {
+    background: #e0f2fe;
+    color: #075985;
+}
+
+#assignSubjectsModal .exp-badge i {
+    color: #0284c7;
+}
+
+/* Empty state - Scoped */
+#assignSubjectsModal .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #64748b;
+}
+
+#assignSubjectsModal .empty-state i {
+    font-size: 64px;
+    color: #cbd5e1;
+    margin-bottom: 16px;
+}
+
+#assignSubjectsModal .empty-state p {
+    font-size: 16px;
+    font-weight: 600;
+    color: #475569;
+    margin: 12px 0 4px 0;
+}
+
+#assignSubjectsModal .empty-state small {
+    font-size: 14px;
+    color: #94a3b8;
+}
+
+/* Add subject form - Scoped */
+#assignSubjectsModal .add-subject-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#assignSubjectsModal .form-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 8px;
+}
+
+#assignSubjectsModal .form-label i {
+    color: #10b981;
+    font-size: 14px;
+}
+
+#assignSubjectsModal .form-label .required {
+    color: #ef4444;
+    margin-left: 2px;
+}
+
+#assignSubjectsModal .modern-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2310b981'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 24px;
+    padding-right: 40px;
+}
+
+#assignSubjectsModal .form-help {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #f59e0b;
+    font-style: italic;
+}
+
+/* Checkbox label - Scoped */
+#assignSubjectsModal .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    padding: 12px;
+    background: #f0fdfa;
+    border: 2px solid #ccfbf1;
+    border-radius: 8px;
+    transition: all 0.2s;
+    margin-bottom: 0;
+}
+
+#assignSubjectsModal .checkbox-label:hover {
+    background: #ccfbf1;
+    border-color: #5eead4;
+}
+
+#assignSubjectsModal .checkbox-label input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+    accent-color: #10b981;
+}
+
+#assignSubjectsModal .checkbox-text {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #065f46;
+}
+
+#assignSubjectsModal .checkbox-text i {
+    color: #fbbf24;
+}
+
+/* Add button - Scoped */
+#assignSubjectsModal .btn-add-subject {
+    margin-top: 8px;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+    transition: all 0.3s;
+}
+
+#assignSubjectsModal .btn-add-subject:hover:not(:disabled) {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+#assignSubjectsModal .btn-add-subject:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+#assignSubjectsModal .btn-add-subject i {
+    margin-right: 8px;
+}
+
+/* Responsive for assign subjects modal */
+@media (max-width: 992px) {
+    .modal-dialog.modal-xl {
+        max-width: 95%;
+    }
+    
+    #assignSubjectsModal .subject-section {
+        margin-bottom: 20px;
+    }
+    
+    #assignSubjectsModal .subjects-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    #assignSubjectsModal .assigned-subjects-list {
+        max-height: 300px;
+    }
+    
+    #assignSubjectsModal .subject-card-footer {
+        flex-direction: column;
+        gap: 6px;
     }
 }
 

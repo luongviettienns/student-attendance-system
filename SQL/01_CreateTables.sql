@@ -43,6 +43,46 @@ PRINT '✓ Created type: StudentImportType';
 GO
 
 -- ===========================================
+-- DROP ALL FOREIGN KEY CONSTRAINTS (if tables exist)
+-- ===========================================
+PRINT '';
+PRINT '🔧 Dropping all foreign key constraints...';
+GO
+
+-- Dynamic SQL to drop all foreign key constraints
+DECLARE @sql NVARCHAR(MAX) = N'';
+DECLARE @fkCount INT = 0;
+
+-- Count foreign keys first
+SELECT @fkCount = COUNT(*)
+FROM sys.foreign_keys
+WHERE OBJECT_SCHEMA_NAME(parent_object_id) = 'dbo';
+
+-- Build drop statements
+SELECT @sql += N'
+ALTER TABLE ' + QUOTENAME(OBJECT_SCHEMA_NAME(parent_object_id)) + '.' + QUOTENAME(OBJECT_NAME(parent_object_id)) + 
+' DROP CONSTRAINT ' + QUOTENAME(name) + ';'
+FROM sys.foreign_keys
+WHERE OBJECT_SCHEMA_NAME(parent_object_id) = 'dbo';
+
+IF @sql <> N'' AND @fkCount > 0
+BEGIN
+    BEGIN TRY
+        EXEC sp_executesql @sql;
+        PRINT CONCAT('   ✅ Dropped ', CAST(@fkCount AS VARCHAR), ' foreign key constraint(s)');
+    END TRY
+    BEGIN CATCH
+        PRINT '   ⚠️  Warning: Some foreign key constraints may not have been dropped';
+        PRINT CONCAT('   Error: ', ERROR_MESSAGE());
+    END CATCH
+END
+ELSE
+BEGIN
+    PRINT '   ℹ️  No foreign key constraints to drop';
+END
+GO
+
+-- ===========================================
 -- 1. BẢNG ROLES (Vai trò người dùng)
 -- ===========================================
 IF OBJECT_ID('dbo.roles', 'U') IS NOT NULL DROP TABLE dbo.roles;
@@ -222,6 +262,7 @@ CREATE TABLE dbo.students (
     academic_year_id VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.academic_years(academic_year_id),
     advisor_id       VARCHAR(50) NULL,
     user_id          VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.users(user_id),
+    last_warning_sent DATETIME NULL,
     is_active        BIT NOT NULL DEFAULT 1,
     created_at       DATETIME NOT NULL DEFAULT(GETDATE()),
     created_by       VARCHAR(50) NULL,
@@ -376,12 +417,13 @@ CREATE TABLE dbo.gpas (
     gpa_id           VARCHAR(50) PRIMARY KEY,
     student_id       VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.students(student_id),
     academic_year_id VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.academic_years(academic_year_id),
+    school_year_id   VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.school_years(school_year_id),
     semester         INT NULL, -- NULL = cả năm học, 1/2/3 = học kỳ cụ thể
     gpa10            DECIMAL(4,2) NULL CHECK (gpa10 >= 0 AND gpa10 <= 10),
     gpa4             DECIMAL(4,2) NULL CHECK (gpa4 >= 0 AND gpa4 <= 4),
     total_credits    INT NULL DEFAULT 0,
     accumulated_credits INT NULL DEFAULT 0,
-    rank_text        NVARCHAR(50) NULL, -- Xuất sắc, Giỏi, Khá, Trung bình, Yếu
+    rank_text        NVARCHAR(50) NULL, -- Xuat sac, Gioi, Kha, Trung binh, Yeu (Tieng Viet khong dau - backend se chuyen doi)
     is_active        BIT NOT NULL DEFAULT 1,
     created_at       DATETIME NOT NULL DEFAULT(GETDATE()),
     created_by       VARCHAR(50) NULL,
@@ -391,7 +433,7 @@ CREATE TABLE dbo.gpas (
     deleted_by       VARCHAR(50) NULL,
     
     -- Unique constraint: Mỗi sinh viên chỉ có 1 GPA cho 1 năm học + học kỳ
-    CONSTRAINT uk_gpa_student_year_semester UNIQUE (student_id, academic_year_id, semester)
+    CONSTRAINT uk_gpa_student_schoolyear_semester UNIQUE (student_id, school_year_id, semester)
 );
 GO
 
@@ -403,13 +445,56 @@ GO
 
 CREATE TABLE dbo.notifications (
     notification_id   VARCHAR(50) PRIMARY KEY,
-    user_id           VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.users(user_id),
+    -- Legacy columns (kept for backward compatibility)
+    user_id           VARCHAR(50) NULL,  -- Changed to NULL, will be migrated to recipient_id
+    message           NVARCHAR(MAX) NULL, -- Changed to NULL, will be migrated to content
+    notification_type NVARCHAR(50) NULL, -- Changed to NULL, will be migrated to type
+    -- New schema columns
+    recipient_id      VARCHAR(50) NULL,
     title             NVARCHAR(200) NOT NULL,
-    message           NVARCHAR(MAX) NOT NULL,
-    notification_type NVARCHAR(50) NULL,
+    content           NVARCHAR(MAX) NULL,
+    type              NVARCHAR(50) NULL,
     is_read           BIT NOT NULL DEFAULT 0,
-    created_at        DATETIME NOT NULL DEFAULT(GETDATE())
+    sent_date         DATETIME NULL,
+    is_active         BIT NOT NULL DEFAULT 1,
+    created_at        DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by        VARCHAR(50) NULL,
+    updated_at        DATETIME NULL,
+    updated_by        VARCHAR(50) NULL,
+    deleted_at        DATETIME NULL,
+    deleted_by        VARCHAR(50) NULL
 );
+GO
+
+-- Add foreign key for recipient_id (if users table exists)
+IF OBJECT_ID('dbo.users', 'U') IS NOT NULL
+BEGIN
+    BEGIN TRY
+        ALTER TABLE dbo.notifications
+        ADD CONSTRAINT FK_Notifications_RecipientId_Users
+        FOREIGN KEY (recipient_id) REFERENCES dbo.users(user_id);
+    END TRY
+    BEGIN CATCH
+        -- Foreign key will be added later if needed
+    END CATCH
+END
+GO
+
+-- Add foreign key for user_id (backward compatibility)
+IF OBJECT_ID('dbo.users', 'U') IS NOT NULL
+BEGIN
+    BEGIN TRY
+        IF NOT EXISTS (SELECT * FROM sys.foreign_keys WHERE name = 'FK_Notifications_UserId_Users')
+        BEGIN
+            ALTER TABLE dbo.notifications
+            ADD CONSTRAINT FK_Notifications_UserId_Users
+            FOREIGN KEY (user_id) REFERENCES dbo.users(user_id);
+        END
+    END TRY
+    BEGIN CATCH
+        -- Foreign key will be added later if needed
+    END CATCH
+END
 GO
 
 -- ===========================================
@@ -423,10 +508,17 @@ CREATE TABLE dbo.permissions (
     permission_code VARCHAR(100) NOT NULL UNIQUE,
     permission_name NVARCHAR(200) NOT NULL,
     description     NVARCHAR(500) NULL,
+    -- 🔹 Menu structure fields
+    parent_code     VARCHAR(100) NULL,        -- Parent permission code for menu hierarchy
+    icon            VARCHAR(100) NULL,        -- FontAwesome icon class
+    sort_order      INT NULL,                 -- Display order in menu
+    is_active       BIT NOT NULL DEFAULT 1,   -- Active status
     created_at      DATETIME NOT NULL DEFAULT(GETDATE()),
     created_by      VARCHAR(50) NULL,
     updated_at      DATETIME NULL,
-    updated_by      VARCHAR(50) NULL
+    updated_by      VARCHAR(50) NULL,
+    deleted_at      DATETIME NULL,            -- Soft delete
+    deleted_by      VARCHAR(50) NULL          -- Audit
 );
 GO
 
@@ -481,6 +573,39 @@ CREATE TABLE dbo.refresh_tokens (
     revoked_at          DATETIME NULL,
     replaced_by_token   VARCHAR(500) NULL
 );
+GO
+
+-- ===========================================
+-- 20. BẢNG ADVISOR_WARNING_CONFIG (Cấu hình cảnh báo cho cố vấn học tập)
+-- ===========================================
+IF OBJECT_ID('dbo.advisor_warning_config', 'U') IS NOT NULL DROP TABLE dbo.advisor_warning_config;
+GO
+
+CREATE TABLE dbo.advisor_warning_config (
+    config_id             INT IDENTITY(1,1) PRIMARY KEY,
+    attendance_threshold  DECIMAL(5,2) NOT NULL DEFAULT 20.0 CHECK (attendance_threshold >= 0 AND attendance_threshold <= 100),
+    gpa_threshold         DECIMAL(4,2) NOT NULL DEFAULT 2.0 CHECK (gpa_threshold >= 0 AND gpa_threshold <= 10),
+    email_template        NVARCHAR(MAX) NULL,
+    email_subject         NVARCHAR(500) NULL,
+    auto_send_emails      BIT NOT NULL DEFAULT 0,
+    created_at            DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by            VARCHAR(50) NULL,
+    updated_at            DATETIME NULL,
+    updated_by            VARCHAR(50) NULL
+);
+GO
+
+-- Chỉ cho phép 1 bản ghi config duy nhất
+CREATE UNIQUE INDEX IX_AdvisorWarningConfig_Single ON dbo.advisor_warning_config(config_id);
+GO
+
+-- Insert default config nếu chưa có
+IF NOT EXISTS (SELECT 1 FROM dbo.advisor_warning_config)
+BEGIN
+    INSERT INTO dbo.advisor_warning_config (attendance_threshold, gpa_threshold, auto_send_emails)
+    VALUES (20.0, 2.0, 0);
+    PRINT '   ✅ Inserted default advisor warning config';
+END
 GO
 
 PRINT '✅ Đã tạo xong các bảng core system!';
@@ -1120,9 +1245,11 @@ PRINT '========================================';
 PRINT '';
 
 -- ===========================================
--- ALTER TABLES: Add school_year_id to gpas
+-- ALTER TABLES: Ensure school_year_id exists in gpas (for backward compatibility)
+-- Note: school_year_id is now included in the CREATE TABLE statement above,
+-- so this section is kept only for cases where the table was created before the fix
 -- ===========================================
--- Add school_year_id column to gpas table if not exists
+-- Add school_year_id column to gpas table if not exists (for backward compatibility)
 IF NOT EXISTS (
     SELECT * FROM sys.columns 
     WHERE object_id = OBJECT_ID('dbo.gpas') 
@@ -1139,5 +1266,247 @@ ELSE
 BEGIN
     PRINT 'ℹ️  Column school_year_id already exists in gpas table';
 END
+GO
+
+-- Drop old constraint if it exists (for backward compatibility)
+IF EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'uk_gpa_student_year_semester' AND parent_object_id = OBJECT_ID('dbo.gpas'))
+BEGIN
+    ALTER TABLE dbo.gpas DROP CONSTRAINT uk_gpa_student_year_semester;
+    PRINT '✅ Dropped old constraint uk_gpa_student_year_semester';
+END
+GO
+
+-- Ensure the constraint exists (for backward compatibility)
+IF NOT EXISTS (SELECT 1 FROM sys.key_constraints WHERE name = 'uk_gpa_student_schoolyear_semester' AND parent_object_id = OBJECT_ID('dbo.gpas'))
+BEGIN
+    ALTER TABLE dbo.gpas 
+    ADD CONSTRAINT uk_gpa_student_schoolyear_semester 
+    UNIQUE (student_id, school_year_id, semester);
+    PRINT '✅ Created constraint uk_gpa_student_schoolyear_semester';
+END
+ELSE
+BEGIN
+    PRINT 'ℹ️  Constraint uk_gpa_student_schoolyear_semester already exists';
+END
+GO
+
+-- ===========================================
+-- 20. BẢNG GRADE_APPEALS (Phúc khảo điểm)
+-- ===========================================
+IF OBJECT_ID('dbo.grade_appeals', 'U') IS NOT NULL DROP TABLE dbo.grade_appeals;
+GO
+
+CREATE TABLE dbo.grade_appeals (
+    appeal_id          VARCHAR(50) PRIMARY KEY,
+    grade_id           VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.grades(grade_id),
+    enrollment_id      VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.enrollments(enrollment_id),
+    student_id         VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.students(student_id),
+    class_id           VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.classes(class_id),
+    
+    -- Thông tin yêu cầu
+    appeal_reason      NVARCHAR(1000) NOT NULL, -- Lý do phúc khảo
+    current_score      DECIMAL(4,2) NULL,        -- Điểm hiện tại
+    expected_score     DECIMAL(4,2) NULL,        -- Điểm mong muốn (nếu có)
+    supporting_docs     NVARCHAR(500) NULL,       -- Tài liệu đính kèm (file paths)
+    
+    -- Workflow
+    status             NVARCHAR(20) NOT NULL DEFAULT 'PENDING', -- PENDING, REVIEWING, APPROVED, REJECTED, CANCELLED
+    priority           NVARCHAR(10) NULL DEFAULT 'NORMAL',     -- LOW, NORMAL, HIGH, URGENT
+    
+    -- Phản hồi từ giảng viên
+    lecturer_response  NVARCHAR(1000) NULL,
+    lecturer_id        VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.lecturers(lecturer_id),
+    lecturer_decision  NVARCHAR(20) NULL, -- APPROVE, REJECT, NEED_REVIEW
+    
+    -- Duyệt từ cố vấn (nếu cần)
+    advisor_id        VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.lecturers(lecturer_id),
+    advisor_response   NVARCHAR(1000) NULL,
+    advisor_decision   NVARCHAR(20) NULL, -- APPROVE, REJECT
+    
+    -- Kết quả cuối cùng
+    final_score        DECIMAL(4,2) NULL,  -- Điểm sau phúc khảo
+    resolution_notes   NVARCHAR(1000) NULL, -- Ghi chú giải quyết
+    
+    -- Audit fields
+    created_at         DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by         VARCHAR(50) NULL, -- Student ID
+    updated_at         DATETIME NULL,
+    updated_by         VARCHAR(50) NULL,
+    resolved_at        DATETIME NULL,
+    resolved_by        VARCHAR(50) NULL,
+    deleted_at         DATETIME NULL,
+    deleted_by         VARCHAR(50) NULL,
+    
+    -- Constraints
+    CONSTRAINT CHK_Appeal_Status CHECK (status IN ('PENDING', 'REVIEWING', 'APPROVED', 'REJECTED', 'CANCELLED')),
+    CONSTRAINT CHK_Appeal_Priority CHECK (priority IN ('LOW', 'NORMAL', 'HIGH', 'URGENT')),
+    CONSTRAINT CHK_Appeal_LecturerDecision CHECK (lecturer_decision IN ('APPROVE', 'REJECT', 'NEED_REVIEW') OR lecturer_decision IS NULL),
+    CONSTRAINT CHK_Appeal_AdvisorDecision CHECK (advisor_decision IN ('APPROVE', 'REJECT') OR advisor_decision IS NULL)
+);
+GO
+
+-- Indexes for grade_appeals
+CREATE INDEX IX_Appeal_Student ON grade_appeals(student_id, status);
+CREATE INDEX IX_Appeal_Grade ON grade_appeals(grade_id);
+CREATE INDEX IX_Appeal_Lecturer ON grade_appeals(lecturer_id, status);
+CREATE INDEX IX_Appeal_Advisor ON grade_appeals(advisor_id, status);
+CREATE INDEX IX_Appeal_Status ON grade_appeals(status, created_at);
+CREATE INDEX IX_Appeal_Enrollment ON grade_appeals(enrollment_id);
+GO
+
+PRINT '✅ Table created: grade_appeals';
+GO
+
+-- ===========================================
+-- 21. BẢNG GRADE_FORMULA_CONFIG (Cấu hình công thức tính điểm)
+-- ===========================================
+IF OBJECT_ID('dbo.grade_formula_config', 'U') IS NOT NULL DROP TABLE dbo.grade_formula_config;
+GO
+
+CREATE TABLE dbo.grade_formula_config (
+    config_id          VARCHAR(50) PRIMARY KEY,
+    
+    -- Phạm vi áp dụng (có thể config theo subject hoặc class)
+    subject_id         VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.subjects(subject_id),
+    class_id           VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.classes(class_id),
+    school_year_id     VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.school_years(school_year_id),
+    
+    -- Công thức tính điểm
+    -- Format: total_score = (midterm_score * midterm_weight) + (final_score * final_weight) + (other_components)
+    midterm_weight     DECIMAL(5,2) NOT NULL DEFAULT 0.30 CHECK (midterm_weight >= 0 AND midterm_weight <= 1),
+    final_weight       DECIMAL(5,2) NOT NULL DEFAULT 0.70 CHECK (final_weight >= 0 AND final_weight <= 1),
+    assignment_weight  DECIMAL(5,2) NULL DEFAULT 0.00 CHECK (assignment_weight >= 0 AND assignment_weight <= 1),
+    quiz_weight        DECIMAL(5,2) NULL DEFAULT 0.00 CHECK (quiz_weight >= 0 AND quiz_weight <= 1),
+    project_weight     DECIMAL(5,2) NULL DEFAULT 0.00 CHECK (project_weight >= 0 AND project_weight <= 1),
+    
+    -- Công thức tùy chỉnh (JSON hoặc formula string)
+    custom_formula     NVARCHAR(500) NULL, -- Ví dụ: "midterm*0.3 + final*0.7 + assignment*0.1"
+    
+    -- Quy tắc làm tròn
+    rounding_method    NVARCHAR(20) NULL DEFAULT 'STANDARD', -- STANDARD, CEILING, FLOOR, NONE
+    decimal_places     INT NULL DEFAULT 2 CHECK (decimal_places >= 0 AND decimal_places <= 4),
+    
+    -- Mô tả
+    description        NVARCHAR(500) NULL,
+    is_default         BIT NOT NULL DEFAULT 0, -- Công thức mặc định
+    
+    -- Audit fields
+    created_at         DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by         VARCHAR(50) NULL,
+    updated_at         DATETIME NULL,
+    updated_by         VARCHAR(50) NULL,
+    deleted_at         DATETIME NULL,
+    deleted_by         VARCHAR(50) NULL,
+    
+    -- Constraints
+    CONSTRAINT CHK_Formula_WeightSum CHECK (
+        (midterm_weight + final_weight + ISNULL(assignment_weight, 0) + ISNULL(quiz_weight, 0) + ISNULL(project_weight, 0)) <= 1.0
+    ),
+    CONSTRAINT CHK_Formula_Rounding CHECK (rounding_method IN ('STANDARD', 'CEILING', 'FLOOR', 'NONE')),
+    CONSTRAINT CHK_Formula_Scope CHECK (
+        (subject_id IS NOT NULL) OR (class_id IS NOT NULL) OR (school_year_id IS NOT NULL)
+    )
+);
+GO
+
+-- Indexes for grade_formula_config
+CREATE INDEX IX_Formula_Subject ON grade_formula_config(subject_id, is_default);
+CREATE INDEX IX_Formula_Class ON grade_formula_config(class_id, is_default);
+CREATE INDEX IX_Formula_SchoolYear ON grade_formula_config(school_year_id, is_default);
+CREATE INDEX IX_Formula_Default ON grade_formula_config(is_default, deleted_at);
+GO
+
+PRINT '✅ Table created: grade_formula_config';
+GO
+
+-- ===========================================
+-- 22. BẢNG PERIOD_CLASSES (Liên kết đợt đăng ký và lớp học phần)
+-- ===========================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'period_classes')
+BEGIN
+    PRINT 'Creating table: period_classes';
+    
+    CREATE TABLE dbo.period_classes (
+        period_class_id VARCHAR(50) PRIMARY KEY,
+        period_id VARCHAR(50) NOT NULL,
+        class_id VARCHAR(50) NOT NULL,
+        is_active BIT NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT(GETDATE()),
+        created_by VARCHAR(50) NULL,
+        updated_at DATETIME NULL,
+        updated_by VARCHAR(50) NULL,
+        deleted_at DATETIME NULL,
+        
+        -- Foreign Keys
+        CONSTRAINT FK_PeriodClass_Period 
+            FOREIGN KEY (period_id) REFERENCES registration_periods(period_id),
+        CONSTRAINT FK_PeriodClass_Class 
+            FOREIGN KEY (class_id) REFERENCES classes(class_id),
+        
+        -- Unique constraint: một lớp chỉ có thể thêm vào một đợt một lần
+        CONSTRAINT UQ_PeriodClass_PeriodClass 
+            UNIQUE (period_id, class_id)
+    );
+    
+    -- Indexes
+    CREATE INDEX IX_PeriodClass_Period ON period_classes(period_id);
+    CREATE INDEX IX_PeriodClass_Class ON period_classes(class_id);
+    CREATE INDEX IX_PeriodClass_Active ON period_classes(is_active, deleted_at);
+    
+    PRINT '✓ Table created: period_classes';
+END
+ELSE
+BEGIN
+    PRINT '✓ Table already exists: period_classes';
+END
+GO
+
+-- ===========================================
+-- 23. BẢNG RETAKE_RECORDS (Học lại)
+-- ===========================================
+IF OBJECT_ID('dbo.retake_records', 'U') IS NOT NULL DROP TABLE dbo.retake_records;
+GO
+
+CREATE TABLE dbo.retake_records (
+    retake_id          VARCHAR(50) PRIMARY KEY,
+    enrollment_id      VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.enrollments(enrollment_id),
+    student_id         VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.students(student_id),
+    class_id           VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.classes(class_id),
+    subject_id         VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.subjects(subject_id),
+    
+    -- Thông tin học lại
+    reason             NVARCHAR(20) NOT NULL, -- ATTENDANCE, GRADE, BOTH
+    threshold_value    DECIMAL(5,2) NULL,     -- Giá trị ngưỡng (20% cho vắng, 4.0 cho điểm)
+    current_value      DECIMAL(5,2) NULL,     -- Giá trị hiện tại (absence rate hoặc grade)
+    
+    -- Workflow
+    status             NVARCHAR(20) NOT NULL DEFAULT 'PENDING', -- PENDING, APPROVED, REJECTED, COMPLETED
+    advisor_notes      NVARCHAR(1000) NULL,   -- Ghi chú từ advisor
+    
+    -- Audit fields
+    created_at         DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by         VARCHAR(50) NULL,      -- System hoặc user tạo
+    updated_at         DATETIME NULL,
+    updated_by         VARCHAR(50) NULL,
+    resolved_at       DATETIME NULL,
+    resolved_by        VARCHAR(50) NULL,     -- Advisor ID
+    deleted_at         DATETIME NULL,
+    deleted_by         VARCHAR(50) NULL,
+    
+    -- Constraints
+    CONSTRAINT CHK_Retake_Reason CHECK (reason IN ('ATTENDANCE', 'GRADE', 'BOTH')),
+    CONSTRAINT CHK_Retake_Status CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'COMPLETED'))
+);
+GO
+
+-- Indexes for retake_records
+CREATE INDEX IX_Retake_Student ON retake_records(student_id, status);
+CREATE INDEX IX_Retake_Enrollment ON retake_records(enrollment_id);
+CREATE INDEX IX_Retake_Class ON retake_records(class_id, status);
+CREATE INDEX IX_Retake_Status ON retake_records(status, created_at);
+CREATE INDEX IX_Retake_Subject ON retake_records(subject_id);
+GO
+
+PRINT '✅ Table created: retake_records';
 GO
 

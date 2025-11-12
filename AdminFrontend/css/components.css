@@ -20,6 +20,113 @@
     cursor: pointer;
     transition: all 0.2s;
     line-height: 1.5;
+    letter-spacing: -0.01em;
+}
+
+/* Đảm bảo tất cả icon trong buttons có màu trắng */
+/* Tăng specificity thay vì dùng !important */
+.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-success:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-success:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-success:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-info:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-info:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-info:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-sm.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-sm.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-sm.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-sm.btn-success:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-sm.btn-success:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-sm.btn-success:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-sm.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-sm.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-sm.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-sm.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-sm.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-sm.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-sm.btn-info:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-sm.btn-info:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-sm.btn-info:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-sm.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-sm.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-sm.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i.fab {
+    color: white;
+}
+
+/* Icon trong outline buttons giữ màu của button type */
+.btn-outline-primary i.fas,
+.btn-outline-primary i.far,
+.btn-outline-primary i.fab,
+.btn-outline.btn-primary i.fas,
+.btn-outline.btn-primary i.far,
+.btn-outline.btn-primary i.fab {
+    color: var(--primary-color);
+}
+
+.btn-outline-secondary i.fas,
+.btn-outline-secondary i.far,
+.btn-outline-secondary i.fab,
+.btn-outline.btn-secondary i.fas,
+.btn-outline.btn-secondary i.far,
+.btn-outline.btn-secondary i.fab {
+    color: var(--secondary-color);
+}
+
+.btn-outline-success i.fas,
+.btn-outline-success i.far,
+.btn-outline-success i.fab,
+.btn-outline.btn-success i.fas,
+.btn-outline.btn-success i.far,
+.btn-outline.btn-success i.fab {
+    color: var(--success-color);
+}
+
+.btn-outline-danger i.fas,
+.btn-outline-danger i.far,
+.btn-outline-danger i.fab,
+.btn-outline.btn-danger i.fas,
+.btn-outline.btn-danger i.far,
+.btn-outline.btn-danger i.fab {
+    color: var(--danger-color);
+}
+
+.btn-outline-warning i.fas,
+.btn-outline-warning i.far,
+.btn-outline-warning i.fab,
+.btn-outline.btn-warning i.fas,
+.btn-outline.btn-warning i.far,
+.btn-outline.btn-warning i.fab {
+    color: var(--warning-color);
+}
+
+.btn-outline-info i.fas,
+.btn-outline-info i.far,
+.btn-outline-info i.fab,
+.btn-outline.btn-info i.fas,
+.btn-outline.btn-info i.far,
+.btn-outline.btn-info i.fab {
+    color: var(--info-color);
+}
+
+/* Khi hover outline button → icon màu trắng */
+.btn-outline:hover i.fas,
+.btn-outline:hover i.far,
+.btn-outline:hover i.fab,
+[class*="btn-outline"]:hover i.fas,
+[class*="btn-outline"]:hover i.far,
+[class*="btn-outline"]:hover i.fab {
+    color: white;
 }
 
 .btn:disabled {
@@ -28,63 +135,92 @@
 }
 
 .btn-primary {
-    background-color: var(--primary-color);
+    background: var(--gradient-primary);
     color: white;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .btn-primary:hover:not(:disabled) {
-    background-color: var(--primary-dark);
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
 }
 
 .btn-success {
-    background-color: var(--success-color);
+    background: var(--gradient-success);
     color: white;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 }
 
 .btn-success:hover:not(:disabled) {
-    background-color: #059669;
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
 .btn-danger {
-    background-color: var(--danger-color);
+    background: var(--gradient-danger);
     color: white;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 .btn-danger:hover:not(:disabled) {
-    background-color: #dc2626;
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }
 
 .btn-warning {
-    background-color: var(--warning-color);
+    background: var(--gradient-warning);
     color: white;
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
 }
 
 .btn-warning:hover:not(:disabled) {
-    background-color: #d97706;
+    background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+    box-shadow: 0 6px 16px rgba(249, 115, 22, 0.4);
+}
+
+.btn-info {
+    background: var(--gradient-info);
+    color: white;
+    box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+}
+
+.btn-info:hover:not(:disabled) {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.4);
 }
 
 .btn-secondary {
-    background-color: var(--secondary-color);
+    background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
     color: white;
+    box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
 }
 
 .btn-secondary:hover:not(:disabled) {
-    background-color: #475569;
+    background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+    box-shadow: 0 6px 16px rgba(107, 114, 128, 0.4);
 }
 
 .btn-outline {
     background-color: transparent;
-    border: 1.5px solid var(--border-color);
+    border: 2px solid var(--border-color-dark);
     color: var(--text-primary);
     font-weight: 500;
+    transition: all 0.3s ease;
 }
 
 .btn-outline:hover:not(:disabled) {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-outline-danger:hover:not(:disabled) {
     background-color: var(--danger-color);
     border-color: var(--danger-color);
     color: white;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .btn-sm {
@@ -116,6 +252,12 @@
     box-shadow: var(--box-shadow);
     margin-bottom: 20px;
     overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: var(--box-shadow-lg);
+    transform: translateY(-2px);
 }
 
 .card-header {
@@ -126,10 +268,68 @@
     justify-content: space-between;
 }
 
+/* Card header với gradient background */
+.card-header[style*="background"],
+.card-header[class*="bg-"] {
+    border-bottom: none;
+}
+
+.card-header[style*="background"] .card-title,
+.card-header[class*="bg-"] .card-title {
+    color: white;
+}
+
+/* Icon trong card header với background gradient/màu đậm */
+.card-header[style*="background"] i.fas,
+.card-header[style*="background"] i.far,
+.card-header[style*="background"] i.fab,
+.card-header[class*="bg-"] i.fas,
+.card-header[class*="bg-"] i.far,
+.card-header[class*="bg-"] i.fab {
+    color: white;
+}
+
+/* Đảm bảo h1, h2, h3 trong card-header có màu mặc định */
+.card-header h1,
+.card-header h2,
+.card-header h3 {
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.card-header h1 i,
+.card-header h2 i,
+.card-header h3 i {
+    color: var(--text-primary);
+    opacity: 0.9;
+}
+
+/* Chỉ khi card-header có background gradient/màu đậm thì mới dùng màu trắng */
+.card-header[style*="background"] h1,
+.card-header[style*="background"] h2,
+.card-header[style*="background"] h3,
+.card-header[class*="bg-"] h1,
+.card-header[class*="bg-"] h2,
+.card-header[class*="bg-"] h3 {
+    color: #ffffff !important;
+}
+
+.card-header[style*="background"] h1 i,
+.card-header[style*="background"] h2 i,
+.card-header[style*="background"] h3 i,
+.card-header[class*="bg-"] h1 i,
+.card-header[class*="bg-"] h2 i,
+.card-header[class*="bg-"] h3 i {
+    color: white !important;
+    opacity: 0.9;
+}
+
 .card-title {
     font-size: 18px;
     font-weight: 600;
     margin: 0;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
 }
 
 .card-actions {
@@ -139,6 +339,11 @@
 
 .card-body {
     padding: 20px;
+}
+
+/* Card body với padding lớn hơn cho enhanced components */
+.card-body.large {
+    padding: 24px;
 }
 
 .card-footer {
@@ -220,6 +425,7 @@
     font-weight: 500;
     color: var(--text-primary);
     font-size: 14px;
+    letter-spacing: -0.01em;
 }
 
 .form-label.required::after {
@@ -237,6 +443,7 @@
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
 }
 
 .form-control:focus {
@@ -283,6 +490,7 @@ textarea.form-control {
 
 select.form-control {
     cursor: pointer;
+    font-family: inherit;
 }
 
 .form-text {
@@ -308,6 +516,56 @@ select.form-control {
     flex: 1;
 }
 
+/* ==============================================
+   TOOLBARS & FILTERS
+   ============================================== */
+
+.toolbar,
+.action-toolbar,
+.filter-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.toolbar .toolbar-section,
+.action-toolbar .toolbar-section,
+.filter-toolbar .toolbar-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.toolbar .form-group,
+.filter-toolbar .form-group {
+    margin-bottom: 0;
+}
+
+.toolbar .btn,
+.filter-toolbar .btn {
+    white-space: nowrap;
+}
+
+@media (max-width: 992px) {
+    .toolbar,
+    .action-toolbar,
+    .filter-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .toolbar .toolbar-section,
+    .action-toolbar .toolbar-section,
+    .filter-toolbar .toolbar-section {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
 .checkbox-group,
 .radio-group {
     display: flex;
@@ -330,6 +588,35 @@ input[type="radio"] {
     overflow-x: auto;
 }
 
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-responsive table {
+    width: 100%;
+    min-width: 720px;
+}
+
+@media (max-width: 1023px) {
+    .table-responsive table {
+        min-width: 640px;
+    }
+}
+
+@media (max-width: 767px) {
+    .table-responsive table {
+        min-width: 520px;
+    }
+}
+
+@media (max-width: 575px) {
+    .table-responsive table {
+        min-width: 100%;
+    }
+}
+
 .table {
     width: 100%;
     border-collapse: collapse;
@@ -348,7 +635,7 @@ input[type="radio"] {
     border-bottom: 2px solid var(--border-color);
     font-size: 13px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
 }
 
 .table tbody td {
@@ -372,6 +659,18 @@ input[type="radio"] {
 .table-actions {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .table-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .table-actions .btn {
+        width: 100%;
+    }
 }
 
 /* ==============================================
@@ -410,6 +709,13 @@ input[type="radio"] {
 .badge-secondary {
     background-color: rgba(100, 116, 139, 0.1);
     color: var(--secondary-color);
+}
+
+/* Đảm bảo icon trong badge với background đậm có màu trắng */
+.badge[style*="background"] i.fas,
+.badge[style*="background"] i.far,
+.badge[style*="background"] i.fab {
+    color: white;
 }
 
 /* ==============================================
@@ -464,10 +770,20 @@ input[type="radio"] {
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
+    display: none !important;
     align-items: center;
     justify-content: center;
     z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.modal-overlay.active {
+    display: flex !important;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 .modal {
@@ -492,6 +808,7 @@ input[type="radio"] {
     font-size: 18px;
     font-weight: 600;
     margin: 0;
+    letter-spacing: -0.01em;
 }
 
 .modal-close {
@@ -799,7 +1116,12 @@ input[type="radio"] {
     cursor: pointer;
     user-select: none;
     position: relative;
-    padding-right: 25px !important;
+    padding-right: 25px;
+}
+
+/* Đảm bảo padding-right không bị override */
+.sortable-header th {
+    padding-right: 25px;
 }
 
 .sortable-header:hover {
@@ -895,24 +1217,7 @@ input[type="radio"] {
     font-size: 14px;
 }
 
-.btn-remove {
-    background: none;
-    border: none;
-    color: var(--danger-color);
-    cursor: pointer;
-    padding: 5px;
-    border-radius: 50%;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
-}
-
-.btn-remove:hover {
-    background-color: rgba(239, 68, 68, 0.1);
-}
+/* .btn-remove đã được định nghĩa trong semantic-colors.css */
 
 /* ==============================================
    FILTERS BAR
@@ -1057,6 +1362,7 @@ input[type="radio"] {
     font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
+    letter-spacing: -0.01em;
 }
 
 .notification-item .notification-time {
@@ -1081,21 +1387,88 @@ input[type="radio"] {
    AVATAR CHANGE MODAL
    ============================================== */
 
-.avatar-modal {
+/* ✅ Override modal-overlay for avatar-modal - ONLY show when active */
+.avatar-modal.modal-overlay {
+    /* Default: Hidden */
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* ✅ Ensure avatar-modal shows ONLY when active class is present */
+.avatar-modal.modal-overlay.active {
     display: flex !important;
     align-items: center;
     justify-content: center;
     animation: fadeIn 0.2s ease-out;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: 9999 !important;
 }
 
 .avatar-modal .modal {
     max-width: 500px;
     display: block !important;
-    position: relative;
-    top: auto;
-    left: auto;
-    transform: none;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
     animation: slideInUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 10000 !important;
+    pointer-events: auto !important;
+}
+
+/* ✅ Ensure all elements inside avatar modal are clickable */
+.avatar-modal .modal,
+.avatar-modal .modal * {
+    pointer-events: auto !important;
+}
+
+.avatar-modal .modal button,
+.avatar-modal .modal input[type="file"],
+.avatar-modal .modal input[type="button"],
+.avatar-modal .modal .btn,
+.avatar-modal .modal .avatar-upload-dropzone,
+.avatar-modal .modal .modal-header,
+.avatar-modal .modal .modal-body,
+.avatar-modal .modal .modal-footer,
+.avatar-modal .modal .avatar-preview-container,
+.avatar-modal .modal .avatar-upload-area {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* ✅ Ensure buttons are clickable */
+.avatar-modal .modal .btn-primary,
+.avatar-modal .modal .btn-outline,
+.avatar-modal .modal .modal-close,
+.avatar-modal .modal .btn-remove {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    z-index: 10001 !important;
+    position: relative !important;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* ✅ Ensure modal-close button is always clickable in avatar modal */
+.avatar-modal .modal-header .modal-close {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    z-index: 10002 !important;
+    position: relative !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.avatar-modal .modal-header .modal-close:active {
+    transform: scale(0.95);
 }
 
 @keyframes fadeIn {
@@ -1671,5 +2044,341 @@ input[type="radio"] {
 
 .view-all-btn:hover i {
     transform: translateX(4px);
+}
+
+/* ==============================================
+   CUSTOM TABS - KHÔNG DÙNG BOOTSTRAP
+   ============================================== */
+
+.custom-tabs {
+    margin-bottom: 24px;
+}
+
+.custom-tab-nav {
+    display: flex;
+    gap: 8px;
+    border-bottom: 2px solid var(--border-color);
+    padding: 0;
+    margin: 0;
+}
+
+.custom-tab-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    margin-bottom: -2px;
+}
+
+.custom-tab-button i {
+    font-size: 16px;
+}
+
+.custom-tab-button:hover:not(.active) {
+    color: var(--primary-color);
+    background: var(--bg-secondary);
+}
+
+.custom-tab-button.active {
+    color: var(--primary-color);
+    font-weight: 600;
+    border-bottom-color: var(--primary-color);
+    background: linear-gradient(to bottom, var(--bg-secondary) 0%, transparent 100%);
+}
+
+.custom-tab-content {
+    margin-top: 24px;
+}
+
+.custom-tab-panel {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .custom-tab-nav {
+        flex-wrap: wrap;
+    }
+    
+    .custom-tab-button {
+        font-size: 14px;
+        padding: 10px 16px;
+    }
+}
+
+/* ==============================================
+   CUSTOM PAGINATION - KHÔNG DÙNG BOOTSTRAP
+   ============================================== */
+
+.custom-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 24px;
+    padding: 20px 0;
+    flex-wrap: wrap;
+}
+
+.pagination-btn {
+    min-width: 40px;
+    height: 40px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pagination-btn:hover:not(:disabled):not(.active) {
+    background: var(--bg-secondary);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-btn.active {
+    background: var(--gradient-primary);
+    color: white;
+    border-color: var(--primary-color);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    background: var(--bg-secondary);
+}
+
+.pagination-dots {
+    padding: 0 8px;
+    color: var(--text-light);
+    font-weight: 600;
+    user-select: none;
+}
+
+.pagination-info {
+    margin-left: 16px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+}
+
+/* Responsive pagination */
+@media (max-width: 576px) {
+    .custom-pagination {
+        gap: 6px;
+    }
+    
+    .pagination-btn {
+        min-width: 36px;
+        height: 36px;
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+    
+    .pagination-info {
+        width: 100%;
+        text-align: center;
+        margin: 8px 0 0 0;
+    }
+}
+
+/* ==============================================
+   VIEW DETAIL LINK - Custom Style
+   ============================================== */
+
+.view-detail-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    margin-top: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    color: #0284c7;
+    background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+    border: 1px solid #7dd3fc;
+    border-radius: 6px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.view-detail-link i {
+    font-size: 12px;
+    color: #0284c7;
+    transition: all 0.3s ease;
+}
+
+.view-detail-link:hover {
+    color: white;
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    border-color: #0284c7;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+}
+
+.view-detail-link:hover i.fas,
+.view-detail-link:hover i.far,
+.view-detail-link:hover i.fab {
+    transform: scale(1.2);
+    color: white;
+}
+
+.view-detail-link:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(2, 132, 199, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .view-detail-link {
+        font-size: 12px;
+        padding: 5px 12px;
+    }
+}
+
+/* ==============================================
+   UNIFIED SEARCH BAR - Toàn bộ dự án
+   ============================================== */
+
+.unified-search-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.search-input-wrapper {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon-inside {
+    position: absolute;
+    left: 14px;
+    color: #0ea5e9;
+    font-size: 16px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.unified-search-bar .search-input {
+    width: 100%;
+    padding: 12px 40px 12px 44px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 14px;
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.unified-search-bar .search-input:focus {
+    outline: none;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.unified-search-bar .search-input::placeholder {
+    color: #94a3b8;
+}
+
+.search-clear-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.search-clear-btn:hover {
+    background: #f1f5f9;
+    color: #ef4444;
+}
+
+.search-submit-btn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 4px rgba(14, 165, 233, 0.2);
+}
+
+.search-submit-btn:hover {
+    background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.search-submit-btn:active {
+    transform: translateY(0);
+}
+
+.search-submit-btn i {
+    font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .unified-search-bar {
+        flex-direction: column;
+    }
+    
+    .search-submit-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 

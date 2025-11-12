@@ -23,20 +23,17 @@ namespace EducationManagement.DAL
 
             try
             {
-                // Connection pooling is enabled by default in .NET
-                // Optimize connection string with pooling settings if not already set
                 using var conn = new SqlConnection(connectionString);
                 using var cmd = new SqlCommand(storedProc, conn)
                 {
-                    CommandType = CommandType.StoredProcedure,
-                    CommandTimeout = 30 // 30 seconds timeout
+                    CommandType = CommandType.StoredProcedure
                 };
 
                 if (parameters?.Length > 0)
                     cmd.Parameters.AddRange(PrepareParameters(parameters));
 
                 await conn.OpenAsync().ConfigureAwait(false);
-                using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SequentialAccess).ConfigureAwait(false);
+                using var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
                 dt.Load(reader);
             }
             catch (Exception ex)
@@ -62,15 +59,14 @@ namespace EducationManagement.DAL
                 using var conn = new SqlConnection(connectionString);
                 using var cmd = new SqlCommand(sqlQuery, conn)
                 {
-                    CommandType = CommandType.Text,
-                    CommandTimeout = 30 // 30 seconds timeout
+                    CommandType = CommandType.Text
                 };
 
                 if (parameters?.Length > 0)
                     cmd.Parameters.AddRange(PrepareParameters(parameters));
 
                 await conn.OpenAsync().ConfigureAwait(false);
-                using var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SequentialAccess).ConfigureAwait(false);
+                using var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
                 dt.Load(reader);
             }
             catch (Exception ex)

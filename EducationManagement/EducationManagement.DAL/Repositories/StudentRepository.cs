@@ -6,7 +6,6 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using EducationManagement.Common.Models;
 using EducationManagement.Common.DTOs.Student;
-using EducationManagement.DAL;
 
 namespace EducationManagement.DAL.Repositories
 {
@@ -209,6 +208,85 @@ namespace EducationManagement.DAL.Repositories
                 : null;
 
             return student;
+        }
+
+        // ============================================================
+        // 🔹 6️⃣ BATCH IMPORT STUDENTS
+        // ============================================================
+        public async Task<BatchImportResultDto> ImportBatchAsync(List<StudentImportDto> students, string createdBy)
+        {
+            var result = new BatchImportResultDto();
+
+            using (var connection = new SqlConnection(_connectionString))
+            {
+                await connection.OpenAsync();
+
+                // Create DataTable for Table-Valued Parameter
+                var studentsTable = new DataTable();
+                studentsTable.Columns.Add("StudentCode", typeof(string));
+                studentsTable.Columns.Add("FullName", typeof(string));
+                studentsTable.Columns.Add("Email", typeof(string));
+                studentsTable.Columns.Add("Phone", typeof(string));
+                studentsTable.Columns.Add("DateOfBirth", typeof(DateTime));
+                studentsTable.Columns.Add("Gender", typeof(string));
+                studentsTable.Columns.Add("Address", typeof(string));
+                studentsTable.Columns.Add("MajorId", typeof(string));
+                studentsTable.Columns.Add("AcademicYearId", typeof(string));
+
+                // Populate DataTable
+                foreach (var student in students)
+                {
+                    studentsTable.Rows.Add(
+                        student.StudentCode,
+                        student.FullName,
+                        student.Email,
+                        (object?)student.Phone ?? DBNull.Value,
+                        (object?)student.DateOfBirth ?? DBNull.Value,
+                        (object?)student.Gender ?? DBNull.Value,
+                        (object?)student.Address ?? DBNull.Value,
+                        student.MajorId,
+                        (object?)student.AcademicYearId ?? DBNull.Value
+                    );
+                }
+
+                using (var command = new SqlCommand("sp_ImportStudentsBatch", connection))
+                {
+                    command.CommandType = CommandType.StoredProcedure;
+
+                    // Add table-valued parameter
+                    var tvpParam = command.Parameters.AddWithValue("@Students", studentsTable);
+                    tvpParam.SqlDbType = SqlDbType.Structured;
+                    tvpParam.TypeName = "StudentImportType";
+
+                    command.Parameters.AddWithValue("@CreatedBy", createdBy);
+
+                    using (var reader = await command.ExecuteReaderAsync())
+                    {
+                        // First result set: Summary
+                        if (await reader.ReadAsync())
+                        {
+                            result.SuccessCount = reader.GetInt32(reader.GetOrdinal("SuccessCount"));
+                            result.ErrorCount = reader.GetInt32(reader.GetOrdinal("ErrorCount"));
+                        }
+
+                        // Second result set: Errors (if any)
+                        if (await reader.NextResultAsync())
+                        {
+                            while (await reader.ReadAsync())
+                            {
+                                result.Errors.Add(new ImportErrorDto
+                                {
+                                    RowNumber = reader.GetInt32(reader.GetOrdinal("RowNumber")),
+                                    StudentCode = reader.GetString(reader.GetOrdinal("StudentCode")),
+                                    ErrorMessage = reader.GetString(reader.GetOrdinal("ErrorMessage"))
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            return result;
         }
     }
 }

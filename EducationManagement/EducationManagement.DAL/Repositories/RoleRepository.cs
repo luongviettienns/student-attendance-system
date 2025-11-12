@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using EducationManagement.Common.Models;
-using EducationManagement.DAL;
 
 namespace EducationManagement.DAL.Repositories
 {
@@ -192,6 +191,9 @@ namespace EducationManagement.DAL.Repositories
         }
     }
 }
+
+
+
 
 
 

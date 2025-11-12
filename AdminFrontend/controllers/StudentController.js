@@ -1,6 +1,6 @@
 // Student Controller with Pagination, Search, Sort, Filter, Import/Export
-app.controller('StudentController', ['$scope', '$location', '$routeParams', '$timeout', 'StudentService', 'FacultyService', 'MajorService', 'PaginationService', 'ExportService', 'ImportService', 'AuthService', 'AvatarService', 'LoggerService', 'ApiService',
-    function($scope, $location, $routeParams, $timeout, StudentService, FacultyService, MajorService, PaginationService, ExportService, ImportService, AuthService, AvatarService, LoggerService, ApiService) {
+app.controller('StudentController', ['$scope', '$location', '$routeParams', '$timeout', 'StudentService', 'FacultyService', 'MajorService', 'PaginationService', 'ExportService', 'ImportService', 'AuthService', 'AvatarService', 'LoggerService',
+    function($scope, $location, $routeParams, $timeout, StudentService, FacultyService, MajorService, PaginationService, ExportService, ImportService, AuthService, AvatarService, LoggerService) {
     
     $scope.students = [];
     $scope.displayedStudents = []; // For display after filtering/sorting
@@ -54,8 +54,7 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
     };
     
     // Load students with server-side pagination and filtering
-    // forceReload: if true, disable cache to get fresh data
-    $scope.loadStudents = function(forceReload) {
+    $scope.loadStudents = function() {
         $scope.loadingStates.students = true;
         $scope.error = null;
         
@@ -75,8 +74,7 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
             }
         });
         
-        // If forceReload is true, disable cache
-        StudentService.getAll(params, !forceReload)
+        StudentService.getAll(params)
             .then(function(response) {
                 // Backend trả về {data: [...], pagination: {...}}
                 var result = response.data;
@@ -533,14 +531,10 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
     };
     
     // Load majors for dropdown
-    // Can accept optional facultyId parameter (for edit mode) or use filters.facultyId (for list mode)
-    $scope.loadMajors = function(facultyId) {
-        // Use provided facultyId, or fallback to filters.facultyId, or student.facultyId in edit mode
-        var targetFacultyId = facultyId || $scope.filters.facultyId || ($scope.isEditMode && ($scope.student.facultyId || $scope.student.FacultyId));
-        
-        if (targetFacultyId) {
+    $scope.loadMajors = function() {
+        if ($scope.filters.facultyId) {
             $scope.loadingStates.majors = true;
-            MajorService.getByFaculty(targetFacultyId)
+            MajorService.getByFaculty($scope.filters.facultyId)
                 .then(function(response) {
                     var list = response.data?.data || response.data || [];
                     $scope.majors = list;
@@ -557,38 +551,33 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
     };
     
     // Load student by ID for editing
+    // Format date for date input (YYYY-MM-DD format)
+    function formatDateForInput(dateString) {
+        if (!dateString) return null;
+        try {
+            var date = new Date(dateString);
+            if (isNaN(date.getTime())) return null;
+            // Format as YYYY-MM-DD for date input
+            var year = date.getFullYear();
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var day = String(date.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        } catch (e) {
+            return null;
+        }
+    }
+    
     $scope.loadStudent = function(id) {
         $scope.loadingStates.students = true;
         StudentService.getById(id)
             .then(function(response) {
-                // Extract student data (could be response.data or response.data.data)
-                var studentData = response.data?.data || response.data || {};
-                
-                // Ensure studentId is preserved (critical for update)
-                // Backend might return it as studentId or StudentId
-                if (!studentData.studentId && !studentData.StudentId) {
-                    // Fallback: use the id from route if not in response
-                    studentData.studentId = id;
-                    studentData.StudentId = id;
-                } else {
-                    // Ensure both formats are available
-                    if (studentData.studentId && !studentData.StudentId) {
-                        studentData.StudentId = studentData.studentId;
-                    }
-                    if (studentData.StudentId && !studentData.studentId) {
-                        studentData.studentId = studentData.StudentId;
-                    }
+                $scope.student = response.data;
+                // Format dates for date inputs to avoid AngularJS datefmt error
+                if ($scope.student.dob) {
+                    $scope.student.dob = formatDateForInput($scope.student.dob);
                 }
-                
-                $scope.student = studentData;
                 $scope.isEditMode = true;
                 $scope.loadingStates.students = false;
-                
-                // Load majors for the student's faculty after student data is loaded
-                var studentFacultyId = studentData.facultyId || studentData.FacultyId;
-                if (studentFacultyId) {
-                    $scope.loadMajors(studentFacultyId);
-                }
             })
             .catch(function(error) {
                 $scope.error = 'Không thể tải thông tin sinh viên';
@@ -604,47 +593,7 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
         
         var savePromise;
         if ($scope.isEditMode) {
-            // Map frontend format to backend UpdateStudentFullDto format
-            var currentUser = AuthService.getCurrentUser();
-            
-            // Ensure StudentId is available - use route param as fallback
-            var studentId = $scope.student.studentId || $scope.student.StudentId || $routeParams.id;
-            if (!studentId) {
-                $scope.error = 'Không tìm thấy Student ID. Vui lòng tải lại trang.';
-                $scope.loadingStates.save = false;
-                return;
-            }
-            
-            var updateData = {
-                StudentId: studentId,
-                FullName: $scope.student.fullName || $scope.student.FullName,
-                Gender: $scope.student.gender || $scope.student.Gender || '',
-                Dob: $scope.student.dateOfBirth ? new Date($scope.student.dateOfBirth) : ($scope.student.Dob ? new Date($scope.student.Dob) : new Date()),
-                Email: $scope.student.email || $scope.student.Email,
-                Phone: $scope.student.phone || $scope.student.Phone || '',
-                FacultyId: $scope.student.facultyId || $scope.student.FacultyId || null,
-                MajorId: $scope.student.majorId || $scope.student.MajorId || null,
-                AcademicYearId: $scope.student.academicYearId || $scope.student.AcademicYearId || null,
-                CohortYear: $scope.student.cohortYear || $scope.student.CohortYear || null,
-                Nationality: $scope.student.nationality || $scope.student.Nationality || null,
-                Ethnicity: $scope.student.ethnicity || $scope.student.Ethnicity || null,
-                Religion: $scope.student.religion || $scope.student.Religion || null,
-                Hometown: $scope.student.hometown || $scope.student.Hometown || null,
-                CurrentAddress: $scope.student.currentAddress || $scope.student.address || $scope.student.CurrentAddress || null,
-                BankNo: $scope.student.bankNo || $scope.student.BankNo || null,
-                BankName: $scope.student.bankName || $scope.student.BankName || null,
-                InsuranceNo: $scope.student.insuranceNo || $scope.student.InsuranceNo || null,
-                IssuePlace: $scope.student.issuePlace || $scope.student.IssuePlace || null,
-                IssueDate: $scope.student.issueDate ? new Date($scope.student.issueDate) : ($scope.student.IssueDate ? new Date($scope.student.IssueDate) : null),
-                Facebook: $scope.student.facebook || $scope.student.Facebook || null,
-                FamilyFullName: $scope.student.familyFullName || $scope.student.FamilyFullName || null,
-                RelationType: $scope.student.relationType || $scope.student.RelationType || null,
-                BirthYear: $scope.student.birthYear || $scope.student.BirthYear || null,
-                PhoneFamily: $scope.student.phoneFamily || $scope.student.PhoneFamily || null,
-                JobFamily: $scope.student.jobFamily || $scope.student.JobFamily || null,
-                UpdatedBy: currentUser?.userId || currentUser?.username || 'admin'
-            };
-            savePromise = StudentService.update(studentId, updateData);
+            savePromise = StudentService.update($scope.student.studentId, $scope.student);
         } else {
             savePromise = StudentService.create($scope.student);
         }
@@ -653,38 +602,12 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
             .then(function(response) {
                 $scope.success = 'Lưu sinh viên thành công';
                 $scope.loadingStates.save = false;
-                // Clear cache before redirecting to ensure fresh data
-                ApiService.clearCache('students:*');
                 $timeout(function() {
                     $location.path('/students');
-                    // Force reload students list after redirect
-                    $timeout(function() {
-                        if ($location.path() === '/students') {
-                            $scope.loadStudents(true); // Force reload without cache
-                        }
-                    }, 100);
                 }, 1500);
             })
             .catch(function(error) {
-                // Show detailed error message
-                var errorMsg = 'Không thể lưu sinh viên';
-                if (error.data) {
-                    if (error.data.message) {
-                        errorMsg = error.data.message;
-                    } else if (error.data.errors) {
-                        // Validation errors
-                        var errors = [];
-                        for (var key in error.data.errors) {
-                            if (error.data.errors.hasOwnProperty(key)) {
-                                errors.push(key + ': ' + error.data.errors[key].join(', '));
-                            }
-                        }
-                        errorMsg = 'Lỗi validation: ' + errors.join('; ');
-                    } else if (error.data.title) {
-                        errorMsg = error.data.title;
-                    }
-                }
-                $scope.error = errorMsg;
+                $scope.error = error.data?.message || 'Không thể lưu sinh viên';
                 $scope.loadingStates.save = false;
                 LoggerService.error('Error saving student', error);
             });
@@ -720,16 +643,6 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
         $location.path('/students');
     };
     
-    // Watch for faculty changes in edit mode to reload majors
-    $scope.$watch('student.facultyId', function(newFacultyId, oldFacultyId) {
-        // Only reload majors if faculty changed and we're in edit mode or create mode
-        if (newFacultyId && newFacultyId !== oldFacultyId && ($scope.isEditMode || $location.path() === '/students/create')) {
-            $scope.loadMajors(newFacultyId);
-            // Clear major selection when faculty changes
-            $scope.student.majorId = '';
-        }
-    });
-    
     // Initialize based on route
     if ($location.path() === '/students') {
         // Load dropdown data first, then students
@@ -742,7 +655,7 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
     } else if ($routeParams.id) {
         $scope.loadStudent($routeParams.id);
         $scope.loadFaculties();
-        // Don't call loadMajors here - it will be called after student data is loaded
+        $scope.loadMajors();
     } else {
         $scope.loadFaculties();
         $scope.loadMajors();

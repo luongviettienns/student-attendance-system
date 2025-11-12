@@ -16,11 +16,12 @@ app.constant('ACADEMIC_RULES', {
 
 // API Configuration (Microservices Pattern - All via Gateway)
 app.constant('API_CONFIG', {
-    BASE_URL: 'http://localhost:5227/api-edu',        // Direct to Admin API (for testing)
-    // BASE_URL: 'https://localhost:7033/api-edu',    // API Gateway URL (production)
-    GATEWAY_URL: 'https://localhost:7033'             // Gateway URL (all requests go through here)
-    // ✅ Avatars cũng load qua Gateway: https://localhost:7033/avatars/...
-    // ✅ Gateway sẽ proxy đến Admin API
+    // ✅ Production: Tất cả requests qua Gateway (Microservices Pattern)
+    BASE_URL: 'https://localhost:7033/api-edu',    // API Gateway URL (all requests go through here)
+    // BASE_URL: 'http://localhost:5227/api-edu',   // Direct to Admin API (for testing only)
+    GATEWAY_URL: 'https://localhost:7033'             // Gateway URL (for avatars and static files)
+    // ✅ Avatars load qua Gateway: https://localhost:7033/avatars/...
+    // ✅ Gateway sẽ proxy tất cả requests đến Admin API (port 5227)
 });
 
 // Route Configuration
@@ -39,7 +40,12 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'ForgotPasswordController',
             publicAccess: true
         })
-        .when('/reset-password/:token', {
+        .when('/verify-otp', {
+            templateUrl: 'views/auth/verify-otp.html',
+            controller: 'VerifyOTPController',
+            publicAccess: true
+        })
+        .when('/reset-password', {
             templateUrl: 'views/auth/reset-password.html',
             controller: 'ResetPasswordController',
             publicAccess: true
@@ -75,6 +81,20 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/organization', {
             templateUrl: 'views/organization/index.html',
             controller: 'OrganizationController'
+        })
+        
+        // Legacy routes - redirect to organization page
+        .when('/faculties', {
+            redirectTo: '/organization'
+        })
+        .when('/departments', {
+            redirectTo: '/organization'
+        })
+        .when('/majors', {
+            redirectTo: '/organization'
+        })
+        .when('/subjects', {
+            redirectTo: '/organization'
         })
         
         // Academic Year Management
@@ -131,12 +151,6 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'ClassController'
         })
         
-        // Attendance Management
-        .when('/attendances', {
-            templateUrl: 'views/attendances/list.html',
-            controller: 'AttendanceController'
-        })
-        
         // Lecturer Portal
         .when('/lecturer/dashboard', {
             templateUrl: 'views/lecturer/dashboard.html',
@@ -184,6 +198,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'views/advisor/appeals.html',
             controller: 'AdvisorGradeAppealController'
         })
+        .when('/advisor/retakes', {
+            templateUrl: 'views/advisor/retakes.html',
+            controller: 'AdvisorRetakeController'
+        })
         .when('/advisor/grade-formula', {
             templateUrl: 'views/advisor/grade-formula.html',
             controller: 'AdvisorGradeFormulaConfigController'
@@ -213,6 +231,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/student/appeals', {
             templateUrl: 'views/student/appeals.html',
             controller: 'StudentGradeAppealController'
+        })
+        .when('/student/retakes', {
+            templateUrl: 'views/student/retakes.html',
+            controller: 'StudentRetakeController'
         })
         .when('/student/attendance', {
             templateUrl: 'views/student/attendance.html',
@@ -273,10 +295,58 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'AdminTimetableController'
         })
         
+        // Reports & Statistics
+        .when('/admin/reports', {
+            templateUrl: 'views/admin/reports.html',
+            controller: 'AdminReportController'
+        })
+        .when('/advisor/reports', {
+            templateUrl: 'views/advisor/reports.html',
+            controller: 'AdvisorReportController'
+        })
+        .when('/lecturer/reports', {
+            templateUrl: 'views/lecturer/reports.html',
+            controller: 'LecturerReportController'
+        })
+        .when('/student/reports', {
+            templateUrl: 'views/student/reports.html',
+            controller: 'StudentReportController'
+        })
+        
         // Default route
         .otherwise({
             redirectTo: '/login'
         });
+}]);
+
+// Global helper function to format date for date inputs (YYYY-MM-DD format)
+// This prevents AngularJS ngModel:datefmt errors
+app.run(['$rootScope', '$exceptionHandler', function($rootScope, $exceptionHandler) {
+    $rootScope.formatDateForInput = function(dateString) {
+        if (!dateString) return null;
+        try {
+            var date = new Date(dateString);
+            if (isNaN(date.getTime())) return null;
+            // Format as YYYY-MM-DD for date input
+            var year = date.getFullYear();
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var day = String(date.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        } catch (e) {
+            return null;
+        }
+    };
+    
+    // CRITICAL: Override exception handler to catch and suppress datefmt errors
+    var originalExceptionHandler = $exceptionHandler;
+    $exceptionHandler = function(exception, cause) {
+        // Suppress ngModel:datefmt errors - we handle date formatting ourselves
+        if (exception && exception.message && exception.message.includes('ngModel:datefmt')) {
+            return; // Don't log or throw the error
+        }
+        // For all other errors, use the original handler
+        originalExceptionHandler(exception, cause);
+    };
 }]);
 
 // Run block - Check authentication and add global logout
@@ -312,10 +382,10 @@ app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', 'Notificatio
         }
         
         // If authenticated and trying to access login, redirect based on role
-        if (next && next.publicAccess && AuthService.isAuthenticated()) {
+        if (next.publicAccess && AuthService.isAuthenticated()) {
             var currentUser = AuthService.getCurrentUser();
             // Backend returns 'role' (lowercase) or 'Role' (capital), not 'roleName'
-            var userRole = (currentUser && currentUser.role) || (currentUser && currentUser.Role) || (currentUser && currentUser.roleName) || 'Admin';
+            var userRole = currentUser?.role || currentUser?.Role || currentUser?.roleName || 'Admin';
             
             // Normalize role
             if (userRole) {
@@ -344,32 +414,140 @@ app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', 'Notificatio
     });
 }]);
 
-// HTTP Interceptor for adding JWT token
+// HTTP Interceptor for adding JWT token, auto-refresh, and formatting dates
 app.factory('AuthInterceptor', ['$q', '$location', '$window', '$injector', function($q, $location, $window, $injector) {
+    // Helper to format date strings to YYYY-MM-DD format
+    function formatDateString(dateString) {
+        if (!dateString || typeof dateString !== 'string') return dateString;
+        // If already in YYYY-MM-DD format, return as is
+        if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
+        // Try to parse and format
+        try {
+            var date = new Date(dateString);
+            if (!isNaN(date.getTime())) {
+                var year = date.getFullYear();
+                var month = String(date.getMonth() + 1).padStart(2, '0');
+                var day = String(date.getDate()).padStart(2, '0');
+                return year + '-' + month + '-' + day;
+            }
+        } catch (e) {
+            // Ignore errors
+        }
+        return dateString;
+    }
+    
+    // Helper to recursively format dates in response data
+    function formatDatesInObject(obj) {
+        if (!obj || typeof obj !== 'object') return obj;
+        
+        if (Array.isArray(obj)) {
+            return obj.map(function(item) {
+                return formatDatesInObject(item);
+            });
+        }
+        
+        var formatted = {};
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                var value = obj[key];
+                // Check if key suggests it's a date field
+                if (key.toLowerCase().includes('date') && typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) {
+                    formatted[key] = formatDateString(value);
+                } else if (typeof value === 'object') {
+                    formatted[key] = formatDatesInObject(value);
+                } else {
+                    formatted[key] = value;
+                }
+            }
+        }
+        return formatted;
+    }
+    
     return {
         request: function(config) {
-            // Check both localStorage and sessionStorage for token
-            var token = $window.localStorage.getItem('auth_token') || 
-                       $window.sessionStorage.getItem('auth_token');
-            if (token) {
-                config.headers.Authorization = 'Bearer ' + token;
+            // Skip token check for public endpoints
+            var publicEndpoints = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/refresh'];
+            var isPublicEndpoint = publicEndpoints.some(function(endpoint) {
+                return config.url.indexOf(endpoint) !== -1;
+            });
+            
+            if (isPublicEndpoint) {
+                return config;
             }
-            return config;
+            
+            // Get AuthService (using $injector to avoid circular dependency)
+            var AuthService = $injector.get('AuthService');
+            
+            // Check and refresh token before sending request
+            return AuthService.checkAndRefreshToken().then(function(token) {
+                // Token is valid (or was refreshed), add to header
+                config.headers.Authorization = 'Bearer ' + token;
+                return config;
+            }).catch(function(error) {
+                // Token check/refresh failed - will be handled by responseError
+                // Still try to get token (might be valid but refresh failed)
+                var token = AuthService.getToken();
+                if (token) {
+                    config.headers.Authorization = 'Bearer ' + token;
+                }
+                return config;
+            });
+        },
+        response: function(response) {
+            // DISABLED: Format dates in response data
+            // This was causing conflicts with AngularJS date formatting
+            // Instead, we rely on:
+            // 1. Controller-level formatting when loading data
+            // 2. ng-model-options on date inputs
+            // 3. dateInput directive for automatic formatting
+            // if (response.data && typeof response.data === 'object') {
+            //     response.data = formatDatesInObject(response.data);
+            // }
+            return response;
         },
         responseError: function(rejection) {
             if (rejection.status === 401) {
-                // Unauthorized - Clear tokens and redirect to login
-                $window.localStorage.removeItem('auth_token');
-                $window.localStorage.removeItem('user_info');
-                $window.sessionStorage.removeItem('auth_token');
-                $window.sessionStorage.removeItem('user_info');
-                $location.path('/login');
-                // Try to show toast if ToastService is available
-                try {
-                    var ToastService = $injector.get('ToastService');
-                    ToastService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-                } catch (e) {
-                    // ToastService not available, skip
+                // Unauthorized - Try to refresh token first
+                var AuthService = $injector.get('AuthService');
+                
+                // Check if this is a refresh endpoint (avoid infinite loop)
+                var isRefreshEndpoint = rejection.config && rejection.config.url && 
+                                       rejection.config.url.indexOf('/auth/refresh') !== -1;
+                
+                if (!isRefreshEndpoint) {
+                    // Try to refresh token
+                    return AuthService.refreshToken().then(function(newTokens) {
+                        // Retry original request with new token
+                        var $http = $injector.get('$http');
+                        var originalConfig = rejection.config;
+                        originalConfig.headers.Authorization = 'Bearer ' + newTokens.token;
+                        
+                        return $http(originalConfig);
+                    }).catch(function(refreshError) {
+                        // Refresh failed - logout
+                        AuthService.logout();
+                        
+                        // Try to show toast if ToastService is available
+                        try {
+                            var ToastService = $injector.get('ToastService');
+                            ToastService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                        } catch (e) {
+                            // ToastService not available, skip
+                        }
+                        
+                        return $q.reject(rejection);
+                    });
+                } else {
+                    // Refresh endpoint returned 401 - logout
+                    AuthService.logout();
+                    
+                    // Try to show toast if ToastService is available
+                    try {
+                        var ToastService = $injector.get('ToastService');
+                        ToastService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                    } catch (e) {
+                        // ToastService not available, skip
+                    }
                 }
             } else if (rejection.status === 403) {
                 // Forbidden - User doesn't have permission

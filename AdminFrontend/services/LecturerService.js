@@ -14,15 +14,6 @@ app.service('LecturerService', ['ApiService', function(ApiService) {
         return ApiService.get('/lecturers/' + id);
     };
     
-    this.getByUserId = function(userId) {
-        return ApiService.get('/lecturers/by-user-id/' + userId).then(function(response) {
-            if (response.data && response.data.data) {
-                response.data = response.data.data;
-            }
-            return response;
-        });
-    };
-    
     this.create = function(lecturer) {
         return ApiService.post('/lecturers', lecturer);
     };

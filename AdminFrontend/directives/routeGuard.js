@@ -6,13 +6,7 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
     var publicRoutes = ['/login', '/register', '/forgot-password'];
     
     // ✅ Lắng nghe sự kiện thay đổi route
-    // Use $routeChangeStart instead of $locationChangeStart to ensure route is resolved
-    $rootScope.$on('$routeChangeStart', function(event, next, current) {
-        // Skip if route is public (handled by app.js)
-        if (next && next.publicAccess) {
-            return;
-        }
-        
+    $rootScope.$on('$locationChangeStart', function(event, next, current) {
         var path = $location.path();
         
         // ✅ Cho phép truy cập public routes
@@ -49,15 +43,10 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
             return; // Allow access, role will be set after login completes
         }
         
-        // ✅ Admin has full access to all routes (except public routes which are handled above)
-        if (role === 'Admin') {
-            // Admin can access everything - no need to check further
-            return;
-        }
-        
         // ✅ Redirect non-Admin users away from admin-only routes
-        var adminOnlyRoutes = ['/dashboard', '/users', '/roles', '/audit-logs'];
-        if (adminOnlyRoutes.some(function(route) { return path === route || path.startsWith(route + '/'); })) {
+        // Advisor có quyền truy cập một số route admin (do gộp với Support)
+        var adminOnlyRoutes = ['/users', '/roles'];
+        if (role !== 'Admin' && role !== 'Advisor' && adminOnlyRoutes.some(function(route) { return path === route || path.startsWith(route + '/'); })) {
             event.preventDefault();
             var defaultRoute = getDefaultRouteForRole(role);
             $location.path(defaultRoute);
@@ -65,15 +54,54 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
             return;
         }
         
-        // ✅ Handle other roles (Advisor, Lecturer, Student)
-        if (role === 'Advisor') {
-            // For Advisor, allow route if:
+        // Admin role: Allow all routes that are either in menu items or in fallback list
+        // This prevents "no permission" errors when menu items are still loading
+        if (role === 'Admin') {
+            // For Admin, allow route if:
+            // 1. It's in allowed routes (from menu or fallback), OR
+            // 2. It's a valid admin route (starts with common admin paths)
+            var isAllowed = RoleService.isRouteAllowed(path);
+            var isAdminRoute = path.startsWith('/dashboard') || 
+                              path.startsWith('/users') || 
+                              path.startsWith('/roles') ||
+                              path.startsWith('/students') ||
+                              path.startsWith('/lecturers') ||
+                              path.startsWith('/classes') ||
+                              path.startsWith('/academic-years') ||
+                              path.startsWith('/school-years') ||
+                              path.startsWith('/organization') ||
+                              path.startsWith('/subject-prerequisites') ||
+                              path.startsWith('/admin-classes') ||
+                              path.startsWith('/registration-periods') ||
+                              path.startsWith('/enrollments') ||
+                              path.startsWith('/admin/timetable') ||
+                              path.startsWith('/audit-logs') ||
+                              path.startsWith('/notifications') ||
+                              path === '/login' || 
+                              path === '/';
+            
+            if (!isAllowed && !isAdminRoute) {
+                event.preventDefault();
+                var defaultRoute = getDefaultRouteForRole(role);
+                $location.path(defaultRoute);
+                ToastService.error('Bạn không có quyền truy cập trang này');
+                return;
+            }
+        } else if (role === 'Advisor') {
+            // For Advisor (gộp với Support), allow route if:
             // 1. It's a valid advisor route (starts with /advisor/ or /notifications) - CHECK THIS FIRST
-            // 2. It's in allowed routes (from menu or fallback)
+            // 2. It's a Support route (dashboard, registration-periods, enrollments, audit-logs)
+            // 3. It's in allowed routes (from menu or fallback)
             // This prevents "no permission" errors when menu items are still loading
             var isAdvisorRoute = path.startsWith('/advisor/') ||
                                  path.startsWith('/notifications') ||
                                  path === '/login';
+            
+            // Routes mà Support có quyền (giờ Advisor cũng có)
+            var isSupportRoute = path === '/dashboard' ||
+                                 path.startsWith('/registration-periods') ||
+                                 path.startsWith('/enrollments') ||
+                                 path.startsWith('/audit-logs');
             
             // ✅ Auto-redirect from root path to advisor dashboard
             if (path === '/') {
@@ -82,25 +110,17 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
                 return;
             }
             
-            // ✅ Allow advisor routes immediately (don't wait for menu to load)
-            if (isAdvisorRoute) {
+            // ✅ Allow advisor routes and support routes immediately (don't wait for menu to load)
+            if (isAdvisorRoute || isSupportRoute) {
                 return; // Allow access
             }
             
-            // If not an advisor route, check if it's in allowed routes
+            // If not an advisor/support route, check if it's in allowed routes
             var isAllowed = RoleService.isRouteAllowed(path);
             if (!isAllowed) {
                 event.preventDefault();
                 var defaultRoute = getDefaultRouteForRole(role);
                 $location.path(defaultRoute);
-                // Debug: Log the issue
-                console.warn('[RouteGuard] Advisor access denied:', {
-                    role: role,
-                    path: path,
-                    isAdvisorRoute: isAdvisorRoute,
-                    isAllowed: isAllowed,
-                    defaultRoute: defaultRoute
-                });
                 ToastService.warning('Bạn không có quyền truy cập trang này');
                 return;
             }

@@ -206,43 +206,25 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
     
     // Helper function to extract count from response
     function getCountFromResponse(response) {
-        if (!response || !response.data) {
-            LoggerService.warn('getCountFromResponse: No response or data', response);
-            return 0;
-        }
+        if (!response || !response.data) return 0;
         
-        // Check if it's pagination response (students, lecturers, etc.)
-        if (response.data.pagination && typeof response.data.pagination.totalCount === 'number') {
-            LoggerService.log('getCountFromResponse: Found pagination.totalCount', response.data.pagination.totalCount);
+        // Check if it's pagination response
+        if (response.data.pagination && response.data.pagination.totalCount) {
             return response.data.pagination.totalCount;
         }
         
         // Check if it's array directly
         if (Array.isArray(response.data)) {
-            LoggerService.log('getCountFromResponse: Found array directly', response.data.length);
             return response.data.length;
         }
         
         // Check if it's wrapped in data property
         if (response.data.data) {
             if (Array.isArray(response.data.data)) {
-                LoggerService.log('getCountFromResponse: Found array in data.data', response.data.data.length);
                 return response.data.data.length;
             }
-            // If data.data is an object with count property
-            if (typeof response.data.data === 'object' && typeof response.data.data.count === 'number') {
-                LoggerService.log('getCountFromResponse: Found count in data.data', response.data.data.count);
-                return response.data.data.count;
-            }
         }
         
-        // Check if response.data has a count property directly
-        if (typeof response.data.count === 'number') {
-            LoggerService.log('getCountFromResponse: Found count directly', response.data.count);
-            return response.data.count;
-        }
-        
-        LoggerService.warn('getCountFromResponse: Could not extract count', response.data);
         return 0;
     }
     
@@ -250,10 +232,16 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
     $scope.loadStats = function() {
         // Check if user is Admin - only load admin stats for Admin role
         var currentUser = AuthService.getCurrentUser();
-        var userRole = currentUser?.roleName || currentUser?.Role || '';
+        if (!currentUser) {
+            $scope.loading = false;
+            $scope.error = null;
+            return;
+        }
+        
+        var userRole = currentUser.roleName || currentUser.Role || currentUser.role || '';
         
         // Only load admin statistics if user is Admin
-        if (userRole !== 'Admin') {
+        if (userRole !== 'Admin' && userRole !== 'Quản trị viên') {
             $scope.loading = false;
             $scope.error = null;
             // Don't load stats for non-admin users
@@ -264,27 +252,25 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
         $scope.error = null;
         
         // Create promises for all API calls (Admin only)
-        // Note: StudentService.getAll() returns pagination, others return arrays
         var promises = {
             users: UserService.getAll().catch(function(err) { 
                 // Silently handle 403 errors - user might not have permission
                 if (err.status !== 403) {
                     LoggerService.error('Error loading users', err);
                 }
-                return {data: {data: []}}; // Keep structure for getCountFromResponse
+                return {data: []};
             }),
-            students: StudentService.getAll({page: 1, pageSize: 1}).catch(function(err) { 
-                // Use pagination to get totalCount
+            students: StudentService.getAll().catch(function(err) { 
                 if (err.status !== 403) {
                     LoggerService.error('Error loading students', err);
                 }
-                return {data: {pagination: {totalCount: 0}}};
+                return {data: []};
             }),
             lecturers: LecturerService.getAll().catch(function(err) { 
                 if (err.status !== 403) {
                     LoggerService.error('Error loading lecturers', err);
                 }
-                return {data: {data: []}}; // Keep structure for getCountFromResponse
+                return {data: []};
             }),
             faculties: FacultyService.getAll().catch(function(err) { 
                 if (err.status !== 403) {
@@ -333,10 +319,17 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
     $scope.loadRecentAuditLogs = function() {
         // Check if user is Admin - only load audit logs for Admin role
         var currentUser = AuthService.getCurrentUser();
-        var userRole = currentUser?.roleName || currentUser?.Role || '';
+        if (!currentUser) {
+            $scope.allAuditLogs = [];
+            $scope.recentAuditLogs = [];
+            $scope.filteredAllAuditLogs = [];
+            return;
+        }
+        
+        var userRole = currentUser.roleName || currentUser.Role || currentUser.role || '';
         
         // Only load audit logs if user is Admin
-        if (userRole !== 'Admin') {
+        if (userRole !== 'Admin' && userRole !== 'Quản trị viên') {
             $scope.allAuditLogs = [];
             $scope.recentAuditLogs = [];
             $scope.filteredAllAuditLogs = [];

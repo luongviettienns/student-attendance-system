@@ -23,16 +23,19 @@ app.directive('notificationBell', function() {
                                 '<i class="fas fa-inbox"></i>' +
                                 '<p>Không có thông báo mới</p>' +
                             '</div>' +
+                            '<div ng-if="loading" class="text-center" style="padding: 20px;">' +
+                                '<i class="fas fa-spinner fa-spin"></i> Đang tải...' +
+                            '</div>' +
                             '<div ng-repeat="notif in unreadNotifications" ' +
                                  'class="notification-dropdown-item" ' +
                                  'ng-click="markAndView(notif)">' +
                                 '<div class="notif-icon">' +
-                                    '<i class="fas fa-{{notif.type === \'info\' ? \'info-circle\' : \'bell\'}}"></i>' +
+                                    '<i class="fas" ng-class="getNotificationIcon(notif.type)"></i>' +
                                 '</div>' +
                                 '<div class="notif-content">' +
                                     '<h5>{{notif.title}}</h5>' +
-                                    '<p>{{notif.message | limitTo:60}}{{notif.message.length > 60 ? \'...\' : \'\'}}</p>' +
-                                    '<span class="notif-time">{{notif.createdAt | date:\'short\'}}</span>' +
+                                    '<p>{{(notif.content || notif.message) | limitTo:60}}{{(notif.content || notif.message).length > 60 ? \'...\' : \'\'}}</p>' +
+                                    '<span class="notif-time">{{timeAgo(notif.createdAt || notif.sentDate)}}</span>' +
                                 '</div>' +
                             '</div>' +
                         '</div>' +

@@ -3,7 +3,7 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
     
     // Initialize avatar modal functions for a scope
     this.initAvatarModal = function($scope) {
-        // Avatar Modal State
+        // ✅ Avatar Modal State - Ensure it starts as closed
         $scope.avatarModal = {
             show: false,
             selectedFile: null,
@@ -14,27 +14,69 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
             dragOver: false
         };
         
-        // Open Avatar Modal
-        $scope.openAvatarModal = function() {
-            $scope.avatarModal = {
-                show: true,
-                selectedFile: null,
-                previewUrl: $scope.currentUser ? ($scope.currentUser.avatarUrl || null) : null,
-                error: null,
-                success: null,
-                uploading: false,
-                dragOver: false
-            };
+        // ✅ Open Avatar Modal - Only called explicitly by user click
+        $scope.openAvatarModal = function(event) {
+            // Prevent event propagation if event is provided
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            // ✅ Force ensure modal is closed first, then open
+            $scope.avatarModal.show = false;
+            
+            // Use $timeout to ensure DOM updates
+            $timeout(function() {
+                $scope.avatarModal = {
+                    show: true,
+                    selectedFile: null,
+                    previewUrl: $scope.currentUser ? ($scope.currentUser.avatarUrl || null) : null,
+                    error: null,
+                    success: null,
+                    uploading: false,
+                    dragOver: false
+                };
+            }, 10);
         };
         
-        // Close Avatar Modal
-        $scope.closeAvatarModal = function() {
+        // ✅ Close Avatar Modal - Force close with multiple safeguards
+        $scope.closeAvatarModal = function(event) {
+            // ✅ Prevent event propagation if event is provided
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
+            // ✅ Force close modal - Multiple ways to ensure it closes
             $scope.avatarModal.show = false;
             $scope.avatarModal.selectedFile = null;
             $scope.avatarModal.previewUrl = null;
             $scope.avatarModal.error = null;
             $scope.avatarModal.success = null;
+            $scope.avatarModal.uploading = false;
+            $scope.avatarModal.dragOver = false;
+            
+            // ✅ Force digest cycle to ensure view updates
+            if (!$scope.$$phase && !$scope.$root.$$phase) {
+                $scope.$apply();
+            } else {
+                // If already in digest, use $timeout to ensure update
+                $timeout(function() {
+                    $scope.avatarModal.show = false;
+                }, 0);
+            }
+            
+            // ✅ Additional safeguard: Remove active class from DOM if exists
+            $timeout(function() {
+                var modalElement = document.querySelector('.avatar-modal.modal-overlay');
+                if (modalElement) {
+                    modalElement.classList.remove('active');
+                }
+            }, 0);
         };
+        
+        // ✅ Ensure modal is closed on scope initialization
+        $scope.avatarModal.show = false;
         
         // Trigger File Input
         $scope.triggerFileInput = function() {
@@ -127,7 +169,8 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
                 return;
             }
             
-            if (!$scope.currentUser || !$scope.currentUser.userId) {
+            // ✅ Kiểm tra currentUser tồn tại
+            if (!$scope.currentUser) {
                 ToastService.error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
                 return;
             }
@@ -138,7 +181,7 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
             
             var formData = new FormData();
             formData.append('avatar', $scope.avatarModal.selectedFile);
-            formData.append('userId', $scope.currentUser.userId);
+            // ✅ Không cần gửi userId vì backend sẽ lấy từ token
             
             // Make API call to upload avatar
             ApiService.uploadFile('/users/avatar', formData)
@@ -155,6 +198,9 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
                         if (newAvatarUrl) {
                             $scope.currentUser.avatarUrl = newAvatarUrl;
                             AuthService.updateUser($scope.currentUser);
+                            
+                            // ✅ Trigger reload để topbar cập nhật avatar
+                            $scope.$root.$broadcast('userAvatarUpdated', newAvatarUrl);
                         }
                     }
                     

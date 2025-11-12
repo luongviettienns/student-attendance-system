@@ -1,8 +1,9 @@
 // Major Controller
-app.controller('MajorController', ['$scope', '$location', '$routeParams', 'MajorService', 'FacultyService',
-    function($scope, $location, $routeParams, MajorService, FacultyService) {
+app.controller('MajorController', ['$scope', '$location', '$routeParams', '$timeout', 'MajorService', 'FacultyService', 'PaginationService',
+    function($scope, $location, $routeParams, $timeout, MajorService, FacultyService, PaginationService) {
     
     $scope.majors = [];
+    $scope.displayedMajors = [];
     $scope.faculties = [];
     $scope.major = {};
     $scope.loading = false;
@@ -10,18 +11,70 @@ app.controller('MajorController', ['$scope', '$location', '$routeParams', 'Major
     $scope.success = null;
     $scope.isEditMode = false;
     
-    // Load all majors
+    // Pagination
+    $scope.pagination = PaginationService.init(10);
+    
+    // Load majors with server-side pagination
     $scope.loadMajors = function() {
         $scope.loading = true;
-        MajorService.getAll()
+        $scope.error = null;
+        
+        var params = {
+            page: $scope.pagination.currentPage,
+            pageSize: $scope.pagination.pageSize,
+            search: $scope.pagination.searchTerm || null
+        };
+        
+        // Remove empty values
+        Object.keys(params).forEach(function(key) {
+            if (params[key] === null || params[key] === '' || params[key] === undefined) {
+                delete params[key];
+            }
+        });
+        
+        MajorService.getAll(params)
             .then(function(response) {
-                $scope.majors = response.data;
+                var result = response.data;
+                
+                // Update displayed majors
+                $scope.displayedMajors = result.data || [];
+                $scope.majors = result.data || [];
+                
+                // Update pagination info from server
+                if (result.totalCount !== undefined) {
+                    $scope.pagination.totalItems = result.totalCount;
+                    $scope.pagination.totalPages = result.totalPages;
+                    $scope.pagination.currentPage = result.page;
+                    $scope.pagination.pageSize = result.pageSize;
+                }
+                
+                // Recalculate pagination UI
+                $scope.pagination = PaginationService.calculate($scope.pagination);
+                
                 $scope.loading = false;
             })
             .catch(function(error) {
                 $scope.error = 'Không thể tải danh sách ngành';
                 $scope.loading = false;
             });
+    };
+    
+    // Search handler
+    $scope.handleSearch = function() {
+        $scope.pagination.currentPage = 1;
+        $scope.loadMajors();
+    };
+    
+    // Page change handler
+    $scope.handlePageChange = function(page) {
+        $scope.pagination.currentPage = page;
+        $scope.loadMajors();
+    };
+    
+    // Page size change handler
+    $scope.handlePageSizeChange = function() {
+        $scope.pagination.currentPage = 1;
+        $scope.loadMajors();
     };
     
     // Load faculties for dropdown
@@ -31,7 +84,7 @@ app.controller('MajorController', ['$scope', '$location', '$routeParams', 'Major
                 $scope.faculties = response.data;
             })
             .catch(function(error) {
-                console.error('Error loading faculties:', error);
+                // Error handled silently
             });
     };
     
@@ -66,9 +119,8 @@ app.controller('MajorController', ['$scope', '$location', '$routeParams', 'Major
             .then(function(response) {
                 $scope.success = 'Lưu ngành thành công';
                 $scope.loading = false;
-                setTimeout(function() {
+                $timeout(function() {
                     $location.path('/majors');
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {

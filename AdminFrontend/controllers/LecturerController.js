@@ -1,6 +1,6 @@
 // Lecturer Controller
-app.controller('LecturerController', ['$scope', '$location', '$routeParams', 'LecturerService', 'DepartmentService', 'SubjectService', 'LecturerSubjectService',
-    function($scope, $location, $routeParams, LecturerService, DepartmentService, SubjectService, LecturerSubjectService) {
+app.controller('LecturerController', ['$scope', '$location', '$routeParams', '$timeout', 'LecturerService', 'DepartmentService', 'SubjectService', 'LecturerSubjectService',
+    function($scope, $location, $routeParams, $timeout, LecturerService, DepartmentService, SubjectService, LecturerSubjectService) {
     
     $scope.lecturers = [];
     $scope.lecturer = {};
@@ -12,6 +12,11 @@ app.controller('LecturerController', ['$scope', '$location', '$routeParams', 'Le
     $scope.error = null;
     $scope.success = null;
     $scope.isEditMode = false;
+    
+    // Pagination for subject cards
+    $scope.subjectCurrentPage = 1;
+    $scope.subjectPageSize = 6; // 6 cards per page (2 rows x 3 cols)
+    $scope.subjectTotalPages = 1;
     
     // Load all lecturers
     $scope.loadLecturers = function() {
@@ -58,9 +63,8 @@ app.controller('LecturerController', ['$scope', '$location', '$routeParams', 'Le
             .then(function(response) {
                 $scope.success = 'Lưu giảng viên thành công';
                 $scope.loading = false;
-                setTimeout(function() {
+                $timeout(function() {
                     $location.path('/lecturers');
-                    $scope.$apply();
                 }, 1500);
             })
             .catch(function(error) {
@@ -107,7 +111,7 @@ app.controller('LecturerController', ['$scope', '$location', '$routeParams', 'Le
                 $scope.departments = response.data;
             })
             .catch(function(error) {
-                console.error('Lỗi khi tải danh sách bộ môn:', error);
+                // Error handled silently
             });
     };
     
@@ -120,7 +124,7 @@ app.controller('LecturerController', ['$scope', '$location', '$routeParams', 'Le
                 $scope.allSubjects = response.data;
             })
             .catch(function(error) {
-                console.error('Lỗi khi tải danh sách môn học:', error);
+                // Error handled silently
             });
     };
     
@@ -131,10 +135,48 @@ app.controller('LecturerController', ['$scope', '$location', '$routeParams', 'Le
         LecturerSubjectService.getSubjectsByLecturer(lecturerId)
             .then(function(response) {
                 $scope.assignedSubjects = response.data;
+                $scope.updateSubjectPagination();
             })
             .catch(function(error) {
-                console.error('Lỗi khi tải môn học đã phân:', error);
+                // Error handled silently
             });
+    };
+    
+    // ============================================================
+    // 🔹 Pagination functions for subject cards
+    // ============================================================
+    $scope.updateSubjectPagination = function() {
+        $scope.subjectTotalPages = Math.ceil($scope.assignedSubjects.length / $scope.subjectPageSize);
+        if ($scope.subjectCurrentPage > $scope.subjectTotalPages && $scope.subjectTotalPages > 0) {
+            $scope.subjectCurrentPage = $scope.subjectTotalPages;
+        }
+    };
+    
+    $scope.getSubjectPages = function() {
+        var pages = [];
+        var startPage = Math.max(1, $scope.subjectCurrentPage - 2);
+        var endPage = Math.min($scope.subjectTotalPages, $scope.subjectCurrentPage + 2);
+        
+        for (var i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        return pages;
+    };
+    
+    $scope.goToSubjectPage = function(page) {
+        $scope.subjectCurrentPage = page;
+    };
+    
+    $scope.previousSubjectPage = function() {
+        if ($scope.subjectCurrentPage > 1) {
+            $scope.subjectCurrentPage--;
+        }
+    };
+    
+    $scope.nextSubjectPage = function() {
+        if ($scope.subjectCurrentPage < $scope.subjectTotalPages) {
+            $scope.subjectCurrentPage++;
+        }
     };
     
     // ============================================================
@@ -160,6 +202,8 @@ app.controller('LecturerController', ['$scope', '$location', '$routeParams', 'Le
                 $scope.success = 'Phân môn thành công';
                 $scope.newAssignment = {};
                 $scope.loadAssignedSubjects($scope.lecturer.lecturerId);
+                // Reset to first page after adding
+                $scope.subjectCurrentPage = 1;
             })
             .catch(function(error) {
                 $scope.error = error.data?.message || 'Không thể phân môn';

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
@@ -268,6 +269,135 @@ namespace EducationManagement.DAL.Repositories
             using var da = new SqlDataAdapter((SqlCommand)cmd);
             da.Fill(dt);
             return dt;
+        }
+
+        // NEW: Get sessions by class and week
+        public async Task<DataTable> GetSessionsByClassAndWeekAsync(string classId, int weekNo)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"SELECT 
+                ts.session_id, ts.class_id, ts.subject_id, ts.lecturer_id, ts.room_id, ts.school_year_id,
+                ts.week_no, ts.weekday, ts.start_time, ts.end_time, ts.period_from, ts.period_to,
+                ts.recurrence, ts.status, ts.notes,
+                c.class_code, c.class_name,
+                s.subject_code, s.subject_name,
+                l.full_name AS lecturer_name,
+                r.room_code, r.building,
+                sy.year_code AS school_year_code
+            FROM dbo.timetable_sessions ts
+            INNER JOIN dbo.classes c ON ts.class_id = c.class_id
+            INNER JOIN dbo.subjects s ON ts.subject_id = s.subject_id
+            LEFT JOIN dbo.lecturers l ON ts.lecturer_id = l.lecturer_id
+            LEFT JOIN dbo.rooms r ON ts.room_id = r.room_id
+            LEFT JOIN dbo.school_years sy ON ts.school_year_id = sy.school_year_id
+            WHERE ts.class_id = @classId
+              AND ts.week_no = @weekNo
+              AND ts.deleted_at IS NULL
+              AND c.deleted_at IS NULL
+            ORDER BY ts.weekday, ts.start_time";
+            cmd.Parameters.AddWithValue("@classId", classId);
+            cmd.Parameters.AddWithValue("@weekNo", weekNo);
+            var dt = new DataTable();
+            using var da = new SqlDataAdapter((SqlCommand)cmd);
+            da.Fill(dt);
+            return dt;
+        }
+
+        // NEW: Get sessions by semester
+        public async Task<DataTable> GetSessionsBySemesterAsync(string schoolYearId, int semester, string? classId = null)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"SELECT 
+                ts.session_id, ts.class_id, ts.subject_id, ts.lecturer_id, ts.room_id, ts.school_year_id,
+                ts.week_no, ts.weekday, ts.start_time, ts.end_time, ts.period_from, ts.period_to,
+                ts.recurrence, ts.status, ts.notes,
+                c.class_code, c.class_name, c.semester,
+                s.subject_code, s.subject_name,
+                l.full_name AS lecturer_name,
+                r.room_code, r.building,
+                sy.year_code AS school_year_code
+            FROM dbo.timetable_sessions ts
+            INNER JOIN dbo.classes c ON ts.class_id = c.class_id
+            INNER JOIN dbo.subjects s ON ts.subject_id = s.subject_id
+            LEFT JOIN dbo.lecturers l ON ts.lecturer_id = l.lecturer_id
+            LEFT JOIN dbo.rooms r ON ts.room_id = r.room_id
+            LEFT JOIN dbo.school_years sy ON ts.school_year_id = sy.school_year_id
+            WHERE ts.school_year_id = @schoolYearId
+              AND c.semester = @semester
+              AND (@classId IS NULL OR ts.class_id = @classId)
+              AND ts.deleted_at IS NULL
+              AND c.deleted_at IS NULL
+            ORDER BY ts.week_no, ts.weekday, ts.start_time";
+            cmd.Parameters.AddWithValue("@schoolYearId", schoolYearId);
+            cmd.Parameters.AddWithValue("@semester", semester);
+            cmd.Parameters.AddWithValue("@classId", (object?)classId ?? DBNull.Value);
+            var dt = new DataTable();
+            using var da = new SqlDataAdapter((SqlCommand)cmd);
+            da.Fill(dt);
+            return dt;
+        }
+
+        // NEW: Get semester weeks (calculate weeks from semester dates)
+        public async Task<List<int>> GetSemesterWeeksAsync(string schoolYearId, int semester)
+        {
+            var weeks = new List<int>();
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"SELECT 
+                CASE @semester
+                    WHEN 1 THEN semester1_start
+                    WHEN 2 THEN semester2_start
+                    ELSE NULL
+                END AS semester_start,
+                CASE @semester
+                    WHEN 1 THEN semester1_end
+                    WHEN 2 THEN semester2_end
+                    ELSE NULL
+                END AS semester_end
+            FROM dbo.school_years
+            WHERE school_year_id = @schoolYearId AND deleted_at IS NULL";
+            cmd.Parameters.AddWithValue("@schoolYearId", schoolYearId);
+            cmd.Parameters.AddWithValue("@semester", semester);
+            
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                if (!reader.IsDBNull(0) && !reader.IsDBNull(1))
+                {
+                    var startDate = reader.GetDateTime(0);
+                    var endDate = reader.GetDateTime(1);
+                    
+                    // Calculate ISO week numbers
+                    var currentDate = startDate;
+                    while (currentDate <= endDate)
+                    {
+                        var weekNo = GetIsoWeekNumber(currentDate);
+                        if (!weeks.Contains(weekNo))
+                            weeks.Add(weekNo);
+                        currentDate = currentDate.AddDays(7);
+                    }
+                }
+            }
+            
+            return weeks.OrderBy(w => w).ToList();
+        }
+
+        private static int GetIsoWeekNumber(DateTime date)
+        {
+            var day = (int)date.DayOfWeek;
+            if (day == 0) day = 7; // Sunday = 7
+            var jan1 = new DateTime(date.Year, 1, 1);
+            var daysOffset = day - (int)jan1.DayOfWeek;
+            if (daysOffset < 0) daysOffset += 7;
+            var firstMonday = jan1.AddDays(daysOffset);
+            var firstWeek = firstMonday.AddDays(-((int)firstMonday.DayOfWeek - 1));
+            var weekNum = (int)Math.Ceiling((date - firstWeek).TotalDays / 7.0);
+            return weekNum;
         }
     }
 }

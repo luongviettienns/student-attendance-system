@@ -143,14 +143,9 @@ app.controller('FacultyController', ['$scope', '$location', '$routeParams', '$ti
             .then(function(response) {
                 $scope.success = response.data?.message || 'Lưu khoa thành công';
                 $scope.loading = false;
-                // Reload faculties list to show updated data
-                if ($location.path() === '/faculties') {
-                    $scope.loadFaculties();
-                } else {
-                    $timeout(function() {
-                        $location.path('/faculties');
-                    }, 1500);
-                }
+                $timeout(function() {
+                    $location.path('/faculties');
+                }, 1500);
             })
             .catch(function(error) {
                 var errorMessage = 'Không thể lưu khoa';

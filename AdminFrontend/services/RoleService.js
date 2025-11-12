@@ -202,7 +202,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             canViewNotifications: true
         },
         'Advisor': {
-            // Cố vấn - quản lý sinh viên được phụ trách
+            // Cố vấn học tập & Nhân viên phòng đào tạo - quản lý sinh viên được phụ trách + quản lý đăng ký
             canManageUsers: false,
             canManageRoles: false,
             canManageStudents: true, // Chỉ sinh viên được phụ trách
@@ -221,7 +221,12 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             canExportReports: true,
             canViewDashboard: true,
             canCreateNotifications: true,
-            canViewNotifications: true
+            canViewNotifications: true,
+            // Quyền Nhân viên phòng đào tạo (gộp vào Advisor)
+            canViewAuditLogs: true, // Xem nhật ký hệ thống
+            canManageEnrollment: true, // Quản lý đăng ký học phần
+            canViewRegistrationPeriods: true, // Xem đợt đăng ký
+            canManageRegistrationPeriods: true // Quản lý đợt đăng ký
         }
     };
     
@@ -346,7 +351,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             'Admin': [
                 '/dashboard',
                 '/users', '/roles',
-                '/organization', // Đã gộp faculties, departments, majors, subjects
+                '/faculties', '/departments', '/majors', '/subjects',
                 '/students', '/lecturers', '/classes', '/admin-classes',
                 '/academic-years', '/school-years',
                 '/subject-prerequisites',
@@ -354,10 +359,13 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/enrollments',
                 '/audit-logs',
                 '/notifications',
+                '/organization',
                 // Cho phép admin truy cập màn timetable để test
                 '/student/timetable',
                 '/lecturer/timetable',
-                '/admin/timetable'
+                '/admin/timetable',
+                // Reports
+                '/admin/reports'
             ],
             'Lecturer': [
                 '/dashboard',
@@ -365,6 +373,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/lecturer/grades',
                 '/lecturer/dashboard',
                 '/lecturer/timetable',
+                '/lecturer/reports',
                 '/notifications'
             ],
             'Student': [
@@ -376,14 +385,22 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/student/attendance',
                 '/student/enrollments',
                 '/student/profile',
+                '/student/reports',
                 '/notifications'
             ],
             'Advisor': [
+                // Quyền Cố vấn học tập
                 '/advisor/dashboard',
                 '/advisor/students',
                 '/advisor/warnings', // Warnings page (cảnh báo và gửi email)
                 '/advisor/enrollments', // Enrollments approval page
-                '/notifications'
+                '/advisor/reports', // Reports & Statistics
+                '/notifications',
+                // Quyền Nhân viên phòng đào tạo (gộp vào Advisor)
+                '/dashboard', // Dashboard admin (Overview)
+                '/registration-periods', // Quản lý đợt đăng ký
+                '/enrollments', // Quản lý đăng ký học phần
+                '/audit-logs' // Nhật ký hệ thống
             ]
         };
         
@@ -446,6 +463,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'STUDENT_ATTENDANCE': '/student/attendance',
         'STUDENT_PROFILE': '/student/profile',
         'STUDENT_ENROLLMENT': '/student/enrollments',
+        'STUDENT_REPORTS': '/student/reports',
         'STUDENT_NOTIFICATIONS': '/notifications',
         
         // Lecturer permissions
@@ -453,6 +471,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'TEACHER_ATTENDANCE': '/lecturer/attendance',
         'TEACHER_GRADES': '/lecturer/grades',
         'TEACHER_TIMETABLE': '/lecturer/timetable',
+        'TEACHER_REPORTS': '/lecturer/reports',
         'TEACHER_NOTIFICATIONS': '/notifications',
         
         // Advisor permissions
@@ -460,6 +479,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'ADVISOR_STUDENTS': '/advisor/students', // Fixed: route is /advisor/students, not /students
         'ADVISOR_WARNINGS': '/advisor/warnings', // Task 1.5: Cảnh báo và gửi email
         'ADVISOR_ENROLLMENTS': '/advisor/enrollments', // Task 2: Duyệt đăng ký học phần
+        'ADVISOR_REPORTS': '/advisor/reports',
         'ADVISOR_NOTIFICATIONS': '/notifications',
         
         // Admin permissions
@@ -473,10 +493,12 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'ADMIN_SCHOOL_YEARS': '/school-years',
         'ADMIN_SUBJECT_PREREQUISITES': '/subject-prerequisites',
         'ADMIN_CLASSES': '/classes',
-        'ADMIN_ADMIN_CLASSES': '/admin-classes',
+        'ADMIN_ADMIN_CLASSES': '/admin-classes', // Deprecated - dùng ADMIN_SECTION_CLASSES thay thế
+        'ADMIN_SECTION_CLASSES': '/admin-classes', // Section permission vừa là menu vừa là quyền quản lý
         'ADMIN_REGISTRATION_PERIODS': '/registration-periods',
         'ADMIN_ENROLLMENTS': '/enrollments',
         'ADMIN_TIMETABLE': '/admin/timetable',
+        'ADMIN_REPORTS': '/admin/reports',
         'ADMIN_AUDIT_LOGS': '/audit-logs',
         'ADMIN_NOTIFICATIONS': '/notifications',
         
@@ -491,124 +513,6 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
     };
     
     /**
-     * Gộp các sections liên quan để menu ngắn gọn hơn
-     */
-    function mergeRelatedSections(menuSections) {
-        if (!menuSections || !Array.isArray(menuSections)) {
-            return menuSections;
-        }
-        
-        var merged = [];
-        var academicSection = null;
-        var subjectsSection = null;
-        var classesSection = null;
-        
-        var overviewSection = null;
-        
-        menuSections.forEach(function(section) {
-            var sectionLabel = (section.section || '').toUpperCase();
-            
-            // Tìm section TỔNG QUAN - sẽ xử lý đặc biệt (link trực tiếp đến dashboard)
-            if (sectionLabel.includes('TỔNG QUAN') || sectionLabel.includes('OVERVIEW')) {
-                overviewSection = section;
-            }
-            // Tìm section QUẢN LÝ ĐÀO TẠO
-            else if (sectionLabel.includes('QUẢN LÝ ĐÀO TẠO') || sectionLabel.includes('ACADEMIC')) {
-                academicSection = section;
-            }
-            // Tìm section HỌC PHẦN
-            else if (sectionLabel.includes('HỌC PHẦN') || sectionLabel.includes('SUBJECTS')) {
-                subjectsSection = section;
-            }
-            // Tìm section LỚP HỌC
-            else if (sectionLabel.includes('LỚP HỌC') || sectionLabel.includes('CLASSES')) {
-                classesSection = section;
-            }
-            // Các sections khác giữ nguyên
-            else {
-                merged.push(section);
-            }
-        });
-        
-        // Xử lý section TỔNG QUAN - chuyển thành link trực tiếp đến dashboard
-        if (overviewSection) {
-            // Tìm item Dashboard trong section TỔNG QUAN
-            var dashboardItem = null;
-            if (overviewSection.items && overviewSection.items.length > 0) {
-                for (var i = 0; i < overviewSection.items.length; i++) {
-                    var item = overviewSection.items[i];
-                    var path = (item.path || '').toLowerCase();
-                    var label = (item.label || '').toLowerCase();
-                    if (path.includes('dashboard') || label.includes('dashboard')) {
-                        dashboardItem = item;
-                        break;
-                    }
-                }
-            }
-            
-            // Nếu có dashboard item, chuyển section thành link trực tiếp
-            if (dashboardItem) {
-                overviewSection.isDirectLink = true;
-                overviewSection.directPath = dashboardItem.path;
-                overviewSection.icon = dashboardItem.icon || 'fas fa-home';
-            } else {
-                // Nếu không có, dùng dashboard mặc định
-                overviewSection.isDirectLink = true;
-                overviewSection.directPath = '/dashboard';
-                overviewSection.icon = 'fas fa-home';
-            }
-            // Đưa TỔNG QUAN lên đầu
-            merged.unshift(overviewSection);
-        }
-        
-        // Gộp HỌC PHẦN và LỚP HỌC vào QUẢN LÝ ĐÀO TẠO
-        if (academicSection) {
-            if (subjectsSection && subjectsSection.items && subjectsSection.items.length > 0) {
-                academicSection.items = (academicSection.items || []).concat(subjectsSection.items);
-            }
-            if (classesSection && classesSection.items && classesSection.items.length > 0) {
-                academicSection.items = (academicSection.items || []).concat(classesSection.items);
-            }
-            // Sắp xếp lại items theo thứ tự logic
-            if (academicSection.items && academicSection.items.length > 0) {
-                academicSection.items.sort(function(a, b) {
-                    var order = {
-                        'organization': 1,
-                        'students': 2,
-                        'lecturers': 3,
-                        'academic-years': 4,
-                        'school-years': 5,
-                        'subject-prerequisites': 6,
-                        'classes': 7,
-                        'admin-classes': 8
-                    };
-                    
-                    // Lấy phần cuối của path
-                    var aPath = (a.path || '').split('/').pop() || '';
-                    var bPath = (b.path || '').split('/').pop() || '';
-                    
-                    var aOrder = order[aPath] || 999;
-                    var bOrder = order[bPath] || 999;
-                    
-                    // Nếu cùng order, sắp xếp theo label
-                    if (aOrder === bOrder) {
-                        return (a.label || '').localeCompare(b.label || '');
-                    }
-                    
-                    return aOrder - bOrder;
-                });
-            }
-            merged.push(academicSection);
-        } else {
-            // Nếu không có academic section, giữ nguyên subjects và classes
-            if (subjectsSection) merged.push(subjectsSection);
-            if (classesSection) merged.push(classesSection);
-        }
-        
-        return merged;
-    }
-    
-    /**
      * Map backend menu format to frontend format
      */
     function mapBackendMenuToFrontend(backendMenus) {
@@ -616,11 +520,10 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             return [];
         }
         
-        var mappedMenus = backendMenus.map(function(menu) {
+        return backendMenus.map(function(menu) {
             var section = {
                 section: menu.label || '',
-                items: [],
-                state: menu.state || null // Lưu state để kiểm tra permission code
+                items: []
             };
             
             // Map sub items
@@ -661,106 +564,70 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                         }
                     }
                     
-                    // ✅ Step 5: If still no path or path is dashboard, try inferring from section label + item label
+                    // ✅ Step 5: If still no path and label contains report/thống kê/báo cáo, infer from current role
                     if (!path || path === '/dashboard') {
-                        var combinedPath = inferPathFromLabel(menu.label + ' ' + subItem.label);
-                        if (combinedPath && combinedPath !== '/dashboard') {
-                            path = combinedPath;
-                            pathSource = 'inferFromCombined';
+                        // Get role from AuthService since we can't use 'this' in this context
+                        var currentUser = AuthService.getCurrentUser();
+                        var role = currentUser ? (currentUser.Role || currentUser.role) : null;
+                        var labelLower = (subItem.label || '').toLowerCase();
+                        if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) {
+                            if (role === 'Admin') {
+                                path = '/admin/reports';
+                                pathSource = 'inferFromLabelAndRole';
+                            } else if (role === 'Advisor') {
+                                path = '/advisor/reports';
+                                pathSource = 'inferFromLabelAndRole';
+                            } else if (role === 'Lecturer') {
+                                path = '/lecturer/reports';
+                                pathSource = 'inferFromLabelAndRole';
+                            } else if (role === 'Student') {
+                                path = '/student/reports';
+                                pathSource = 'inferFromLabelAndRole';
+                            }
                         }
                     }
                     
-                    // ✅ Debug logging for menu items in QUẢN LÝ ĐÀO TẠO section
-                    if (menu.label && (menu.label.includes('ĐÀO TẠO') || menu.label.includes('ACADEMIC') || menu.label.includes('NĂM HỌC') || menu.label.includes('NIÊN KHÓA'))) {
+                    // ✅ Debug logging for menu items in QUẢN LÝ ĐÀO TẠO section or REPORTS
+                    if (menu.label && ((menu.label.includes('ĐÀO TẠO') || menu.label.includes('ACADEMIC')) || 
+                        (subItem.label && (subItem.label.includes('Thống kê') || subItem.label.includes('Báo cáo') || subItem.label.includes('report'))))) {
+                        var currentUser = AuthService.getCurrentUser();
+                        var role = currentUser ? (currentUser.Role || currentUser.role) : null;
                         LoggerService.log('Menu Item Mapping:', {
                             label: subItem.label,
                             state: subItem.state,
                             path: path,
                             pathSource: pathSource,
-                            section: menu.label
+                            section: menu.label,
+                            role: role
                         });
-                    }
-                    
-                    // Only create item if we have a valid path (not dashboard as fallback)
-                    if (!path || path === '/dashboard') {
-                        LoggerService.warn('Could not infer path for menu item:', {
-                            label: subItem.label,
-                            state: subItem.state,
-                            section: menu.label
-                        });
-                        // Don't create item if path can't be determined
-                        return null;
                     }
                     
                     return {
-                        path: path,
+                        path: path || '/dashboard',
                         icon: normalizeIcon(subItem.icon),
                         label: subItem.label || ''
                     };
-                }).filter(function(item) {
-                    // Filter out null items (items where path couldn't be determined)
-                    return item !== null;
                 });
             } else {
-                // If no sub items, don't create a default item
-                // Section will be shown but clicking it will only toggle (no navigation)
-                section.items = [];
+                // If no sub items, create single item from parent (still as dropdown)
+                var path = extractPathFromState(menu.state);
+                
+                if (!path || path === '/dashboard') {
+                    path = inferPathFromState(menu.state, menu.label);
+                }
+                
+                section.items = [{
+                    path: path || '/dashboard',
+                    icon: normalizeIcon(menu.icon),
+                    label: menu.label || ''
+                }];
+                // Removed singleLink to make all sections dropdown
             }
             
             return section;
         }).filter(function(section) {
-            // Chỉ giữ lại sections có items hoặc là sections chính
-            // Sections chính có permission code dạng: ADMIN_SECTION_*, TEACHER_SECTION_*, etc.
-            var sectionState = (section.state || '').toLowerCase();
-            var sectionLabel = (section.section || '').toUpperCase();
-            
-            // Nếu có items, giữ lại
-            if (section.items && section.items.length > 0) {
-                return true;
-            }
-            
-            // Kiểm tra xem có phải là section chính dựa vào state (permission code)
-            // Sections chính có state dạng: main.admin.sectionOverview, main.admin.sectionUsers, etc.
-            // Hoặc có từ "section" trong state
-            var isSectionByState = sectionState.includes('section');
-            
-            // Kiểm tra xem có phải là section chính dựa vào label
-            var mainSections = [
-                'TỔNG QUAN', 'OVERVIEW',
-                'QUẢN LÝ NGƯỜI DÙNG', 'USER MANAGEMENT', 'USERS',
-                'QUẢN LÝ ĐÀO TẠO', 'ACADEMIC', 'ACADEMIC MANAGEMENT',
-                'HỌC PHẦN', 'SUBJECTS',
-                'LỚP HỌC', 'CLASSES',
-                'ĐĂNG KÝ HỌC PHẦN', 'ENROLLMENT', 'REGISTRATION',
-                'QUẢN LÝ THỜI KHÓA BIỂU', 'TIMETABLE',
-                'HỆ THỐNG', 'SYSTEM'
-            ];
-            
-            var isSectionByLabel = mainSections.some(function(mainSection) {
-                return sectionLabel.includes(mainSection);
-            });
-            
-            // Filter bỏ các permissions đơn lẻ như "QUẢN LÝ ĐIỂM", "QUẢN LÝ NĂM HỌC", "SỬA NGƯỜI DÙNG", etc.
-            var excludePatterns = [
-                'QUẢN LÝ ĐIỂM', 'GRADE MANAGEMENT',
-                'QUẢN LÝ NĂM HỌC', 'SCHOOL YEAR MANAGEMENT',
-                'QUẢN LÝ NIÊN KHÓA', 'ACADEMIC YEAR MANAGEMENT',
-                'QUẢN LÝ SINH VIÊN', 'STUDENT MANAGEMENT',
-                'SỬA', 'EDIT',
-                'TẠO', 'CREATE',
-                'XEM', 'VIEW'
-            ];
-            
-            var isExcluded = excludePatterns.some(function(pattern) {
-                return sectionLabel.includes(pattern) && !sectionLabel.includes('SECTION');
-            });
-            
-            // Chỉ giữ lại nếu là section chính và không bị exclude
-            return (isSectionByState || isSectionByLabel) && !isExcluded;
+            return section.items.length > 0;
         });
-        
-        // Gộp các sections liên quan để menu ngắn gọn hơn
-        return mergeRelatedSections(mappedMenus);
     }
     
     /**
@@ -782,6 +649,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('attendance') || labelLower.includes('điểm danh')) return '/student/attendance';
             if (labelLower.includes('profile') || labelLower.includes('cá nhân')) return '/student/profile';
             if (labelLower.includes('enrollment') || labelLower.includes('đăng ký')) return '/student/enrollments';
+            if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/student/reports';
         }
         
         // Lecturer routes
@@ -790,6 +658,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('attendance') || labelLower.includes('điểm danh')) return '/lecturer/attendance';
             if (labelLower.includes('grade') || labelLower.includes('điểm')) return '/lecturer/grades';
             if (labelLower.includes('timetable') || labelLower.includes('thời khóa biểu')) return '/lecturer/timetable';
+            if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/lecturer/reports';
         }
         
         // Advisor routes
@@ -798,6 +667,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('student') || labelLower.includes('sinh viên')) return '/advisor/students';
             if (labelLower.includes('warning') || labelLower.includes('cảnh báo')) return '/advisor/warnings';
             if (labelLower.includes('enrollment') || labelLower.includes('đăng ký học phần') || labelLower.includes('duyệt đăng ký')) return '/advisor/enrollments';
+            if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/advisor/reports';
             if (labelLower.includes('notification') || labelLower.includes('thông báo')) return '/notifications';
         }
         
@@ -818,6 +688,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('quản lý đăng ký') || (labelLower.includes('đăng ký') && labelLower.includes('quản lý'))) return '/enrollments';
             if (labelLower.includes('thời khóa biểu') || labelLower.includes('timetable') || labelLower.includes('xếp lịch')) return '/admin/timetable';
             if (labelLower.includes('nhật ký') || labelLower.includes('audit log')) return '/audit-logs';
+            if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/admin/reports';
             if (labelLower.includes('chương trình đào tạo') || labelLower.includes('training program')) return '/subject-prerequisites'; // Default for section
         }
         
@@ -901,7 +772,10 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         if (permissionCode.includes('SUBJECT_PREREQUISITE')) {
             if (PERMISSION_CODE_TO_PATH['ADMIN_SUBJECT_PREREQUISITES']) return PERMISSION_CODE_TO_PATH['ADMIN_SUBJECT_PREREQUISITES'];
         }
-        if (permissionCode.includes('ADMIN_CLASS')) {
+        if (permissionCode.includes('ADMIN_CLASS') || permissionCode.includes('SECTION_CLASSES')) {
+            // Ưu tiên ADMIN_SECTION_CLASSES (section permission vừa là menu vừa là quyền quản lý)
+            if (PERMISSION_CODE_TO_PATH['ADMIN_SECTION_CLASSES']) return PERMISSION_CODE_TO_PATH['ADMIN_SECTION_CLASSES'];
+            // Fallback về ADMIN_ADMIN_CLASSES (deprecated)
             if (PERMISSION_CODE_TO_PATH['ADMIN_ADMIN_CLASSES']) return PERMISSION_CODE_TO_PATH['ADMIN_ADMIN_CLASSES'];
         }
         if (permissionCode.includes('REGISTRATION_PERIOD')) {
@@ -982,8 +856,6 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             'giảng viên': '/lecturers',
             'niên khóa': '/academic-years',
             'năm học': '/school-years',
-            'quản lý niên khóa': '/academic-years',
-            'quản lý năm học': '/school-years',
             'tiên quyết': '/subject-prerequisites',
             'lớp học phần': '/classes',
             'lớp chính khóa': '/admin-classes',

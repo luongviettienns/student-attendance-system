@@ -3,25 +3,7 @@
     <app-sidebar></app-sidebar>
     
     <div class="main-content">
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
-                <h1 class="page-title">Quản lý Sinh viên</h1>
-            </div>
-            <div class="header-right">
-                <div class="user-info" ng-init="currentUser = getCurrentUser()">
-                    <div class="user-avatar" ng-click="openAvatarModal()">
-                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
-                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
-                    </div>
-                    <div class="user-details">
-                        <span class="user-name">{{currentUser.fullName}}</span>
-                        <span class="user-role">{{currentUser.roleName || 'Admin'}}</span>
-                    </div>
-                </div>
-                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
-            </div>
-        </header>
+        <app-topbar page-title="Quản lý Sinh viên"></app-topbar>
         
         <div class="content-body">
             <!-- Alerts -->
@@ -41,14 +23,9 @@
                         <button class="btn btn-info" ng-click="openImportModal()">
                             <i class="fas fa-file-import"></i> Import Excel
                         </button>
-                        <div class="btn-group">
-                            <button class="btn btn-outline" ng-click="exportToExcel()">
-                                <i class="fas fa-file-excel"></i> Excel
-                            </button>
-                            <button class="btn btn-outline" ng-click="exportToCSV()">
-                                <i class="fas fa-file-csv"></i> CSV
-                            </button>
-                        </div>
+                        <button class="btn btn-success" ng-click="exportToExcel()">
+                            <i class="fas fa-file-excel"></i> Xuất Excel
+                        </button>
                         <button class="btn btn-primary" ng-click="goToCreate()">
                             <i class="fas fa-plus"></i> Thêm sinh viên
                         </button>
@@ -161,15 +138,15 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr ng-if="loading">
+                                <tr ng-if="loadingStates.students">
                                     <td colspan="8" class="text-center">
                                         <i class="fas fa-spinner fa-spin"></i> Đang tải...
                                     </td>
                                 </tr>
-                                <tr ng-if="!loading && displayedStudents.length === 0">
+                                <tr ng-if="!loadingStates.students && displayedStudents.length === 0">
                                     <td colspan="8" class="text-center">Không có dữ liệu</td>
                                 </tr>
-                                <tr ng-repeat="student in displayedStudents" ng-if="!loading">
+                                <tr ng-repeat="student in displayedStudents" ng-if="!loadingStates.students">
                                     <td>{{student.studentCode}}</td>
                                     <td>{{student.fullName}}</td>
                                     <td>{{student.email}}</td>
@@ -209,8 +186,8 @@
 </div>
 
 <!-- Import Modal -->
-<div ng-if="showImportModal" class="modal-overlay" ng-click="closeImportModal()">
-    <div class="modal" ng-click="$event.stopPropagation()" style="width: 800px;">
+<div ng-if="showImportModal" class="modal-overlay" ng-click="closeImportModal()" style="display: flex !important; align-items: center; justify-content: center;">
+    <div class="modal" ng-click="$event.stopPropagation()" style="display: block !important; width: 800px; position: relative; transform: none; top: auto; left: auto;">
         <div class="modal-header">
             <h3 class="modal-title">Import danh sách Sinh viên</h3>
             <button class="modal-close" ng-click="closeImportModal()">
@@ -297,10 +274,10 @@
             <button class="btn btn-outline" ng-click="closeImportModal()">Hủy</button>
             <button class="btn btn-primary" 
                     ng-click="confirmImport()" 
-                    ng-disabled="importData.validCount === 0 || loading">
+                    ng-disabled="importData.validCount === 0 || loadingStates.import">
                 <i class="fas fa-check"></i> 
-                <span ng-if="!loading">Import {{importData.validCount}} bản ghi</span>
-                <span ng-if="loading"><i class="fas fa-spinner fa-spin"></i> Đang import...</span>
+                <span ng-if="!loadingStates.import">Import {{importData.validCount}} bản ghi</span>
+                <span ng-if="loadingStates.import"><i class="fas fa-spinner fa-spin"></i> Đang import...</span>
             </button>
         </div>
     </div>

@@ -10,12 +10,10 @@ namespace EducationManagement.BLL.Services
     public class StudentService
     {
         private readonly StudentRepository _studentRepository;
-        private readonly CachingService? _cache;
 
-        public StudentService(StudentRepository studentRepository, CachingService? cache = null)
+        public StudentService(StudentRepository studentRepository)
         {
             _studentRepository = studentRepository;
-            _cache = cache;
         }
 
         /// <summary>
@@ -41,12 +39,6 @@ namespace EducationManagement.BLL.Services
                 throw new ArgumentException("Student ID không được để trống");
 
             await _studentRepository.UpdateAsync(model);
-            
-            // Invalidate cache after update
-            if (_cache != null)
-            {
-                await _cache.RemoveAsync(string.Format(CacheKeys.StudentById, model.StudentId));
-            }
         }
 
         /// <summary>
@@ -86,15 +78,6 @@ namespace EducationManagement.BLL.Services
             if (string.IsNullOrWhiteSpace(studentId))
                 throw new ArgumentException("Student ID không được để trống");
 
-            if (_cache != null)
-            {
-                var cacheKey = string.Format(CacheKeys.StudentById, studentId);
-                return await _cache.GetOrSetAsync(
-                    cacheKey,
-                    async () => await _studentRepository.GetByIdAsync(studentId),
-                    CacheKeys.StudentExpiration
-                );
-            }
             return await _studentRepository.GetByIdAsync(studentId);
         }
 
@@ -106,16 +89,18 @@ namespace EducationManagement.BLL.Services
             if (string.IsNullOrWhiteSpace(userId))
                 throw new ArgumentException("User ID không được để trống");
 
-            if (_cache != null)
-            {
-                var cacheKey = string.Format(CacheKeys.StudentByUserId, userId);
-                return await _cache.GetOrSetAsync(
-                    cacheKey,
-                    async () => await _studentRepository.GetByUserIdAsync(userId),
-                    CacheKeys.StudentExpiration
-                );
-            }
             return await _studentRepository.GetByUserIdAsync(userId);
+        }
+
+        /// <summary>
+        /// Import hàng loạt sinh viên từ Excel
+        /// </summary>
+        public async Task<BatchImportResultDto> ImportStudentsBatchAsync(List<StudentImportDto> students, string createdBy)
+        {
+            if (students == null || students.Count == 0)
+                throw new ArgumentException("Danh sách sinh viên không được rỗng");
+
+            return await _studentRepository.ImportBatchAsync(students, createdBy);
         }
     }
 }

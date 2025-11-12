@@ -66,8 +66,8 @@ DECLARE @DbName NVARCHAR(128) = DB_NAME();
 
 IF @DbId IS NOT NULL
 BEGIN
-    PRINT '   ✅ Database ID: ' + CAST(@DbId AS VARCHAR);
-    PRINT '   ✅ Current Database: ' + @DbName;
+    PRINT CONCAT('   ✅ Database ID: ', CAST(@DbId AS VARCHAR));
+    PRINT CONCAT('   ✅ Current Database: ', @DbName);
     PRINT '   ✅ Status: Online and Ready';
 END
 ELSE

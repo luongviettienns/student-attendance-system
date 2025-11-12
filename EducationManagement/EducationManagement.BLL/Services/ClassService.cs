@@ -16,12 +16,24 @@ namespace EducationManagement.BLL.Services
         }
 
         /// <summary>
-        /// Lấy tất cả classes
+        /// Lấy tất cả classes - KHÔNG PAGINATION
         /// </summary>
         public async Task<List<Class>> GetAllClassesAsync()
         {
             return await _classRepository.GetAllAsync();
         }
+
+        /// <summary>
+        /// Lấy tất cả classes với pagination
+        /// </summary>
+        public Task<(List<Class> items, int totalCount)> GetAllPagedAsync(
+            int page = 1, 
+            int pageSize = 10, 
+            string? search = null,
+            string? subjectId = null,
+            string? lecturerId = null,
+            string? academicYearId = null) 
+            => _classRepository.GetAllPagedAsync(page, pageSize, search, subjectId, lecturerId, academicYearId);
 
         /// <summary>
         /// Lấy class theo ID
@@ -92,6 +104,16 @@ namespace EducationManagement.BLL.Services
                 throw new ArgumentException("Class ID không được để trống");
 
             await _classRepository.DeleteAsync(classId, deletedBy);
+        }
+
+        public async Task ActivateClassAsync(string classId, string updatedBy)
+        {
+            await _classRepository.UpdateIsActiveAsync(classId, true, updatedBy);
+        }
+
+        public async Task DeactivateClassAsync(string classId, string updatedBy)
+        {
+            await _classRepository.UpdateIsActiveAsync(classId, false, updatedBy);
         }
 
         /// <summary>

@@ -9,20 +9,13 @@
         <ul class="sidebar-menu">
             <!-- ✅ Menu động theo role từ RoleService với dropdown -->
             <li class="menu-section" ng-repeat="section in menuSections track by $index">
-                <!-- Nếu là link trực tiếp (như TỔNG QUAN) -->
-                <div ng-if="section.isDirectLink">
-                    <a ng-href="{{buildHref(section.directPath)}}" ng-click="navigateTo(section.directPath, $event)" class="menu-direct-link" ng-class="{'active': isActive(section.directPath)}">
-                        <i class="{{section.icon || 'fas fa-circle'}}"></i>
-                        <span class="section-title">{{section.section}}</span>
-                    </a>
-                </div>
-                <!-- Các sections khác là dropdown -->
-                <div ng-if="!section.isDirectLink">
-                    <button type="button" class="menu-section-toggle" ng-click="toggleSection($index, $event)">
+                <!-- Tất cả sections đều là dropdown -->
+                <div>
+                    <button type="button" class="menu-section-toggle" ng-click="toggleSection($index)">
                         <span class="section-title">{{section.section}}</span>
                         <i class="fas fa-chevron-right arrow" ng-class="{'open': isSectionOpen($index)}"></i>
                     </button>
-                    <ul class="submenu" ng-class="{'open': isSectionOpen($index)}" ng-if="section.items && section.items.length > 0">
+                    <ul class="submenu" ng-class="{'open': isSectionOpen($index)}">
                         <li ng-repeat="item in section.items">
                             <a ng-href="{{buildHref(item.path)}}" ng-click="navigateTo(item.path, $event)" ng-class="{'active': isActive(item.path)}">
                                 <i class="{{item.icon}}"></i>
@@ -30,9 +23,6 @@
                             </a>
                         </li>
                     </ul>
-                    <div class="submenu-empty" ng-if="section.items && section.items.length === 0" ng-class="{'open': isSectionOpen($index)}">
-                        <p class="empty-message">Không có menu con</p>
-                    </div>
                 </div>
             </li>
         </ul>

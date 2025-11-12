@@ -1,11 +1,13 @@
 // Role Controller
 app.controller('RoleController', [
     '$scope', 
+    '$rootScope',
     'RoleManagementService', 
     'AuthService', 
     'AvatarService', 
     'ToastService',
-    function($scope, RoleManagementService, AuthService, AvatarService, ToastService) {
+    'RoleService',
+    function($scope, $rootScope, RoleManagementService, AuthService, AvatarService, ToastService, RoleService) {
     
     $scope.roles = [];
     $scope.permissions = [];
@@ -26,7 +28,9 @@ app.controller('RoleController', [
         roleId: null,
         roleName: '',
         permissions: [],
-        selectedPermissions: []
+        selectedPermissions: [],
+        groupedPermissions: [], // Nhóm quyền theo sections
+        expandedSections: {} // Trạng thái mở/đóng của các sections
     };
     
     // Initialize Avatar Modal Functions
@@ -182,6 +186,179 @@ app.controller('RoleController', [
     // ============================================================
     
     /**
+     * Group permissions by sections (parent permissions)
+     */
+    $scope.groupPermissionsBySection = function(permissions) {
+        var sections = [];
+        var sectionsMap = {};
+        
+        // Normalize permission data
+        var normalizedPerms = permissions.map(function(p) {
+            return {
+                permissionId: p.permissionId || p.PermissionId,
+                permissionCode: p.permissionCode || p.PermissionCode,
+                permissionName: p.permissionName || p.PermissionName,
+                description: p.description || p.Description,
+                parentCode: p.parentCode || p.ParentCode || null,
+                icon: p.icon || p.Icon || 'fas fa-circle',
+                sortOrder: p.sortOrder || p.SortOrder || 999
+            };
+        });
+        
+        // Tách sections (parent permissions) và children
+        normalizedPerms.forEach(function(perm) {
+            if (!perm.parentCode || perm.parentCode === '') {
+                // Đây là section (parent permission)
+                if (!sectionsMap[perm.permissionCode]) {
+                    var section = {
+                        permissionId: perm.permissionId,
+                        permissionCode: perm.permissionCode,
+                        permissionName: perm.permissionName,
+                        description: perm.description,
+                        icon: perm.icon,
+                        sortOrder: perm.sortOrder,
+                        children: []
+                    };
+                    sectionsMap[perm.permissionCode] = section;
+                    sections.push(section);
+                }
+            } else {
+                // Đây là child permission
+                var parent = sectionsMap[perm.parentCode];
+                if (parent) {
+                    parent.children.push(perm);
+                } else {
+                    // Nếu parent chưa tồn tại, tạo section ẩn
+                    if (!sectionsMap[perm.parentCode]) {
+                        var hiddenSection = {
+                            permissionId: null,
+                            permissionCode: perm.parentCode,
+                            permissionName: perm.parentCode,
+                            description: null,
+                            icon: 'fas fa-folder',
+                            sortOrder: 999,
+                            children: []
+                        };
+                        sectionsMap[perm.parentCode] = hiddenSection;
+                        sections.push(hiddenSection);
+                    }
+                    sectionsMap[perm.parentCode].children.push(perm);
+                }
+            }
+        });
+        
+        // Sắp xếp sections và children
+        sections.forEach(function(section) {
+            section.children.sort(function(a, b) {
+                return (a.sortOrder || 999) - (b.sortOrder || 999);
+            });
+        });
+        
+        sections.sort(function(a, b) {
+            return (a.sortOrder || 999) - (b.sortOrder || 999);
+        });
+        
+        return sections;
+    };
+    
+    /**
+     * Get section selection state: 'none', 'partial', 'all'
+     */
+    $scope.getSectionState = function(section) {
+        if (!section.children || section.children.length === 0) {
+            // Section không có children, kiểm tra chính nó
+            return $scope.isPermissionSelected(section.permissionId) ? 'all' : 'none';
+        }
+        
+        var selectedCount = 0;
+        var sectionSelected = section.permissionId && $scope.isPermissionSelected(section.permissionId);
+        section.children.forEach(function(child) {
+            if ($scope.isPermissionSelected(child.permissionId)) {
+                selectedCount++;
+            }
+        });
+        
+        if (selectedCount === 0 && !sectionSelected) {
+            return 'none';
+        } else if (selectedCount === section.children.length && (!section.permissionId || sectionSelected)) {
+            return 'all';
+        } else {
+            return 'partial';
+        }
+    };
+    
+    /**
+     * Set indeterminate state for checkbox (AngularJS doesn't support ng-indeterminate directly)
+     */
+    $scope.setCheckboxIndeterminate = function(elementId, isIndeterminate) {
+        setTimeout(function() {
+            var checkbox = document.getElementById(elementId);
+            if (checkbox) {
+                checkbox.indeterminate = isIndeterminate === true;
+            }
+        }, 0);
+    };
+    
+    /**
+     * Toggle all permissions in a section
+     */
+    $scope.toggleSection = function(section) {
+        var state = $scope.getSectionState(section);
+        var shouldSelect = state !== 'all';
+        
+        // Toggle section permission itself (if exists)
+        if (section.permissionId) {
+            if (shouldSelect && !$scope.isPermissionSelected(section.permissionId)) {
+                $scope.permissionManagement.selectedPermissions.push(section.permissionId);
+            } else if (!shouldSelect && $scope.isPermissionSelected(section.permissionId)) {
+                var index = $scope.permissionManagement.selectedPermissions.indexOf(section.permissionId);
+                if (index > -1) {
+                    $scope.permissionManagement.selectedPermissions.splice(index, 1);
+                }
+            }
+        }
+        
+        // Toggle all children
+        if (section.children && section.children.length > 0) {
+            section.children.forEach(function(child) {
+                var childId = child.permissionId;
+                var isSelected = $scope.isPermissionSelected(childId);
+                
+                if (shouldSelect && !isSelected) {
+                    $scope.permissionManagement.selectedPermissions.push(childId);
+                } else if (!shouldSelect && isSelected) {
+                    var idx = $scope.permissionManagement.selectedPermissions.indexOf(childId);
+                    if (idx > -1) {
+                        $scope.permissionManagement.selectedPermissions.splice(idx, 1);
+                    }
+                }
+            });
+        }
+        
+        // Update indeterminate state after toggle
+        setTimeout(function() {
+            var checkboxId = 'section-' + section.permissionCode;
+            var newState = $scope.getSectionState(section);
+            $scope.setCheckboxIndeterminate(checkboxId, newState === 'partial');
+        }, 0);
+    };
+    
+    /**
+     * Toggle section expand/collapse
+     */
+    $scope.toggleSectionExpand = function(sectionCode) {
+        $scope.permissionManagement.expandedSections[sectionCode] = 
+            !$scope.permissionManagement.expandedSections[sectionCode];
+    };
+    
+    /**
+     * Check if section is expanded
+     */
+    $scope.isSectionExpanded = function(sectionCode) {
+        return $scope.permissionManagement.expandedSections[sectionCode] === true;
+    };
+    
+    /**
      * Open permission management modal
      */
     $scope.openPermissionModal = function(role) {
@@ -189,6 +366,8 @@ app.controller('RoleController', [
         $scope.permissionManagement.roleName = role.roleName;
         $scope.permissionManagement.permissions = [];
         $scope.permissionManagement.selectedPermissions = [];
+        $scope.permissionManagement.groupedPermissions = [];
+        $scope.permissionManagement.expandedSections = {};
         
         // Load permissions for this role
         RoleManagementService.getPermissionsByRole(role.roleId)
@@ -199,6 +378,23 @@ app.controller('RoleController', [
                 $scope.permissionManagement.selectedPermissions = $scope.permissionManagement.permissions
                     .filter(function(p) { return p.isAssigned || p.IsAssigned; })
                     .map(function(p) { return p.permissionId || p.PermissionId; });
+                
+                // Group permissions by sections
+                $scope.permissionManagement.groupedPermissions = $scope.groupPermissionsBySection($scope.permissionManagement.permissions);
+                
+                // Mở tất cả sections mặc định
+                $scope.permissionManagement.groupedPermissions.forEach(function(section) {
+                    $scope.permissionManagement.expandedSections[section.permissionCode] = true;
+                });
+                
+                // Set indeterminate state cho tất cả checkboxes sau khi DOM render
+                setTimeout(function() {
+                    $scope.permissionManagement.groupedPermissions.forEach(function(section) {
+                        var checkboxId = 'section-' + section.permissionCode;
+                        var state = $scope.getSectionState(section);
+                        $scope.setCheckboxIndeterminate(checkboxId, state === 'partial');
+                    });
+                }, 100);
                     
                 openModal('permissionModal');
             })
@@ -217,6 +413,15 @@ app.controller('RoleController', [
         } else {
             $scope.permissionManagement.selectedPermissions.push(permissionId);
         }
+        
+        // Update indeterminate states for all sections after permission change
+        setTimeout(function() {
+            $scope.permissionManagement.groupedPermissions.forEach(function(section) {
+                var checkboxId = 'section-' + section.permissionCode;
+                var state = $scope.getSectionState(section);
+                $scope.setCheckboxIndeterminate(checkboxId, state === 'partial');
+            });
+        }, 0);
     };
     
     /**
@@ -238,6 +443,13 @@ app.controller('RoleController', [
                 ToastService.success(response.data.message || 'Cập nhật quyền thành công');
                 closeModal('permissionModal');
                 $scope.loadRoles();
+                
+                // Clear menu cache to force reload from API
+                // This ensures menu updates immediately after permission changes
+                RoleService.clearCache();
+                
+                // Broadcast event to reload menu
+                $rootScope.$broadcast('menu:reload');
             })
             .catch(function(error) {
                 var errorMsg = error.data?.message || 'Không thể cập nhật quyền';
@@ -252,8 +464,12 @@ app.controller('RoleController', [
     function openModal(modalId) {
         var modal = document.getElementById(modalId);
         if (modal) {
-            // Add show class to display modal
-            modal.classList.add('show');
+            // Use 'show' class for custom-modal, 'active' for other modals
+            if (modal.classList.contains('custom-modal')) {
+                modal.classList.add('show');
+            } else {
+                modal.classList.add('active');
+            }
             // Prevent body scroll
             document.body.style.overflow = 'hidden';
         }
@@ -262,8 +478,12 @@ app.controller('RoleController', [
     function closeModal(modalId) {
         var modal = document.getElementById(modalId);
         if (modal) {
-            // Remove show class to hide modal
-            modal.classList.remove('show');
+            // Remove class to hide modal
+            if (modal.classList.contains('custom-modal')) {
+                modal.classList.remove('show');
+            } else {
+                modal.classList.remove('active');
+            }
             // Restore body scroll
             document.body.style.overflow = '';
         }

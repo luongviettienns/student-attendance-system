@@ -44,7 +44,7 @@
 
                     // Map sang cấu trúc cần thiết
                     var permissions = permissionsFromDb
-                        .OrderBy(p => p.SortOrder)
+                        .OrderBy(p => p.SortOrder ?? 999)
                         .ThenBy(p => p.PermissionName)
                         .Select(p => new
                         {
@@ -52,20 +52,28 @@
                             p.PermissionCode,
                             p.PermissionName,
                             p.ParentCode,
-                            p.Icon
+                            p.Icon,
+                            p.SortOrder
                         })
                         .ToList();
 
+
                     // ✅ Xây dựng cây menu cha - con (theo ParentCode)
+                    // Lọc chỉ lấy sections (parent_code IS NULL hoặc empty)
                     var menuTree = permissions
                         .Where(p => string.IsNullOrEmpty(p.ParentCode))
+                        .OrderBy(p => p.SortOrder ?? 999)
+                        .ThenBy(p => p.PermissionName)
                         .Select(parent => new
                         {
                             label = parent.PermissionName,
                             icon = string.IsNullOrWhiteSpace(parent.Icon) ? "fa fa-circle" : parent.Icon,
                             state = FormatState(parent.PermissionCode),
                             sub = permissions
-                                .Where(child => child.ParentCode == parent.PermissionCode)
+                                .Where(child => !string.IsNullOrEmpty(child.ParentCode) && 
+                                       child.ParentCode == parent.PermissionCode)
+                                .OrderBy(child => child.SortOrder ?? 999)
+                                .ThenBy(child => child.PermissionName)
                                 .Select(child => new
                                 {
                                     label = child.PermissionName,
@@ -75,6 +83,7 @@
                                 .ToList()
                         })
                         .ToList();
+
 
                     return Ok(new
                     {
@@ -91,7 +100,7 @@
             // ============================================================
             // 🔧 Helper: Format PermissionCode → State FE
             // ============================================================
-            private static string FormatState(string code)
+            private static string? FormatState(string code)
             {
                 if (string.IsNullOrEmpty(code))
                     return null;
@@ -128,6 +137,43 @@
                 }
 
                 return fullState;
+            }
+            
+            /// <summary>
+            /// 🔹 Lấy danh sách quyền (permissions) của user hiện tại
+            /// </summary>
+            [HttpGet("permissions")]
+            public async Task<IActionResult> GetUserPermissions()
+            {
+                try
+                {
+                    // 🔍 Lấy role từ token
+                    var roleName = User.FindFirst("role")?.Value
+                        ?? User.FindFirst(ClaimTypes.Role)?.Value;
+
+                    if (string.IsNullOrEmpty(roleName))
+                    {
+                        return Unauthorized(new { message = "Không xác định được vai trò người dùng." });
+                    }
+
+                    // 🔍 Lấy quyền theo RoleName từ repository
+                    var permissionsFromDb = await _permissionRepository.GetByRoleNameAsync(roleName);
+
+                    // Trả về danh sách permission codes
+                    var permissionCodes = permissionsFromDb
+                        .Select(p => p.PermissionCode)
+                        .ToList();
+
+                    return Ok(new
+                    {
+                        role = roleName,
+                        permissions = permissionCodes
+                    });
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(500, new { message = "Đã xảy ra lỗi khi lấy quyền.", error = ex.Message });
+                }
             }
         }
     }

@@ -2,6 +2,7 @@ using EducationManagement.BLL.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using EducationManagement.Common.Helpers;
 using System.Threading.Tasks;
 
 namespace EducationManagement.API.Admin.Controllers
@@ -19,19 +20,35 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách tất cả classes
+        /// Lấy danh sách tất cả classes với pagination
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null,
+            [FromQuery] string? subjectId = null,
+            [FromQuery] string? lecturerId = null,
+            [FromQuery] string? academicYearId = null)
         {
             try
             {
-                var classes = await _classService.GetAllClassesAsync();
-                return Ok(new { data = classes });
+                var (items, totalCount) = await _classService.GetAllPagedAsync(
+                    page, pageSize, search, subjectId, lecturerId, academicYearId);
+                
+                return Ok(new
+                {
+                    success = true,
+                    data = items,
+                    totalCount = totalCount,
+                    page = page,
+                    pageSize = pageSize,
+                    totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }
 
@@ -66,7 +83,7 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
-                var classId = "class-" + Guid.NewGuid().ToString().Substring(0, 8);
+                var classId = IdGenerator.Generate("class");
                 var newId = await _classService.CreateClassAsync(
                     classId,
                     request.ClassCode,
@@ -121,6 +138,38 @@ namespace EducationManagement.API.Admin.Controllers
         /// <summary>
         /// Xóa class (soft delete)
         /// </summary>
+        [HttpPatch("{id}/activate")]
+        [Authorize]
+        public async Task<IActionResult> Activate(string id)
+        {
+            try
+            {
+                var updatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system";
+                await _classService.ActivateClassAsync(id, updatedBy);
+                return Ok(new { message = "Kích hoạt lớp học thành công" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        [HttpPatch("{id}/deactivate")]
+        [Authorize]
+        public async Task<IActionResult> Deactivate(string id)
+        {
+            try
+            {
+                var updatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system";
+                await _classService.DeactivateClassAsync(id, updatedBy);
+                return Ok(new { message = "Vô hiệu hóa lớp học thành công" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {

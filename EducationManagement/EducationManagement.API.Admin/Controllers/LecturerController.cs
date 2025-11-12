@@ -6,13 +6,13 @@ using Microsoft.AspNetCore.Authorization;
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize]
     [Route("api-edu/lecturers")]
-    public class LecturerController : ControllerBase
+    public class LecturerController : BaseController
     {
         private readonly LecturerService _service;
 
-        public LecturerController(LecturerService service)
+        public LecturerController(LecturerService service, AuditLogService auditLogService) : base(auditLogService)
         {
             _service = service;
         }
@@ -32,25 +32,21 @@ namespace EducationManagement.API.Admin.Controllers
             return Ok(lecturer);
         }
 
-        [HttpGet("by-user-id/{userId}")]
-        public async Task<IActionResult> GetByUserId(string userId)
-        {
-            if (string.IsNullOrWhiteSpace(userId))
-                return BadRequest(new { message = "User ID không được để trống" });
-
-            var lecturer = await _service.GetByUserIdAsync(userId);
-            if (lecturer == null)
-                return NotFound(new { message = "Không tìm thấy giảng viên" });
-
-            return Ok(new { data = lecturer });
-        }
-
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] Lecturer model)
         {
             try
             {
                 await _service.AddAsync(model);
+
+                // ✅ Audit Log: Create Lecturer
+                await LogCreateAsync("Lecturer", model.LecturerId, new {
+                    user_id = model.UserId,
+                    full_name = model.FullName,
+                    department_id = model.DepartmentId,
+                    academic_title = model.AcademicTitle
+                });
+
                 return Ok(new { message = "✅ Thêm giảng viên thành công!" });
             }
             catch (Exception ex)
@@ -65,14 +61,36 @@ namespace EducationManagement.API.Admin.Controllers
             if (id != model.LecturerId)
                 return BadRequest(new { message = "ID không khớp!" });
 
+            var oldLecturer = await _service.GetByIdAsync(id);
             await _service.UpdateAsync(model);
+
+            // ✅ Audit Log: Update Lecturer
+            if (oldLecturer != null)
+            {
+                await LogUpdateAsync("Lecturer", model.LecturerId,
+                    new { full_name = oldLecturer.FullName, department_id = oldLecturer.DepartmentId },
+                    new { full_name = model.FullName, department_id = model.DepartmentId });
+            }
+
             return Ok(new { message = "✅ Cập nhật giảng viên thành công!" });
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
+            var lecturer = await _service.GetByIdAsync(id);
             await _service.DeleteAsync(id);
+
+            // ✅ Audit Log: Delete Lecturer
+            if (lecturer != null)
+            {
+                await LogDeleteAsync("Lecturer", id, new {
+                    full_name = lecturer.FullName,
+                    user_id = lecturer.UserId,
+                    department_id = lecturer.DepartmentId
+                });
+            }
+
             return Ok(new { message = "🗑 Xóa giảng viên thành công!" });
         }
     }

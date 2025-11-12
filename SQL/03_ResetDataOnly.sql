@@ -116,7 +116,7 @@ INSERT INTO dbo.roles (role_id, role_name, description, is_active) VALUES
 ('ROLE_ADMIN', N'Admin', N'Quản trị viên hệ thống', 1),
 ('ROLE_LECTURER', N'Lecturer', N'Giảng viên', 1),
 ('ROLE_STUDENT', N'Student', N'Sinh viên', 1),
-('ROLE_ADVISOR', N'Advisor', N'Cố vấn học tập', 1);
+('ROLE_ADVISOR', N'Advisor', N'Cố vấn học tập & Nhân viên phòng đào tạo', 1);
 
 PRINT '   ✅ 4 roles created';
 GO
@@ -199,7 +199,7 @@ BEGIN TRY
     PRINT '   ✅ 4 cohorts created (K21, K22, K23, K24) with 16 school years total';
 END TRY
 BEGIN CATCH
-    PRINT '   ⚠️  Error creating cohorts: ' + ERROR_MESSAGE();
+    PRINT CONCAT('   ⚠️  Error creating cohorts: ', ERROR_MESSAGE());
     -- Try to continue - maybe some were created successfully
 END CATCH
 GO
@@ -227,7 +227,7 @@ BEGIN
         PRINT '   ✅ Created SY2024 manually';
     END TRY
     BEGIN CATCH
-        PRINT '   ❌ Failed to create SY2024: ' + ERROR_MESSAGE();
+        PRINT CONCAT('   ❌ Failed to create SY2024: ', ERROR_MESSAGE());
     END CATCH
 END
 ELSE IF NOT EXISTS (SELECT 1 FROM school_years WHERE school_year_id = 'SY2024' AND deleted_at IS NULL)
@@ -238,7 +238,7 @@ BEGIN
         PRINT '   ✅ Created SY2024';
     END TRY
     BEGIN CATCH
-        PRINT '   ❌ Failed to create SY2024: ' + ERROR_MESSAGE();
+        PRINT CONCAT('   ❌ Failed to create SY2024: ', ERROR_MESSAGE());
     END CATCH
 END
 ELSE
@@ -298,7 +298,7 @@ BEGIN
         current_semester = @SemesterToSet
     WHERE school_year_id = @SchoolYearToActivate;
     
-    PRINT '   ✅ Activated school year: ' + @SchoolYearToActivate + ' (Semester ' + CAST(@SemesterToSet AS VARCHAR) + ')';
+    PRINT CONCAT('   ✅ Activated school year: ', @SchoolYearToActivate, ' (Semester ', CAST(@SemesterToSet AS VARCHAR), ')');
 END
 ELSE
 BEGIN
@@ -426,7 +426,7 @@ BEGIN
     ('CLS003', 'CS201-01-2024', N'Cấu trúc dữ liệu - Lớp 01 (2024-2025 HK1)', 'SUB003', 'LEC001', 'AY2023', @TargetSchoolYearId, 1, 35, N'Thứ 3, 13:00-15:00', 'B201'),
     ('CLS004', 'CS301-01-2024', N'Công nghệ Web - Lớp 01 (2024-2025 HK1)', 'SUB004', 'LEC001', 'AY2022', @TargetSchoolYearId, 1, 30, N'Thứ 5, 15:00-17:00', 'C301');
     
-    PRINT '   ✅ 4 classes created for school year: ' + @TargetSchoolYearId;
+    PRINT CONCAT('   ✅ 4 classes created for school year: ', @TargetSchoolYearId);
 END
 ELSE
 BEGIN

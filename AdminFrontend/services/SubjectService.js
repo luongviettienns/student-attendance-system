@@ -2,11 +2,9 @@
 app.service('SubjectService', ['ApiService', function(ApiService) {
     
     // Get all subjects (unwrap { data } format if present)
-    this.getAll = function() {
-        return ApiService.get('/subjects').then(function(response) {
-            if (response.data && response.data.data) {
-                response.data = response.data.data;
-            }
+    this.getAll = function(params) {
+        return ApiService.get('/subjects', { params: params }).then(function(response) {
+            // Response structure: { success: true, data: [...], totalCount, page, pageSize, totalPages }
             return response;
         });
     };
@@ -39,7 +37,12 @@ app.service('SubjectService', ['ApiService', function(ApiService) {
     
     // Get lecturers teaching this subject
     this.getLecturersBySubject = function(subjectId) {
-        return ApiService.get('/admin/lecturersubject/subject/' + subjectId);
+        return ApiService.get('/lecturer-subjects/subject/' + subjectId);
+    };
+
+    // NEW: Get all subjects with lecturer count (aggregate)
+    this.getAllWithLecturerCount = function() {
+        return ApiService.get('/subjects/with-lecturer-count');
     };
 }]);
 

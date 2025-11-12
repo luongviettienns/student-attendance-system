@@ -3,8 +3,9 @@ app.service('AcademicYearService', ['ApiService', function(ApiService) {
     
     this.getAll = function() {
         return ApiService.get('/academic-years').then(function(response) {
-            // Backend returns { data: [...] }
-            // Keep the original structure for controller to handle
+            if (response.data && response.data.data) {
+                response.data = response.data.data;
+            }
             return response;
         });
     };

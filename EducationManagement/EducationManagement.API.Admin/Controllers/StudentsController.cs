@@ -130,5 +130,53 @@ namespace EducationManagement.API.Admin.Controllers
                 return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
             }
         }
+
+        // ============================================================
+        // 🔹 7️⃣ LẤY SINH VIÊN THEO USER ID
+        // ============================================================
+        [HttpGet("by-user-id/{userId}")]
+        public async Task<IActionResult> GetStudentByUserId(string userId)
+        {
+            try
+            {
+                var student = await _studentService.GetStudentByUserIdAsync(userId);
+                if (student == null)
+                    return NotFound(new { message = "Không tìm thấy sinh viên" });
+
+                return Ok(new { data = student });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        // ============================================================
+        // 🔹 6️⃣ BATCH IMPORT STUDENTS
+        // ============================================================
+        [HttpPost("import/batch")]
+        public async Task<IActionResult> ImportStudentsBatch([FromBody] List<StudentImportDto> students)
+        {
+            if (students == null || students.Count == 0)
+                return BadRequest(new { message = "Không có dữ liệu để import" });
+
+            try
+            {
+                var result = await _studentService.ImportStudentsBatchAsync(students, User.Identity?.Name ?? "system");
+                
+                return Ok(new { 
+                    success = true,
+                    message = $"Import thành công {result.SuccessCount}/{students.Count} sinh viên",
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { 
+                    success = false, 
+                    message = "Lỗi khi import: " + ex.Message 
+                });
+            }
+        }
     }
 }

@@ -4,22 +4,20 @@ using System.Security.Claims;
 using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
 using EducationManagement.Common.Helpers;
-using EducationManagement.BLL.Services;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
     [Route("api-edu/roles")]
     public class RolesController : ControllerBase
     {
         private readonly RoleRepository _roleRepository;
-        private readonly CachingService? _cache;
 
-        public RolesController(RoleRepository roleRepository, CachingService? cache = null)
+        public RolesController(RoleRepository roleRepository)
         {
             _roleRepository = roleRepository;
-            _cache = cache;
         }
 
         #region 🔹 GET: Danh sách và chi tiết
@@ -27,21 +25,10 @@ namespace EducationManagement.API.Admin.Controllers
         /// Lấy danh sách tất cả vai trò (Role)
         /// </summary>
         [HttpGet]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> GetAll()
         {
-            List<Role> roles;
-            if (_cache != null)
-            {
-                roles = await _cache.GetOrSetAsync(
-                    CacheKeys.AllRoles,
-                    async () => await _roleRepository.GetAllAsync(),
-                    CacheKeys.RoleExpiration
-                ) ?? new List<Role>();
-            }
-            else
-            {
-                roles = await _roleRepository.GetAllAsync();
-            }
+            var roles = await _roleRepository.GetAllAsync();
             
             var result = roles.Select(r => new
             {
@@ -60,22 +47,10 @@ namespace EducationManagement.API.Admin.Controllers
         /// Lấy chi tiết 1 vai trò theo ID
         /// </summary>
         [HttpGet("{id}")]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
-            Role? role;
-            if (_cache != null)
-            {
-                var cacheKey = string.Format(CacheKeys.RoleById, id);
-                role = await _cache.GetOrSetAsync(
-                    cacheKey,
-                    async () => await _roleRepository.GetByIdAsync(id),
-                    CacheKeys.RoleExpiration
-                );
-            }
-            else
-            {
-                role = await _roleRepository.GetByIdAsync(id);
-            }
+            var role = await _roleRepository.GetByIdAsync(id);
 
             if (role == null || role.DeletedAt != null)
                 return NotFound(new { message = "Không tìm thấy vai trò" });
@@ -89,6 +64,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Tạo mới một vai trò (Role)
         /// </summary>
         [HttpPost]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] Role request)
         {
             if (string.IsNullOrWhiteSpace(request.RoleName))
@@ -118,6 +94,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Cập nhật thông tin vai trò theo ID
         /// </summary>
         [HttpPut("{id}")]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> Update(string id, [FromBody] Role request)
         {
             var role = await _roleRepository.GetByIdAsync(id);
@@ -133,13 +110,6 @@ namespace EducationManagement.API.Admin.Controllers
             role.UpdatedBy = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             await _roleRepository.UpdateAsync(role);
-            
-            // Invalidate cache after update
-            if (_cache != null)
-            {
-                await _cache.RemoveAsync(CacheKeys.AllRoles);
-                await _cache.RemoveAsync(string.Format(CacheKeys.RoleById, role.RoleId));
-            }
 
             return Ok(new { message = "Cập nhật vai trò thành công" });
         }
@@ -150,6 +120,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Xoá mềm vai trò (đặt DeletedAt và IsActive = false)
         /// </summary>
         [HttpDelete("{id}")]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id)
         {
             var role = await _roleRepository.GetByIdAsync(id);
@@ -158,13 +129,6 @@ namespace EducationManagement.API.Admin.Controllers
 
             var deletedBy = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "system";
             await _roleRepository.SoftDeleteAsync(id, deletedBy);
-            
-            // Invalidate cache after delete
-            if (_cache != null)
-            {
-                await _cache.RemoveAsync(CacheKeys.AllRoles);
-                await _cache.RemoveAsync(string.Format(CacheKeys.RoleById, id));
-            }
 
             return Ok(new { message = "Đã xoá vai trò thành công" });
         }
@@ -175,6 +139,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Chuyển trạng thái kích hoạt (active/inactive) cho Role
         /// </summary>
         [HttpPut("{id}/toggle-status")]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> ToggleStatus(string id)
         {
             var role = await _roleRepository.GetByIdAsync(id);

@@ -52,18 +52,18 @@ namespace EducationManagement.DAL.Repositories
         /// <summary>
         /// Tạo attendance record mới
         /// </summary>
-        public async Task<string> CreateAsync(string attendanceId, string enrollmentId, string classId,
-            DateTime attendanceDate, string status, string? note, string? scheduleId, string createdBy)
+        public async Task<string> CreateAsync(string attendanceId, string studentId, string scheduleId,
+            DateTime attendanceDate, string status, string? notes, string? markedBy, string createdBy)
         {
             var parameters = new[]
             {
                 new SqlParameter("@AttendanceId", attendanceId),
-                new SqlParameter("@EnrollmentId", enrollmentId),
-                new SqlParameter("@ClassId", classId),
+                new SqlParameter("@StudentId", studentId),
+                new SqlParameter("@ScheduleId", scheduleId),
                 new SqlParameter("@AttendanceDate", attendanceDate),
                 new SqlParameter("@Status", status),
-                new SqlParameter("@Note", (object?)note ?? DBNull.Value),
-                new SqlParameter("@ScheduleId", (object?)scheduleId ?? DBNull.Value),
+                new SqlParameter("@Notes", (object?)notes ?? DBNull.Value),
+                new SqlParameter("@MarkedBy", (object?)markedBy ?? DBNull.Value),
                 new SqlParameter("@CreatedBy", createdBy)
             };
 
@@ -74,13 +74,13 @@ namespace EducationManagement.DAL.Repositories
         /// <summary>
         /// Cập nhật attendance
         /// </summary>
-        public async Task UpdateAsync(string attendanceId, string status, string? note, string updatedBy)
+        public async Task UpdateAsync(string attendanceId, string status, string? notes, string updatedBy)
         {
             var parameters = new[]
             {
                 new SqlParameter("@AttendanceId", attendanceId),
                 new SqlParameter("@Status", status),
-                new SqlParameter("@Note", (object?)note ?? DBNull.Value),
+                new SqlParameter("@Notes", (object?)notes ?? DBNull.Value),
                 new SqlParameter("@UpdatedBy", updatedBy)
             };
 
@@ -140,16 +140,12 @@ namespace EducationManagement.DAL.Repositories
         /// <summary>
         /// Lấy attendances theo class ID
         /// </summary>
-        public async Task<List<Attendance>> GetByClassIdAsync(string classId, DateTime? attendanceDate = null)
+        public async Task<List<Attendance>> GetByClassIdAsync(string classId)
         {
             var attendances = new List<Attendance>();
-            var parameters = new[]
-            {
-                new SqlParameter("@ClassId", classId),
-                new SqlParameter("@AttendanceDate", (object?)attendanceDate?.Date ?? DBNull.Value)
-            };
+            var param = new SqlParameter("@ClassId", classId);
 
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAttendancesByClass", parameters);
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAttendancesByClass", param);
 
             foreach (DataRow row in dt.Rows)
             {
@@ -160,6 +156,31 @@ namespace EducationManagement.DAL.Repositories
         }
 
         /// <summary>
+        /// Get classId from scheduleId (for warning check)
+        /// </summary>
+        public async Task<string?> GetClassIdByScheduleIdAsync(string scheduleId)
+        {
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                using var cmd = new SqlCommand(@"
+                    SELECT TOP 1 class_id 
+                    FROM dbo.timetable_sessions 
+                    WHERE session_id = @ScheduleId", conn);
+                cmd.Parameters.Add(new SqlParameter("@ScheduleId", scheduleId));
+
+                var result = await cmd.ExecuteScalarAsync();
+                return result?.ToString();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Map DataRow to Attendance model
         /// </summary>
         private static Attendance MapToAttendance(DataRow row)
@@ -167,25 +188,14 @@ namespace EducationManagement.DAL.Repositories
             return new Attendance
             {
                 AttendanceId = row["attendance_id"].ToString()!,
-                EnrollmentId = row.Table.Columns.Contains("enrollment_id") ? row["enrollment_id"].ToString()! : string.Empty,
-                ClassId = row.Table.Columns.Contains("class_id") ? row["class_id"].ToString()! : string.Empty,
-                StudentId = row.Table.Columns.Contains("student_id") ? row["student_id"]?.ToString() : null,
-                StudentCode = row.Table.Columns.Contains("student_code") ? row["student_code"]?.ToString() : null,
-                StudentName = row.Table.Columns.Contains("student_name") ? row["student_name"]?.ToString() : null,
-                ScheduleId = row.Table.Columns.Contains("schedule_id") ? row["schedule_id"]?.ToString() : null,
+                StudentId = row["student_id"].ToString()!,
+                ScheduleId = row["schedule_id"].ToString()!,
                 AttendanceDate = row.Table.Columns.Contains("attendance_date") && row["attendance_date"] != DBNull.Value 
                     ? Convert.ToDateTime(row["attendance_date"]) 
                     : DateTime.Now,
                 Status = row["status"].ToString()!,
-                Note = row.Table.Columns.Contains("note") ? row["note"]?.ToString() : null,
-                ClassName = row.Table.Columns.Contains("class_name") ? row["class_name"]?.ToString() : null,
-                SubjectName = row.Table.Columns.Contains("subject_name") ? row["subject_name"]?.ToString() : null,
-                Room = row.Table.Columns.Contains("room") ? row["room"]?.ToString() : null,
-                ScheduleStartTime = row.Table.Columns.Contains("schedule_start_time") && row["schedule_start_time"] != DBNull.Value
-                    ? Convert.ToDateTime(row["schedule_start_time"])
-                    : (DateTime?)null,
+                Notes = row.Table.Columns.Contains("notes") ? row["notes"]?.ToString() : null,
                 MarkedBy = row.Table.Columns.Contains("marked_by") ? row["marked_by"]?.ToString() : null,
-                MarkedByName = row.Table.Columns.Contains("marked_by_name") ? row["marked_by_name"]?.ToString() : null,
                 IsActive = row.Table.Columns.Contains("is_active") && row["is_active"] != DBNull.Value
                     ? Convert.ToBoolean(row["is_active"])
                     : true,

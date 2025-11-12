@@ -69,7 +69,7 @@ SELECT
     f.faculty_name,
     g.academic_year_id,
     ay.year_name as academic_year,
-    g.semester,
+    COALESCE(g.semester, 0) as semester, -- 0 = Cả năm (thay thế NULL)
     CASE 
         WHEN g.semester IS NULL THEN N'Cả năm'
         WHEN g.semester = 1 THEN N'Học kỳ 1'
@@ -244,6 +244,195 @@ WHERE c.deleted_at IS NULL
     AND s.deleted_at IS NULL;
 GO
 
+-- ===========================================
+-- 7. VIEW: QUẢN LÝ ĐỢT ĐĂNG KÝ HỌC PHẦN (Admin)
+-- ===========================================
+IF OBJECT_ID('vw_RegistrationPeriodManagement', 'V') IS NOT NULL DROP VIEW vw_RegistrationPeriodManagement;
+GO
+
+CREATE VIEW vw_RegistrationPeriodManagement
+AS
+SELECT 
+    rp.period_id,
+    rp.period_name,
+    rp.academic_year_id,
+    ay.year_name as academic_year_name,
+    rp.semester,
+    CASE 
+        WHEN rp.semester = 1 THEN N'Học kỳ 1'
+        WHEN rp.semester = 2 THEN N'Học kỳ 2'
+        WHEN rp.semester = 3 THEN N'Học kỳ 3 (Hè)'
+        ELSE N'Không xác định'
+    END as semester_text,
+    rp.start_date,
+    rp.end_date,
+    rp.status,
+    CASE 
+        WHEN rp.status = 'OPEN' THEN N'Đang mở'
+        WHEN rp.status = 'CLOSED' THEN N'Đã đóng'
+        WHEN rp.status = 'UPCOMING' THEN N'Sắp mở'
+        ELSE N'Không xác định'
+    END as status_text,
+    rp.description,
+    rp.is_active,
+    rp.created_at,
+    rp.created_by,
+    rp.updated_at,
+    rp.updated_by,
+    -- Thống kê
+    COUNT(DISTINCT pc.class_id) as total_classes,
+    COUNT(DISTINCT CASE WHEN pc.is_active = 1 AND pc.deleted_at IS NULL THEN pc.class_id END) as active_classes,
+    SUM(DISTINCT c.max_students) as total_capacity,
+    SUM(DISTINCT c.current_enrollment) as total_enrolled,
+    SUM(DISTINCT c.max_students) - SUM(DISTINCT c.current_enrollment) as total_available_slots,
+    -- Thời gian còn lại (nếu đang mở)
+    CASE 
+        WHEN rp.status = 'OPEN' AND GETDATE() BETWEEN rp.start_date AND rp.end_date 
+        THEN DATEDIFF(DAY, GETDATE(), rp.end_date)
+        ELSE NULL
+    END as days_remaining,
+    -- Trạng thái thời gian
+    CASE 
+        WHEN GETDATE() < rp.start_date THEN N'Chưa bắt đầu'
+        WHEN GETDATE() BETWEEN rp.start_date AND rp.end_date THEN N'Đang diễn ra'
+        WHEN GETDATE() > rp.end_date THEN N'Đã kết thúc'
+        ELSE N'Không xác định'
+    END as time_status
+FROM dbo.registration_periods rp
+INNER JOIN dbo.academic_years ay ON rp.academic_year_id = ay.academic_year_id
+LEFT JOIN dbo.period_classes pc ON rp.period_id = pc.period_id 
+    AND pc.deleted_at IS NULL
+LEFT JOIN dbo.classes c ON pc.class_id = c.class_id 
+    AND c.deleted_at IS NULL
+WHERE rp.deleted_at IS NULL
+GROUP BY 
+    rp.period_id, rp.period_name, rp.academic_year_id, ay.year_name,
+    rp.semester, rp.start_date, rp.end_date, rp.status, rp.description,
+    rp.is_active, rp.created_at, rp.created_by, rp.updated_at, rp.updated_by;
+GO
+
+-- ===========================================
+-- 8. VIEW: CHI TIẾT LỚP HỌC TRONG ĐỢT ĐĂNG KÝ (Admin)
+-- ===========================================
+IF OBJECT_ID('vw_PeriodClassDetails', 'V') IS NOT NULL DROP VIEW vw_PeriodClassDetails;
+GO
+
+CREATE VIEW vw_PeriodClassDetails
+AS
+SELECT 
+    pc.period_class_id,
+    pc.period_id,
+    rp.period_name,
+    rp.status as period_status,
+    rp.start_date as period_start_date,
+    rp.end_date as period_end_date,
+    pc.class_id,
+    c.class_code,
+    c.class_name,
+    c.subject_id,
+    sub.subject_code,
+    sub.subject_name,
+    sub.credits,
+    c.lecturer_id,
+    l.lecturer_code,
+    l.full_name as lecturer_name,
+    c.semester,
+    c.max_students,
+    c.current_enrollment,
+    c.max_students - c.current_enrollment as available_seats,
+    CASE 
+        WHEN c.max_students > 0 
+        THEN CAST(ROUND((c.current_enrollment * 100.0 / c.max_students), 2) AS DECIMAL(5,2))
+        ELSE 0
+    END as enrollment_percentage,
+    c.room,
+    c.schedule,
+    ay.year_name as academic_year_name,
+    sy.year_code as school_year_code,
+    pc.is_active,
+    pc.created_at,
+    pc.created_by,
+    pc.updated_at,
+    pc.updated_by,
+    -- Thống kê đăng ký trong đợt này
+    COUNT(DISTINCT e.enrollment_id) as enrollments_in_period,
+    -- Trạng thái lớp
+    CASE 
+        WHEN c.current_enrollment >= c.max_students THEN N'Đã đầy'
+        WHEN c.current_enrollment >= c.max_students * 0.8 THEN N'Sắp đầy'
+        WHEN c.current_enrollment > 0 THEN N'Còn chỗ'
+        ELSE N'Chưa có đăng ký'
+    END as class_status
+FROM dbo.period_classes pc
+INNER JOIN dbo.registration_periods rp ON pc.period_id = rp.period_id
+INNER JOIN dbo.classes c ON pc.class_id = c.class_id
+INNER JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
+LEFT JOIN dbo.lecturers l ON c.lecturer_id = l.lecturer_id
+LEFT JOIN dbo.academic_years ay ON c.academic_year_id = ay.academic_year_id
+LEFT JOIN dbo.school_years sy ON c.school_year_id = sy.school_year_id
+LEFT JOIN dbo.enrollments e ON c.class_id = e.class_id 
+    AND e.deleted_at IS NULL
+    AND e.enrollment_date BETWEEN rp.start_date AND rp.end_date
+WHERE pc.deleted_at IS NULL
+    AND rp.deleted_at IS NULL
+    AND c.deleted_at IS NULL
+GROUP BY 
+    pc.period_class_id, pc.period_id, rp.period_name, rp.status, 
+    rp.start_date, rp.end_date, pc.class_id, c.class_code, c.class_name,
+    c.subject_id, sub.subject_code, sub.subject_name, sub.credits,
+    c.lecturer_id, l.lecturer_code, l.full_name, c.semester,
+    c.max_students, c.current_enrollment, c.room, c.schedule,
+    ay.year_name, sy.year_code, pc.is_active, pc.created_at,
+    pc.created_by, pc.updated_at, pc.updated_by;
+GO
+
+-- ===========================================
+-- 9. VIEW: THỐNG KÊ ĐỢT ĐĂNG KÝ (Admin Dashboard)
+-- ===========================================
+IF OBJECT_ID('vw_RegistrationPeriodStatistics', 'V') IS NOT NULL DROP VIEW vw_RegistrationPeriodStatistics;
+GO
+
+CREATE VIEW vw_RegistrationPeriodStatistics
+AS
+SELECT 
+    rp.period_id,
+    rp.period_name,
+    rp.status,
+    rp.start_date,
+    rp.end_date,
+    -- Thống kê lớp
+    COUNT(DISTINCT pc.class_id) as total_classes,
+    COUNT(DISTINCT CASE WHEN pc.is_active = 1 THEN pc.class_id END) as active_classes,
+    -- Thống kê đăng ký
+    COUNT(DISTINCT e.enrollment_id) as total_enrollments,
+    COUNT(DISTINCT e.student_id) as total_students,
+    -- Thống kê sức chứa
+    SUM(DISTINCT c.max_students) as total_capacity,
+    SUM(DISTINCT c.current_enrollment) as total_enrolled,
+    SUM(DISTINCT c.max_students) - SUM(DISTINCT c.current_enrollment) as total_available,
+    -- Tỷ lệ đăng ký
+    CASE 
+        WHEN SUM(DISTINCT c.max_students) > 0
+        THEN CAST(ROUND((SUM(DISTINCT c.current_enrollment) * 100.0 / SUM(DISTINCT c.max_students)), 2) AS DECIMAL(5,2))
+        ELSE 0
+    END as enrollment_rate,
+    -- Thống kê theo môn học
+    COUNT(DISTINCT c.subject_id) as total_subjects,
+    -- Thống kê theo giảng viên
+    COUNT(DISTINCT c.lecturer_id) as total_lecturers
+FROM dbo.registration_periods rp
+LEFT JOIN dbo.period_classes pc ON rp.period_id = pc.period_id 
+    AND pc.deleted_at IS NULL
+LEFT JOIN dbo.classes c ON pc.class_id = c.class_id 
+    AND c.deleted_at IS NULL
+LEFT JOIN dbo.enrollments e ON c.class_id = e.class_id 
+    AND e.deleted_at IS NULL
+    AND e.enrollment_date BETWEEN rp.start_date AND rp.end_date
+WHERE rp.deleted_at IS NULL
+GROUP BY 
+    rp.period_id, rp.period_name, rp.status, rp.start_date, rp.end_date;
+GO
+
 PRINT '';
 PRINT '✅ Đã tạo xong tất cả Views!';
 PRINT '   - vw_StudentTranscript: Bảng điểm sinh viên';
@@ -252,5 +441,8 @@ PRINT '   - vw_ClassStatistics: Thống kê lớp học';
 PRINT '   - vw_AttendanceHistory: Lịch sử điểm danh';
 PRINT '   - vw_StudentCumulativeGPA: GPA tích lũy';
 PRINT '   - vw_ClassRoster: Danh sách sinh viên theo lớp';
+PRINT '   - vw_RegistrationPeriodManagement: Quản lý đợt đăng ký (Admin)';
+PRINT '   - vw_PeriodClassDetails: Chi tiết lớp trong đợt đăng ký (Admin)';
+PRINT '   - vw_RegistrationPeriodStatistics: Thống kê đợt đăng ký (Admin)';
 PRINT '';
 GO

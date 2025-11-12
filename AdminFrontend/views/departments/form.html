@@ -2,15 +2,7 @@
     <app-sidebar></app-sidebar>
     
     <div class="main-content">
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
-                <h1 class="page-title">{{isEditMode ? 'Sửa' : 'Thêm'}} Bộ môn</h1>
-            </div>
-            <div class="header-right">
-                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
-            </div>
-        </header>
+        <app-topbar page-title="{{isEditMode ? 'Sửa' : 'Thêm'}} Bộ môn"></app-topbar>
         
         <div class="content-body">
             <div ng-if="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{success}}</div>
@@ -51,7 +43,7 @@
                         <div class="form-group">
                             <label class="form-label">Mô tả</label>
                             <textarea class="form-control" ng-model="department.description" rows="4"
-                                      placeholder="Mô tả về bộ môn..."></textarea>
+                                      placeholder="Nhập mô tả về bộ môn..."></textarea>
                         </div>
                         
                         <div class="form-group">

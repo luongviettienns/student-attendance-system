@@ -12,27 +12,14 @@ namespace EducationManagement.BLL.Services
     {
         private readonly MajorRepository _repo;
         private readonly FacultyRepository _facultyRepo;
-        private readonly CachingService? _cache;
 
-        public MajorService(MajorRepository repo, FacultyRepository facultyRepo, CachingService? cache = null)
+        public MajorService(MajorRepository repo, FacultyRepository facultyRepo)
         {
             _repo = repo;
             _facultyRepo = facultyRepo;
-            _cache = cache;
         }
 
-        public async Task<List<Major>> GetAllAsync()
-        {
-            if (_cache != null)
-            {
-                return await _cache.GetOrSetAsync(
-                    CacheKeys.AllMajors,
-                    async () => await _repo.GetAllAsync(),
-                    CacheKeys.MajorExpiration
-                ) ?? new List<Major>();
-            }
-            return await _repo.GetAllAsync();
-        }
+        public async Task<List<Major>> GetAllAsync() => await _repo.GetAllAsync();
         
         public Task<(List<Major> items, int totalCount)> GetAllPagedAsync(
             int page = 1, int pageSize = 10, string? search = null) 
@@ -42,15 +29,6 @@ namespace EducationManagement.BLL.Services
 
         public async Task<List<Major>> GetByFacultyAsync(string facultyId)
         {
-            if (_cache != null)
-            {
-                var cacheKey = string.Format(CacheKeys.MajorsByFaculty, facultyId);
-                return await _cache.GetOrSetAsync(
-                    cacheKey,
-                    async () => await _repo.GetByFacultyAsync(facultyId),
-                    CacheKeys.MajorExpiration
-                ) ?? new List<Major>();
-            }
             return await _repo.GetByFacultyAsync(facultyId);
         }
 

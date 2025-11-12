@@ -104,7 +104,6 @@ namespace EducationManagement.DAL.Repositories
         // ============================================================
         public async Task<User?> GetByEmailAsync(string email)
         {
-            var normalizedEmail = email.Trim().ToLower();
             var query = @"
                 SELECT u.*, r.role_name
                 FROM dbo.users u
@@ -117,7 +116,7 @@ namespace EducationManagement.DAL.Repositories
             {
                 using var conn = new SqlConnection(_connectionString);
                 using var cmd = new SqlCommand(query, conn);
-                cmd.Parameters.AddWithValue("@Email", normalizedEmail);
+                cmd.Parameters.AddWithValue("@Email", email.Trim().ToLower());
                 
                 await conn.OpenAsync();
                 using var reader = await cmd.ExecuteReaderAsync();

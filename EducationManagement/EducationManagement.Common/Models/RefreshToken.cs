@@ -11,9 +11,9 @@ namespace EducationManagement.Common.Models
         public Guid Id { get; set; } = Guid.NewGuid();   // Khóa chính
 
         // 🔑 UserId là string để khớp với User.cs
-        public string UserId { get; set; }
+        public string UserId { get; set; } = string.Empty;
 
-        public string Token { get; set; }                // Chuỗi token
+        public string Token { get; set; } = string.Empty;                // Chuỗi token
         public DateTime ExpiresAt { get; set; }          // Thời gian hết hạn
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? RevokedAt { get; set; }         // Khi logout / revoke

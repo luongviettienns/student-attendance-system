@@ -1,0 +1,1003 @@
+                                                                                          
+USE EducationManagement;
+GO
+
+SET NOCOUNT ON;
+PRINT 'Bat dau seed full test dataset';
+
+-- ===========================================
+-- PHAN 1: VAI TRO HE THONG
+-- ===========================================
+MERGE dbo.roles AS target
+USING (VALUES
+    ('ROLE_ADMIN',    N'Admin',             N'Quản trị hệ thống',          1),
+    ('ROLE_LECTURER', N'Lecturer',         N'Giảng viên giảng dạy',       1),
+    ('ROLE_STUDENT',  N'Student',          N'Sinh viên',                  1),
+    ('ROLE_ADVISOR',  N'Advisor',          N'Cố vấn học tập & Nhân viên phòng đào tạo',             1)
+) AS src(role_id, role_name, description, is_active)
+ON target.role_id = src.role_id
+WHEN MATCHED THEN
+    UPDATE SET role_name = src.role_name,
+               description = src.description,
+               is_active = src.is_active,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (role_id, role_name, description, is_active, created_by)
+    VALUES (src.role_id, src.role_name, src.description, src.is_active, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 2: NGUOI DUNG HE THONG
+-- ===========================================
+MERGE dbo.users AS target
+USING (VALUES
+    -- ✅ User admin chính (USER001) - dùng để đăng nhập với username 'admin'
+    ('USER001',       'admin',              '$2a$10$h5gvrNjE2bhwhHn6Ofofq.Ppr0hvpLY5Q3mbY1OjkkGL8CMxm2VBm', 'admin@example.com',           '0901234567', N'Nguyễn Văn Admin',            'ROLE_ADMIN',   1),
+    -- User admin cho full test (USR_ADMIN_FT) - giữ lại để test
+    ('USR_ADMIN_FT',  'admin_fulltest',     '$2a$10$h5gvrNjE2bhwhHn6Ofofq.Ppr0hvpLY5Q3mbY1OjkkGL8CMxm2VBm', 'admin.ft@example.com',        '0901000000', N'Nguyen Minh Quan Tri',        'ROLE_ADMIN',   1),
+    ('USR_SUPPORT_FT','support_academic',   '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'support.academic@example.com','0901000001', N'Trần Hoài Thu',               'ROLE_ADVISOR', 1),
+    ('USR_LEC_01',    'lecturer_hung',      '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'hung.lecturer@example.com',   '0909000001', N'Nguyen Huu Hung',             'ROLE_LECTURER',1),
+    ('USR_LEC_02',    'lecturer_thao',      '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'thao.lecturer@example.com',   '0909000002', N'Pham Thao Nhu',               'ROLE_LECTURER',1),
+    ('USR_ADV_01',    'advisor_toan',       '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'advisor.toan@example.com',    '0909000003', N'Dang Quoc Toan',              'ROLE_ADVISOR', 1),
+    ('USR_STU_21A',   'student_k21_a',      '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'st.k21.001@example.com',      '0911000001', N'Tran Nhat Minh',              'ROLE_STUDENT', 1),
+    ('USR_STU_21B',   'student_k21_b',      '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'st.k21.002@example.com',      '0911000002', N'Ngo Dieu Anh',                'ROLE_STUDENT', 1),
+    ('USR_STU_22A',   'student_k22_a',      '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'st.k22.010@example.com',      '0912000001', N'Pham Huu Long',               'ROLE_STUDENT', 1),
+    ('USR_STU_23A',   'student_k23_a',      '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'st.k23.005@example.com',      '0913000001', N'Luu Gia Khanh',              'ROLE_STUDENT', 1),
+    ('USR_STU_24A',   'student_k24_a',      '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'st.k24.015@example.com',      '0914000001', N'Do Quynh Nhi',                'ROLE_STUDENT', 1),
+    ('USR_STU_24B',   'student_k24_b',      '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'st.k24.099@example.com',      '0914000002', N'Le Minh Triet',               'ROLE_STUDENT', 1)
+) AS src(user_id, username, password_hash, email, phone, full_name, role_id, is_active)
+ON target.user_id = src.user_id
+WHEN MATCHED THEN
+    UPDATE SET username = src.username,
+               password_hash = src.password_hash,
+               email = src.email,
+               phone = src.phone,
+               full_name = src.full_name,
+               role_id = src.role_id,
+               is_active = src.is_active,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (user_id, username, password_hash, email, phone, full_name, role_id, is_active, created_by)
+    VALUES (src.user_id, src.username, src.password_hash, src.email, src.phone, src.full_name, src.role_id, src.is_active, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 3: DON VI DAO TAO
+-- ===========================================
+-- Xử lý xung đột: Tạo faculty mới trước, sau đó cập nhật tham chiếu, rồi xóa faculty cũ
+-- Bước 1: Tạo faculty mới (nếu chưa tồn tại) hoặc cập nhật nếu đã có cùng code
+MERGE dbo.faculties AS target
+USING (VALUES
+    ('FAC_IT',  'CNTT', N'Cong nghe Thong tin', N'Khoa dao tao cong nghe', 1),
+    ('FAC_BUS', 'BUS',  N'Kinh doanh So',      N'Khoa kinh doanh va quan tri', 1)
+) AS src(faculty_id, faculty_code, faculty_name, description, is_active)
+ON target.faculty_code = src.faculty_code
+WHEN MATCHED THEN
+    UPDATE SET faculty_id = src.faculty_id,
+               faculty_name = src.faculty_name,
+               description = src.description,
+               is_active = src.is_active,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (faculty_id, faculty_code, faculty_name, description, is_active, created_by)
+    VALUES (src.faculty_id, src.faculty_code, src.faculty_name, src.description, src.is_active, 'seed_full_test');
+GO
+
+-- Bước 2: Cập nhật các bản ghi liên quan từ FAC001 sang FAC_IT (nếu FAC001 tồn tại)
+IF EXISTS (SELECT 1 FROM dbo.faculties WHERE faculty_id = 'FAC001')
+BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.faculties WHERE faculty_id = 'FAC_IT')
+    BEGIN
+        UPDATE dbo.departments SET faculty_id = 'FAC_IT' WHERE faculty_id = 'FAC001';
+        UPDATE dbo.majors SET faculty_id = 'FAC_IT' WHERE faculty_id = 'FAC001';
+        UPDATE dbo.students SET faculty_id = 'FAC_IT' WHERE faculty_id = 'FAC001';
+        DELETE FROM dbo.faculties WHERE faculty_id = 'FAC001';
+    END
+END
+GO
+
+MERGE dbo.departments AS target
+USING (VALUES
+    ('DEP_SE',  'SE',      N'Bo mon Cong nghe Phan mem',     'FAC_IT',  N'Quan ly chuong trinh phan mem'),
+    ('DEP_DS',  'DS',      N'Bo mon Khoa hoc Du lieu',        'FAC_IT',  N'Nghien cuu va day du lieu'),
+    ('DEP_BUS', 'BUS-MGT', N'Bo mon Quan tri Kinh doanh',     'FAC_BUS', N'Phu trach cac hoc phan kinh doanh')
+) AS src(department_id, department_code, department_name, faculty_id, description)
+ON target.department_id = src.department_id
+WHEN MATCHED THEN
+    UPDATE SET department_code = src.department_code,
+               department_name = src.department_name,
+               faculty_id = src.faculty_id,
+               description = src.description,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (department_id, department_code, department_name, faculty_id, description, created_by)
+    VALUES (src.department_id, src.department_code, src.department_name, src.faculty_id, src.description, 'seed_full_test');
+GO
+
+-- Xử lý xung đột departments: Cập nhật các bản ghi liên quan từ DEPT001/DEPT002 sang DEP_SE/DEP_DS
+IF EXISTS (SELECT 1 FROM dbo.departments WHERE department_id IN ('DEPT001', 'DEPT002'))
+BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.departments WHERE department_id = 'DEP_SE')
+    BEGIN
+        UPDATE dbo.lecturers SET department_id = 'DEP_SE' WHERE department_id = 'DEPT001';
+        UPDATE dbo.subjects SET department_id = 'DEP_SE' WHERE department_id = 'DEPT001';
+    END
+    IF EXISTS (SELECT 1 FROM dbo.departments WHERE department_id = 'DEP_DS')
+    BEGIN
+        UPDATE dbo.lecturers SET department_id = 'DEP_DS' WHERE department_id = 'DEPT002';
+        UPDATE dbo.subjects SET department_id = 'DEP_DS' WHERE department_id = 'DEPT002';
+    END
+    DELETE FROM dbo.departments WHERE department_id IN ('DEPT001', 'DEPT002');
+END
+GO
+
+MERGE dbo.majors AS target
+USING (VALUES
+    ('MAJ_SE',  N'Cong nghe Phan mem',  'SE',  'FAC_IT',  N'Chuong trinh ky su phan mem'),
+    ('MAJ_DS',  N'Khoa hoc Du lieu',   'DS',  'FAC_IT',  N'Chuong trinh phan tich du lieu'),
+    ('MAJ_MKT', N'Marketing So',       'MKT', 'FAC_BUS', N'Chuong trinh marketing hien dai')
+) AS src(major_id, major_name, major_code, faculty_id, description)
+ON target.major_id = src.major_id
+WHEN MATCHED THEN
+    UPDATE SET major_name = src.major_name,
+               major_code = src.major_code,
+               faculty_id = src.faculty_id,
+               description = src.description,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (major_id, major_name, major_code, faculty_id, description, created_by)
+    VALUES (src.major_id, src.major_name, src.major_code, src.faculty_id, src.description, 'seed_full_test');
+GO
+
+-- Xử lý xung đột majors: Cập nhật các bản ghi liên quan từ MAJ001/MAJ002 sang MAJ_SE/MAJ_DS
+IF EXISTS (SELECT 1 FROM dbo.majors WHERE major_id IN ('MAJ001', 'MAJ002'))
+BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.majors WHERE major_id = 'MAJ_SE')
+    BEGIN
+        UPDATE dbo.students SET major_id = 'MAJ_SE' WHERE major_id = 'MAJ001';
+        UPDATE dbo.administrative_classes SET major_id = 'MAJ_SE' WHERE major_id = 'MAJ001';
+    END
+    IF EXISTS (SELECT 1 FROM dbo.majors WHERE major_id = 'MAJ_DS')
+    BEGIN
+        UPDATE dbo.students SET major_id = 'MAJ_DS' WHERE major_id = 'MAJ002';
+        UPDATE dbo.administrative_classes SET major_id = 'MAJ_DS' WHERE major_id = 'MAJ002';
+    END
+    DELETE FROM dbo.majors WHERE major_id IN ('MAJ001', 'MAJ002');
+END
+GO
+
+-- ===========================================
+-- PHAN 4: NIEN KHOA VA NAM HOC
+-- ===========================================
+MERGE dbo.academic_years AS target
+USING (VALUES
+    ('AY2021', N'2021-2025', N'K21', 2021, 2025, 4, 0, N'Khoa K21 dang nam 4'),
+    ('AY2022', N'2022-2026', N'K22', 2022, 2026, 4, 0, N'Khoa K22 dang nam 3'),
+    ('AY2023', N'2023-2027', N'K23', 2023, 2027, 4, 0, N'Khoa K23 dang nam 2'),
+    ('AY2024', N'2024-2028', N'K24', 2024, 2028, 4, 1, N'Khoa K24 dang nam 1')
+) AS src(academic_year_id, year_name, cohort_code, start_year, end_year, duration_years, is_active, description)
+ON target.academic_year_id = src.academic_year_id
+WHEN MATCHED THEN
+    UPDATE SET year_name = src.year_name,
+               cohort_code = src.cohort_code,
+               start_year = src.start_year,
+               end_year = src.end_year,
+               duration_years = src.duration_years,
+               is_active = src.is_active,
+               description = src.description,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (academic_year_id, year_name, cohort_code, start_year, end_year, duration_years, is_active, description, created_by)
+    VALUES (src.academic_year_id, src.year_name, src.cohort_code, src.start_year, src.end_year, src.duration_years, src.is_active, src.description, 'seed_full_test');
+GO
+
+MERGE dbo.school_years AS target
+USING (VALUES
+    ('SY2022', 'SY2022', N'Nam hoc 2022-2023', 'AY2022',
+        DATEFROMPARTS(2022,9,1), DATEFROMPARTS(2023,8,31),
+        DATEFROMPARTS(2022,9,1), DATEFROMPARTS(2022,12,31),
+        DATEFROMPARTS(2023,1,2), DATEFROMPARTS(2023,5,31),
+        0, NULL),
+    ('SY2023', 'SY2023', N'Nam hoc 2023-2024', 'AY2023',
+        DATEFROMPARTS(2023,9,1), DATEFROMPARTS(2024,8,31),
+        DATEFROMPARTS(2023,9,1), DATEFROMPARTS(2023,12,31),
+        DATEFROMPARTS(2024,1,2), DATEFROMPARTS(2024,5,31),
+        0, NULL),
+    ('SY2024', 'SY2024', N'Nam hoc 2024-2025', 'AY2024',
+        DATEFROMPARTS(2024,9,1), DATEFROMPARTS(2025,8,31),
+        DATEFROMPARTS(2024,9,1), DATEFROMPARTS(2024,12,31),
+        DATEFROMPARTS(2025,1,2), DATEFROMPARTS(2025,5,31),
+        1, 1)
+) AS src(school_year_id, year_code, year_name, academic_year_id, start_date, end_date,
+         semester1_start, semester1_end, semester2_start, semester2_end, is_active, current_semester)
+ON target.school_year_id = src.school_year_id
+WHEN MATCHED THEN
+    UPDATE SET year_code = src.year_code,
+               year_name = src.year_name,
+               academic_year_id = src.academic_year_id,
+               start_date = src.start_date,
+               end_date = src.end_date,
+               semester1_start = src.semester1_start,
+               semester1_end = src.semester1_end,
+               semester2_start = src.semester2_start,
+               semester2_end = src.semester2_end,
+               is_active = src.is_active,
+               current_semester = src.current_semester,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (school_year_id, year_code, year_name, academic_year_id, start_date, end_date,
+            semester1_start, semester1_end, semester2_start, semester2_end, is_active, current_semester, created_by)
+    VALUES (src.school_year_id, src.year_code, src.year_name, src.academic_year_id, src.start_date, src.end_date,
+            src.semester1_start, src.semester1_end, src.semester2_start, src.semester2_end, src.is_active, src.current_semester, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 5: GIANG VIEN
+-- ===========================================
+MERGE dbo.lecturers AS target
+USING (VALUES
+    ('LEC_FT_01', 'GVFT01', N'Nguyen Huu Hung', 'hung.lecturer@example.com', '0909000001', 'DEP_SE', 'USR_LEC_01',
+        N'TS', N'Tien si', N'Phan mem doanh nghiep', N'Truong bo mon', DATEFROMPARTS(2013,8,1)),
+    ('LEC_FT_02', 'GVFT02', N'Pham Thao Nhu', 'thao.lecturer@example.com', '0909000002', 'DEP_DS', 'USR_LEC_02',
+        N'ThS', N'Thac si', N'Phan tich du lieu', N'Giang vien chinh', DATEFROMPARTS(2016,9,1)),
+    ('LEC_FT_ADV', 'ADFT01', N'Dang Quoc Toan', 'advisor.toan@example.com', '0909000003', 'DEP_SE', 'USR_ADV_01',
+        N'TS', N'Tien si', N'Quan tri dao tao', N'Co van hoc tap', DATEFROMPARTS(2010,5,1))
+) AS src(lecturer_id, lecturer_code, full_name, email, phone, department_id, user_id,
+          academic_title, degree, specialization, position, join_date)
+ON target.lecturer_id = src.lecturer_id
+WHEN MATCHED THEN
+    UPDATE SET lecturer_code = src.lecturer_code,
+               full_name = src.full_name,
+               email = src.email,
+               phone = src.phone,
+               department_id = src.department_id,
+               user_id = src.user_id,
+               academic_title = src.academic_title,
+               degree = src.degree,
+               specialization = src.specialization,
+               position = src.position,
+               join_date = src.join_date,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (lecturer_id, lecturer_code, full_name, email, phone, department_id, user_id,
+            academic_title, degree, specialization, position, join_date, created_by)
+    VALUES (src.lecturer_id, src.lecturer_code, src.full_name, src.email, src.phone, src.department_id, src.user_id,
+            src.academic_title, src.degree, src.specialization, src.position, src.join_date, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 6: LOP HANH CHINH
+-- ===========================================
+MERGE dbo.administrative_classes AS target
+USING (VALUES
+    ('ADM_K21_SE_A',  'K21-SE-A',  N'Lop K21 SE A',  'MAJ_SE',  'LEC_FT_ADV', 'AY2021', 2021, 45, 2, N'Lop hanh chinh khoa 21 nganh SE', 1),
+    ('ADM_K22_SE_B',  'K22-SE-B',  N'Lop K22 SE B',  'MAJ_SE',  'LEC_FT_ADV', 'AY2022', 2022, 45, 1, N'Lop hanh chinh khoa 22 nganh SE', 1),
+    ('ADM_K23_DS_A',  'K23-DS-A',  N'Lop K23 DS A',  'MAJ_DS',  'LEC_FT_02',  'AY2023', 2023, 40, 1, N'Lop hanh chinh khoa 23 nganh DS', 1),
+    ('ADM_K24_SE_A',  'K24-SE-A',  N'Lop K24 SE A',  'MAJ_SE',  'LEC_FT_01',  'AY2024', 2024, 40, 1, N'Tan sinh vien khoa 24 nganh SE', 1),
+    ('ADM_K24_MKT_A', 'K24-MKT-A', N'Lop K24 MKT A', 'MAJ_MKT', 'LEC_FT_02',  'AY2024', 2024, 35, 1, N'Tan sinh vien khoa 24 nganh MKT', 1)
+) AS src(admin_class_id, class_code, class_name, major_id, advisor_id, academic_year_id,
+          cohort_year, max_students, current_students, description, is_active)
+ON target.admin_class_id = src.admin_class_id
+WHEN MATCHED THEN
+    UPDATE SET class_code = src.class_code,
+               class_name = src.class_name,
+               major_id = src.major_id,
+               advisor_id = src.advisor_id,
+               academic_year_id = src.academic_year_id,
+               cohort_year = src.cohort_year,
+               max_students = src.max_students,
+               current_students = src.current_students,
+               description = src.description,
+               is_active = src.is_active,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (admin_class_id, class_code, class_name, major_id, advisor_id, academic_year_id,
+            cohort_year, max_students, current_students, description, is_active, created_by)
+    VALUES (src.admin_class_id, src.class_code, src.class_name, src.major_id, src.advisor_id, src.academic_year_id,
+            src.cohort_year, src.max_students, src.current_students, src.description, src.is_active, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 7: SINH VIEN
+-- ===========================================
+MERGE dbo.students AS target
+USING (VALUES
+    ('STU_K21_001', 'K21SE001', N'Tran Nhat Minh',  DATEFROMPARTS(2003,2,11),  N'Nam', 'st.k21.001@example.com', '0911000001', N'Quan 1, TP HCM',  'MAJ_SE',  'AY2021', 'LEC_FT_ADV', 'USR_STU_21A', 'FAC_IT',  'ADM_K21_SE_A', 2021, 1),
+    ('STU_K21_002', 'K21SE002', N'Ngo Dieu Anh',    DATEFROMPARTS(2003,7,30),  N'Nu',  'st.k21.002@example.com', '0911000002', N'Quan 3, TP HCM',  'MAJ_SE',  'AY2021', 'LEC_FT_ADV', 'USR_STU_21B', 'FAC_IT',  'ADM_K21_SE_A', 2021, 1),
+    ('STU_K22_001', 'K22SE010', N'Pham Huu Long',   DATEFROMPARTS(2004,5,15),  N'Nam', 'st.k22.010@example.com', '0912000001', N'Thu Duc, TP HCM','MAJ_SE',  'AY2022', 'LEC_FT_ADV', 'USR_STU_22A', 'FAC_IT',  'ADM_K22_SE_B', 2022, 1),
+    ('STU_K23_001', 'K23DS005', N'Luu Gia Khanh',   DATEFROMPARTS(2005,4,2),   N'Nam', 'st.k23.005@example.com', '0913000001', N'Quan 7, TP HCM',  'MAJ_DS',  'AY2023', 'LEC_FT_02',  'USR_STU_23A', 'FAC_IT',  'ADM_K23_DS_A', 2023, 1),
+    ('STU_K24_001', 'K24SE015', N'Do Quynh Nhi',    DATEFROMPARTS(2006,10,19), N'Nu',  'st.k24.015@example.com', '0914000001', N'Quan Binh Thanh','MAJ_SE',  'AY2024', 'LEC_FT_01',  'USR_STU_24A', 'FAC_IT',  'ADM_K24_SE_A', 2024, 1),
+    ('STU_K24_002', 'K24MKT099',N'Le Minh Triet',   DATEFROMPARTS(2006,12,1),  N'Nam', 'st.k24.099@example.com', '0914000002', N'Quan Phu Nhuan', 'MAJ_MKT', 'AY2024', 'LEC_FT_02',  'USR_STU_24B', 'FAC_BUS', 'ADM_K24_MKT_A', 2024, 1)
+) AS src(student_id, student_code, full_name, date_of_birth, gender, email, phone, address,
+          major_id, academic_year_id, advisor_id, user_id, faculty_id, admin_class_id, cohort_year, is_active)
+ON target.student_id = src.student_id
+WHEN MATCHED THEN
+    UPDATE SET student_code = src.student_code,
+               full_name = src.full_name,
+               date_of_birth = src.date_of_birth,
+               gender = src.gender,
+               email = src.email,
+               phone = src.phone,
+               address = src.address,
+               major_id = src.major_id,
+               academic_year_id = src.academic_year_id,
+               advisor_id = src.advisor_id,
+               user_id = src.user_id,
+               faculty_id = src.faculty_id,
+               admin_class_id = src.admin_class_id,
+               cohort_year = src.cohort_year,
+               is_active = src.is_active,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (student_id, student_code, full_name, date_of_birth, gender, email, phone, address,
+            major_id, academic_year_id, advisor_id, user_id, faculty_id, admin_class_id, cohort_year, is_active, created_by)
+    VALUES (src.student_id, src.student_code, src.full_name, src.date_of_birth, src.gender, src.email, src.phone, src.address,
+            src.major_id, src.academic_year_id, src.advisor_id, src.user_id, src.faculty_id, src.admin_class_id, src.cohort_year, src.is_active, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 8: MON HOC VA DIEU KIEN TIEN QUYET
+-- ===========================================
+MERGE dbo.subjects AS target
+USING (VALUES
+    ('SUB_SE101', N'Lap trinh .NET co ban',          'SE101', 3, 'DEP_SE',  N'Mon nhap mon lap trinh .NET'),
+    ('SUB_SE201', N'Phan tich thiet ke he thong',    'SE201', 3, 'DEP_SE',  N'Mon dac thuyet phan tich phan mem'),
+    ('SUB_SE301', N'Do an web nang cao',             'SE301', 4, 'DEP_SE',  N'Do an tot nghiep lap trinh web'),
+    ('SUB_DS101', N'Nhap mon Khoa hoc Du lieu',      'DS101', 3, 'DEP_DS',  N'Co ban ve phan tich du lieu'),
+    ('SUB_BUS201',N'Marketing so 1',                 'BUS201',3, 'DEP_BUS', N'Ky nang digital marketing')
+) AS src(subject_id, subject_name, subject_code, credits, department_id, description)
+ON target.subject_id = src.subject_id
+WHEN MATCHED THEN
+    UPDATE SET subject_name = src.subject_name,
+               subject_code = src.subject_code,
+               credits = src.credits,
+               department_id = src.department_id,
+               description = src.description,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (subject_id, subject_name, subject_code, credits, department_id, description, created_by)
+    VALUES (src.subject_id, src.subject_name, src.subject_code, src.credits, src.department_id, src.description, 'seed_full_test');
+GO
+
+MERGE dbo.subject_prerequisites AS target
+USING (VALUES
+    ('PREREQ_SE201_SE101', 'SUB_SE201', 'SUB_SE101', 5.0, 1, N'Can hoan thanh SE101 truoc khi hoc SE201'),
+    ('PREREQ_SE301_SE201', 'SUB_SE301', 'SUB_SE201', 6.0, 1, N'Can hoan thanh SE201 truoc khi lam do an'),
+    ('PREREQ_DS101_SE101', 'SUB_DS101', 'SUB_SE101', 5.5, 0, N'Co kha nang lap trinh co ban truoc khi vao du lieu')
+) AS src(prerequisite_id, subject_id, prerequisite_subject_id, minimum_grade, is_required, description)
+ON target.prerequisite_id = src.prerequisite_id
+WHEN MATCHED THEN
+    UPDATE SET subject_id = src.subject_id,
+               prerequisite_subject_id = src.prerequisite_subject_id,
+               minimum_grade = src.minimum_grade,
+               is_required = src.is_required,
+               description = src.description,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (prerequisite_id, subject_id, prerequisite_subject_id, minimum_grade, is_required, description, created_by)
+    VALUES (src.prerequisite_id, src.subject_id, src.prerequisite_subject_id, src.minimum_grade, src.is_required, src.description, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 9: LOP HOC PHAN NAM HOC 2024-2025
+-- ===========================================
+MERGE dbo.classes AS target
+USING (VALUES
+    ('CLS_SE101_2024', 'SE101-24-HK1', N'SE101 - Lap trinh co ban HK1 2024', 'SUB_SE101', 'LEC_FT_01', 'AY2024', 'SY2024', 1, 60, 2, N'Thu 2 07:30-09:30', N'A101'),
+    ('CLS_SE201_2024', 'SE201-24-HK1', N'SE201 - Phan tich thiet ke HK1 2024', 'SUB_SE201', 'LEC_FT_01', 'AY2023', 'SY2024', 1, 45, 1, N'Thu 4 09:45-11:45', N'B202'),
+    ('CLS_SE301_2024', 'SE301-24-HK2', N'SE301 - Do an web HK2 2024', 'SUB_SE301', 'LEC_FT_02', 'AY2021', 'SY2024', 2, 30, 2, N'Thu 3 15:15-17:15', N'C303'),
+    ('CLS_DS101_2024', 'DS101-24-HK1', N'DS101 - Nhap mon du lieu HK1 2024', 'SUB_DS101', 'LEC_FT_02', 'AY2024', 'SY2024', 1, 50, 1, N'Thu 6 13:00-15:00', N'A105'),
+    ('CLS_BUS201_2024','BUS201-24-HK1',N'BUS201 - Marketing so HK1 2024',    'SUB_BUS201','LEC_FT_02', 'AY2022', 'SY2024', 1, 40, 1, N'Thu 5 15:30-17:00', N'C201')
+) AS src(class_id, class_code, class_name, subject_id, lecturer_id, academic_year_id, school_year_id,
+          semester, max_students, current_enrollment, schedule, room)
+ON target.class_id = src.class_id
+WHEN MATCHED THEN
+    UPDATE SET class_code = src.class_code,
+               class_name = src.class_name,
+               subject_id = src.subject_id,
+               lecturer_id = src.lecturer_id,
+               academic_year_id = src.academic_year_id,
+               school_year_id = src.school_year_id,
+               semester = src.semester,
+               max_students = src.max_students,
+               current_enrollment = src.current_enrollment,
+               schedule = src.schedule,
+               room = src.room,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (class_id, class_code, class_name, subject_id, lecturer_id, academic_year_id, school_year_id,
+            semester, max_students, current_enrollment, schedule, room, created_by)
+    VALUES (src.class_id, src.class_code, src.class_name, src.subject_id, src.lecturer_id, src.academic_year_id, src.school_year_id,
+            src.semester, src.max_students, src.current_enrollment, src.schedule, src.room, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 10: PHONG HOC & LICH HOC
+-- ===========================================
+MERGE dbo.rooms AS target
+USING (VALUES
+    ('ROOM_A101', 'A101', N'Khu A', 60, 1),
+    ('ROOM_B202', 'B202', N'Khu B', 45, 1),
+    ('ROOM_C303', 'C303', N'Khu C', 35, 1)
+) AS src(room_id, room_code, building, capacity, is_active)
+ON target.room_id = src.room_id
+WHEN MATCHED THEN
+    UPDATE SET room_code = src.room_code,
+               building = src.building,
+               capacity = src.capacity,
+               is_active = src.is_active,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (room_id, room_code, building, capacity, is_active, created_by)
+    VALUES (src.room_id, src.room_code, src.building, src.capacity, src.is_active, 'seed_full_test');
+GO
+
+MERGE dbo.timetable_sessions AS target
+USING (VALUES
+    ('TS_SE101_MON', 'CLS_SE101_2024', 'SUB_SE101', 'LEC_FT_01', 'ROOM_A101', 'SY2024', 1, 2, CAST('07:30' AS TIME), CAST('09:30' AS TIME), 1, 2, N'WEEKLY', N'ACTIVE', N'Buoi hoc lap trinh co ban'),
+    ('TS_SE201_WED', 'CLS_SE201_2024', 'SUB_SE201', 'LEC_FT_01', 'ROOM_B202', 'SY2024', 1, 4, CAST('09:45' AS TIME), CAST('11:45' AS TIME), 3, 4, N'WEEKLY', N'ACTIVE', N'Buoi phan tich he thong'),
+    ('TS_DS101_FRI', 'CLS_DS101_2024', 'SUB_DS101', 'LEC_FT_02', 'ROOM_C303', 'SY2024', 1, 5, CAST('13:00' AS TIME), CAST('15:00' AS TIME), 5, 6, N'WEEKLY', N'ACTIVE', N'Thuc hanh du lieu'),
+    ('TS_SE301_TUE', 'CLS_SE301_2024', 'SUB_SE301', 'LEC_FT_02', 'ROOM_C303', 'SY2024', 2, 3, CAST('15:15' AS TIME), CAST('17:15' AS TIME), 7, 8, N'WEEKLY', N'PLANNED', N'Huong dan do an')
+) AS src(session_id, class_id, subject_id, lecturer_id, room_id, school_year_id, week_no, weekday,
+          start_time, end_time, period_from, period_to, recurrence, status, notes)
+ON target.session_id = src.session_id
+WHEN MATCHED THEN
+    UPDATE SET class_id = src.class_id,
+               subject_id = src.subject_id,
+               lecturer_id = src.lecturer_id,
+               room_id = src.room_id,
+               school_year_id = src.school_year_id,
+               week_no = src.week_no,
+               weekday = src.weekday,
+               start_time = src.start_time,
+               end_time = src.end_time,
+               period_from = src.period_from,
+               period_to = src.period_to,
+               recurrence = src.recurrence,
+               status = src.status,
+               notes = src.notes,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (session_id, class_id, subject_id, lecturer_id, room_id, school_year_id, week_no, weekday,
+            start_time, end_time, period_from, period_to, recurrence, status, notes, created_by)
+    VALUES (src.session_id, src.class_id, src.subject_id, src.lecturer_id, src.room_id, src.school_year_id, src.week_no, src.weekday,
+            src.start_time, src.end_time, src.period_from, src.period_to, src.recurrence, src.status, src.notes, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 11: DOT DANG KY HOC PHAN
+-- ===========================================
+MERGE dbo.registration_periods AS target
+USING (VALUES
+    ('PER_SY2024_HK1', N'Dot dang ky SY2024 HK1', 'AY2024', 1,
+        DATEFROMPARTS(2024,8,1), DATEFROMPARTS(2024,8,14), 'OPEN', N'Mo dang ky cho HK1 nam hoc 2024-2025', 1),
+    ('PER_SY2024_HK2', N'Dot dang ky SY2024 HK2', 'AY2024', 2,
+        DATEFROMPARTS(2025,1,5), DATEFROMPARTS(2025,1,15), 'UPCOMING', N'Du kien mo dang ky HK2', 1),
+    ('PER_SY2023_HK2', N'Dot dang ky SY2023 HK2', 'AY2023', 2,
+        DATEFROMPARTS(2024,1,5), DATEFROMPARTS(2024,1,15), 'CLOSED', N'Khoa dang ky cu da dong', 0)
+) AS src(period_id, period_name, academic_year_id, semester, start_date, end_date, status, description, is_active)
+ON target.period_id = src.period_id
+WHEN MATCHED THEN
+    UPDATE SET period_name = src.period_name,
+               academic_year_id = src.academic_year_id,
+               semester = src.semester,
+               start_date = src.start_date,
+               end_date = src.end_date,
+               status = src.status,
+               description = src.description,
+               is_active = src.is_active,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (period_id, period_name, academic_year_id, semester, start_date, end_date, status, description, is_active, created_by)
+    VALUES (src.period_id, src.period_name, src.academic_year_id, src.semester, src.start_date, src.end_date, src.status, src.description, src.is_active, 'seed_full_test');
+GO
+
+MERGE dbo.period_classes AS target
+USING (VALUES
+    ('PERCLS_FT_001', 'PER_SY2024_HK1', 'CLS_SE101_2024', 1),
+    ('PERCLS_FT_002', 'PER_SY2024_HK1', 'CLS_SE201_2024', 1),
+    ('PERCLS_FT_003', 'PER_SY2024_HK1', 'CLS_DS101_2024', 1),
+    ('PERCLS_FT_004', 'PER_SY2024_HK1', 'CLS_BUS201_2024',1),
+    ('PERCLS_FT_005', 'PER_SY2024_HK2', 'CLS_SE301_2024', 1)
+) AS src(period_class_id, period_id, class_id, is_active)
+ON target.period_class_id = src.period_class_id
+WHEN MATCHED THEN
+    UPDATE SET period_id = src.period_id,
+               class_id = src.class_id,
+               is_active = src.is_active,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (period_class_id, period_id, class_id, is_active, created_by)
+    VALUES (src.period_class_id, src.period_id, src.class_id, src.is_active, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 12: DANG KY, DIEM DANH, DIEM SO
+-- ===========================================
+MERGE dbo.enrollments AS target
+USING (VALUES
+    ('ENR_FT_001', 'STU_K24_001', 'CLS_SE101_2024', DATEFROMPARTS(2024,8,25), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2024,9,9),  N'Dang hoc lan dau',                    NULL),
+    ('ENR_FT_002', 'STU_K24_001', 'CLS_DS101_2024', DATEFROMPARTS(2024,8,26), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2024,9,10), N'Hoc song song ky nang du lieu',      NULL),
+    ('ENR_FT_003', 'STU_K24_002', 'CLS_SE101_2024', DATEFROMPARTS(2024,8,25), N'Cho duyet','PENDING',  DATEFROMPARTS(2024,9,9),  N'Doi advisor phe duyet',               NULL),
+    ('ENR_FT_004', 'STU_K23_001', 'CLS_SE201_2024', DATEFROMPARTS(2024,7,30), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2024,8,15), N'Sinh vien khoa 23 hoc nang cao',     NULL),
+    ('ENR_FT_005', 'STU_K21_001', 'CLS_SE301_2024', DATEFROMPARTS(2025,1,5),  N'Dang hoc', 'APPROVED', DATEFROMPARTS(2025,1,19), N'Do an tot nghiep',                   NULL),
+    ('ENR_FT_006', 'STU_K21_002', 'CLS_SE301_2024', DATEFROMPARTS(2025,1,5),  N'Da huy',   'DROPPED',  DATEFROMPARTS(2025,1,19), N'Bi canh bao vang mat',               N'Vuot qua 30 phan tram vang mat'),
+    ('ENR_FT_007', 'STU_K22_001', 'CLS_BUS201_2024',DATEFROMPARTS(2024,8,1),  N'Xin rut',  'WITHDRAWN',DATEFROMPARTS(2024,8,20), N'Nop don xin rut vi lich thuc tap',   N'Da rut truoc han')
+) AS src(enrollment_id, student_id, class_id, enrollment_date, status, enrollment_status, drop_deadline, notes, drop_reason)
+ON target.enrollment_id = src.enrollment_id
+WHEN MATCHED THEN
+    UPDATE SET student_id = src.student_id,
+               class_id = src.class_id,
+               enrollment_date = src.enrollment_date,
+               status = src.status,
+               enrollment_status = src.enrollment_status,
+               drop_deadline = src.drop_deadline,
+               notes = src.notes,
+               drop_reason = src.drop_reason,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (enrollment_id, student_id, class_id, enrollment_date, status, enrollment_status,
+            drop_deadline, notes, drop_reason, created_by)
+    VALUES (src.enrollment_id, src.student_id, src.class_id, src.enrollment_date, src.status, src.enrollment_status,
+            src.drop_deadline, src.notes, src.drop_reason, 'seed_full_test');
+GO
+
+MERGE dbo.attendances AS target
+USING (VALUES
+    ('ATT_FT_001', 'ENR_FT_001', 'CLS_SE101_2024', DATEFROMPARTS(2024,9,5),  N'Present', N'Co mat dung gio'),
+    ('ATT_FT_002', 'ENR_FT_001', 'CLS_SE101_2024', DATEFROMPARTS(2024,9,12), N'Late',    N'Tre 5 phut'),
+    ('ATT_FT_003', 'ENR_FT_002', 'CLS_DS101_2024', DATEFROMPARTS(2024,9,6),  N'Present', N'Tra bai tap du'),
+    ('ATT_FT_004', 'ENR_FT_003', 'CLS_SE101_2024', DATEFROMPARTS(2024,9,5),  N'Absent',  N'Xin nghi co phe duyet'),
+    ('ATT_FT_005', 'ENR_FT_004', 'CLS_SE201_2024', DATEFROMPARTS(2024,9,11), N'Present', N'Tham gia thuc hanh'),
+    ('ATT_FT_006', 'ENR_FT_005', 'CLS_SE301_2024', DATEFROMPARTS(2025,2,20), N'Present', N'Hop nhom do an')
+) AS src(attendance_id, enrollment_id, class_id, attendance_date, status, note)
+ON target.attendance_id = src.attendance_id
+WHEN MATCHED THEN
+    UPDATE SET enrollment_id = src.enrollment_id,
+               class_id = src.class_id,
+               attendance_date = src.attendance_date,
+               status = src.status,
+               note = src.note,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (attendance_id, enrollment_id, class_id, attendance_date, status, note, created_by)
+    VALUES (src.attendance_id, src.enrollment_id, src.class_id, src.attendance_date, src.status, src.note, 'seed_full_test');
+GO
+
+MERGE dbo.grades AS target
+USING (VALUES
+    ('GRD_FT_001', 'ENR_FT_001', 8.5, 9.0, 8.8, 'A'),
+    ('GRD_FT_002', 'ENR_FT_002', 7.0, 7.5, 7.3, 'B'),
+    ('GRD_FT_003', 'ENR_FT_004', 8.0, 8.0, 8.0, 'A'),
+    ('GRD_FT_004', 'ENR_FT_005', 6.5, 6.0, 6.2, 'C')
+) AS src(grade_id, enrollment_id, midterm_score, final_score, total_score, letter_grade)
+ON target.grade_id = src.grade_id
+WHEN MATCHED THEN
+    UPDATE SET enrollment_id = src.enrollment_id,
+               midterm_score = src.midterm_score,
+               final_score = src.final_score,
+               total_score = src.total_score,
+               letter_grade = src.letter_grade,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (grade_id, enrollment_id, midterm_score, final_score, total_score, letter_grade, created_by)
+    VALUES (src.grade_id, src.enrollment_id, src.midterm_score, src.final_score, src.total_score, src.letter_grade, 'seed_full_test');
+GO
+
+MERGE dbo.gpas AS target
+USING (VALUES
+    ('GPA_FT_K24_SY2024_S1', 'STU_K24_001', 'AY2024', 'SY2024', 1, 8.4, 3.4, 15, 15, N'Gioi',       1),
+    ('GPA_FT_K23_SY2024_S1', 'STU_K23_001', 'AY2023', 'SY2024', 1, 8.0, 3.2, 14, 60, N'Kha',        1),
+    ('GPA_FT_K21_SY2024_S2', 'STU_K21_001', 'AY2021', 'SY2024', 2, 7.2, 2.9, 12, 120, N'Trung binh',1)
+) AS src(gpa_id, student_id, academic_year_id, school_year_id, semester, gpa10, gpa4, total_credits, accumulated_credits, rank_text, is_active)
+ON target.gpa_id = src.gpa_id
+WHEN MATCHED THEN
+    UPDATE SET student_id = src.student_id,
+               academic_year_id = src.academic_year_id,
+               school_year_id = src.school_year_id,
+               semester = src.semester,
+               gpa10 = src.gpa10,
+               gpa4 = src.gpa4,
+               total_credits = src.total_credits,
+               accumulated_credits = src.accumulated_credits,
+               rank_text = src.rank_text,
+               is_active = src.is_active,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (gpa_id, student_id, academic_year_id, school_year_id, semester,
+            gpa10, gpa4, total_credits, accumulated_credits, rank_text, is_active, created_by)
+    VALUES (src.gpa_id, src.student_id, src.academic_year_id, src.school_year_id, src.semester,
+            src.gpa10, src.gpa4, src.total_credits, src.accumulated_credits, src.rank_text, src.is_active, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 13: CONG THUC DIEM & PHUC KHAO
+-- ===========================================
+MERGE dbo.grade_formula_config AS target
+USING (VALUES
+    ('GFC_SUB_SE101',  'SUB_SE101', NULL, 'SY2024', 0.30, 0.50, 0.20, 0.00, 0.00, N'midterm*0.3+final*0.5+assignment*0.2', 'STANDARD', 1, N'Mac dinh cho SE101', 1),
+    ('GFC_CLASS_SE301',NULL, 'CLS_SE301_2024', 'SY2024', 0.40, 0.60, 0.00, 0.00, 0.00, N'midterm*0.4+final*0.6', 'CEILING', 2, N'Ap dung rieng cho do an SE301', 0)
+) AS src(config_id, subject_id, class_id, school_year_id,
+          midterm_weight, final_weight, assignment_weight, quiz_weight, project_weight,
+          custom_formula, rounding_method, decimal_places, description, is_default)
+ON target.config_id = src.config_id
+WHEN MATCHED THEN
+    UPDATE SET subject_id = src.subject_id,
+               class_id = src.class_id,
+               school_year_id = src.school_year_id,
+               midterm_weight = src.midterm_weight,
+               final_weight = src.final_weight,
+               assignment_weight = src.assignment_weight,
+               quiz_weight = src.quiz_weight,
+               project_weight = src.project_weight,
+               custom_formula = src.custom_formula,
+               rounding_method = src.rounding_method,
+               decimal_places = src.decimal_places,
+               description = src.description,
+               is_default = src.is_default,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (config_id, subject_id, class_id, school_year_id,
+            midterm_weight, final_weight, assignment_weight, quiz_weight, project_weight,
+            custom_formula, rounding_method, decimal_places, description, is_default, created_by)
+    VALUES (src.config_id, src.subject_id, src.class_id, src.school_year_id,
+            src.midterm_weight, src.final_weight, src.assignment_weight, src.quiz_weight, src.project_weight,
+            src.custom_formula, src.rounding_method, src.decimal_places, src.description, src.is_default, 'seed_full_test');
+GO
+
+MERGE dbo.grade_appeals AS target
+USING (VALUES
+    ('APL_FT_001', 'GRD_FT_004', 'ENR_FT_005', 'STU_K21_001', 'CLS_SE301_2024',
+        N'Khong dong y diem cuoi ky vi nghi ngo loi cham', 6.2, 7.0, N'files/appeal_k21_001.pdf',
+        'REVIEWING', 'HIGH', N'Giang vien dang xem xet', 'LEC_FT_02', 'NEED_REVIEW',
+        'LEC_FT_ADV', N'Co van da tiep nhan thong tin', NULL,
+        NULL, NULL, 'STU_K21_001', 'LEC_FT_02', NULL, NULL),
+    ('APL_FT_002', 'GRD_FT_002', 'ENR_FT_002', 'STU_K24_001', 'CLS_DS101_2024',
+        N'Xin xem lai diem giua ky vi nhap sai', 7.3, 7.8, N'files/appeal_k24_001.pdf',
+        'APPROVED', 'NORMAL', N'Da xac minh bai thi', 'LEC_FT_02', 'APPROVE',
+        'LEC_FT_ADV', N'Dong y dieu chinh diem', 'APPROVE',
+        7.8, N'Cap nhat diem trong he thong', 'STU_K24_001', 'LEC_FT_02', DATEADD(DAY, -2, GETDATE()), 'LEC_FT_ADV')
+) AS src(appeal_id, grade_id, enrollment_id, student_id, class_id,
+          appeal_reason, current_score, expected_score, supporting_docs,
+          status, priority, lecturer_response, lecturer_id, lecturer_decision,
+          advisor_id, advisor_response, advisor_decision,
+          final_score, resolution_notes, created_by, updated_by, resolved_at, resolved_by)
+ON target.appeal_id = src.appeal_id
+WHEN MATCHED THEN
+    UPDATE SET grade_id = src.grade_id,
+               enrollment_id = src.enrollment_id,
+               student_id = src.student_id,
+               class_id = src.class_id,
+               appeal_reason = src.appeal_reason,
+               current_score = src.current_score,
+               expected_score = src.expected_score,
+               supporting_docs = src.supporting_docs,
+               status = src.status,
+               priority = src.priority,
+               lecturer_response = src.lecturer_response,
+               lecturer_id = src.lecturer_id,
+               lecturer_decision = src.lecturer_decision,
+               advisor_id = src.advisor_id,
+               advisor_response = src.advisor_response,
+               advisor_decision = src.advisor_decision,
+               final_score = src.final_score,
+               resolution_notes = src.resolution_notes,
+               updated_at = GETDATE(),
+               updated_by = src.updated_by,
+               resolved_at = src.resolved_at,
+               resolved_by = src.resolved_by
+WHEN NOT MATCHED THEN
+    INSERT (appeal_id, grade_id, enrollment_id, student_id, class_id,
+            appeal_reason, current_score, expected_score, supporting_docs,
+            status, priority, lecturer_response, lecturer_id, lecturer_decision,
+            advisor_id, advisor_response, advisor_decision,
+            final_score, resolution_notes, created_at, created_by, updated_by, resolved_at, resolved_by)
+    VALUES (src.appeal_id, src.grade_id, src.enrollment_id, src.student_id, src.class_id,
+            src.appeal_reason, src.current_score, src.expected_score, src.supporting_docs,
+            src.status, src.priority, src.lecturer_response, src.lecturer_id, src.lecturer_decision,
+            src.advisor_id, src.advisor_response, src.advisor_decision,
+            src.final_score, src.resolution_notes, GETDATE(), src.created_by, src.updated_by, src.resolved_at, src.resolved_by);
+GO
+
+MERGE dbo.retake_records AS target
+USING (VALUES
+    ('RETAKE_FT_001', 'ENR_FT_006', 'STU_K21_002', 'CLS_SE301_2024', 'SUB_SE301',
+        'ATTENDANCE', 20.0, 35.0, 'APPROVED', N'Cho phep hoc lai o hoc ky tiep theo',
+        DATEADD(DAY, -5, GETDATE()), 'LEC_FT_ADV'),
+    ('RETAKE_FT_002', 'ENR_FT_007', 'STU_K22_001', 'CLS_BUS201_2024', 'SUB_BUS201',
+        'GRADE', 4.0, 3.2, 'PENDING', NULL, NULL, NULL)
+) AS src(retake_id, enrollment_id, student_id, class_id, subject_id,
+          reason, threshold_value, current_value, status, advisor_notes,
+          resolved_at, resolved_by)
+ON target.retake_id = src.retake_id
+WHEN MATCHED THEN
+    UPDATE SET enrollment_id = src.enrollment_id,
+               student_id = src.student_id,
+               class_id = src.class_id,
+               subject_id = src.subject_id,
+               reason = src.reason,
+               threshold_value = src.threshold_value,
+               current_value = src.current_value,
+               status = src.status,
+               advisor_notes = src.advisor_notes,
+               resolved_at = src.resolved_at,
+               resolved_by = src.resolved_by,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (retake_id, enrollment_id, student_id, class_id, subject_id,
+            reason, threshold_value, current_value, status, advisor_notes,
+            created_by, resolved_at, resolved_by)
+    VALUES (src.retake_id, src.enrollment_id, src.student_id, src.class_id, src.subject_id,
+            src.reason, src.threshold_value, src.current_value, src.status, src.advisor_notes,
+            'seed_full_test', src.resolved_at, src.resolved_by);
+GO
+
+-- ===========================================
+-- PHAN 14: THONG BAO HE THONG
+-- ===========================================
+MERGE dbo.notifications AS target
+USING (VALUES
+    ('NOTIF_FT_001', 'USR_STU_24A', N'Ban vui long hoan tat hoc phi truoc 20/09', N'SYSTEM',
+        'USR_STU_24A', N'Nhac nop hoc phi', N'Ban vui long hoan tat hoc phi truoc 20/09 de giu lich hoc', N'STUDENT', 0, DATEFROMPARTS(2024,9,1), 1, 'seed_full_test'),
+    ('NOTIF_FT_002', 'USR_LEC_01', N'He thong da tao lich cham diem cho lop SE201', N'SYSTEM',
+        'USR_LEC_01', N'Nhac cham diem', N'Vui long hoan thanh cham diem truoc 30/11', N'LECTURER', 0, DATEFROMPARTS(2024,11,5), 1, 'seed_full_test'),
+    ('NOTIF_FT_003', 'USR_ADMIN_FT', N'Bao cao tong hop dang ky HK1 da san sang', N'SYSTEM',
+        'USR_ADMIN_FT', N'Bao cao dang ky', N'Bao cao dang ky HK1 2024-2025 da duoc luu', N'ADMIN', 1, DATEFROMPARTS(2024,8,16), 1, 'seed_full_test')
+) AS src(notification_id, user_id, message, notification_type,
+          recipient_id, title, content, type, is_read, sent_date, is_active, created_by)
+ON target.notification_id = src.notification_id
+WHEN MATCHED THEN
+    UPDATE SET user_id = src.user_id,
+               message = src.message,
+               notification_type = src.notification_type,
+               recipient_id = src.recipient_id,
+               title = src.title,
+               content = src.content,
+               type = src.type,
+               is_read = src.is_read,
+               sent_date = src.sent_date,
+               is_active = src.is_active,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (notification_id, user_id, message, notification_type,
+            recipient_id, title, content, type, is_read, sent_date, is_active, created_by)
+    VALUES (src.notification_id, src.user_id, src.message, src.notification_type,
+            src.recipient_id, src.title, src.content, src.type, src.is_read, src.sent_date, src.is_active, src.created_by);
+GO
+
+-- ===========================================
+-- PHAN 15: QUYEN HE THONG
+-- ===========================================
+MERGE dbo.permissions AS target
+USING (VALUES
+    ('PERM_STU_OVERVIEW', 'STUDENT_SECTION_OVERVIEW', N'Tổng quan',          NULL,                     'fas fa-home',              1, N'Menu tổng quan cho sinh viên',                1),
+    ('PERM_STU_STUDY',    'STUDENT_SECTION_STUDY',    N'Học tập',             NULL,                     'fas fa-book',              2, N'Menu học tập cho sinh viên',                  1),
+    ('PERM_STU_PROFILE',  'STUDENT_SECTION_PROFILE',  N'Cá nhân',             NULL,                     'fas fa-user',              3, N'Menu cá nhân',                                1),
+    ('PERM_STU_SYSTEM',   'STUDENT_SECTION_SYSTEM',   N'Hệ thống',            NULL,                     'fas fa-cog',               4, N'Menu hệ thống',                               1),
+    ('PERM_STU_DASHBOARD','STUDENT_DASHBOARD',        N'Dashboard',           'STUDENT_SECTION_OVERVIEW','fas fa-tachometer-alt',   1, N'Dashboard sinh viên',                         1),
+    ('PERM_STU_TIMETABLE','STUDENT_TIMETABLE',        N'Thời khóa biểu',      'STUDENT_SECTION_STUDY',  'fas fa-calendar-alt',     1, N'Xem thời khóa biểu',                          1),
+    ('PERM_STU_SCHEDULE', 'STUDENT_SCHEDULE',         N'Lịch học',            'STUDENT_SECTION_STUDY',  'fas fa-calendar',         2, N'Xem lịch học',                                 1),
+    ('PERM_STU_GRADES',   'STUDENT_GRADES',           N'Kết quả học tập',     'STUDENT_SECTION_STUDY',  'fas fa-graduation-cap',   3, N'Xem bảng điểm',                                1),
+    ('PERM_STU_ATTENDANCE','STUDENT_ATTENDANCE',      N'Điểm danh',           'STUDENT_SECTION_STUDY',  'fas fa-clipboard-check',  4, N'Xem lịch sử điểm danh',                        1),
+    ('PERM_STU_ENROLLMENT','STUDENT_ENROLLMENT',      N'Đăng ký học phần',    'STUDENT_SECTION_STUDY',  'fas fa-edit',             5, N'Đăng ký học phần',                             1),
+    ('PERM_STU_PROFILE_ITEM','STUDENT_PROFILE',       N'Thông tin cá nhân',   'STUDENT_SECTION_PROFILE','fas fa-user',             1, N'Quản lý thông tin',                            1),
+    ('PERM_STU_REPORTS',  'STUDENT_REPORTS',          N'Thống kê học tập',    'STUDENT_SECTION_STUDY',  'fas fa-chart-bar',        6, N'Xem thống kê',                                 1),
+    ('PERM_STU_NOTIFICATIONS','STUDENT_NOTIFICATIONS',N'Thông báo',           'STUDENT_SECTION_SYSTEM', 'fas fa-bell',             1, N'Nhận thông báo',                               1),
+    ('PERM_STU_APPEALS',  'STUDENT_APPEALS',          N'Phúc khảo',           'STUDENT_SECTION_STUDY',  'fas fa-gavel',            7, N'Gửi phúc khảo',                                 1),
+    ('PERM_TCH_OVERVIEW', 'TEACHER_SECTION_OVERVIEW', N'Tổng quan',           NULL,                     'fas fa-home',             1, N'Menu tổng quan cho giảng viên',               1),
+    ('PERM_TCH_TEACHING', 'TEACHER_SECTION_TEACHING', N'Giảng dạy',           NULL,                     'fas fa-chalkboard-teacher',2,N'Menu giảng dạy',                                1),
+    ('PERM_TCH_SYSTEM',   'TEACHER_SECTION_SYSTEM',   N'Hệ thống',            NULL,                     'fas fa-cog',              3, N'Menu hệ thống giảng viên',                    1),
+    ('PERM_TCH_DASHBOARD','TEACHER_DASHBOARD',        N'Dashboard',           'TEACHER_SECTION_OVERVIEW','fas fa-tachometer-alt',  1, N'Dashboard giảng viên',                        1),
+    ('PERM_TCH_ATTENDANCE','TEACHER_ATTENDANCE',      N'Điểm danh',           'TEACHER_SECTION_TEACHING','fas fa-check-square',   1, N'Điểm danh sinh viên',                         1),
+    ('PERM_TCH_GRADES',   'TEACHER_GRADES',           N'Nhập điểm',           'TEACHER_SECTION_TEACHING','fas fa-graduation-cap', 2, N'Nhập điểm',                                     1),
+    ('PERM_TCH_TIMETABLE','TEACHER_TIMETABLE',        N'Thời khóa biểu',      'TEACHER_SECTION_TEACHING','fas fa-calendar-alt',   3, N'Lịch giảng dạy',                               1),
+    ('PERM_TCH_REPORTS',  'TEACHER_REPORTS',          N'Thống kê lớp',        'TEACHER_SECTION_TEACHING','fas fa-chart-line',     4, N'Thống kê lớp',                                1),
+    ('PERM_TCH_NOTIFICATIONS','TEACHER_NOTIFICATIONS',N'Thông báo',           'TEACHER_SECTION_SYSTEM', 'fas fa-bell',            1, N'Thông báo hệ thống',                           1),
+    ('PERM_TCH_GRADE_FORMULA','TEACHER_GRADE_FORMULA',N'Công thức điểm',      'TEACHER_SECTION_TEACHING','fas fa-equals',        5, N'Quản lý công thức điểm lớp dạy',               1),
+    ('PERM_ADV_OVERVIEW', 'ADVISOR_SECTION_OVERVIEW', N'Tổng quan',           NULL,                     'fas fa-home',            1, N'Menu tổng quan cố vấn',                        1),
+    ('PERM_ADV_ADVISING', 'ADVISOR_SECTION_ADVISING', N'Cố vấn',              NULL,                     'fas fa-user-graduate',   2, N'Menu công việc cố vấn',                        1),
+    ('PERM_ADV_SYSTEM',   'ADVISOR_SECTION_SYSTEM',   N'Hệ thống',            NULL,                     'fas fa-cog',             3, N'Menu hệ thống cố vấn',                        1),
+    ('PERM_ADV_DASHBOARD','ADVISOR_DASHBOARD',        N'Dashboard',           'ADVISOR_SECTION_OVERVIEW','fas fa-tachometer-alt', 1, N'Dashboard cố vấn',                            1),
+    ('PERM_ADV_STUDENTS', 'ADVISOR_STUDENTS',         N'Sinh viên',           'ADVISOR_SECTION_ADVISING','fas fa-user-graduate', 1, N'Quản lý sinh viên được phân công',             1),
+    ('PERM_ADV_WARNINGS', 'ADVISOR_WARNINGS',         N'Cảnh báo',            'ADVISOR_SECTION_ADVISING','fas fa-exclamation-triangle',2,N'Quản lý cảnh báo',                         1),
+    ('PERM_ADV_APPEALS',  'ADVISOR_APPEALS',          N'Phúc khảo',           'ADVISOR_SECTION_ADVISING','fas fa-gavel',          3, N'Duyệt phúc khảo',                             1),
+    ('PERM_ADV_GRADE_FORMULA','ADVISOR_GRADE_FORMULA',N'Công thức điểm',      'ADVISOR_SECTION_ADVISING','fas fa-calculator',    4, N'Quản lý công thức điểm',                      1),
+    ('PERM_ADV_ENROLLMENTS','ADVISOR_ENROLLMENTS',    N'Duyệt đăng ký',       'ADVISOR_SECTION_ADVISING','fas fa-clipboard-check',5,N'Duyệt đăng ký',                               1),
+    ('PERM_ADV_REPORTS',  'ADVISOR_REPORTS',          N'Thống kê',            'ADVISOR_SECTION_ADVISING','fas fa-chart-pie',      6, N'Báo cáo',                                      1),
+    ('PERM_ADV_NOTIFICATIONS','ADVISOR_NOTIFICATIONS',N'Thông báo',           'ADVISOR_SECTION_SYSTEM', 'fas fa-bell',           1, N'Nhận thông báo',                              1),
+    ('PERM_ADV_RETAKE',   'ADVISOR_RETAKE',           N'Quản lý học lại',     'ADVISOR_SECTION_ADVISING','fas fa-history',       7, N'Quản lý hồ sơ học lại',                       1),
+    ('PERM_ADM_OVERVIEW', 'ADMIN_SECTION_OVERVIEW',   N'Tổng quan',           NULL,                     'fas fa-home',           1, N'Menu tổng quan admin',                        1),
+    ('PERM_ADM_USERS',    'ADMIN_SECTION_USERS',      N'Quản lý người dùng',  NULL,                     'fas fa-users',          2, N'Menu người dùng',                              1),
+    ('PERM_ADM_ACADEMIC', 'ADMIN_SECTION_ACADEMIC',   N'Quản lý đào tạo',     NULL,                     'fas fa-graduation-cap', 3, N'Menu đào tạo',                                  1),
+    ('PERM_ADM_SUBJECTS', 'ADMIN_SECTION_SUBJECTS',   N'Học phần',            NULL,                     'fas fa-book',           4, N'Menu học phần',                               1),
+    -- ADMIN_SECTION_CLASSES: vừa là menu vừa là quyền quản lý lớp hành chính (không cần permission con riêng)
+    ('PERM_ADM_ADMIN_CLASSES_SECTION','ADMIN_SECTION_CLASSES', N'Lớp hành chính', NULL,                 'fas fa-users-class',     5, N'Menu và quyền quản lý lớp hành chính',      1),
+    ('PERM_ADM_ENROLLMENT','ADMIN_SECTION_ENROLLMENT',N'Đăng ký học phần',    NULL,                     'fas fa-clipboard-list', 6, N'Menu đăng ký',                                 1),
+    ('PERM_ADM_TIMETABLE','ADMIN_SECTION_TIMETABLE',  N'Quản lý thời khóa biểu',NULL,                   'fas fa-calendar-alt',    7, N'Menu thời khóa biểu',                         1),
+    ('PERM_ADM_SYSTEM',   'ADMIN_SECTION_SYSTEM',     N'Hệ thống',            NULL,                     'fas fa-cog',            8, N'Menu hệ thống',                               1),
+    ('PERM_ADM_DASHBOARD','ADMIN_DASHBOARD',          N'Dashboard',           'ADMIN_SECTION_OVERVIEW', 'fas fa-tachometer-alt', 1, N'Dashboard admin',                              1),
+    ('PERM_ADM_USERS_ITEM','ADMIN_USERS',             N'Tài khoản',           'ADMIN_SECTION_USERS',    'fas fa-users',          1, N'Quản lý tài khoản',                           1),
+    ('PERM_ADM_ROLES',    'ADMIN_ROLES',              N'Vai trò & quyền',     'ADMIN_SECTION_USERS',    'fas fa-shield-alt',     2, N'Quản lý vai trò',                             1),
+    ('PERM_ADM_ORGANIZATION','ADMIN_ORGANIZATION',    N'Quản lý tổ chức',     'ADMIN_SECTION_ACADEMIC', 'fas fa-sitemap',        1, N'Quản lý khoa, bộ môn',                       1),
+    ('PERM_ADM_STUDENTS', 'ADMIN_STUDENTS',           N'Sinh viên',           'ADMIN_SECTION_ACADEMIC', 'fas fa-user-graduate',  2, N'Quản lý sinh viên',                            1),
+    ('PERM_ADM_LECTURERS','ADMIN_LECTURERS',          N'Giảng viên',          'ADMIN_SECTION_ACADEMIC', 'fas fa-chalkboard-teacher',3,N'Quản lý giảng viên',                      1),
+    ('PERM_ADM_ACADEMIC_YEARS','ADMIN_ACADEMIC_YEARS',N'Niên khóa',           'ADMIN_SECTION_ACADEMIC', 'fas fa-calendar-alt',   4, N'Quản lý niên khóa',                           1),
+    ('PERM_ADM_SCHOOL_YEARS','ADMIN_SCHOOL_YEARS',    N'Năm học',             'ADMIN_SECTION_ACADEMIC', 'fas fa-calendar-check', 5, N'Quản lý năm học',                              1),
+    ('PERM_ADM_GRADE_FORMULA','ADMIN_GRADE_FORMULA',  N'Công thức điểm',      'ADMIN_SECTION_ACADEMIC', 'fas fa-calculator',     6, N'Quản lý công thức điểm',                      1),
+    ('PERM_ADM_SUBJECT_PREREQUISITES','ADMIN_SUBJECT_PREREQUISITES', N'Tiên quyết','ADMIN_SECTION_SUBJECTS','fas fa-project-diagram',1,N'Quản lý tiên quyết',                       1),
+    ('PERM_ADM_CLASSES',  'ADMIN_CLASSES',            N'Lớp học phần',        'ADMIN_SECTION_SUBJECTS', 'fas fa-chalkboard',     2, N'Quản lý lớp học phần',                        1),
+    -- PERM_ADM_ADMIN_CLASSES đã được thay thế bởi PERM_ADM_ADMIN_CLASSES_SECTION (ADMIN_SECTION_CLASSES)
+    -- ADMIN_SECTION_CLASSES vừa là menu vừa là quyền quản lý lớp hành chính, không cần permission riêng nữa
+    ('PERM_ADM_REGISTRATION_PERIODS','ADMIN_REGISTRATION_PERIODS', N'Đợt đăng ký','ADMIN_SECTION_ENROLLMENT','fas fa-clock',1,N'Quản lý đợt đăng ký',                          1),
+    ('PERM_ADM_ENROLLMENTS','ADMIN_ENROLLMENTS',      N'Quản lý đăng ký',     'ADMIN_SECTION_ENROLLMENT','fas fa-clipboard-list',2,N'Duyệt đăng ký',                               1),
+    ('PERM_ADM_TIMETABLE_ITEM','ADMIN_TIMETABLE',     N'Xếp lịch',            'ADMIN_SECTION_TIMETABLE','fas fa-calendar-alt',  1, N'Quản lý thời khóa biểu',                       1),
+    ('PERM_ADM_REPORTS',  'ADMIN_REPORTS',            N'Thống kê & Báo cáo',  'ADMIN_SECTION_SYSTEM',   'fas fa-chart-bar',      3, N'Thống kê hệ thống',                           1),
+    ('PERM_ADM_AUDIT_LOGS','ADMIN_AUDIT_LOGS',        N'Nhật ký hệ thống',    'ADMIN_SECTION_SYSTEM',   'fas fa-history',        1, N'Xem nhật ký',                                 1),
+    ('PERM_ADM_NOTIFICATIONS','ADMIN_NOTIFICATIONS',  N'Thông báo',           'ADMIN_SECTION_SYSTEM',   'fas fa-bell',           2, N'Quản lý thông báo',                           1)
+) AS src(permission_id, permission_code, permission_name, parent_code, icon, sort_order, description, is_active)
+ON target.permission_id = src.permission_id
+WHEN MATCHED THEN
+    UPDATE SET permission_code = src.permission_code,
+               permission_name = src.permission_name,
+               parent_code = src.parent_code,
+               icon = src.icon,
+               sort_order = src.sort_order,
+               description = src.description,
+               is_active = src.is_active,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (permission_id, permission_code, permission_name, parent_code, icon, sort_order, description, is_active, created_by)
+    VALUES (src.permission_id, src.permission_code, src.permission_name, src.parent_code, src.icon, src.sort_order, src.description, src.is_active, 'seed_full_test');
+GO
+
+MERGE dbo.role_permissions AS target
+USING (VALUES
+    ('ROLE_STUDENT','PERM_STU_OVERVIEW'),
+    ('ROLE_STUDENT','PERM_STU_DASHBOARD'),
+    ('ROLE_STUDENT','PERM_STU_STUDY'),
+    ('ROLE_STUDENT','PERM_STU_TIMETABLE'),
+    ('ROLE_STUDENT','PERM_STU_SCHEDULE'),
+    ('ROLE_STUDENT','PERM_STU_GRADES'),
+    ('ROLE_STUDENT','PERM_STU_ATTENDANCE'),
+    ('ROLE_STUDENT','PERM_STU_ENROLLMENT'),
+    ('ROLE_STUDENT','PERM_STU_REPORTS'),
+    ('ROLE_STUDENT','PERM_STU_PROFILE'),
+    ('ROLE_STUDENT','PERM_STU_PROFILE_ITEM'),
+    ('ROLE_STUDENT','PERM_STU_SYSTEM'),
+    ('ROLE_STUDENT','PERM_STU_NOTIFICATIONS'),
+    ('ROLE_STUDENT','PERM_STU_APPEALS'),
+    ('ROLE_LECTURER','PERM_TCH_OVERVIEW'),
+    ('ROLE_LECTURER','PERM_TCH_DASHBOARD'),
+    ('ROLE_LECTURER','PERM_TCH_TEACHING'),
+    ('ROLE_LECTURER','PERM_TCH_ATTENDANCE'),
+    ('ROLE_LECTURER','PERM_TCH_GRADES'),
+    ('ROLE_LECTURER','PERM_TCH_TIMETABLE'),
+    ('ROLE_LECTURER','PERM_TCH_REPORTS'),
+    ('ROLE_LECTURER','PERM_TCH_SYSTEM'),
+    ('ROLE_LECTURER','PERM_TCH_NOTIFICATIONS'),
+    ('ROLE_LECTURER','PERM_TCH_GRADE_FORMULA'),
+    -- Quyền Cố vấn học tập
+    ('ROLE_ADVISOR','PERM_ADV_OVERVIEW'),
+    ('ROLE_ADVISOR','PERM_ADV_DASHBOARD'),
+    ('ROLE_ADVISOR','PERM_ADV_ADVISING'),
+    ('ROLE_ADVISOR','PERM_ADV_STUDENTS'),
+    ('ROLE_ADVISOR','PERM_ADV_WARNINGS'),
+    ('ROLE_ADVISOR','PERM_ADV_APPEALS'),
+    ('ROLE_ADVISOR','PERM_ADV_GRADE_FORMULA'),
+    ('ROLE_ADVISOR','PERM_ADV_ENROLLMENTS'),
+    ('ROLE_ADVISOR','PERM_ADV_REPORTS'),
+    ('ROLE_ADVISOR','PERM_ADV_SYSTEM'),
+    ('ROLE_ADVISOR','PERM_ADV_NOTIFICATIONS'),
+    ('ROLE_ADVISOR','PERM_ADV_RETAKE'),
+    -- Quyền Nhân viên phòng đào tạo (gộp vào ROLE_ADVISOR)
+    ('ROLE_ADVISOR','PERM_ADM_OVERVIEW'),
+    ('ROLE_ADVISOR','PERM_ADM_DASHBOARD'),
+    ('ROLE_ADVISOR','PERM_ADM_ENROLLMENT'),
+    ('ROLE_ADVISOR','PERM_ADM_REGISTRATION_PERIODS'),
+    ('ROLE_ADVISOR','PERM_ADM_ENROLLMENTS'),
+    ('ROLE_ADVISOR','PERM_ADM_REPORTS'),
+    ('ROLE_ADVISOR','PERM_ADM_SYSTEM'),
+    ('ROLE_ADVISOR','PERM_ADM_AUDIT_LOGS'),
+    ('ROLE_ADVISOR','PERM_ADM_NOTIFICATIONS'),
+    ('ROLE_ADVISOR','PERM_ADM_GRADE_FORMULA'),
+    ('ROLE_ADMIN','PERM_ADM_OVERVIEW'),
+    ('ROLE_ADMIN','PERM_ADM_DASHBOARD'),
+    ('ROLE_ADMIN','PERM_ADM_USERS'),
+    ('ROLE_ADMIN','PERM_ADM_USERS_ITEM'),
+    ('ROLE_ADMIN','PERM_ADM_ROLES'),
+    ('ROLE_ADMIN','PERM_ADM_ACADEMIC'),
+    ('ROLE_ADMIN','PERM_ADM_ORGANIZATION'),
+    ('ROLE_ADMIN','PERM_ADM_STUDENTS'),
+    ('ROLE_ADMIN','PERM_ADM_LECTURERS'),
+    ('ROLE_ADMIN','PERM_ADM_ACADEMIC_YEARS'),
+    ('ROLE_ADMIN','PERM_ADM_SCHOOL_YEARS'),
+    ('ROLE_ADMIN','PERM_ADM_GRADE_FORMULA'),
+    ('ROLE_ADMIN','PERM_ADM_SUBJECTS'),
+    ('ROLE_ADMIN','PERM_ADM_SUBJECT_PREREQUISITES'),
+    ('ROLE_ADMIN','PERM_ADM_CLASSES'),
+    ('ROLE_ADMIN','PERM_ADM_ADMIN_CLASSES_SECTION'), -- ADMIN_SECTION_CLASSES: vừa là menu vừa là quyền quản lý lớp hành chính
+    -- PERM_ADM_ADMIN_CLASSES đã bị xóa: không cần nữa vì ADMIN_SECTION_CLASSES đã thay thế
+    ('ROLE_ADMIN','PERM_ADM_ENROLLMENT'),
+    ('ROLE_ADMIN','PERM_ADM_REGISTRATION_PERIODS'),
+    ('ROLE_ADMIN','PERM_ADM_ENROLLMENTS'),
+    ('ROLE_ADMIN','PERM_ADM_TIMETABLE'),
+    ('ROLE_ADMIN','PERM_ADM_TIMETABLE_ITEM'),
+    ('ROLE_ADMIN','PERM_ADM_SYSTEM'),
+    ('ROLE_ADMIN','PERM_ADM_REPORTS'),
+    ('ROLE_ADMIN','PERM_ADM_AUDIT_LOGS'),
+    ('ROLE_ADMIN','PERM_ADM_NOTIFICATIONS')
+) AS src(role_id, permission_id)
+ON target.role_id = src.role_id AND target.permission_id = src.permission_id
+WHEN NOT MATCHED THEN
+    INSERT (role_id, permission_id, created_by)
+    VALUES (src.role_id, src.permission_id, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 16: NHAT KY & TOKEN
+-- ===========================================
+INSERT INTO dbo.audit_logs (user_id, action, entity_type, entity_id, old_values, new_values, ip_address, user_agent)
+SELECT 'USR_ADMIN_FT', 'LOGIN_SUCCESS', 'User', 'USR_ADMIN_FT', NULL, N'Dang nhap thanh cong', '10.0.0.10', 'Seed Script'
+WHERE NOT EXISTS (
+    SELECT 1 FROM dbo.audit_logs WHERE user_id = 'USR_ADMIN_FT' AND action = 'LOGIN_SUCCESS' AND entity_id = 'USR_ADMIN_FT'
+);
+
+INSERT INTO dbo.audit_logs (user_id, action, entity_type, entity_id, old_values, new_values, ip_address, user_agent)
+SELECT 'USR_SUPPORT_FT', 'UPDATE_PERIOD', 'registration_periods', 'PER_SY2024_HK1',
+       N'Trang thai: UPCOMING', N'Trang thai: OPEN', '10.0.0.11', 'Seed Script'
+WHERE NOT EXISTS (
+    SELECT 1 FROM dbo.audit_logs WHERE user_id = 'USR_SUPPORT_FT' AND action = 'UPDATE_PERIOD' AND entity_id = 'PER_SY2024_HK1'
+);
+
+INSERT INTO dbo.audit_logs (user_id, action, entity_type, entity_id, old_values, new_values, ip_address, user_agent)
+SELECT 'USR_LEC_02', 'GRADE_ADJUST', 'grades', 'GRD_FT_002',
+       N'final_score:7.5', N'final_score:7.8', '10.0.0.12', 'Seed Script'
+WHERE NOT EXISTS (
+    SELECT 1 FROM dbo.audit_logs WHERE user_id = 'USR_LEC_02' AND action = 'GRADE_ADJUST' AND entity_id = 'GRD_FT_002'
+);
+GO
+
+INSERT INTO dbo.refresh_tokens (user_id, token, expires_at, created_at)
+SELECT 'USR_ADMIN_FT', 'ft-admin-refresh-token', DATEADD(DAY, 30, GETDATE()), GETDATE()
+WHERE NOT EXISTS (SELECT 1 FROM dbo.refresh_tokens WHERE token = 'ft-admin-refresh-token');
+
+INSERT INTO dbo.refresh_tokens (user_id, token, expires_at, created_at)
+SELECT 'USR_STU_24A', 'ft-student-refresh-token', DATEADD(DAY, 20, GETDATE()), GETDATE()
+WHERE NOT EXISTS (SELECT 1 FROM dbo.refresh_tokens WHERE token = 'ft-student-refresh-token');
+
+INSERT INTO dbo.refresh_tokens (user_id, token, expires_at, created_at)
+SELECT 'USR_LEC_01', 'ft-lecturer-refresh-token', DATEADD(DAY, 25, GETDATE()), GETDATE()
+WHERE NOT EXISTS (SELECT 1 FROM dbo.refresh_tokens WHERE token = 'ft-lecturer-refresh-token');
+GO
+
+-- ===========================================
+-- PHAN 17: TONG KET
+-- ===========================================
+PRINT 'Hoan tat seed full test dataset';
+PRINT 'Du lieu da phu kin cac bang chinh, san sang cho viec test';
+

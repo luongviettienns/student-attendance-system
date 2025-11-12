@@ -177,7 +177,7 @@ namespace EducationManagement.DAL.Repositories
                     @IsActive, @CurrentSemester, GETDATE(), @CreatedBy
                 )";
 
-            await DatabaseHelper.ExecuteRawNonQueryAsync(_connectionString, query, parameters);
+            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, query, parameters);
         }
 
         // ============================================================
@@ -219,7 +219,7 @@ namespace EducationManagement.DAL.Repositories
                     updated_by = @UpdatedBy
                 WHERE school_year_id = @SchoolYearId";
 
-            return await DatabaseHelper.ExecuteRawNonQueryAsync(_connectionString, query, parameters);
+            return await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, query, parameters);
         }
 
         // ============================================================
@@ -239,7 +239,7 @@ namespace EducationManagement.DAL.Repositories
                     deleted_by = @DeletedBy
                 WHERE school_year_id = @SchoolYearId";
 
-            await DatabaseHelper.ExecuteRawNonQueryAsync(_connectionString, query, parameters);
+            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, query, parameters);
         }
 
         // ============================================================

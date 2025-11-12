@@ -2,15 +2,7 @@
     <app-sidebar></app-sidebar>
     
     <div class="main-content">
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
-                <h1 class="page-title">{{isEditMode ? 'Sửa' : 'Thêm'}} Môn học</h1>
-            </div>
-            <div class="header-right">
-                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
-            </div>
-        </header>
+        <app-topbar page-title="{{isEditMode ? 'Sửa' : 'Thêm'}} Môn học"></app-topbar>
         
         <div class="content-body">
             <div ng-if="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{success}}</div>
@@ -25,18 +17,21 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label class="form-label required">Mã môn học</label>
-                                <input type="text" class="form-control" ng-model="subject.subjectCode" ng-disabled="isEditMode" required>
+                                <input type="text" class="form-control" ng-model="subject.subjectCode" ng-disabled="isEditMode" required
+                                       placeholder="VD: IT101, CS201">
                             </div>
                             
                             <div class="form-group">
                                 <label class="form-label required">Số tín chỉ</label>
-                                <input type="number" class="form-control" ng-model="subject.credits" min="1" required>
+                                <input type="number" class="form-control" ng-model="subject.credits" min="1" required
+                                       placeholder="VD: 3, 4">
                             </div>
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label required">Tên môn học</label>
-                            <input type="text" class="form-control" ng-model="subject.subjectName" required>
+                            <input type="text" class="form-control" ng-model="subject.subjectName" required
+                                   placeholder="VD: Lập trình cơ bản, Cấu trúc dữ liệu">
                         </div>
                         
                         <div class="form-group">
@@ -52,7 +47,8 @@
                         
                         <div class="form-group">
                             <label class="form-label">Mô tả</label>
-                            <textarea class="form-control" ng-model="subject.description" rows="4"></textarea>
+                            <textarea class="form-control" ng-model="subject.description" rows="4"
+                                      placeholder="Nhập mô tả về môn học..."></textarea>
                         </div>
                         
                         <div class="form-group">

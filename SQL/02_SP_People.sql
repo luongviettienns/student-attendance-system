@@ -448,7 +448,7 @@ BEGIN
                 ELSE IF EXISTS (SELECT 1 FROM students WHERE email = @Email AND deleted_at IS NULL)
                 BEGIN
                     INSERT INTO @Errors (RowNumber, StudentCode, ErrorMessage)
-                    VALUES (@RowNumber, @StudentCode, N'Email Ä‘Ă£ tá»“n táº¡i: ' + @Email);
+                    VALUES (@RowNumber, @StudentCode, CONCAT(N'Email đã tồn tại: ', @Email));
                     
                     SET @ErrorCount = @ErrorCount + 1;
                 END
@@ -456,7 +456,7 @@ BEGIN
                 ELSE IF NOT EXISTS (SELECT 1 FROM majors WHERE major_id = @MajorId AND deleted_at IS NULL)
                 BEGIN
                     INSERT INTO @Errors (RowNumber, StudentCode, ErrorMessage)
-                    VALUES (@RowNumber, @StudentCode, N'NgĂ nh khĂ´ng tá»“n táº¡i: ' + @MajorId);
+                    VALUES (@RowNumber, @StudentCode, CONCAT(N'Ngành không tồn tại: ', @MajorId));
                     
                     SET @ErrorCount = @ErrorCount + 1;
                 END

@@ -4,27 +4,7 @@
     
     <!-- Main Content -->
     <div class="main-content">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
-                <h1 class="page-title">Quản lý Người dùng</h1>
-            </div>
-            <div class="header-right">
-                <notification-bell></notification-bell>
-                <div class="user-info" ng-init="currentUser = getCurrentUser()">
-                    <div class="user-avatar" ng-click="openAvatarModal()">
-                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
-                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
-                    </div>
-                    <div class="user-details">
-                        <span class="user-name">{{currentUser.fullName}}</span>
-                        <span class="user-role">{{currentUser.roleName || 'Admin'}}</span>
-                    </div>
-                </div>
-                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
-            </div>
-        </header>
+        <app-topbar page-title="Quản lý Người dùng"></app-topbar>
         
         <!-- Content Body -->
         <div class="content-body">
@@ -48,15 +28,12 @@
                 <div class="card-body">
                     <!-- Search and Filter -->
                     <div class="filter-bar">
-                        <div class="filter-group">
-                            <div class="search-box">
-                                <i class="fas fa-search"></i>
-                                <input type="text" 
-                                       class="form-control" 
-                                       placeholder="Tìm kiếm theo tên, email, username..." 
-                                       ng-model="searchText"
-                                       ng-change="applyFilters()">
-                            </div>
+                        <div class="filter-group" style="flex: 1;">
+                            <search-bar 
+                                search-term="searchText" 
+                                on-search="applyFilters()" 
+                                placeholder="Tìm kiếm theo tên, email, username...">
+                            </search-bar>
                         </div>
                         <div class="filter-group">
                             <select class="form-control" ng-model="filterRole" ng-change="applyFilters()">

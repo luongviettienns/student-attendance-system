@@ -1,51 +1,159 @@
 // Student Dashboard Controller
-app.controller('StudentDashboardController', ['$scope', 'AuthService', 'AvatarService', function($scope, AuthService, AvatarService) {
+app.controller('StudentDashboardController', ['$scope', 'AuthService', 'AvatarService', 'TimetableApi', 'StudentService', 'LoggerService', 
+    function($scope, AuthService, AvatarService, TimetableApi, StudentService, LoggerService) {
     $scope.currentUser = AuthService.getCurrentUser();
+    $scope.loading = false;
+    $scope.todaySchedule = [];
     
     // Initialize Avatar Modal Functions
     AvatarService.initAvatarModal($scope);
     
-    // Demo student info
+    // Student info
     $scope.studentInfo = {
-        fullName: 'Nguyễn Văn A',
-        studentCode: 'SV001',
-        className: 'CNTT K16',
-        faculty: 'Công nghệ Thông tin',
-        academicYear: '2020-2024',
-        gpa: 3.45,
-        credits: 98,
-        attendanceRate: 92
+        fullName: '',
+        studentCode: '',
+        className: '',
+        faculty: '',
+        academicYear: '',
+        gpa: 0,
+        credits: 0,
+        attendanceRate: 0
     };
     
-    // Demo today's schedule
-    $scope.todaySchedule = [
-        {
-            period: '1-2',
-            subjectName: 'Lập trình Web',
-            lecturerName: 'TS. Nguyễn Văn B',
-            room: 'A101',
-            startTime: '07:00',
-            endTime: '08:50',
-            status: 'completed'
-        },
-        {
-            period: '3-4',
-            subjectName: 'Cơ sở dữ liệu',
-            lecturerName: 'ThS. Trần Thị C',
-            room: 'B205',
-            startTime: '09:00',
-            endTime: '10:50',
-            status: 'in_progress'
-        },
-        {
-            period: '6-7',
-            subjectName: 'Kiến trúc máy tính',
-            lecturerName: 'PGS.TS. Lê Văn D',
-            room: 'C310',
-            startTime: '13:00',
-            endTime: '14:50',
-            status: 'pending'
+    // Helper function to get ISO week
+    function getIsoWeek(d) {
+        var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        var dayNum = date.getUTCDay() || 7;
+        date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+        var yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+        var weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+        return { year: date.getUTCFullYear(), week: weekNo };
+    }
+    
+    // Get current weekday (1 = Monday, 7 = Sunday)
+    function getCurrentWeekday() {
+        var today = new Date();
+        var day = today.getDay();
+        return day === 0 ? 7 : day; // Convert Sunday (0) to 7
+    }
+    
+    // Format time from HH:mm:ss to HH:mm
+    function formatTime(timeString) {
+        if (!timeString) return '';
+        return timeString.substring(0, 5); // Get HH:mm from HH:mm:ss
+    }
+    
+    // Determine status based on current time
+    function getStatus(startTime, endTime) {
+        var now = new Date();
+        var currentTime = now.getHours() * 100 + now.getMinutes(); // HHMM format
+        
+        var start = parseInt(startTime.replace(':', ''));
+        var end = parseInt(endTime.replace(':', ''));
+        
+        if (currentTime < start) {
+            return 'pending';
+        } else if (currentTime >= start && currentTime <= end) {
+            return 'in_progress';
+        } else {
+            return 'completed';
         }
-    ];
+    }
+    
+    // Load today's schedule
+    function loadTodaySchedule() {
+        if (!$scope.studentId) {
+            $scope.todaySchedule = [];
+            return;
+        }
+        
+        $scope.loading = true;
+        var today = new Date();
+        var iso = getIsoWeek(today);
+        var currentWeekday = getCurrentWeekday();
+        
+        TimetableApi.getStudentWeek($scope.studentId, iso.year, iso.week)
+            .then(function(res) {
+                var data = (res.data && res.data.data) || [];
+                
+                // Filter today's schedule
+                var todaySchedules = data.filter(function(schedule) {
+                    return schedule.weekday === currentWeekday;
+                });
+                
+                // Sort by start time
+                todaySchedules.sort(function(a, b) {
+                    var timeA = a.start_time || '';
+                    var timeB = b.start_time || '';
+                    return timeA.localeCompare(timeB);
+                });
+                
+                // Format data for display
+                $scope.todaySchedule = todaySchedules.map(function(schedule) {
+                    var startTime = formatTime(schedule.start_time || '');
+                    var endTime = formatTime(schedule.end_time || '');
+                    var period = (schedule.period_from && schedule.period_to) 
+                        ? schedule.period_from + '-' + schedule.period_to 
+                        : '';
+                    
+                    return {
+                        period: period,
+                        subjectName: schedule.subject_name || 'N/A',
+                        lecturerName: schedule.lecturer_name || 'N/A',
+                        room: schedule.room_code || 'N/A',
+                        startTime: startTime,
+                        endTime: endTime,
+                        status: getStatus(startTime, endTime)
+                    };
+                });
+            })
+            .catch(function(err) {
+                LoggerService.error('Load today schedule error', err);
+                $scope.todaySchedule = [];
+            })
+            .finally(function() {
+                $scope.loading = false;
+            });
+    }
+    
+    // Load student ID and info
+    function loadStudentInfo() {
+        if (!$scope.currentUser || !$scope.currentUser.userId) {
+            $scope.loading = false;
+            return;
+        }
+        
+        StudentService.getByUserId($scope.currentUser.userId)
+            .then(function(response) {
+                if (response.data && response.data.data) {
+                    var student = response.data.data;
+                    $scope.studentId = student.studentId;
+                    
+                    // Update student info
+                    $scope.studentInfo = {
+                        fullName: student.fullName || '',
+                        studentCode: student.studentCode || '',
+                        className: student.className || '',
+                        faculty: student.facultyName || '',
+                        academicYear: student.academicYearName || '',
+                        gpa: student.cumulativeGpa || 0,
+                        credits: student.totalCreditsEarned || 0,
+                        attendanceRate: student.attendanceRate || 0
+                    };
+                    
+                    // Load today's schedule
+                    loadTodaySchedule();
+                } else {
+                    $scope.loading = false;
+                }
+            })
+            .catch(function(error) {
+                LoggerService.error('Load student info error', error);
+                $scope.loading = false;
+            });
+    }
+    
+    // Initialize
+    loadStudentInfo();
 }]);
 

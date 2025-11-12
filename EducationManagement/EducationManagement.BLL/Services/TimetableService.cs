@@ -10,10 +10,12 @@ namespace EducationManagement.BLL.Services
     public class TimetableService
     {
         private readonly TimetableRepository _repo;
+        private readonly ClassRepository _classRepository;
 
-        public TimetableService(TimetableRepository repo)
+        public TimetableService(TimetableRepository repo, ClassRepository classRepository)
         {
             _repo = repo;
+            _classRepository = classRepository;
         }
 
         public async Task<List<TimetableSessionDto>> GetStudentTimetableByWeekAsync(string studentId, int year, int weekNo)
@@ -31,6 +33,12 @@ namespace EducationManagement.BLL.Services
         public async Task<List<TimetableSessionDto>> GetAllSessionsByWeekAsync(int year, int weekNo)
         {
             var dt = await _repo.GetAllSessionsByWeekAsync(year, weekNo);
+            return MapSessions(dt);
+        }
+
+        public async Task<List<TimetableSessionDto>> GetSessionsByClassAndWeekAsync(string classId, int weekNo)
+        {
+            var dt = await _repo.GetSessionsByClassAndWeekAsync(classId, weekNo);
             return MapSessions(dt);
         }
 
@@ -113,6 +121,19 @@ namespace EducationManagement.BLL.Services
             });
             if (fkErrors.Any())
                 throw new InvalidOperationException(string.Join("; ", fkErrors));
+
+            // Check class is active
+            var classItem = await _classRepository.GetByIdAsync(input.ClassId);
+            if (classItem == null)
+                throw new InvalidOperationException("Lớp học không tồn tại");
+            
+            // Check is_active (computed hoặc manual)
+            // Note: is_active_computed được tính từ stored procedure
+            // Nếu class không active, throw exception
+            if (!classItem.IsActive)
+            {
+                throw new InvalidOperationException("Không thể tạo phiên học cho lớp đã bị vô hiệu hóa");
+            }
 
             var id = Guid.NewGuid().ToString("N");
             await _repo.InsertSessionAsync(id, input.ClassId, input.SubjectId, input.LecturerId, input.RoomId,
@@ -679,60 +700,18 @@ namespace EducationManagement.BLL.Services
             return currentDate.Day == startDate.Day; // Same day of month
         }
 
-        /// <summary>
-        /// Calculate week number based on custom logic: Week 12 starts from 3/11/2025 (Monday)
-        /// This ensures consistency with frontend calculation
-        /// </summary>
         private int GetWeekNumber(DateTime date)
         {
-            // Custom week calculation: Week 12 starts on 3/11/2025 (Monday)
-            var week12StartDate = new DateTime(2025, 11, 3); // November 3, 2025 (Monday)
-            
-            // Calculate week 1 start date (11 weeks before week 12)
-            var week1StartDate = week12StartDate.AddDays(-(12 - 1) * 7);
-            
-            // Calculate which week the given date falls into
-            var daysDiff = (date.Date - week1StartDate.Date).TotalDays;
-            
-            // If date is before week 1, return week 1
-            if (daysDiff < 0)
-            {
-                return 1;
-            }
-            
-            // Calculate week number (1-based)
-            var weekNo = (int)Math.Floor(daysDiff / 7) + 1;
-            
-            // Ensure week number is at least 1
-            return Math.Max(1, weekNo);
-        }
-        
-        /// <summary>
-        /// Get the start date of a specific week based on custom logic
-        /// </summary>
-        public DateTime GetWeekStartDate(int year, int weekNo)
-        {
-            // Week 12 starts on 3/11/2025 (Monday)
-            var week12StartDate = new DateTime(2025, 11, 3);
-            
-            // Calculate week 1 start date
-            var week1StartDate = week12StartDate.AddDays(-(12 - 1) * 7);
-            
-            // Calculate the start date for the requested week
-            var weekStartDate = week1StartDate.AddDays((weekNo - 1) * 7);
-            
-            return weekStartDate;
-        }
-        
-        /// <summary>
-        /// Get the date for a specific weekday in a week
-        /// </summary>
-        public DateTime GetDateForWeekday(int year, int weekNo, int weekday)
-        {
-            // weekday: 1 = Monday, 2 = Tuesday, ..., 7 = Sunday
-            var weekStart = GetWeekStartDate(year, weekNo);
-            var dayOffset = weekday - 1; // Monday is 0 days offset, Tuesday is 1, etc.
-            return weekStart.AddDays(dayOffset);
+            // ISO week number calculation
+            var day = (int)date.DayOfWeek;
+            if (day == 0) day = 7; // Sunday = 7
+            var jan1 = new DateTime(date.Year, 1, 1);
+            var daysOffset = day - (int)jan1.DayOfWeek;
+            if (daysOffset < 0) daysOffset += 7;
+            var firstMonday = jan1.AddDays(daysOffset);
+            var firstWeek = firstMonday.AddDays(-((int)firstMonday.DayOfWeek - 1));
+            var weekNum = (int)Math.Ceiling((date - firstWeek).TotalDays / 7.0);
+            return weekNum;
         }
 
         private List<TimeSlotSuggestion> GenerateTimeSlotSuggestions(TimetableConflictCheckInput input)

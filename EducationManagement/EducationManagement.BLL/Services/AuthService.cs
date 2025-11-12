@@ -10,55 +10,86 @@ namespace EducationManagement.BLL.Services
     {
         private readonly UserRepository _userRepository;
         private readonly IRefreshTokenStore _refreshStore;
-        private readonly CachingService? _cache;
 
-        public AuthService(UserRepository userRepository, IRefreshTokenStore refreshStore, CachingService? cache = null)
+        public AuthService(UserRepository userRepository, IRefreshTokenStore refreshStore)
         {
             _userRepository = userRepository;
             _refreshStore = refreshStore;
-            _cache = cache;
         }
 
         // 🔹 Kiểm tra thông tin đăng nhập
         public async Task<User?> ValidateUserAsync(string username, string password)
         {
             var normalizedUsername = username.Trim().ToLower();
+            var dbLookupStart = DateTime.UtcNow;
 
-            // ✅ Lấy user từ repository (với caching nếu có)
-            User? user;
-            if (_cache != null)
-            {
-                var cacheKey = string.Format(CacheKeys.UserByUsername, normalizedUsername);
-                user = await _cache.GetOrSetAsync(
-                    cacheKey,
-                    async () => await _userRepository.GetByUsernameAsync(normalizedUsername),
-                    CacheKeys.UserExpiration
-                );
-            }
-            else
-            {
-                user = await _userRepository.GetByUsernameAsync(normalizedUsername);
-            }
+            // 🔍 DEBUG LOG
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Looking up user: {normalizedUsername} [{dbLookupStart:HH:mm:ss.fff}]");
+            Console.ResetColor();
 
-            if (user == null || !user.IsActive)
+            // ✅ Lấy user từ repository
+            var user = await _userRepository.GetByUsernameAsync(normalizedUsername);
+            
+            var dbLookupTime = (DateTime.UtcNow - dbLookupStart).TotalMilliseconds;
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[AuthService.ValidateUserAsync] ⏱️ Database lookup took: {dbLookupTime:F2}ms");
+            Console.ResetColor();
+
+            if (user == null)
             {
-                // Console.WriteLine($"[Login] ❌ User không tồn tại"); // Tắt log
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[AuthService.ValidateUserAsync] ❌ User not found: {normalizedUsername}");
+                Console.ResetColor();
                 return null;
             }
+            
+            if (!user.IsActive)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[AuthService.ValidateUserAsync] ❌ User is not active: {normalizedUsername}");
+                Console.ResetColor();
+                return null;
+            }
+
+            // 🔍 DEBUG LOG
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[AuthService.ValidateUserAsync] User found: {user.Username} (ID: {user.UserId}, Active: {user.IsActive})");
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Checking password...");
+            Console.ResetColor();
 
             // ✅ Kiểm tra mật khẩu (BCrypt)
             // 🔧 FIX: Trim hash để tránh trailing spaces từ database
             var passwordHash = user.PasswordHash?.Trim() ?? "";
+            var bcryptStartTime = DateTime.UtcNow;
+            
+            // 🔍 DEBUG LOG - KHÔNG log password hash thực tế vì bảo mật
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Password hash exists: {!string.IsNullOrEmpty(passwordHash)}");
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Password hash length: {passwordHash.Length}");
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Password hash prefix: {(passwordHash.Length >= 10 ? passwordHash.Substring(0, 10) : "N/A")}");
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Password length: {password?.Length ?? 0}");
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Password (first 3 chars): {(password?.Length >= 3 ? password.Substring(0, 3) : "N/A")}");
+            Console.ResetColor();
+            
             var isValid = BCrypt.Net.BCrypt.Verify(password, passwordHash);
-            // Console.WriteLine($"[Login] BCrypt.Verify"); // Tắt log timing
+            
+            var bcryptTime = (DateTime.UtcNow - bcryptStartTime).TotalMilliseconds;
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[AuthService.ValidateUserAsync] ⏱️ BCrypt verification took: {bcryptTime:F2}ms");
+            Console.ResetColor();
 
             if (!isValid)
             {
-                // Console.WriteLine($"[Login] ❌ Sai mật khẩu"); // Tắt log
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[AuthService.ValidateUserAsync] ❌ Password verification failed for: {normalizedUsername}");
+                Console.ResetColor();
                 return null;
             }
 
-            // Console.WriteLine($"[Login] ✅ Thành công"); // Tắt log
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"[AuthService.ValidateUserAsync] ✅ Password verified successfully for: {normalizedUsername}");
+            Console.ResetColor();
             return user;
         }
 
@@ -99,46 +130,19 @@ namespace EducationManagement.BLL.Services
         // 🔹 Lấy thông tin user từ DB
         public async Task<User?> GetUserByIdAsync(string userId)
         {
-            if (_cache != null)
-            {
-                var cacheKey = string.Format(CacheKeys.UserById, userId);
-                return await _cache.GetOrSetAsync(
-                    cacheKey,
-                    async () => await _userRepository.GetByIdAsync(userId),
-                    CacheKeys.UserExpiration
-                );
-            }
             return await _userRepository.GetByIdAsync(userId);
         }
 
         // 🔹 Lấy thông tin user theo email (cho forgot password)
         public async Task<User?> GetUserByEmailAsync(string email)
         {
-            var normalizedEmail = email.Trim().ToLower();
-            if (_cache != null)
-            {
-                var cacheKey = string.Format(CacheKeys.UserByEmail, normalizedEmail);
-                return await _cache.GetOrSetAsync(
-                    cacheKey,
-                    async () => await _userRepository.GetByEmailAsync(email),
-                    CacheKeys.UserExpiration
-                );
-            }
             return await _userRepository.GetByEmailAsync(email);
         }
 
         // 🔹 Cập nhật mật khẩu user
         public async Task<bool> UpdatePasswordAsync(string userId, string newPassword)
         {
-            var result = await _userRepository.UpdatePasswordAsync(userId, HashPassword(newPassword));
-            
-            // Invalidate cache after password update
-            if (_cache != null && result)
-            {
-                await _cache.RemoveAsync(string.Format(CacheKeys.UserById, userId));
-            }
-            
-            return result;
+            return await _userRepository.UpdatePasswordAsync(userId, HashPassword(newPassword));
         }
     }
 }

@@ -33,9 +33,17 @@ namespace EducationManagement.Common.Models
         [MaxLength(50)]
         public string AcademicYearId { get; set; } = string.Empty;
 
+        // 🔹 Link to School Year (năm học cụ thể)
+        [Column("school_year_id")]
+        [MaxLength(50)]
+        public string? SchoolYearId { get; set; }
+
         // 🔹 Thêm để map kết quả SP (ay.year_code)
         [NotMapped]
         public string? YearCode { get; set; }
+
+        [NotMapped]
+        public string? SchoolYearCode { get; set; }
 
         [Column("gpa10")]
         [Range(0, 10, ErrorMessage = "GPA 10 must be between 0 and 10")]
@@ -50,7 +58,7 @@ namespace EducationManagement.Common.Models
 
         [Column("rank_text")]
         [MaxLength(50)]
-        public string? RankText { get; set; } // Xuất sắc, Giỏi, Khá, Trung bình
+        public string? RankText { get; set; } // Xuất sắc, Giỏi, Khá, Trung bình, Yếu, Kém (Tiếng Việt có dấu - encoding UTF-8)
 
         // ==================================================
         // 🔹 Audit fields

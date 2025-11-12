@@ -24,7 +24,16 @@ namespace EducationManagement.DAL.Repositories
         // ============================================================
         public async Task<List<Lecturer>> GetAllAsync()
         {
-            var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(_connectionString, "sp_GetAllLecturers");
+            // sp_GetAllLecturers yêu cầu parameters và trả về multiple result sets
+            var parameters = new[]
+            {
+                new SqlParameter("@Page", 1),
+                new SqlParameter("@PageSize", 9999), // Get all
+                new SqlParameter("@Search", DBNull.Value),
+                new SqlParameter("@DepartmentId", DBNull.Value)
+            };
+
+            var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(_connectionString, "sp_GetAllLecturers", parameters);
             var list = new List<Lecturer>();
 
             // Table[0] = TotalCount, Table[1] = Data

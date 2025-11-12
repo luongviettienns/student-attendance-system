@@ -450,17 +450,19 @@ BEGIN
 END
 GO
 
-IF OBJECT_ID('sp_GetNotificationsByUser', 'P') IS NOT NULL DROP PROCEDURE sp_GetNotificationsByUser;
-GO
-CREATE PROCEDURE sp_GetNotificationsByUser
-    @UserId VARCHAR(50)
-AS
-BEGIN
-    SELECT * FROM dbo.notifications
-    WHERE user_id = @UserId
-    ORDER BY created_at DESC;
-END
-GO
+-- sp_GetNotificationsByUser has been moved to 02_SP_Notifications.sql with pagination support
+-- This old version is removed to avoid conflicts
+-- IF OBJECT_ID('sp_GetNotificationsByUser', 'P') IS NOT NULL DROP PROCEDURE sp_GetNotificationsByUser;
+-- GO
+-- CREATE PROCEDURE sp_GetNotificationsByUser
+--     @UserId VARCHAR(50)
+-- AS
+-- BEGIN
+--     SELECT * FROM dbo.notifications
+--     WHERE user_id = @UserId
+--     ORDER BY created_at DESC;
+-- END
+-- GO
 
 IF OBJECT_ID('sp_GetPermissionIdsByRole', 'P') IS NOT NULL DROP PROCEDURE sp_GetPermissionIdsByRole;
 GO
@@ -507,21 +509,31 @@ BEGIN
     SET NOCOUNT ON;
     
     -- Join roles -> role_permissions -> permissions
+    -- ✅ Updated to include ParentCode, Icon, SortOrder for menu building
     SELECT 
         p.permission_id,
         p.permission_code,
         p.permission_name,
         p.description,
+        -- ✅ Trả về NULL thay vì empty string để dễ check trong C#
+        p.parent_code AS parent_code,
+        -- ✅ Chỉ lấy icon nếu có, không default
+        p.icon AS icon,
+        p.sort_order AS sort_order,
+        ISNULL(p.is_active, 1) AS is_active,
         p.created_at,
         p.created_by,
         p.updated_at,
-        p.updated_by
+        p.updated_by,
+        p.deleted_at
     FROM dbo.permissions p
     INNER JOIN dbo.role_permissions rp ON p.permission_id = rp.permission_id
     INNER JOIN dbo.roles r ON rp.role_id = r.role_id
     WHERE r.role_name = @RoleName 
         AND r.deleted_at IS NULL
-    ORDER BY p.permission_code;
+        AND (p.deleted_at IS NULL OR p.deleted_at = '1900-01-01')
+        AND ISNULL(p.is_active, 1) = 1
+    ORDER BY ISNULL(p.sort_order, 999), p.permission_code;
 END
 GO
 
@@ -613,12 +625,18 @@ CREATE PROCEDURE sp_GetUserByUsername
     @Username VARCHAR(50)
 AS
 BEGIN
-    -- ✅ FIX: Case-insensitive comparison (code normalize to lowercase)
+    SET NOCOUNT ON;
+    
+    -- ✅ PERFORMANCE: Normalize username in parameter (not in query) to allow index usage
+    -- Username should already be normalized to lowercase in code, but ensure here
+    DECLARE @NormalizedUsername VARCHAR(50) = LOWER(LTRIM(RTRIM(@Username)));
+    
+    -- ✅ OPTIMIZED: Direct comparison without LOWER() to use index efficiently
     SELECT u.user_id, u.username, u.password_hash, u.full_name, u.email, 
            u.phone, u.role_id, r.role_name, u.avatar_url, u.is_active, u.last_login_at
     FROM dbo.users u
     LEFT JOIN dbo.roles r ON u.role_id = r.role_id
-    WHERE LOWER(u.username) = LOWER(@Username) AND u.deleted_at IS NULL;
+    WHERE u.username = @NormalizedUsername AND u.deleted_at IS NULL;
 END
 GO
 

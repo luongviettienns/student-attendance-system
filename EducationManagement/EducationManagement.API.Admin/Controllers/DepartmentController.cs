@@ -1,36 +1,52 @@
 using Microsoft.AspNetCore.Mvc;
 using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
+using EducationManagement.Common.Helpers;
 using Microsoft.AspNetCore.Authorization;
+using EducationManagement.BLL.Services;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")]
-    [Route("api-edu/admin/department")]
-    public class DepartmentController : ControllerBase
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
+    [Route("api-edu/departments")]
+    public class DepartmentController : BaseController
     {
         private readonly DepartmentRepository _repository;
 
-        public DepartmentController(DepartmentRepository repository)
+        public DepartmentController(DepartmentRepository repository, AuditLogService auditLogService) : base(auditLogService)
         {
             _repository = repository;
         }
 
         // ============================================================
-        // 🔹 GET: Lấy danh sách tất cả bộ môn
+        // 🔹 GET: Lấy danh sách tất cả bộ môn với pagination
         // ============================================================
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
+        public async Task<IActionResult> GetAll(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null)
         {
             try
             {
-                var departments = await _repository.GetAllAsync();
-                return Ok(new { data = departments });
+                var (items, totalCount) = await _repository.GetAllPagedAsync(page, pageSize, search);
+                
+                return Ok(new
+                {
+                    success = true,
+                    data = items,
+                    totalCount = totalCount,
+                    page = page,
+                    pageSize = pageSize,
+                    totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }
 
@@ -38,6 +54,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 GET: Lấy bộ môn theo ID
         // ============================================================
         [HttpGet("{id}")]
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
             try
@@ -76,6 +93,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 POST: Tạo bộ môn mới
         // ============================================================
         [HttpPost]
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] Department model)
         {
             if (!ModelState.IsValid)
@@ -85,13 +103,27 @@ namespace EducationManagement.API.Admin.Controllers
             {
                 // Generate ID if not provided
                 if (string.IsNullOrEmpty(model.DepartmentId))
-                    model.DepartmentId = "dep-" + Guid.NewGuid().ToString().Substring(0, 8);
+                    model.DepartmentId = IdGenerator.Generate("dep");
+
+                // ✅ Tự động sinh mã bộ môn (DEPT001, DEPT002...)
+                if (string.IsNullOrWhiteSpace(model.DepartmentCode))
+                {
+                    model.DepartmentCode = await _repository.GenerateNextCodeAsync();
+                }
 
                 model.CreatedBy = User.Identity?.Name ?? "system";
                 model.CreatedAt = DateTime.Now;
 
                 await _repository.AddAsync(model);
-                return Ok(new { message = "✅ Thêm bộ môn thành công!", data = model });
+
+                // ✅ Audit Log: Create Department (Tiếng Việt)
+                await LogCreateAsync("Department", model.DepartmentId, new {
+                    ma_bo_mon = model.DepartmentCode,
+                    ten_bo_mon = model.DepartmentName,
+                    ma_khoa = model.FacultyId
+                });
+
+                return Ok(new { message = "Thêm bộ môn thành công!", data = model });
             }
             catch (Exception ex)
             {
@@ -103,6 +135,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 PUT: Cập nhật bộ môn
         // ============================================================
         [HttpPut("{id}")]
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Update(string id, [FromBody] Department model)
         {
             if (id != model.DepartmentId)
@@ -110,6 +143,8 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
+                var oldDept = await _repository.GetByIdAsync(id);
+                
                 model.UpdatedBy = User.Identity?.Name ?? "system";
                 model.UpdatedAt = DateTime.Now;
 
@@ -117,7 +152,15 @@ namespace EducationManagement.API.Admin.Controllers
                 if (rowsAffected == 0)
                     return NotFound(new { message = "Không tìm thấy bộ môn" });
 
-                return Ok(new { message = "✅ Cập nhật bộ môn thành công!" });
+                // ✅ Audit Log: Update Department (Tiếng Việt)
+                if (oldDept != null)
+                {
+                    await LogUpdateAsync("Department", model.DepartmentId,
+                        new { ten_bo_mon = oldDept.DepartmentName, ma_khoa = oldDept.FacultyId },
+                        new { ten_bo_mon = model.DepartmentName, ma_khoa = model.FacultyId });
+                }
+
+                return Ok(new { message = "Cập nhật bộ môn thành công!" });
             }
             catch (Exception ex)
             {
@@ -129,12 +172,24 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 DELETE: Xóa bộ môn (soft delete)
         // ============================================================
         [HttpDelete("{id}")]
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id)
         {
             try
             {
+                var dept = await _repository.GetByIdAsync(id);
                 await _repository.DeleteAsync(id);
-                return Ok(new { message = "🗑 Xóa bộ môn thành công!" });
+
+                // ✅ Audit Log: Delete Department (Tiếng Việt)
+                if (dept != null)
+                {
+                    await LogDeleteAsync("Department", id, new {
+                        ma_bo_mon = dept.DepartmentCode,
+                        ten_bo_mon = dept.DepartmentName
+                    });
+                }
+
+                return Ok(new { message = "Xóa bộ môn thành công!" });
             }
             catch (Exception ex)
             {
@@ -146,16 +201,16 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 GET: Thống kê số môn học theo bộ môn
         // ============================================================
         [HttpGet("stats/subjects")]
-        public async Task<IActionResult> GetSubjectStats()
+        public Task<IActionResult> GetSubjectStats()
         {
             try
             {
                 // TODO: Implement stored procedure for statistics
-                return Ok(new { data = new List<object>(), message = "Chức năng đang phát triển" });
+                return Task.FromResult<IActionResult>(Ok(new { data = new List<object>(), message = "Chức năng đang phát triển" }));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                return Task.FromResult<IActionResult>(StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message }));
             }
         }
 
@@ -163,16 +218,16 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 GET: Thống kê số giảng viên theo bộ môn
         // ============================================================
         [HttpGet("stats/lecturers")]
-        public async Task<IActionResult> GetLecturerStats()
+        public Task<IActionResult> GetLecturerStats()
         {
             try
             {
                 // TODO: Implement stored procedure for statistics
-                return Ok(new { data = new List<object>(), message = "Chức năng đang phát triển" });
+                return Task.FromResult<IActionResult>(Ok(new { data = new List<object>(), message = "Chức năng đang phát triển" }));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                return Task.FromResult<IActionResult>(StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message }));
             }
         }
     }

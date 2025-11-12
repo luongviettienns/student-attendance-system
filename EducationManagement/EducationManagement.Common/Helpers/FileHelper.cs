@@ -27,9 +27,8 @@ namespace EducationManagement.Common.Helpers
             relativePath = relativePath.Replace('/', Path.DirectorySeparatorChar);
             string physicalPath = Path.Combine(avatarFolder, relativePath);
 
-            Console.WriteLine($"🔍 [NormalizeAvatarUrl] DB: {avatarUrl}");
-            Console.WriteLine($"   Physical check: {physicalPath}");
-            Console.WriteLine($"   File exists: {File.Exists(physicalPath)}");
+            // DEBUG logs đã tắt để tránh spam console
+            // Console.WriteLine($"🔍 [NormalizeAvatarUrl] DB: {avatarUrl}");
 
             // 🔹 Nếu file không tồn tại → trả về ảnh mặc định
             if (File.Exists(physicalPath))
@@ -40,11 +39,11 @@ namespace EducationManagement.Common.Helpers
                 {
                     normalized = "/avatars" + normalized;
                 }
-                Console.WriteLine($"   ✅ Normalized: {normalized}");
+                // Console.WriteLine($"   ✅ Normalized: {normalized}");
                 return normalized;
             }
             
-            Console.WriteLine($"   ⚠️ File not found, using default");
+            // Console.WriteLine($"   ⚠️ File not found, using default");
             return "/avatars/default.png";
         }
 

@@ -58,7 +58,9 @@ namespace EducationManagement.DAL.Repositories
             var parameters = new[]
             {
                 new SqlParameter("@AcademicYearId", academicYear.AcademicYearId),
-                new SqlParameter("@YearName", academicYear.YearCode), // SP expect @YearName
+                new SqlParameter("@YearName", academicYear.YearName),
+                new SqlParameter("@StartYear", academicYear.StartYear),
+                new SqlParameter("@EndYear", academicYear.EndYear),
                 new SqlParameter("@Description", (object?)academicYear.Description ?? DBNull.Value),
                 new SqlParameter("@CreatedBy", academicYear.CreatedBy ?? "System")
             };
@@ -74,7 +76,9 @@ namespace EducationManagement.DAL.Repositories
             var parameters = new[]
             {
                 new SqlParameter("@AcademicYearId", academicYear.AcademicYearId),
-                new SqlParameter("@YearName", academicYear.YearCode), // SP expect @YearName
+                new SqlParameter("@YearName", academicYear.YearName),
+                new SqlParameter("@StartYear", academicYear.StartYear),
+                new SqlParameter("@EndYear", academicYear.EndYear),
                 new SqlParameter("@Description", (object?)academicYear.Description ?? DBNull.Value),
                 new SqlParameter("@UpdatedBy", academicYear.UpdatedBy ?? "System")
             };
@@ -99,11 +103,11 @@ namespace EducationManagement.DAL.Repositories
         // ============================================================
         // 🔹 KIỂM TRA MÃ NIÊN KHÓA ĐÃ TỒN TẠI
         // ============================================================
-        public async Task<bool> ExistsCodeAsync(string yearCode)
+        public async Task<bool> ExistsCodeAsync(string yearName)
         {
             var parameters = new[]
             {
-                new SqlParameter("@YearName", yearCode) // SP expect @YearName
+                new SqlParameter("@YearName", yearName)
             };
 
             var result = await DatabaseHelper.ExecuteScalarAsync(_connectionString, "sp_CheckAcademicYearCodeExists", parameters);
@@ -118,16 +122,44 @@ namespace EducationManagement.DAL.Repositories
             var academicYear = new AcademicYear
             {
                 AcademicYearId = row["academic_year_id"].ToString()!,
-                // Database có column 'year_name' nhưng model có property 'YearCode'
-                YearCode = row.Table.Columns.Contains("year_name") 
+                
+                // ✅ UPDATED: year_name (not year_code)
+                YearName = row.Table.Columns.Contains("year_name") 
                     ? row["year_name"]?.ToString() ?? ""
-                    : (row.Table.Columns.Contains("year_code") ? row["year_code"]?.ToString() ?? "" : ""),
-                Description = row.Table.Columns.Contains("description") ? row["description"]?.ToString() : null,
+                    : "",
+                
+                // ✅ NEW: Cohort fields
+                CohortCode = row.Table.Columns.Contains("cohort_code") 
+                    ? row["cohort_code"]?.ToString() 
+                    : null,
+                
+                StartYear = row.Table.Columns.Contains("start_year") && row["start_year"] != DBNull.Value
+                    ? Convert.ToInt32(row["start_year"])
+                    : 0,
+                
+                EndYear = row.Table.Columns.Contains("end_year") && row["end_year"] != DBNull.Value
+                    ? Convert.ToInt32(row["end_year"])
+                    : 0,
+                
+                DurationYears = row.Table.Columns.Contains("duration_years") && row["duration_years"] != DBNull.Value
+                    ? Convert.ToInt32(row["duration_years"])
+                    : 4,
+                
+                Description = row.Table.Columns.Contains("description") 
+                    ? row["description"]?.ToString() 
+                    : null,
+                
                 IsActive = row.Table.Columns.Contains("is_active") && row["is_active"] != DBNull.Value
                     ? Convert.ToBoolean(row["is_active"])
-                    : true,
-                CreatedBy = row.Table.Columns.Contains("created_by") ? row["created_by"]?.ToString() : null,
-                UpdatedBy = row.Table.Columns.Contains("updated_by") ? row["updated_by"]?.ToString() : null
+                    : false,
+                
+                CreatedBy = row.Table.Columns.Contains("created_by") 
+                    ? row["created_by"]?.ToString() 
+                    : null,
+                
+                UpdatedBy = row.Table.Columns.Contains("updated_by") 
+                    ? row["updated_by"]?.ToString() 
+                    : null
             };
 
             // Xử lý kiểu DateTime và nullable an toàn

@@ -13,6 +13,9 @@ app.factory('TimetableApi', ['$http', 'API_CONFIG', function($http, API_CONFIG) 
     getAllSessionsByWeek: function(year, week) {
       return $http.get(base + '/timetable/sessions', { params: { year: year, week: week } });
     },
+    getSessionsByClass: function(classId, week) {
+      return $http.get(base + '/timetable/sessions/class', { params: { classId: classId, week: week } });
+    },
     checkConflicts: function(input) {
       return $http.post(base + '/timetable/conflicts', input);
     },

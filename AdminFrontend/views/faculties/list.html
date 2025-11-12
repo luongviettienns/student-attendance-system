@@ -3,15 +3,7 @@
     <app-sidebar></app-sidebar>
     
     <div class="main-content">
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle"><i class="fas fa-bars"></i></button>
-                <h1 class="page-title">Quản lý Khoa</h1>
-            </div>
-            <div class="header-right">
-                <button ng-click="logout()" class="btn btn-outline"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button>
-            </div>
-        </header>
+        <app-topbar page-title="Quản lý Khoa"></app-topbar>
         
         <div class="content-body">
             <div ng-if="success" class="alert alert-success"><i class="fas fa-check-circle"></i> {{success}}</div>
@@ -24,11 +16,8 @@
                         Danh sách Khoa
                     </h3>
                     <div class="card-actions">
-                        <button class="btn btn-outline" ng-click="exportToExcel()">
-                            <i class="fas fa-file-excel"></i> Excel
-                        </button>
-                        <button class="btn btn-outline" ng-click="exportToCSV()">
-                            <i class="fas fa-file-csv"></i> CSV
+                        <button class="btn btn-success" ng-click="exportToExcel()">
+                            <i class="fas fa-file-excel"></i> Xuất Excel
                         </button>
                         <button class="btn btn-primary" ng-click="goToCreate()">
                             <i class="fas fa-plus"></i> Thêm khoa

@@ -4,32 +4,7 @@
     
     <!-- Main Content -->
     <div class="main-content">
-        <!-- Header -->
-        <header class="header">
-            <div class="header-left">
-                <button class="menu-toggle">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <h1 class="page-title">Dashboard</h1>
-            </div>
-            
-            <div class="header-right">
-                <notification-bell></notification-bell>
-                <div class="user-info">
-                    <div class="user-avatar" ng-click="openAvatarModal()">
-                        <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
-                        <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName.charAt(0)}}</span>
-                    </div>
-                    <div class="user-details">
-                        <span class="user-name">{{currentUser.fullName}}</span>
-                        <span class="user-role">Admin</span>
-                    </div>
-                </div>
-                <button ng-click="logout()" class="btn btn-outline">
-                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                </button>
-            </div>
-        </header>
+        <app-topbar page-title="Dashboard"></app-topbar>
         
         <!-- Content Body -->
         <div class="content-body">
@@ -46,8 +21,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Tổng người dùng</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalUsers}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalUsers || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -57,8 +34,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Sinh viên</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalStudents}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalStudents || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -68,8 +47,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Giảng viên</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalLecturers}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalLecturers || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -79,8 +60,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Khoa</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalFaculties}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalFaculties || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -93,8 +76,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Ngành học</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalMajors}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalMajors || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -104,8 +89,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Môn học</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalSubjects}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalSubjects || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -115,8 +102,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Niên khóa</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalAcademicYears}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalAcademicYears || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -126,8 +115,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Tổng dữ liệu</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalUsers + stats.totalStudents + stats.totalLecturers + stats.totalFaculties + stats.totalMajors + stats.totalSubjects + stats.totalAcademicYears}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{(stats.totalUsers || 0) + (stats.totalStudents || 0) + (stats.totalLecturers || 0) + (stats.totalFaculties || 0) + (stats.totalMajors || 0) + (stats.totalSubjects || 0) + (stats.totalAcademicYears || 0)}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -147,66 +138,52 @@
                             <i class="fas fa-user-graduate"></i>
                             <span>Thêm sinh viên</span>
                         </a>
-                        <a href="#!/lecturers" class="quick-action-btn">
+                        <a href="#!/lecturers/create" class="quick-action-btn">
                             <i class="fas fa-chalkboard-teacher"></i>
-                            <span>Quản lý giảng viên</span>
+                            <span>Thêm giảng viên</span>
                         </a>
-                        <a href="#!/organization" class="quick-action-btn">
+                        <a href="#!/faculties/create" class="quick-action-btn">
                             <i class="fas fa-building"></i>
-                            <span>Quản lý tổ chức</span>
+                            <span>Thêm khoa</span>
+                        </a>
+                        <a href="#!/majors/create" class="quick-action-btn">
+                            <i class="fas fa-code-branch"></i>
+                            <span>Thêm ngành học</span>
+                        </a>
+                        <a href="#!/subjects/create" class="quick-action-btn">
+                            <i class="fas fa-book"></i>
+                            <span>Thêm môn học</span>
                         </a>
                         <a href="#!/academic-years/create" class="quick-action-btn">
                             <i class="fas fa-calendar-alt"></i>
                             <span>Thêm niên khóa</span>
                         </a>
-                        <a href="#!/school-years/create" class="quick-action-btn">
-                            <i class="fas fa-calendar-check"></i>
-                            <span>Thêm năm học</span>
-                        </a>
-                        <a href="#!/classes" class="quick-action-btn">
-                            <i class="fas fa-chalkboard"></i>
-                            <span>Quản lý lớp học phần</span>
-                        </a>
-                        <a href="#!/registration-periods" class="quick-action-btn">
-                            <i class="fas fa-calendar-week"></i>
-                            <span>Quản lý đợt đăng ký</span>
-                        </a>
                     </div>
                 </div>
             </div>
+
             
-            <!-- Recent Activities -->
+            <!-- Recent Audit Logs -->
             <div class="card">
                 <div class="card-header">
-                    <h3 class="card-title">Hoạt động gần đây</h3>
+                    <h3 class="card-title">Hoạt động gần đây (Audit Log)</h3>
+                    <div class="card-actions" style="gap:6px; display:flex; align-items:center;">
+                        <button class="btn btn-sm" ng-class="{'btn-primary': auditFilter==='ALL', 'btn-outline': auditFilter!=='ALL'}" ng-click="setAuditFilter('ALL')">Tất cả</button>
+                        <button class="btn btn-sm" ng-class="{'btn-primary': auditFilter==='CREATE', 'btn-outline': auditFilter!=='CREATE'}" ng-click="setAuditFilter('CREATE')">Thêm</button>
+                        <button class="btn btn-sm" ng-class="{'btn-primary': auditFilter==='UPDATE', 'btn-outline': auditFilter!=='UPDATE'}" ng-click="setAuditFilter('UPDATE')">Sửa</button>
+                        <button class="btn btn-sm" ng-class="{'btn-primary': auditFilter==='DELETE', 'btn-outline': auditFilter!=='DELETE'}" ng-click="setAuditFilter('DELETE')">Xóa</button>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <ul class="activity-list">
-                        <li class="activity-item">
+                    <div ng-if="!recentAuditLogs || recentAuditLogs.length === 0" class="text-muted">Không có log gần đây.</div>
+                    <ul class="activity-list" ng-if="recentAuditLogs.length > 0">
+                        <li class="activity-item" ng-repeat="log in recentAuditLogs">
                             <div class="activity-icon">
-                                <i class="fas fa-user-plus"></i>
+                                <i class="fas" ng-class="{'fa-plus': log.action==='CREATE', 'fa-edit': log.action==='UPDATE', 'fa-trash': log.action==='DELETE', 'fa-info-circle': log.action!=='CREATE' && log.action!=='UPDATE' && log.action!=='DELETE'}"></i>
                             </div>
                             <div class="activity-content">
-                                <div class="activity-title">Thêm sinh viên mới: Nguyễn Văn A</div>
-                                <div class="activity-time">2 giờ trước</div>
-                            </div>
-                        </li>
-                        <li class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-edit"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Cập nhật thông tin khoa CNTT</div>
-                                <div class="activity-time">5 giờ trước</div>
-                            </div>
-                        </li>
-                        <li class="activity-item">
-                            <div class="activity-icon">
-                                <i class="fas fa-book"></i>
-                            </div>
-                            <div class="activity-content">
-                                <div class="activity-title">Thêm môn học: Lập trình Web</div>
-                                <div class="activity-time">1 ngày trước</div>
+                                <div class="activity-title">{{displayAuditTitle(log)}}</div>
+                                <div class="activity-time">{{timeAgo(log.createdAt)}}</div>
                             </div>
                         </li>
                     </ul>

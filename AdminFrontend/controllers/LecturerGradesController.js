@@ -1,5 +1,5 @@
 // Lecturer Grades Controller
-app.controller('LecturerGradesController', ['$scope', 'AuthService', function($scope, AuthService) {
+app.controller('LecturerGradesController', ['$scope', '$timeout', 'AuthService', function($scope, $timeout, AuthService) {
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.selectedClass = '';
     $scope.gradeType = '';
@@ -87,18 +87,14 @@ app.controller('LecturerGradesController', ['$scope', 'AuthService', function($s
         $scope.error = null;
         
         // Simulate API call
-        setTimeout(function() {
-            $scope.$apply(function() {
-                $scope.saving = false;
-                $scope.success = 'Lưu điểm thành công!';
-                
-                // Clear success message after 3 seconds
-                setTimeout(function() {
-                    $scope.$apply(function() {
-                        $scope.success = null;
-                    });
-                }, 3000);
-            });
+        $timeout(function() {
+            $scope.saving = false;
+            $scope.success = 'Lưu điểm thành công!';
+            
+            // Clear success message after 3 seconds
+            $timeout(function() {
+                $scope.success = null;
+            }, 3000);
         }, 1000);
     };
 }]);

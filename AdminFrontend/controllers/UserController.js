@@ -30,15 +30,14 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', '$timeo
         // Check if user is Admin before loading
         var currentUser = AuthService.getCurrentUser();
         if (!currentUser) {
-            $scope.error = 'Bạn chưa đăng nhập. Vui lòng đăng nhập lại.';
+            $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
             $scope.loading = false;
             return;
         }
         
-        // Backend returns 'Role' (capital R) in LoginResponse
-        var userRole = (currentUser.Role || currentUser.roleName || currentUser.role || '').trim();
+        var userRole = currentUser.roleName || currentUser.Role || currentUser.role || '';
         
-        if (userRole !== 'Admin') {
+        if (userRole !== 'Admin' && userRole !== 'Quản trị viên') {
             $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
             $scope.loading = false;
             return;
@@ -302,14 +301,14 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', '$timeo
     // Check if user is Admin before loading
     var currentUser = AuthService.getCurrentUser();
     if (!currentUser) {
-        $scope.error = 'Bạn chưa đăng nhập. Vui lòng đăng nhập lại.';
+        $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
         $scope.loading = false;
     } else {
-        // Backend returns 'Role' (capital R) in LoginResponse
-        var userRole = (currentUser.Role || currentUser.roleName || currentUser.role || '').trim();
+        var userRole = currentUser.roleName || currentUser.Role || currentUser.role || '';
+        var isAdmin = (userRole === 'Admin' || userRole === 'Quản trị viên');
         
         if ($location.path() === '/users') {
-            if (userRole === 'Admin') {
+            if (isAdmin) {
                 $scope.loadUsers();
                 $scope.loadRoles(); // Load roles for filter
             } else {
@@ -317,7 +316,7 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', '$timeo
                 $scope.loading = false;
             }
         } else if ($routeParams.id) {
-            if (userRole === 'Admin') {
+            if (isAdmin) {
                 $scope.loadUser($routeParams.id);
                 $scope.loadRoles();
             } else {
@@ -326,21 +325,16 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', '$timeo
             }
         } else {
             // Create mode - set default values
-            if (userRole === 'Admin') {
-                $scope.user = {
-                    isActive: true,
-                    username: '',
-                    fullName: '',
-                    email: '',
-                    phone: '',
-                    roleId: '',
-                    password: ''
-                };
-                $scope.loadRoles();
-            } else {
-                $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
-                $scope.loading = false;
-            }
+            $scope.user = {
+                isActive: true,
+                username: '',
+                fullName: '',
+                email: '',
+                phone: '',
+                roleId: '',
+                password: ''
+            };
+            $scope.loadRoles();
         }
     }
 }]);

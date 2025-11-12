@@ -1,8 +1,8 @@
 // ============================================================
 // LECTURER MANAGEMENT CONTROLLER - Quản lý Giảng viên + Phân môn
 // ============================================================
-app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG', 'AuthService', 'AvatarService', 'RoleService', 'ToastService', 'LoggerService', 'DepartmentService',
-    function($scope, $http, API_CONFIG, AuthService, AvatarService, RoleService, ToastService, LoggerService, DepartmentService) {
+app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG', 'AuthService', 'AvatarService', 'RoleService', 'ToastService', 'LoggerService', 
+    function($scope, $http, API_CONFIG, AuthService, AvatarService, RoleService, ToastService, LoggerService) {
     
     // =========================
     // INITIALIZATION
@@ -133,23 +133,12 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     };
 
     $scope.loadDepartments = function() {
-        DepartmentService.getAll()
+        $http.get(API_CONFIG.BASE_URL + '/departments')
             .then(function(response) {
-                // Handle different response formats: {data: [...]} or [...]
-                var data = response.data;
-                if (data && data.data && Array.isArray(data.data)) {
-                    $scope.departments = data.data;
-                } else if (Array.isArray(data)) {
-                    $scope.departments = data;
-                } else {
-                    $scope.departments = [];
-                }
-                LoggerService.debug('Departments loaded', { count: $scope.departments.length });
+                $scope.departments = response.data;
             })
             .catch(function(error) {
-                LoggerService.error('Error loading departments', error);
                 ToastService.error('❌ Lỗi tải danh sách bộ môn');
-                $scope.departments = [];
             });
     };
 
@@ -158,8 +147,28 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
         ModalUtils.open('lecturerModal');
     };
 
+    // Format date for date input (YYYY-MM-DD format)
+    function formatDateForInput(dateString) {
+        if (!dateString) return null;
+        try {
+            var date = new Date(dateString);
+            if (isNaN(date.getTime())) return null;
+            // Format as YYYY-MM-DD for date input
+            var year = date.getFullYear();
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var day = String(date.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        } catch (e) {
+            return null;
+        }
+    }
+    
     $scope.editLecturer = function(lecturer) {
         $scope.lecturerForm = angular.copy(lecturer);
+        // Format dates for date inputs to avoid AngularJS datefmt error
+        if ($scope.lecturerForm.joinDate) {
+            $scope.lecturerForm.joinDate = formatDateForInput($scope.lecturerForm.joinDate);
+        }
         ModalUtils.open('lecturerModal');
     };
 
