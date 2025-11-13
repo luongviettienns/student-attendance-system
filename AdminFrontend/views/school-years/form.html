@@ -111,7 +111,8 @@
                                            class="form-control" 
                                            id="startDate" 
                                            name="startDate"
-                                           ng-model="schoolYear.startDate" 
+                                           ng-model="schoolYear.startDate"
+                                           ng-model-options="{ timezone: 'UTC' }"
                                            required>
                                     <small class="form-text text-muted">Ngày bắt đầu năm học (thường là 01/09)</small>
                                     <div ng-if="schoolYearForm.startDate.$invalid && schoolYearForm.$submitted" class="text-danger">
@@ -130,7 +131,8 @@
                                            class="form-control" 
                                            id="endDate" 
                                            name="endDate"
-                                           ng-model="schoolYear.endDate" 
+                                           ng-model="schoolYear.endDate"
+                                           ng-model-options="{ timezone: 'UTC' }"
                                            required>
                                     <small class="form-text text-muted">Ngày kết thúc năm học (thường là 30/06)</small>
                                     <div ng-if="schoolYearForm.endDate.$invalid && schoolYearForm.$submitted" class="text-danger">

@@ -140,14 +140,18 @@
                                         <div class="form-group">
                                             <label>Ngày bắt đầu <span class="text-danger">*</span></label>
                                             <input type="date" class="form-control" 
-                                                   ng-model="currentPeriod.startDate" required>
+                                                   ng-model="currentPeriod.startDate"
+                                                   ng-model-options="{ timezone: 'UTC' }"
+                                                   required>
                                         </div>
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
                                             <label>Ngày kết thúc <span class="text-danger">*</span></label>
                                             <input type="date" class="form-control" 
-                                                   ng-model="currentPeriod.endDate" required>
+                                                   ng-model="currentPeriod.endDate"
+                                                   ng-model-options="{ timezone: 'UTC' }"
+                                                   required>
                                         </div>
                                     </div>
                                 </div>

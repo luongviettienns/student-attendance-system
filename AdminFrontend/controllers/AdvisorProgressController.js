@@ -56,7 +56,7 @@ app.controller('AdvisorProgressController', [
             var data = response.data?.data || response.data || [];
             $scope.schoolYears = Array.isArray(data) ? data : [];
         }).catch(function(error) {
-            console.error('Error loading school years:', error);
+            // Error('Error loading school years:', error);
             $scope.schoolYears = [];
         }).finally(function() {
             $scope.loading.schoolYears = false;
@@ -77,7 +77,7 @@ app.controller('AdvisorProgressController', [
                 $scope.renderGpaChart();
             }, 100);
         }).catch(function(error) {
-            console.error('Error loading GPA progress:', error);
+            // Error('Error loading GPA progress:', error);
             $scope.error.gpa = error.message || error.data?.message || 'Lỗi khi tải tiến độ GPA';
             $scope.loading.gpa = false;
         });
@@ -97,7 +97,7 @@ app.controller('AdvisorProgressController', [
                 $scope.renderAttendanceChart();
             }, 100);
         }).catch(function(error) {
-            console.error('Error loading attendance progress:', error);
+            // Error('Error loading attendance progress:', error);
             $scope.error.attendance = error.message || error.data?.message || 'Lỗi khi tải tiến độ chuyên cần';
             $scope.loading.attendance = false;
         });
@@ -112,7 +112,7 @@ app.controller('AdvisorProgressController', [
             $scope.trends = data;
             $scope.loading.trends = false;
         }).catch(function(error) {
-            console.error('Error loading trends:', error);
+            // Error('Error loading trends:', error);
             $scope.error.trends = error.message || error.data?.message || 'Lỗi khi tải xu hướng';
             $scope.loading.trends = false;
         });

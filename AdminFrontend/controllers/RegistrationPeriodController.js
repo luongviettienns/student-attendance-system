@@ -55,23 +55,46 @@ app.controller('RegistrationPeriodController', [
     // CREATE / UPDATE
     // ============================================================
     $scope.showCreateModal = function() {
+        // Format dates as YYYY-MM-DD for date inputs
+        var today = new Date();
+        var year = today.getFullYear();
+        var month = String(today.getMonth() + 1).padStart(2, '0');
+        var day = String(today.getDate()).padStart(2, '0');
+        var dateStr = year + '-' + month + '-' + day;
+        
         $scope.currentPeriod = {
             periodName: '',
             academicYearId: '',
             semester: 1,
-            startDate: new Date(),
-            endDate: new Date(),
+            startDate: dateStr,
+            endDate: dateStr,
             status: 'UPCOMING',
             description: ''
         };
         $('#periodModal').modal('show');
     };
     
+    // Format date for date input (YYYY-MM-DD format)
+    function formatDateForInput(dateString) {
+        if (!dateString) return null;
+        try {
+            var date = new Date(dateString);
+            if (isNaN(date.getTime())) return null;
+            // Format as YYYY-MM-DD for date input
+            var year = date.getFullYear();
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var day = String(date.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        } catch (e) {
+            return null;
+        }
+    }
+    
     $scope.showEditModal = function(period) {
         $scope.currentPeriod = angular.copy(period);
-        // Convert date strings to Date objects
-        $scope.currentPeriod.startDate = new Date($scope.currentPeriod.startDate);
-        $scope.currentPeriod.endDate = new Date($scope.currentPeriod.endDate);
+        // Format dates for date inputs to avoid AngularJS datefmt error
+        $scope.currentPeriod.startDate = formatDateForInput($scope.currentPeriod.startDate);
+        $scope.currentPeriod.endDate = formatDateForInput($scope.currentPeriod.endDate);
         $('#periodModal').modal('show');
     };
     

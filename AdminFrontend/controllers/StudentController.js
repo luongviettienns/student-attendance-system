@@ -551,11 +551,31 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
     };
     
     // Load student by ID for editing
+    // Format date for date input (YYYY-MM-DD format)
+    function formatDateForInput(dateString) {
+        if (!dateString) return null;
+        try {
+            var date = new Date(dateString);
+            if (isNaN(date.getTime())) return null;
+            // Format as YYYY-MM-DD for date input
+            var year = date.getFullYear();
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var day = String(date.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        } catch (e) {
+            return null;
+        }
+    }
+    
     $scope.loadStudent = function(id) {
         $scope.loadingStates.students = true;
         StudentService.getById(id)
             .then(function(response) {
                 $scope.student = response.data;
+                // Format dates for date inputs to avoid AngularJS datefmt error
+                if ($scope.student.dob) {
+                    $scope.student.dob = formatDateForInput($scope.student.dob);
+                }
                 $scope.isEditMode = true;
                 $scope.loadingStates.students = false;
             })

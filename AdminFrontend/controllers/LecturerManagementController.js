@@ -147,8 +147,28 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
         ModalUtils.open('lecturerModal');
     };
 
+    // Format date for date input (YYYY-MM-DD format)
+    function formatDateForInput(dateString) {
+        if (!dateString) return null;
+        try {
+            var date = new Date(dateString);
+            if (isNaN(date.getTime())) return null;
+            // Format as YYYY-MM-DD for date input
+            var year = date.getFullYear();
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var day = String(date.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        } catch (e) {
+            return null;
+        }
+    }
+    
     $scope.editLecturer = function(lecturer) {
         $scope.lecturerForm = angular.copy(lecturer);
+        // Format dates for date inputs to avoid AngularJS datefmt error
+        if ($scope.lecturerForm.joinDate) {
+            $scope.lecturerForm.joinDate = formatDateForInput($scope.lecturerForm.joinDate);
+        }
         ModalUtils.open('lecturerModal');
     };
 

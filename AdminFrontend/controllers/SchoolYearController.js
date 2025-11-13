@@ -95,12 +95,35 @@ app.controller('SchoolYearController', ['$scope', '$location', '$routeParams', '
             });
     };
     
+    // Format date for date input (YYYY-MM-DD format)
+    function formatDateForInput(dateString) {
+        if (!dateString) return null;
+        try {
+            var date = new Date(dateString);
+            if (isNaN(date.getTime())) return null;
+            // Format as YYYY-MM-DD for date input
+            var year = date.getFullYear();
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var day = String(date.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        } catch (e) {
+            return null;
+        }
+    }
+    
     // Load school year by ID for editing
     $scope.loadSchoolYear = function(id) {
         $scope.loading = true;
         SchoolYearService.getById(id)
             .then(function(response) {
                 $scope.schoolYear = response.data;
+                // Format dates for date inputs to avoid AngularJS datefmt error
+                if ($scope.schoolYear.startDate) {
+                    $scope.schoolYear.startDate = formatDateForInput($scope.schoolYear.startDate);
+                }
+                if ($scope.schoolYear.endDate) {
+                    $scope.schoolYear.endDate = formatDateForInput($scope.schoolYear.endDate);
+                }
                 $scope.isEditMode = true;
                 $scope.loading = false;
             })

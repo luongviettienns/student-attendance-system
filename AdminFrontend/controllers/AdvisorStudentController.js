@@ -79,7 +79,7 @@ app.controller('AdvisorStudentController', [
             $scope.student = student;
             $scope.loadingStudent = false;
         }).catch(function(error) {
-            console.error('Error loading student detail:', error);
+            // Error('Error loading student detail:', error);
             $scope.errorStudent = error.message || error.data?.message || 'Lỗi khi tải thông tin sinh viên';
             $scope.loadingStudent = false;
             ToastService.error('Lỗi khi tải thông tin sinh viên');
@@ -95,7 +95,7 @@ app.controller('AdvisorStudentController', [
             var data = response.data?.data || response.data || [];
             $scope.schoolYears = Array.isArray(data) ? data : [];
         }).catch(function(error) {
-            console.error('Error loading school years:', error);
+            // Error('Error loading school years:', error);
         });
         
         // Load subjects
@@ -103,7 +103,7 @@ app.controller('AdvisorStudentController', [
             var data = response.data?.data || response.data || [];
             $scope.subjects = Array.isArray(data) ? data : [];
         }).catch(function(error) {
-            console.error('Error loading subjects:', error);
+            // Error('Error loading subjects:', error);
         }).finally(function() {
             $scope.loadingFilters = false;
         });
@@ -125,7 +125,7 @@ app.controller('AdvisorStudentController', [
             $scope.gradesSummary = response.summary || {};
             $scope.loadingGrades = false;
         }).catch(function(error) {
-            console.error('Error loading grades:', error);
+            // Error('Error loading grades:', error);
             $scope.errorGrades = error.message || error.data?.message || 'Lỗi khi tải bảng điểm';
             $scope.loadingGrades = false;
             ToastService.error('Lỗi khi tải bảng điểm');
@@ -151,7 +151,7 @@ app.controller('AdvisorStudentController', [
             };
             $scope.loadingAttendance = false;
         }).catch(function(error) {
-            console.error('Error loading attendance:', error);
+            // Error('Error loading attendance:', error);
             $scope.errorAttendance = error.message || error.data?.message || 'Lỗi khi tải điểm danh';
             $scope.loadingAttendance = false;
             ToastService.error('Lỗi khi tải điểm danh');

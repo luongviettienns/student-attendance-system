@@ -30,15 +30,18 @@
     <link rel="stylesheet" href="css/fontawesome/all.min.css">
     
     <!-- jQuery -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     
     <!-- AngularJS -->
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-route.min.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.2/angular-animate.min.js"></script>
     
-    <!-- SignalR Client -->
-    <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@7.0.0/dist/browser/signalr.min.js"></script>
+    <!-- AngularJS Date Format Fix - Must load after AngularJS but before app.js -->
+    <script src="js/angularDateFix.js"></script>
+    
+    <!-- SignalR Client - Using local file to avoid Tracking Prevention warnings -->
+    <script src="js/signalr.min.js"></script>
     
     <!-- SheetJS for Excel Import/Export (Local) -->
     <script src="js/xlsx.full.min.js"></script>
@@ -150,10 +153,14 @@
     <script src="directives/sidebar.js"></script>
     <script src="directives/topbar.js"></script>
     <script src="directives/toastContainer.js"></script>
+    <script src="directives/dateInput.js"></script>
     
     <!-- UI Scripts -->
     <script src="js/sidebar.js"></script>
     <script src="js/modal.js"></script>
+    
+    <!-- Date Debug Helper (remove in production) -->
+    <script src="js/dateDebug.js"></script>
 </head>
 <body>
     <!-- Toast Notifications Container -->

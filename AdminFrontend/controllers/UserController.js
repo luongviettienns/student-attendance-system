@@ -29,9 +29,15 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', '$timeo
     $scope.loadUsers = function() {
         // Check if user is Admin before loading
         var currentUser = AuthService.getCurrentUser();
-        var userRole = currentUser?.roleName || currentUser?.Role || '';
+        if (!currentUser) {
+            $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
+            $scope.loading = false;
+            return;
+        }
         
-        if (userRole !== 'Admin') {
+        var userRole = currentUser.roleName || currentUser.Role || currentUser.role || '';
+        
+        if (userRole !== 'Admin' && userRole !== 'Quản trị viên') {
             $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
             $scope.loading = false;
             return;
@@ -294,36 +300,42 @@ app.controller('UserController', ['$scope', '$location', '$routeParams', '$timeo
     // Initialize based on route
     // Check if user is Admin before loading
     var currentUser = AuthService.getCurrentUser();
-    var userRole = currentUser?.roleName || currentUser?.Role || '';
-    
-    if ($location.path() === '/users') {
-        if (userRole === 'Admin') {
-            $scope.loadUsers();
-            $scope.loadRoles(); // Load roles for filter
-        } else {
-            $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
-            $scope.loading = false;
-        }
-    } else if ($routeParams.id) {
-        if (userRole === 'Admin') {
-            $scope.loadUser($routeParams.id);
-            $scope.loadRoles();
-        } else {
-            $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
-            $scope.loading = false;
-        }
+    if (!currentUser) {
+        $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
+        $scope.loading = false;
     } else {
-        // Create mode - set default values
-        $scope.user = {
-            isActive: true,
-            username: '',
-            fullName: '',
-            email: '',
-            phone: '',
-            roleId: '',
-            password: ''
-        };
-        $scope.loadRoles();
+        var userRole = currentUser.roleName || currentUser.Role || currentUser.role || '';
+        var isAdmin = (userRole === 'Admin' || userRole === 'Quản trị viên');
+        
+        if ($location.path() === '/users') {
+            if (isAdmin) {
+                $scope.loadUsers();
+                $scope.loadRoles(); // Load roles for filter
+            } else {
+                $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
+                $scope.loading = false;
+            }
+        } else if ($routeParams.id) {
+            if (isAdmin) {
+                $scope.loadUser($routeParams.id);
+                $scope.loadRoles();
+            } else {
+                $scope.error = 'Bạn không có quyền quản lý người dùng. Chỉ Admin mới có quyền này.';
+                $scope.loading = false;
+            }
+        } else {
+            // Create mode - set default values
+            $scope.user = {
+                isActive: true,
+                username: '',
+                fullName: '',
+                email: '',
+                phone: '',
+                roleId: '',
+                password: ''
+            };
+            $scope.loadRoles();
+        }
     }
 }]);
 

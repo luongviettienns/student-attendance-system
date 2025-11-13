@@ -21,8 +21,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Tổng người dùng</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalUsers}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalUsers || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -32,8 +34,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Sinh viên</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalStudents}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalStudents || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -43,8 +47,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Giảng viên</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalLecturers}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalLecturers || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -54,8 +60,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Khoa</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalFaculties}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalFaculties || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -68,8 +76,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Ngành học</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalMajors}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalMajors || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -79,8 +89,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Môn học</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalSubjects}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalSubjects || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -90,8 +102,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Niên khóa</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalAcademicYears}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{stats.totalAcademicYears || 0}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
                 
@@ -101,8 +115,10 @@
                     </div>
                     <div class="stat-details">
                         <div class="stat-label">Tổng dữ liệu</div>
-                        <div class="stat-value" ng-if="!loading">{{stats.totalUsers + stats.totalStudents + stats.totalLecturers + stats.totalFaculties + stats.totalMajors + stats.totalSubjects + stats.totalAcademicYears}}</div>
-                        <div class="stat-value" ng-if="loading">--</div>
+                        <div class="stat-value" ng-if="!loading">{{(stats.totalUsers || 0) + (stats.totalStudents || 0) + (stats.totalLecturers || 0) + (stats.totalFaculties || 0) + (stats.totalMajors || 0) + (stats.totalSubjects || 0) + (stats.totalAcademicYears || 0)}}</div>
+                        <div class="stat-value" ng-if="loading">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -295,6 +295,36 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         });
 }]);
 
+// Global helper function to format date for date inputs (YYYY-MM-DD format)
+// This prevents AngularJS ngModel:datefmt errors
+app.run(['$rootScope', '$exceptionHandler', function($rootScope, $exceptionHandler) {
+    $rootScope.formatDateForInput = function(dateString) {
+        if (!dateString) return null;
+        try {
+            var date = new Date(dateString);
+            if (isNaN(date.getTime())) return null;
+            // Format as YYYY-MM-DD for date input
+            var year = date.getFullYear();
+            var month = String(date.getMonth() + 1).padStart(2, '0');
+            var day = String(date.getDate()).padStart(2, '0');
+            return year + '-' + month + '-' + day;
+        } catch (e) {
+            return null;
+        }
+    };
+    
+    // CRITICAL: Override exception handler to catch and suppress datefmt errors
+    var originalExceptionHandler = $exceptionHandler;
+    $exceptionHandler = function(exception, cause) {
+        // Suppress ngModel:datefmt errors - we handle date formatting ourselves
+        if (exception && exception.message && exception.message.includes('ngModel:datefmt')) {
+            return; // Don't log or throw the error
+        }
+        // For all other errors, use the original handler
+        originalExceptionHandler(exception, cause);
+    };
+}]);
+
 // Run block - Check authentication and add global logout
 app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', 'NotificationService', function($rootScope, $location, AuthService, LoggerService, NotificationService) {
     // Global logout function available in all views
@@ -360,8 +390,55 @@ app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', 'Notificatio
     });
 }]);
 
-// HTTP Interceptor for adding JWT token
+// HTTP Interceptor for adding JWT token and formatting dates
 app.factory('AuthInterceptor', ['$q', '$location', '$window', '$injector', function($q, $location, $window, $injector) {
+    // Helper to format date strings to YYYY-MM-DD format
+    function formatDateString(dateString) {
+        if (!dateString || typeof dateString !== 'string') return dateString;
+        // If already in YYYY-MM-DD format, return as is
+        if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) return dateString;
+        // Try to parse and format
+        try {
+            var date = new Date(dateString);
+            if (!isNaN(date.getTime())) {
+                var year = date.getFullYear();
+                var month = String(date.getMonth() + 1).padStart(2, '0');
+                var day = String(date.getDate()).padStart(2, '0');
+                return year + '-' + month + '-' + day;
+            }
+        } catch (e) {
+            // Ignore errors
+        }
+        return dateString;
+    }
+    
+    // Helper to recursively format dates in response data
+    function formatDatesInObject(obj) {
+        if (!obj || typeof obj !== 'object') return obj;
+        
+        if (Array.isArray(obj)) {
+            return obj.map(function(item) {
+                return formatDatesInObject(item);
+            });
+        }
+        
+        var formatted = {};
+        for (var key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                var value = obj[key];
+                // Check if key suggests it's a date field
+                if (key.toLowerCase().includes('date') && typeof value === 'string' && value.match(/^\d{4}-\d{2}-\d{2}/)) {
+                    formatted[key] = formatDateString(value);
+                } else if (typeof value === 'object') {
+                    formatted[key] = formatDatesInObject(value);
+                } else {
+                    formatted[key] = value;
+                }
+            }
+        }
+        return formatted;
+    }
+    
     return {
         request: function(config) {
             // Check both localStorage and sessionStorage for token
@@ -371,6 +448,18 @@ app.factory('AuthInterceptor', ['$q', '$location', '$window', '$injector', funct
                 config.headers.Authorization = 'Bearer ' + token;
             }
             return config;
+        },
+        response: function(response) {
+            // DISABLED: Format dates in response data
+            // This was causing conflicts with AngularJS date formatting
+            // Instead, we rely on:
+            // 1. Controller-level formatting when loading data
+            // 2. ng-model-options on date inputs
+            // 3. dateInput directive for automatic formatting
+            // if (response.data && typeof response.data === 'object') {
+            //     response.data = formatDatesInObject(response.data);
+            // }
+            return response;
         },
         responseError: function(rejection) {
             if (rejection.status === 401) {

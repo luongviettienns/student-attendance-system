@@ -51,7 +51,9 @@
                             
                             <div class="form-group">
                                 <label class="form-label">Ngày sinh</label>
-                                <input type="date" class="form-control" ng-model="student.dob">
+                                <input type="date" class="form-control" 
+                                       ng-model="student.dob"
+                                       ng-model-options="{ timezone: 'UTC' }">
                             </div>
                         </div>
                         

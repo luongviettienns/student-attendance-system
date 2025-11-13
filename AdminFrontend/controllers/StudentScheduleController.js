@@ -39,6 +39,8 @@ app.controller('StudentScheduleController', ['$scope', 'AuthService', 'Timetable
             });
     }
     
+    var currentWeekDate = new Date();
+    
     // Load schedule
     function loadSchedule() {
         if (!$scope.studentId) {
@@ -46,42 +48,10 @@ app.controller('StudentScheduleController', ['$scope', 'AuthService', 'Timetable
             return;
         }
         
-        $scope.loading = true;
         var today = new Date();
         var iso = getIsoWeek(today);
-        
-        TimetableApi.getStudentWeek($scope.studentId, iso.year, iso.week)
-            .then(function(res) {
-                var data = (res.data && res.data.data) || [];
-                
-                // Build weekly schedule
-                $scope.weeklySchedule = data;
-                
-                // Build schedule list with dates
-                $scope.scheduleList = data.map(function(s) {
-                    var date = getDateForWeekday(iso.year, iso.week, s.weekday);
-                    return {
-                        dayOfWeek: s.weekday,
-                        date: formatDate(date),
-                        period: s.period || 'N/A',
-                        startTime: s.startTime || 'N/A',
-                        endTime: s.endTime || 'N/A',
-                        subjectName: s.subjectName || 'N/A',
-                        lecturerName: s.lecturerName || 'N/A',
-                        room: s.roomCode || 'N/A'
-                    };
-                });
-                
-                // Set week range
-                var weekStart = getDateForWeekday(iso.year, iso.week, 1);
-                var weekEnd = getDateForWeekday(iso.year, iso.week, 7);
-                $scope.currentWeekRange = formatDate(weekStart) + ' - ' + formatDate(weekEnd);
-                
-                $scope.loading = false;
-            })
-            .catch(function(error) {
-                $scope.loading = false;
-            });
+        currentWeekDate = today;
+        loadScheduleForWeek(iso.year, iso.week);
     }
     
     function getIsoWeek(d) {
@@ -94,11 +64,20 @@ app.controller('StudentScheduleController', ['$scope', 'AuthService', 'Timetable
     }
     
     function getDateForWeekday(year, week, weekday) {
-        var date = new Date(year, 0, 1);
-        var dayNum = date.getDay() || 7;
-        var diff = (weekday - dayNum + 7) % 7;
-        date.setDate(date.getDate() + (week - 1) * 7 + diff - 3);
-        return date;
+        // ISO week calculation: Monday (1) is first day of week
+        // Get January 4th of the year (always in week 1 of ISO week)
+        var jan4 = new Date(year, 0, 4);
+        var jan4Day = jan4.getDay() || 7; // Convert Sunday (0) to 7
+        
+        // Calculate the Monday of week 1
+        var mondayOfWeek1 = new Date(jan4);
+        mondayOfWeek1.setDate(jan4.getDate() - (jan4Day - 1));
+        
+        // Calculate the date for the given week and weekday
+        var targetDate = new Date(mondayOfWeek1);
+        targetDate.setDate(mondayOfWeek1.getDate() + (week - 1) * 7 + (weekday - 1));
+        
+        return targetDate;
     }
     
     function formatDate(date) {
@@ -121,14 +100,62 @@ app.controller('StudentScheduleController', ['$scope', 'AuthService', 'Timetable
     };
     
     $scope.previousWeek = function() {
-        // TODO: Implement previous week navigation
-        alert('Chức năng xem tuần trước');
+        currentWeekDate.setDate(currentWeekDate.getDate() - 7);
+        var iso = getIsoWeek(currentWeekDate);
+        loadScheduleForWeek(iso.year, iso.week);
     };
     
     $scope.nextWeek = function() {
-        // TODO: Implement next week navigation
-        alert('Chức năng xem tuần sau');
+        currentWeekDate.setDate(currentWeekDate.getDate() + 7);
+        var iso = getIsoWeek(currentWeekDate);
+        loadScheduleForWeek(iso.year, iso.week);
     };
+    
+    $scope.loadSchedule = function() {
+        currentWeekDate = new Date();
+        var iso = getIsoWeek(currentWeekDate);
+        loadScheduleForWeek(iso.year, iso.week);
+    };
+    
+    function loadScheduleForWeek(year, week) {
+        if (!$scope.studentId) {
+            return;
+        }
+        
+        $scope.loading = true;
+        TimetableApi.getStudentWeek($scope.studentId, year, week)
+            .then(function(res) {
+                var data = (res.data && res.data.data) || [];
+                
+                // Build weekly schedule
+                $scope.weeklySchedule = data;
+                
+                // Build schedule list with dates
+                $scope.scheduleList = data.map(function(s) {
+                    var date = getDateForWeekday(year, week, s.weekday);
+                    return {
+                        dayOfWeek: s.weekday,
+                        date: formatDate(date),
+                        period: s.period || 'N/A',
+                        startTime: s.startTime || 'N/A',
+                        endTime: s.endTime || 'N/A',
+                        subjectName: s.subjectName || 'N/A',
+                        lecturerName: s.lecturerName || 'N/A',
+                        room: s.roomCode || 'N/A'
+                    };
+                });
+                
+                // Set week range
+                var weekStart = getDateForWeekday(year, week, 1);
+                var weekEnd = getDateForWeekday(year, week, 7);
+                $scope.currentWeekRange = formatDate(weekStart) + ' - ' + formatDate(weekEnd);
+                
+                $scope.loading = false;
+            })
+            .catch(function(error) {
+                $scope.loading = false;
+            });
+    }
     
     // Initialize
     loadStudentId();

@@ -93,6 +93,14 @@ app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location
     var i = getIsoWeek(d);
     $scope.year = i.year; $scope.week = i.week; $scope.load();
   };
+  
+  $scope.goToToday = function(){
+    $scope.today = new Date();
+    var i = getIsoWeek($scope.today);
+    $scope.year = i.year;
+    $scope.week = i.week;
+    $scope.load();
+  };
 
   // Initialize
   loadStudentId();

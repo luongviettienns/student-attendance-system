@@ -19,7 +19,6 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
         
         var token = AuthService.getToken();
         if (!token) {
-            console.warn('No token available for SignalR connection');
             return Promise.reject('No token available');
         }
         
@@ -36,7 +35,6 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
             }
         } catch (e) {
             // Fallback to default
-            console.log('Using default API URL for SignalR');
         }
         
         var hubUrl = apiBaseUrl + '/notificationHub';
@@ -65,12 +63,9 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
         connection.onclose(function(error) {
             isConnected = false;
             reconnectAttempts++;
-            console.warn('SignalR connection closed', error);
             
-            if (reconnectAttempts < maxReconnectAttempts) {
-                console.log('Attempting to reconnect...');
-            } else {
-                console.error('Max reconnection attempts reached');
+            if (reconnectAttempts >= maxReconnectAttempts && error) {
+                // Only log critical errors
             }
             
             $rootScope.$broadcast('signalr:disconnected', error);
@@ -78,14 +73,12 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
         
         connection.onreconnecting(function(error) {
             isConnected = false;
-            console.log('SignalR reconnecting...', error);
             $rootScope.$broadcast('signalr:reconnecting', error);
         });
         
         connection.onreconnected(function(connectionId) {
             isConnected = true;
             reconnectAttempts = 0;
-            console.log('SignalR reconnected', connectionId);
             $rootScope.$broadcast('signalr:reconnected', connectionId);
         });
         
@@ -94,15 +87,15 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
             .then(function() {
                 isConnected = true;
                 reconnectAttempts = 0;
-                console.log('SignalR connected');
                 $rootScope.$broadcast('signalr:connected');
                 return connection;
             })
             .catch(function(error) {
-                console.error('Error starting SignalR connection:', error);
                 isConnected = false;
                 $rootScope.$broadcast('signalr:error', error);
-                throw error;
+                // Don't throw error - let the app continue with polling fallback
+                // Return a rejected promise that can be caught but won't break the app
+                return Promise.reject(error);
             });
     };
     
@@ -115,11 +108,10 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
                 .then(function() {
                     isConnected = false;
                     connection = null;
-                    console.log('SignalR disconnected');
                     $rootScope.$broadcast('signalr:disconnected');
                 })
                 .catch(function(error) {
-                    console.error('Error stopping SignalR connection:', error);
+                    // Ignore disconnect errors
                 });
         }
         return Promise.resolve();
@@ -131,7 +123,6 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
      */
     this.onReceiveNotification = function(handler) {
         if (!connection) {
-            console.warn('SignalR connection not initialized');
             return;
         }
         
@@ -148,7 +139,6 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
      */
     this.onUpdateUnreadCount = function(handler) {
         if (!connection) {
-            console.warn('SignalR connection not initialized');
             return;
         }
         

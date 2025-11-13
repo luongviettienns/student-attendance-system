@@ -50,7 +50,7 @@ app.controller('AdvisorDashboardController', ['$scope', '$location', 'AuthServic
             };
             $scope.loadingStats = false;
         }).catch(function(error) {
-            console.error('Error loading dashboard stats:', error);
+            // Error('Error loading dashboard stats:', error);
             $scope.errorStats = error.data?.message || 'Lỗi khi tải thống kê';
             $scope.loadingStats = false;
             ToastService.error('Lỗi khi tải thống kê dashboard');
@@ -81,7 +81,7 @@ app.controller('AdvisorDashboardController', ['$scope', '$location', 'AuthServic
             };
             $scope.loadingWarningStudents = false;
         }).catch(function(error) {
-            console.error('Error loading warning students:', error);
+            // Error('Error loading warning students:', error);
             $scope.errorWarningStudents = error.data?.message || 'Lỗi khi tải danh sách sinh viên cảnh báo';
             $scope.loadingWarningStudents = false;
             ToastService.error('Lỗi khi tải danh sách sinh viên cảnh báo');
@@ -104,7 +104,7 @@ app.controller('AdvisorDashboardController', ['$scope', '$location', 'AuthServic
             $scope.stats.pendingEnrollments = totalCount;
             $scope.loadingPendingEnrollments = false;
         }).catch(function(error) {
-            console.error('Error loading pending enrollments count:', error);
+            // Error('Error loading pending enrollments count:', error);
             $scope.stats.pendingEnrollments = 0;
             $scope.loadingPendingEnrollments = false;
             // Don't show error toast for this - it's just a count widget

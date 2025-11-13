@@ -318,7 +318,6 @@ body {
 
 /* Header */
 .header {
-    height: var(--header-height);
     background-color: var(--bg-primary);
     border-bottom: 2px solid var(--border-color);
     padding: 0 24px;
@@ -329,12 +328,38 @@ body {
     top: 0;
     z-index: 100;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    min-height: var(--header-height);
+}
+
+/* Desktop: Single row layout */
+.header-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 16px;
+}
+
+.header-bottom-row {
+    display: none; /* Hide on desktop */
 }
 
 .header-left {
     display: flex;
     align-items: center;
     gap: 16px;
+    flex: 1;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.header-notifications {
+    display: flex;
+    align-items: center;
 }
 
 .menu-toggle {
@@ -351,6 +376,10 @@ body {
     justify-content: center;
     width: 40px;
     height: 40px;
+    position: relative;
+    z-index: 101; /* Higher than header z-index (100) */
+    pointer-events: auto !important; /* Ensure clickable */
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1); /* Mobile tap highlight */
 }
 
 .menu-toggle:hover {
@@ -375,12 +404,7 @@ body {
     font-size: 24px;
 }
 
-/* Header Right - User Menu */
-.header-right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-}
+/* Header Right - User Menu (Desktop only, mobile uses bottom row) */
 
 .user-info {
     display: flex;
@@ -580,6 +604,9 @@ p {
     
     .header {
         padding: 0 20px;
+    }
+    
+    .header-top-row {
         gap: 12px;
     }
     
@@ -590,7 +617,7 @@ p {
     }
     
     /* Hide user details on tablet */
-    .user-details {
+    .header-right .user-details {
         display: none;
     }
 }
@@ -599,76 +626,133 @@ p {
 @media (max-width: 767px) {
     :root {
         --sidebar-width: 260px;
-        --header-height: 56px;
+        --header-height: auto;
     }
     
     .page-title {
         font-size: 16px;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     
     .content-body {
         padding: 15px;
     }
     
+    /* Mobile: 2-row layout */
     .header {
-        padding: 0 15px;
-        flex-wrap: wrap;
-        gap: 12px;
+        padding: 10px 15px;
+        flex-direction: column;
+        gap: 10px;
+        min-height: auto;
     }
     
-    .header-right {
-        gap: 12px;
-        justify-content: space-between;
-    }
-    
-    .header-left,
-    .header-right {
-        width: 100%;
+    /* Top Row: Menu + Title + Notifications */
+    .header-top-row {
         display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        gap: 12px;
     }
     
     .header-left {
-        justify-content: space-between;
+        flex: 1;
+        min-width: 0; /* Allow title to shrink */
+        gap: 12px;
+    }
+    
+    .header-notifications {
+        flex-shrink: 0;
+    }
+    
+    /* Bottom Row: User Info + Logout */
+    .header-bottom-row {
+        display: flex;
         align-items: center;
-    }
-    
-    .header-right > * {
-        flex: 1 1 48%;
-        margin-bottom: 8px;
-    }
-    
-    .header-right > *:last-child {
-        margin-bottom: 0;
-    }
-    
-    .header-right notification-bell,
-    .header-right .user-info {
-        flex: 1 1 100%;
-    }
-    
-    .header-right notification-bell {
-        display: block;
-    }
-    
-    .user-info {
         justify-content: space-between;
         width: 100%;
+        gap: 10px;
+        padding-top: 8px;
+        border-top: 1px solid var(--border-color);
+    }
+    
+    /* Hide desktop header-right on mobile */
+    .header-top-row .header-right {
+        display: none;
+    }
+    
+    /* Show mobile bottom row */
+    .header-bottom-row {
+        display: flex;
+    }
+    
+    /* User Info on Mobile */
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
         padding: 8px 12px;
         border: 1px solid var(--border-color);
         border-radius: var(--border-radius);
-        background-color: var(--bg-primary);
+        background-color: var(--bg-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .user-info:active {
+        background-color: var(--bg-tertiary);
     }
     
     .user-info .user-avatar {
-        margin-right: 12px;
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+    
+    .user-info .user-details {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
     }
     
     .user-info .user-name {
         font-size: 14px;
+        font-weight: 600;
+        color: var(--text-primary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     
     .user-info .user-role {
-        font-size: 12px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    /* Logout Button on Mobile */
+    .btn-logout-mobile {
+        flex-shrink: 0;
+        padding: 8px 12px;
+        min-width: auto;
+    }
+    
+    .btn-logout-mobile .logout-text {
+        display: none;
+    }
+    
+    .btn-logout-mobile i {
+        margin: 0;
+        font-size: 16px;
     }
     
     /* Responsive cards grid */
@@ -787,19 +871,59 @@ p {
     }
     
     .page-title {
-        font-size: 15px;
+        font-size: 14px;
     }
     
     .header {
-        padding: 0 12px;
+        padding: 8px 12px;
+        gap: 8px;
     }
     
-    .header-right > * {
-        flex: 1 1 100%;
+    .header-top-row {
+        gap: 10px;
     }
     
-    .header-right .btn {
-        width: 100%;
+    .header-bottom-row {
+        gap: 8px;
+        padding-top: 6px;
+    }
+    
+    .header-left {
+        gap: 10px;
+    }
+    
+    .menu-toggle {
+        width: 36px;
+        height: 36px;
+        font-size: 18px;
+    }
+    
+    .user-info {
+        padding: 6px 10px;
+        gap: 8px;
+    }
+    
+    .user-info .user-avatar {
+        width: 32px;
+        height: 32px;
+        font-size: 13px;
+    }
+    
+    .user-info .user-name {
+        font-size: 13px;
+    }
+    
+    .user-info .user-role {
+        font-size: 10px;
+    }
+    
+    .btn-logout-mobile {
+        padding: 6px 10px;
+        min-width: 40px;
+    }
+    
+    .btn-logout-mobile i {
+        font-size: 15px;
     }
     
     .stats-grid {

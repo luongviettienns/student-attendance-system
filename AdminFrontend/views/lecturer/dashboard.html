@@ -68,7 +68,8 @@
                         <p>Không có lịch giảng dạy hôm nay</p>
                     </div>
                     
-                    <div ng-if="!loading && todaySchedule.length > 0" class="table-responsive">
+                    <!-- Desktop Table View -->
+                    <div ng-if="!loading && todaySchedule.length > 0" class="table-responsive desktop-view">
                         <table class="table">
                             <thead>
                                 <tr>
@@ -106,6 +107,50 @@
                                 </tr>
                             </tbody>
                         </table>
+                    </div>
+                    
+                    <!-- Mobile Card View -->
+                    <div ng-if="!loading && todaySchedule.length > 0" class="mobile-view">
+                        <div ng-repeat="schedule in todaySchedule" class="schedule-card-item">
+                            <div class="schedule-card-header">
+                                <span class="schedule-period">{{schedule.period}}</span>
+                                <span class="schedule-status-badge badge" ng-class="{
+                                    'badge-success': schedule.status === 'completed',
+                                    'badge-warning': schedule.status === 'in_progress',
+                                    'badge-secondary': schedule.status === 'pending'
+                                }">
+                                    {{schedule.status === 'completed' ? 'Đã hoàn thành' : 
+                                      schedule.status === 'in_progress' ? 'Đang diễn ra' : 'Chưa bắt đầu'}}
+                                </span>
+                            </div>
+                            <div class="schedule-card-body">
+                                <div class="schedule-info-row">
+                                    <i class="fas fa-book"></i>
+                                    <strong>Môn học:</strong>
+                                    <span>{{schedule.subjectName}}</span>
+                                </div>
+                                <div class="schedule-info-row">
+                                    <i class="fas fa-users"></i>
+                                    <strong>Lớp:</strong>
+                                    <span>{{schedule.className}}</span>
+                                </div>
+                                <div class="schedule-info-row">
+                                    <i class="fas fa-door-open"></i>
+                                    <strong>Phòng:</strong>
+                                    <span>{{schedule.room}}</span>
+                                </div>
+                                <div class="schedule-info-row">
+                                    <i class="fas fa-clock"></i>
+                                    <strong>Thời gian:</strong>
+                                    <span>{{schedule.startTime}} - {{schedule.endTime}}</span>
+                                </div>
+                            </div>
+                            <div class="schedule-card-footer">
+                                <a href="#!/lecturer/attendance/{{schedule.id}}" class="btn btn-primary btn-block">
+                                    <i class="fas fa-clipboard-check"></i> Điểm danh
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

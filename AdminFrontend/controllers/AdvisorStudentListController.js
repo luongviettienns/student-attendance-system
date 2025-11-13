@@ -72,7 +72,7 @@ app.controller('AdvisorStudentListController', [
         }).catch(function(error) {
             // Suppress 403 errors (permission denied) - Advisor may not have access
             if (error.status !== 403) {
-                console.error('Error loading faculties:', error);
+                // Error('Error loading faculties:', error);
             }
             $scope.faculties = [];
         }).finally(function() {
@@ -90,7 +90,7 @@ app.controller('AdvisorStudentListController', [
             }).catch(function(error) {
                 // Suppress 403 errors (permission denied)
                 if (error.status !== 403) {
-                    console.error('Error loading majors:', error);
+                    // Error('Error loading majors:', error);
                 }
                 $scope.majors = [];
             }).finally(function() {
@@ -113,7 +113,7 @@ app.controller('AdvisorStudentListController', [
             }).catch(function(error) {
                 // Suppress 403 errors (permission denied)
                 if (error.status !== 403) {
-                    console.error('Error loading classes:', error);
+                    // Error('Error loading classes:', error);
                 }
                 $scope.classes = [];
             }).finally(function() {
@@ -171,7 +171,7 @@ app.controller('AdvisorStudentListController', [
             };
             $scope.loadingStudents = false;
         }).catch(function(error) {
-            console.error('Error loading students:', error);
+            // Error('Error loading students:', error);
             $scope.errorStudents = error.message || error.data?.message || 'Lỗi khi tải danh sách sinh viên';
             $scope.students = [];
             $scope.loadingStudents = false;

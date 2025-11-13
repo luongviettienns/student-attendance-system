@@ -53,7 +53,6 @@ app.controller('AdvisorRetakeController', [
                 })
                 .catch(function(error) {
                     $scope.loadingFilters = false;
-                    console.error('Error loading classes:', error);
                 });
         }
         

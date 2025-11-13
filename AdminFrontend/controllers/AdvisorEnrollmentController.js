@@ -72,7 +72,7 @@ app.controller('AdvisorEnrollmentController', [
                     $scope.students = response.data.data || response.data || [];
                 })
                 .catch(function(error) {
-                    console.error('Error loading students:', error);
+                    // Error('Error loading students:', error);
                 });
             
             // Load classes
@@ -81,7 +81,7 @@ app.controller('AdvisorEnrollmentController', [
                     $scope.classes = response.data.data || response.data || [];
                 })
                 .catch(function(error) {
-                    console.error('Error loading classes:', error);
+                    // Error('Error loading classes:', error);
                 });
             
             // Load subjects
@@ -90,7 +90,7 @@ app.controller('AdvisorEnrollmentController', [
                     $scope.subjects = response.data.data || response.data || [];
                 })
                 .catch(function(error) {
-                    console.error('Error loading subjects:', error);
+                    // Error('Error loading subjects:', error);
                 });
             
             // Load school years
@@ -99,7 +99,7 @@ app.controller('AdvisorEnrollmentController', [
                     $scope.schoolYears = response.data.data || response.data || [];
                 })
                 .catch(function(error) {
-                    console.error('Error loading school years:', error);
+                    // Error('Error loading school years:', error);
                 });
         };
         
@@ -142,7 +142,7 @@ app.controller('AdvisorEnrollmentController', [
                 .catch(function(error) {
                     $scope.error = 'Không thể tải danh sách đăng ký: ' + (error.data?.message || error.message || 'Lỗi không xác định');
                     $scope.loading = false;
-                    console.error('Error loading enrollments:', error);
+                    // Error('Error loading enrollments:', error);
                 });
         };
         
@@ -163,7 +163,7 @@ app.controller('AdvisorEnrollmentController', [
                 })
                 .catch(function(error) {
                     ToastService.error('Không thể duyệt đăng ký: ' + (error.data?.message || error.message || 'Lỗi không xác định'));
-                    console.error('Error approving enrollment:', error);
+                    // Error('Error approving enrollment:', error);
                 });
         };
         

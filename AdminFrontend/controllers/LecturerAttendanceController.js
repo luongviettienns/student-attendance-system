@@ -2,35 +2,19 @@
 app.controller('LecturerAttendanceController', ['$scope', '$timeout', 'AuthService', function($scope, $timeout, AuthService) {
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.selectedClass = '';
-    $scope.attendanceDate = new Date().toISOString().split('T')[0];
+    
+    // Initialize attendanceDate as string in YYYY-MM-DD format
+    // Format immediately to prevent ngModel:datefmt errors
+    (function() {
+        var today = new Date();
+        var year = today.getFullYear();
+        var month = String(today.getMonth() + 1).padStart(2, '0');
+        var day = String(today.getDate()).padStart(2, '0');
+        $scope.attendanceDate = year + '-' + month + '-' + day;
+    })();
+    
     $scope.period = '';
     $scope.saving = false;
-    
-    // Ensure attendanceDate is always a string in YYYY-MM-DD format
-    // This prevents AngularJS date format errors when binding to type="date" input
-    $scope.$watch('attendanceDate', function(newVal) {
-        if (newVal && typeof newVal !== 'string') {
-            // If AngularJS converted it to a Date object, convert back to string
-            var dateStr = '';
-            if (newVal instanceof Date && !isNaN(newVal.getTime())) {
-                dateStr = newVal.toISOString().split('T')[0];
-            } else if (typeof newVal === 'object' && newVal.getFullYear) {
-                // Handle date-like objects
-                var year = newVal.getFullYear();
-                var month = newVal.getMonth() + 1;
-                var day = newVal.getDate();
-                // Pad with zeros (compatible with older browsers)
-                month = month < 10 ? '0' + month : month;
-                day = day < 10 ? '0' + day : day;
-                dateStr = year + '-' + month + '-' + day;
-            }
-            
-            // Update only if we have a valid date string
-            if (dateStr) {
-                $scope.attendanceDate = dateStr;
-            }
-        }
-    }, true); // Use objectEquality to catch Date object changes
     
     // Demo classes
     $scope.classes = [

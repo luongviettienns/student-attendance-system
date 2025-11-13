@@ -103,7 +103,7 @@ app.controller('AdvisorWarningController', [
             var data = response.data?.data || response.data || [];
             $scope.faculties = Array.isArray(data) ? data : [];
         }).catch(function(error) {
-            console.error('Error loading faculties:', error);
+            // Error('Error loading faculties:', error);
             $scope.faculties = [];
         }).finally(function() {
             $scope.loading.filters = false;
@@ -119,7 +119,7 @@ app.controller('AdvisorWarningController', [
                 var data = response.data?.data || response.data || [];
                 $scope.majors = Array.isArray(data) ? data : [];
             }).catch(function(error) {
-                console.error('Error loading majors:', error);
+                // Error('Error loading majors:', error);
                 $scope.majors = [];
             }).finally(function() {
                 $scope.loading.filters = false;
@@ -139,7 +139,7 @@ app.controller('AdvisorWarningController', [
                 var data = response.data?.data || response.data || [];
                 $scope.classes = Array.isArray(data) ? data : [];
             }).catch(function(error) {
-                console.error('Error loading classes:', error);
+                // Error('Error loading classes:', error);
                 $scope.classes = [];
             }).finally(function() {
                 $scope.loading.filters = false;
@@ -180,7 +180,7 @@ app.controller('AdvisorWarningController', [
             };
             $scope.loading.attendance = false;
         }).catch(function(error) {
-            console.error('Error loading attendance warnings:', error);
+            // Error('Error loading attendance warnings:', error);
             $scope.error.attendance = error.message || error.data?.message || 'Lỗi khi tải danh sách cảnh báo chuyên cần';
             $scope.loading.attendance = false;
             ToastService.error('Lỗi khi tải danh sách cảnh báo chuyên cần');
@@ -218,7 +218,7 @@ app.controller('AdvisorWarningController', [
             };
             $scope.loading.academic = false;
         }).catch(function(error) {
-            console.error('Error loading academic warnings:', error);
+            // Error('Error loading academic warnings:', error);
             $scope.error.academic = error.message || error.data?.message || 'Lỗi khi tải danh sách cảnh báo học tập';
             $scope.loading.academic = false;
             ToastService.error('Lỗi khi tải danh sách cảnh báo học tập');
@@ -291,7 +291,7 @@ app.controller('AdvisorWarningController', [
             $scope.loading.sending = false;
             ToastService.success('Email đã được gửi thành công');
         }).catch(function(error) {
-            console.error('Error sending email:', error);
+            // Error('Error sending email:', error);
             $scope.error.sending = error.message || error.data?.message || 'Lỗi khi gửi email';
             $scope.loading.sending = false;
             ToastService.error('Lỗi khi gửi email');
@@ -327,7 +327,7 @@ app.controller('AdvisorWarningController', [
             // Clear selected
             selected.length = 0;
         }).catch(function(error) {
-            console.error('Error sending bulk email:', error);
+            // Error('Error sending bulk email:', error);
             $scope.error.sending = error.message || error.data?.message || 'Lỗi khi gửi email';
             $scope.loading.sending = false;
             ToastService.error('Lỗi khi gửi email');
@@ -346,7 +346,7 @@ app.controller('AdvisorWarningController', [
             $scope.filters.academic.gpaThreshold = config.gpaThreshold || 2.0;
             $scope.loading.config = false;
         }).catch(function(error) {
-            console.error('Error loading warning config:', error);
+            // Error('Error loading warning config:', error);
             $scope.error.config = error.message || error.data?.message || 'Lỗi khi tải cấu hình';
             $scope.loading.config = false;
         });
@@ -367,7 +367,7 @@ app.controller('AdvisorWarningController', [
             $scope.filters.attendance.attendanceThreshold = $scope.warningConfig.attendanceThreshold;
             $scope.filters.academic.gpaThreshold = $scope.warningConfig.gpaThreshold;
         }).catch(function(error) {
-            console.error('Error saving warning config:', error);
+            // Error('Error saving warning config:', error);
             $scope.loading.config = false;
             ToastService.error('Lỗi khi lưu cấu hình');
         });

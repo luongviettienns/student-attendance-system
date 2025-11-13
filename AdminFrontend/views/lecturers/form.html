@@ -50,7 +50,9 @@
                             
                             <div class="form-group">
                                 <label class="form-label">Ngày vào làm</label>
-                                <input type="date" class="form-control" ng-model="lecturer.joinDate">
+                                <input type="date" class="form-control" 
+                                       ng-model="lecturer.joinDate"
+                                       ng-model-options="{ timezone: 'UTC' }">
                             </div>
                         </div>
                         
@@ -101,7 +103,9 @@
                                 
                                 <div class="form-group">
                                     <label class="form-label">Ngày chứng nhận</label>
-                                    <input type="date" class="form-control" ng-model="newAssignment.certifiedDate">
+                                    <input type="date" class="form-control" 
+                                           ng-model="newAssignment.certifiedDate"
+                                           ng-model-options="{ timezone: 'UTC' }">
                                 </div>
                             </div>
                             

@@ -29,14 +29,8 @@ app.service('ApiService', ['$http', '$q', 'API_CONFIG', 'CacheService', function
             }
             return response;
         }).catch(function(error) {
-            // Suppress 403 errors in console (permission errors are expected for non-admin users)
-            if (error.status === 403) {
-                // Don't log 403 errors to console - they're expected when users don't have permission
-                // The error will still be returned to the caller for proper handling
-            } else {
-                // Log other errors normally
-                console.error('API Error:', error);
-            }
+            // Suppress 403 errors (permission errors are expected for non-admin users)
+            // The error will still be returned to the caller for proper handling
             return $q.reject(error);
         });
     };
@@ -66,10 +60,7 @@ app.service('ApiService', ['$http', '$q', 'API_CONFIG', 'CacheService', function
         }
         
         return promise.catch(function(error) {
-            // Suppress 403 errors in console
-            if (error.status !== 403) {
-                console.error('API POST Error:', error);
-            }
+            // Suppress 403 errors (permission errors are expected)
             return $q.reject(error);
         });
     };
@@ -99,10 +90,7 @@ app.service('ApiService', ['$http', '$q', 'API_CONFIG', 'CacheService', function
         }
         
         return promise.catch(function(error) {
-            // Suppress 403 errors in console
-            if (error.status !== 403) {
-                console.error('API PUT Error:', error);
-            }
+            // Suppress 403 errors (permission errors are expected)
             return $q.reject(error);
         });
     };
@@ -135,10 +123,7 @@ app.service('ApiService', ['$http', '$q', 'API_CONFIG', 'CacheService', function
         }
         
         return promise.catch(function(error) {
-            // Suppress 403 errors in console
-            if (error.status !== 403) {
-                console.error('API DELETE Error:', error);
-            }
+            // Suppress 403 errors (permission errors are expected)
             return $q.reject(error);
         });
     };

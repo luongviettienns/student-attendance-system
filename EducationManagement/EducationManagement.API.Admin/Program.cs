@@ -215,6 +215,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 Console.WriteLine($"❌ JWT Invalid: {context.Exception.Message}");
                 Console.ResetColor();
                 return Task.CompletedTask;
+            },
+            // ✅ SignalR: Đọc JWT token từ query string (access_token)
+            OnMessageReceived = context =>
+            {
+                // SignalR gửi token qua query string, không phải header
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                
+                // Chỉ áp dụng cho SignalR hub endpoints
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notificationHub"))
+                {
+                    context.Token = accessToken;
+                }
+                
+                return Task.CompletedTask;
             }
             // Tắt OnTokenValidated để tránh log quá nhiều
         };

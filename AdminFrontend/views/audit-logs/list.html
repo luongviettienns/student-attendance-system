@@ -139,7 +139,8 @@
                                         <i class="fas fa-calendar-alt"></i> Từ ngày
                                     </label>
                                     <input type="date" 
-                                           ng-model="filters.dateFrom" 
+                                           ng-model="filters.dateFrom"
+                                           ng-model-options="{ timezone: 'UTC' }"
                                            ng-change="handleFilterChange()" 
                                            class="form-control">
                                 </div>
@@ -150,7 +151,8 @@
                                         <i class="fas fa-calendar-check"></i> Đến ngày
                                     </label>
                                     <input type="date" 
-                                           ng-model="filters.dateTo" 
+                                           ng-model="filters.dateTo"
+                                           ng-model-options="{ timezone: 'UTC' }"
                                            ng-change="handleFilterChange()" 
                                            class="form-control">
                                 </div>

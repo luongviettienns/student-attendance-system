@@ -113,14 +113,6 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
                 event.preventDefault();
                 var defaultRoute = getDefaultRouteForRole(role);
                 $location.path(defaultRoute);
-                // Debug: Log the issue
-                console.warn('[RouteGuard] Advisor access denied:', {
-                    role: role,
-                    path: path,
-                    isAdvisorRoute: isAdvisorRoute,
-                    isAllowed: isAllowed,
-                    defaultRoute: defaultRoute
-                });
                 ToastService.warning('Bạn không có quyền truy cập trang này');
                 return;
             }

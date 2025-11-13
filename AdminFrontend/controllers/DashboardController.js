@@ -232,10 +232,16 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
     $scope.loadStats = function() {
         // Check if user is Admin - only load admin stats for Admin role
         var currentUser = AuthService.getCurrentUser();
-        var userRole = currentUser?.roleName || currentUser?.Role || '';
+        if (!currentUser) {
+            $scope.loading = false;
+            $scope.error = null;
+            return;
+        }
+        
+        var userRole = currentUser.roleName || currentUser.Role || currentUser.role || '';
         
         // Only load admin statistics if user is Admin
-        if (userRole !== 'Admin') {
+        if (userRole !== 'Admin' && userRole !== 'Quản trị viên') {
             $scope.loading = false;
             $scope.error = null;
             // Don't load stats for non-admin users
@@ -313,10 +319,17 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
     $scope.loadRecentAuditLogs = function() {
         // Check if user is Admin - only load audit logs for Admin role
         var currentUser = AuthService.getCurrentUser();
-        var userRole = currentUser?.roleName || currentUser?.Role || '';
+        if (!currentUser) {
+            $scope.allAuditLogs = [];
+            $scope.recentAuditLogs = [];
+            $scope.filteredAllAuditLogs = [];
+            return;
+        }
+        
+        var userRole = currentUser.roleName || currentUser.Role || currentUser.role || '';
         
         // Only load audit logs if user is Admin
-        if (userRole !== 'Admin') {
+        if (userRole !== 'Admin' && userRole !== 'Quản trị viên') {
             $scope.allAuditLogs = [];
             $scope.recentAuditLogs = [];
             $scope.filteredAllAuditLogs = [];

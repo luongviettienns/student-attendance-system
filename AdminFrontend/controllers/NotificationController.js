@@ -81,7 +81,6 @@ app.controller('NotificationController', ['$scope', '$location', 'NotificationSe
             .catch(function(error) {
                 $scope.error = 'Không thể tải thông báo: ' + (error.data?.message || error.message || 'Lỗi không xác định');
                 $scope.loading = false;
-                console.error('Error loading notifications:', error);
             });
     };
     
@@ -369,17 +368,13 @@ app.controller('NotificationBellController', ['$scope', '$interval', '$location'
     function initializeSignalR() {
         var currentUser = AuthService.getCurrentUser();
         if (!currentUser || !AuthService.getToken()) {
-            console.warn('Cannot initialize SignalR: User not authenticated');
             return;
         }
         
         SignalRService.initialize()
             .then(function() {
-                console.log('SignalR initialized for notifications');
-                
                 // Listen for new notifications
                 SignalRService.onReceiveNotification(function(notification) {
-                    console.log('Received real-time notification:', notification);
                     
                     // Add to unread notifications list (prepend)
                     var mappedNotif = {
@@ -413,12 +408,10 @@ app.controller('NotificationBellController', ['$scope', '$interval', '$location'
                 
                 // Listen for unread count updates
                 SignalRService.onUpdateUnreadCount(function(count) {
-                    console.log('Unread count updated:', count);
                     $scope.unreadCount = count || 0;
                 });
             })
             .catch(function(error) {
-                console.error('Failed to initialize SignalR:', error);
                 // Fallback to polling
                 startPolling();
             });
@@ -466,7 +459,6 @@ app.controller('NotificationBellController', ['$scope', '$interval', '$location'
                 });
             })
             .catch(function(error) {
-                console.error('Error loading unread notifications:', error);
                 // Try to get count anyway
                 NotificationService.fetchUnreadCount().then(function(count) {
                     $scope.unreadCount = count;
@@ -572,7 +564,7 @@ app.controller('NotificationBellController', ['$scope', '$interval', '$location'
                 $scope.$apply();
             })
             .catch(function(error) {
-                console.error('Error marking notification as read:', error);
+                // Error marking notification as read
             });
     };
     
