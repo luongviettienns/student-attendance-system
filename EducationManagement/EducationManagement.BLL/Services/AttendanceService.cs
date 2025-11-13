@@ -9,10 +9,12 @@ namespace EducationManagement.BLL.Services
     public class AttendanceService
     {
         private readonly AttendanceRepository _attendanceRepository;
+        private readonly AdvisorService? _advisorService;
 
-        public AttendanceService(AttendanceRepository attendanceRepository)
+        public AttendanceService(AttendanceRepository attendanceRepository, AdvisorService? advisorService = null)
         {
             _attendanceRepository = attendanceRepository;
+            _advisorService = advisorService;
         }
 
         /// <summary>
@@ -54,8 +56,41 @@ namespace EducationManagement.BLL.Services
             if (!Array.Exists(validStatuses, s => s.Equals(status, StringComparison.OrdinalIgnoreCase)))
                 throw new ArgumentException($"Status phải là một trong: {string.Join(", ", validStatuses)}");
 
-            return await _attendanceRepository.CreateAsync(attendanceId, studentId, scheduleId,
+            var result = await _attendanceRepository.CreateAsync(attendanceId, studentId, scheduleId,
                 attendanceDate, status, notes, markedBy, createdBy);
+
+            // ✅ Event-Driven: Check and send warning after attendance is created
+            if (_advisorService != null)
+            {
+                try
+                {
+                    // Get classId from scheduleId
+                    var classId = await _attendanceRepository.GetClassIdByScheduleIdAsync(scheduleId);
+                    if (!string.IsNullOrWhiteSpace(classId))
+                    {
+                        // Trigger warning check (async, don't wait)
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await _advisorService.CheckAndSendWarningAfterAttendance(studentId, classId);
+                            }
+                            catch (Exception ex)
+                            {
+                                // Log error but don't fail attendance creation
+                                Console.WriteLine($"Warning: Failed to check warning: {ex.Message}");
+                            }
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't fail attendance creation
+                    Console.WriteLine($"Warning: Failed to get classId for warning check: {ex.Message}");
+                }
+            }
+
+            return result;
         }
 
         /// <summary>

@@ -156,6 +156,31 @@ namespace EducationManagement.DAL.Repositories
         }
 
         /// <summary>
+        /// Get classId from scheduleId (for warning check)
+        /// </summary>
+        public async Task<string?> GetClassIdByScheduleIdAsync(string scheduleId)
+        {
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                using var cmd = new SqlCommand(@"
+                    SELECT TOP 1 class_id 
+                    FROM dbo.timetable_sessions 
+                    WHERE session_id = @ScheduleId", conn);
+                cmd.Parameters.Add(new SqlParameter("@ScheduleId", scheduleId));
+
+                var result = await cmd.ExecuteScalarAsync();
+                return result?.ToString();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
         /// Map DataRow to Attendance model
         /// </summary>
         private static Attendance MapToAttendance(DataRow row)

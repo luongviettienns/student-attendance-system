@@ -1002,6 +1002,109 @@ namespace EducationManagement.DAL.Repositories
 
             return null;
         }
+
+        /// <summary>
+        /// Get last warning sent date for a student
+        /// </summary>
+        public async Task<DateTime?> GetLastWarningSentAsync(string studentId)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@StudentId", studentId)
+            };
+
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                using var cmd = new SqlCommand("SELECT last_warning_sent FROM dbo.students WHERE student_id = @StudentId", conn);
+                cmd.Parameters.AddRange(parameters);
+
+                var result = await cmd.ExecuteScalarAsync();
+                if (result != null && result != DBNull.Value)
+                {
+                    return Convert.ToDateTime(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error getting last warning sent: {ex.Message}", ex);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Update last warning sent date for a student
+        /// </summary>
+        public async Task UpdateLastWarningSentAsync(string studentId)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@StudentId", studentId),
+                new SqlParameter("@LastWarningSent", DateTime.Now)
+            };
+
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                using var cmd = new SqlCommand(
+                    "UPDATE dbo.students SET last_warning_sent = @LastWarningSent WHERE student_id = @StudentId", 
+                    conn);
+                cmd.Parameters.AddRange(parameters);
+
+                await cmd.ExecuteNonQueryAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating last warning sent: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Get student attendance summary for a specific class
+        /// </summary>
+        public async Task<decimal?> GetStudentAbsenceRateByClassAsync(string studentId, string classId)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@StudentId", studentId),
+                new SqlParameter("@ClassId", classId)
+            };
+
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                using var cmd = new SqlCommand(@"
+                    SELECT 
+                        CAST(ROUND((COUNT(CASE WHEN a.status = 'Absent' THEN 1 END) * 100.0 / 
+                              NULLIF(COUNT(a.attendance_id), 0)), 2) AS DECIMAL(5,2)) as absence_rate
+                    FROM dbo.enrollments e
+                    INNER JOIN dbo.attendances a ON e.enrollment_id = a.enrollment_id
+                    WHERE e.student_id = @StudentId
+                        AND e.class_id = @ClassId
+                        AND a.deleted_at IS NULL
+                        AND e.deleted_at IS NULL", conn);
+                cmd.Parameters.AddRange(parameters);
+
+                var result = await cmd.ExecuteScalarAsync();
+                if (result != null && result != DBNull.Value)
+                {
+                    return Convert.ToDecimal(result);
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error getting student absence rate: {ex.Message}", ex);
+            }
+
+            return null;
+        }
     }
 }
 

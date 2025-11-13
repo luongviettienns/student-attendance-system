@@ -142,11 +142,14 @@ builder.Services.AddRateLimiter(options =>
 });
 
 // ============================================================
-// 🔹 3️⃣ Cấu hình Controller, Swagger, CORS
+// 🔹 3️⃣ Cấu hình Controller, Swagger, CORS, SignalR
 // ============================================================
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+// ✅ SignalR for real-time notifications
+builder.Services.AddSignalR();
 
 builder.Services.AddCors(options =>
 {
@@ -277,6 +280,9 @@ if (app.Environment.IsDevelopment())
 
 // ✅ Controller endpoints
 app.MapControllers();
+
+// ✅ SignalR Hub endpoints
+app.MapHub<EducationManagement.API.Admin.Hubs.NotificationHub>("/notificationHub");
 
 // ============================================================
 // 🚀 Run

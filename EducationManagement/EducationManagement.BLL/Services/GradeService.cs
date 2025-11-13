@@ -11,10 +11,12 @@ namespace EducationManagement.BLL.Services
     public class GradeService
     {
         private readonly GradeRepository _gradeRepository;
+        private readonly RetakeService? _retakeService;
 
-        public GradeService(GradeRepository gradeRepository)
+        public GradeService(GradeRepository gradeRepository, RetakeService? retakeService = null)
         {
             _gradeRepository = gradeRepository;
+            _retakeService = retakeService;
         }
 
         public async Task<List<Grade>> GetAllGradesAsync()
@@ -60,6 +62,40 @@ namespace EducationManagement.BLL.Services
                 throw new ArgumentException($"Điểm phải nằm trong khoảng 0 đến {maxScore}");
 
             await _gradeRepository.UpdateAsync(gradeId, gradeType, score, maxScore, weight, notes, updatedBy);
+
+            // ✅ Auto-create retake record if total_score < 4.0
+            if (_retakeService != null)
+            {
+                try
+                {
+                    // Get grade to check total_score and get enrollment_id
+                    var grade = await _gradeRepository.GetByIdAsync(gradeId);
+                    if (grade != null && !string.IsNullOrWhiteSpace(grade.EnrollmentId))
+                    {
+                        // Check if total_score < 4.0 (grade threshold)
+                        if (grade.TotalScore.HasValue && grade.TotalScore.Value < 4.0m)
+                        {
+                            // Trigger retake check (async, don't wait)
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await _retakeService.CheckAndCreateRetakeAsync(grade.EnrollmentId);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine($"Warning: Failed to check retake after grade update: {ex.Message}");
+                                }
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't fail grade update
+                    Console.WriteLine($"Warning: Failed to get grade for retake check: {ex.Message}");
+                }
+            }
         }
 
         public async Task DeleteGradeAsync(string gradeId, string deletedBy)

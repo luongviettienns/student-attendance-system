@@ -356,13 +356,88 @@ app.controller('NotificationController', ['$scope', '$location', 'NotificationSe
 }]);
 
 // Notification Bell Controller (for header)
-app.controller('NotificationBellController', ['$scope', '$interval', '$location', 'NotificationService', 'AuthService',
-    function($scope, $interval, $location, NotificationService, AuthService) {
+app.controller('NotificationBellController', ['$scope', '$interval', '$location', 'NotificationService', 'AuthService', 'SignalRService', '$rootScope',
+    function($scope, $interval, $location, NotificationService, AuthService, SignalRService, $rootScope) {
     
     $scope.unreadNotifications = [];
     $scope.unreadCount = 0;
     $scope.showDropdown = false;
     $scope.loading = false;
+    var pollingInterval = null;
+    
+    // Initialize SignalR connection
+    function initializeSignalR() {
+        var currentUser = AuthService.getCurrentUser();
+        if (!currentUser || !AuthService.getToken()) {
+            console.warn('Cannot initialize SignalR: User not authenticated');
+            return;
+        }
+        
+        SignalRService.initialize()
+            .then(function() {
+                console.log('SignalR initialized for notifications');
+                
+                // Listen for new notifications
+                SignalRService.onReceiveNotification(function(notification) {
+                    console.log('Received real-time notification:', notification);
+                    
+                    // Add to unread notifications list (prepend)
+                    var mappedNotif = {
+                        notificationId: notification.notificationId || notification.id,
+                        id: notification.notificationId || notification.id,
+                        title: notification.title,
+                        content: notification.content || notification.message,
+                        message: notification.content || notification.message,
+                        type: notification.type || 'System',
+                        isRead: notification.isRead || false,
+                        createdAt: notification.createdAt || notification.sentDate,
+                        sentDate: notification.sentDate || notification.createdAt
+                    };
+                    
+                    // Add to beginning of list
+                    $scope.unreadNotifications.unshift(mappedNotif);
+                    
+                    // Keep only latest 5
+                    if ($scope.unreadNotifications.length > 5) {
+                        $scope.unreadNotifications = $scope.unreadNotifications.slice(0, 5);
+                    }
+                    
+                    // Show browser notification if not in focus
+                    if (document.hidden && 'Notification' in window && Notification.permission === 'granted') {
+                        new Notification(notification.title, {
+                            body: notification.content || notification.message,
+                            icon: '/favicon.ico'
+                        });
+                    }
+                });
+                
+                // Listen for unread count updates
+                SignalRService.onUpdateUnreadCount(function(count) {
+                    console.log('Unread count updated:', count);
+                    $scope.unreadCount = count || 0;
+                });
+            })
+            .catch(function(error) {
+                console.error('Failed to initialize SignalR:', error);
+                // Fallback to polling
+                startPolling();
+            });
+    }
+    
+    // Fallback: Start polling if SignalR fails
+    function startPolling() {
+        if (pollingInterval) return;
+        
+        // Poll every 30 seconds
+        pollingInterval = $interval(function() {
+            if (!AuthService.getToken()) {
+                $interval.cancel(pollingInterval);
+                pollingInterval = null;
+                return;
+            }
+            $scope.loadUnread();
+        }, 30000);
+    }
     
     // Load unread notifications
     $scope.loadUnread = function() {
@@ -402,6 +477,11 @@ app.controller('NotificationBellController', ['$scope', '$interval', '$location'
             });
     };
     
+    // Request browser notification permission
+    if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission();
+    }
+    
     // Toggle dropdown
     $scope.toggleDropdown = function() {
         $scope.showDropdown = !$scope.showDropdown;
@@ -409,6 +489,25 @@ app.controller('NotificationBellController', ['$scope', '$interval', '$location'
             $scope.loadUnread();
         }
     };
+    
+    // Initialize on controller load
+    $scope.$on('$destroy', function() {
+        if (pollingInterval) {
+            $interval.cancel(pollingInterval);
+        }
+        SignalRService.disconnect();
+    });
+    
+    // Initialize SignalR when user is authenticated
+    var initWatcher = $rootScope.$watch(function() {
+        return AuthService.getToken();
+    }, function(newToken) {
+        if (newToken) {
+            initializeSignalR();
+            $scope.loadUnread(); // Load initial notifications
+            initWatcher(); // Unwatch after initialization
+        }
+    });
     
     // Mark as read and navigate
     $scope.markAndView = function(notification) {

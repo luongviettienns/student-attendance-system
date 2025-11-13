@@ -1,5 +1,7 @@
 using EducationManagement.Common.Models;
 using EducationManagement.DAL.Repositories;
+using Microsoft.AspNetCore.SignalR;
+using EducationManagement.API.Admin.Hubs;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -9,10 +11,12 @@ namespace EducationManagement.BLL.Services
     public class NotificationService
     {
         private readonly NotificationRepository _notificationRepository;
+        private readonly IHubContext<NotificationHub>? _hubContext;
 
-        public NotificationService(NotificationRepository notificationRepository)
+        public NotificationService(NotificationRepository notificationRepository, IHubContext<NotificationHub>? hubContext = null)
         {
             _notificationRepository = notificationRepository;
+            _hubContext = hubContext;
         }
 
         public async Task<string> CreateNotificationAsync(string recipientId, string title, string content, string type, string? createdBy = null, DateTime? sentDate = null)
@@ -29,7 +33,42 @@ namespace EducationManagement.BLL.Services
             if (string.IsNullOrWhiteSpace(type))
                 type = "System";
 
-            return await _notificationRepository.CreateAsync(recipientId, title, content, type, createdBy, sentDate);
+            var notificationId = await _notificationRepository.CreateAsync(recipientId, title, content, type, createdBy, sentDate);
+
+            // ✅ Send real-time notification via SignalR
+            if (_hubContext != null)
+            {
+                try
+                {
+                    // Get notification details for real-time push
+                    var notification = await _notificationRepository.GetByIdAsync(notificationId);
+                    if (notification != null)
+                    {
+                        // Send to user's personal group
+                        await _hubContext.Clients.Group($"user_{recipientId}").SendAsync("ReceiveNotification", new
+                        {
+                            notificationId = notification.NotificationId,
+                            title = notification.Title,
+                            content = notification.Content,
+                            type = notification.Type,
+                            isRead = notification.IsRead,
+                            createdAt = notification.CreatedAt,
+                            sentDate = notification.SentDate
+                        });
+
+                        // Also send unread count update
+                        var unreadCount = await _notificationRepository.GetUnreadCountAsync(recipientId);
+                        await _hubContext.Clients.Group($"user_{recipientId}").SendAsync("UpdateUnreadCount", unreadCount);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't fail notification creation
+                    Console.WriteLine($"Warning: Failed to send real-time notification: {ex.Message}");
+                }
+            }
+
+            return notificationId;
         }
 
         public async Task<(List<Notification> Notifications, int TotalCount)> GetNotificationsByUserAsync(string userId, int page = 1, int pageSize = 50, string? type = null, bool? isRead = null)
@@ -70,6 +109,20 @@ namespace EducationManagement.BLL.Services
                 throw new ArgumentException("Notification ID không được để trống");
 
             await _notificationRepository.MarkAsReadAsync(notificationId, userId);
+
+            // ✅ Update unread count via SignalR if userId provided
+            if (!string.IsNullOrWhiteSpace(userId) && _hubContext != null)
+            {
+                try
+                {
+                    var unreadCount = await _notificationRepository.GetUnreadCountAsync(userId);
+                    await _hubContext.Clients.Group($"user_{userId}").SendAsync("UpdateUnreadCount", unreadCount);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Failed to update unread count via SignalR: {ex.Message}");
+                }
+            }
         }
 
         public async Task<int> MarkAllAsReadAsync(string userId, string? updatedBy = null)
@@ -77,7 +130,22 @@ namespace EducationManagement.BLL.Services
             if (string.IsNullOrWhiteSpace(userId))
                 throw new ArgumentException("User ID không được để trống");
 
-            return await _notificationRepository.MarkAllAsReadAsync(userId, updatedBy);
+            var count = await _notificationRepository.MarkAllAsReadAsync(userId, updatedBy);
+
+            // ✅ Update unread count via SignalR
+            if (_hubContext != null)
+            {
+                try
+                {
+                    await _hubContext.Clients.Group($"user_{userId}").SendAsync("UpdateUnreadCount", 0);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Failed to update unread count via SignalR: {ex.Message}");
+                }
+            }
+
+            return count;
         }
 
         public async Task DeleteNotificationAsync(string notificationId, string? deletedBy = null)

@@ -13,12 +13,18 @@ namespace EducationManagement.BLL.Services
         private readonly AdvisorRepository _advisorRepository;
         private readonly EmailService _emailService;
         private readonly IConfiguration _configuration;
+        private readonly RetakeService? _retakeService;
+        private readonly EnrollmentRepository? _enrollmentRepository;
 
-        public AdvisorService(AdvisorRepository advisorRepository, EmailService emailService, IConfiguration configuration)
+        public AdvisorService(AdvisorRepository advisorRepository, EmailService emailService, 
+            IConfiguration configuration, RetakeService? retakeService = null, 
+            EnrollmentRepository? enrollmentRepository = null)
         {
             _advisorRepository = advisorRepository;
             _emailService = emailService;
             _configuration = configuration;
+            _retakeService = retakeService;
+            _enrollmentRepository = enrollmentRepository;
         }
 
         /// <summary>
@@ -483,6 +489,103 @@ namespace EducationManagement.BLL.Services
             // In a real implementation, you would update the configuration file or database
             // For now, we'll just return success after validation
             await Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// Check and send warning after attendance is marked (Event-Driven)
+        /// Called automatically when attendance is created
+        /// </summary>
+        public async Task CheckAndSendWarningAfterAttendance(string studentId, string classId)
+        {
+            if (string.IsNullOrWhiteSpace(studentId))
+                return;
+
+            if (string.IsNullOrWhiteSpace(classId))
+                return;
+
+            try
+            {
+                // 1. Get absence rate for this student in this class
+                var absenceRate = await _advisorRepository.GetStudentAbsenceRateByClassAsync(studentId, classId);
+                
+                if (!absenceRate.HasValue)
+                    return; // No attendance data yet
+
+                // 2. Get threshold from config (default 20%)
+                var threshold = decimal.Parse(_configuration["Advisor:WarningThresholds:Attendance"] ?? "20.0");
+                var minDaysBetweenWarnings = int.Parse(_configuration["Advisor:WarningSettings:MinDaysBetweenWarnings"] ?? "7");
+
+                // 3. Check if exceeds threshold
+                if (absenceRate.Value > threshold)
+                {
+                    // 4. Check last warning sent (avoid spam)
+                    var lastWarning = await _advisorRepository.GetLastWarningSentAsync(studentId);
+                    var shouldSend = lastWarning == null || 
+                                    lastWarning.Value < DateTime.Now.AddDays(-minDaysBetweenWarnings);
+
+                    if (shouldSend)
+                    {
+                        // 5. Get student info
+                        var studentInfo = await _advisorRepository.GetStudentInfoForEmailAsync(studentId);
+                        if (studentInfo.HasValue)
+                        {
+                            var (email, fullName, className, gpa, _) = studentInfo.Value;
+
+                            if (!string.IsNullOrEmpty(email))
+                            {
+                                // 6. Send warning email
+                                await _emailService.SendAttendanceWarningEmailAsync(
+                                    email,
+                                    fullName,
+                                    className ?? "N/A",
+                                    absenceRate.Value
+                                );
+
+                                // 7. Update last warning sent
+                                await _advisorRepository.UpdateLastWarningSentAsync(studentId);
+
+                                // 8. ✅ Auto-create retake record if absence rate > threshold
+                                if (_retakeService != null && _enrollmentRepository != null)
+                                {
+                                    try
+                                    {
+                                        // Get enrollment_id from studentId and classId
+                                        var enrollments = await _enrollmentRepository.GetByStudentIdAsync(studentId);
+                                        var enrollment = enrollments.FirstOrDefault(e => e.ClassId == classId && 
+                                            e.EnrollmentStatus == "APPROVED" && e.DeletedAt == null);
+                                        
+                                        if (enrollment != null)
+                                        {
+                                            // Trigger retake check (async, don't wait)
+                                            _ = Task.Run(async () =>
+                                            {
+                                                try
+                                                {
+                                                    await _retakeService.CheckAndCreateRetakeAsync(enrollment.EnrollmentId);
+                                                }
+                                                catch (Exception ex2)
+                                                {
+                                                    Console.WriteLine($"Warning: Failed to check retake after warning: {ex2.Message}");
+                                                }
+                                            });
+                                        }
+                                    }
+                                    catch (Exception ex2)
+                                    {
+                                        Console.WriteLine($"Warning: Failed to get enrollment for retake check: {ex2.Message}");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't fail the attendance creation
+                // In production, use proper logging (ILogger)
+                Console.WriteLine($"Warning: Failed to check/send warning after attendance: {ex.Message}");
+            }
         }
     }
 }

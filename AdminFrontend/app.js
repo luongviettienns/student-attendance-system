@@ -192,6 +192,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'views/advisor/appeals.html',
             controller: 'AdvisorGradeAppealController'
         })
+        .when('/advisor/retakes', {
+            templateUrl: 'views/advisor/retakes.html',
+            controller: 'AdvisorRetakeController'
+        })
         .when('/advisor/grade-formula', {
             templateUrl: 'views/advisor/grade-formula.html',
             controller: 'AdvisorGradeFormulaConfigController'
@@ -221,6 +225,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/student/appeals', {
             templateUrl: 'views/student/appeals.html',
             controller: 'StudentGradeAppealController'
+        })
+        .when('/student/retakes', {
+            templateUrl: 'views/student/retakes.html',
+            controller: 'StudentRetakeController'
         })
         .when('/student/attendance', {
             templateUrl: 'views/student/attendance.html',
