@@ -41,6 +41,10 @@ builder.Services.Scan(scan => scan
 builder.Services.AddScoped<EducationManagement.BLL.Services.IRefreshTokenStore, 
     EducationManagement.BLL.Services.DatabaseRefreshTokenStore>();
 
+// ✅ Register SignalR Notification Hub Context (for real-time notifications)
+builder.Services.AddScoped<EducationManagement.Common.Interfaces.INotificationHubContext,
+    EducationManagement.API.Admin.Helpers.SignalRNotificationHubContext>();
+
 // ============================================================
 // 🔹 2.5️⃣ REDIS CACHING (OPTIONAL - Fallback to Memory Cache if Redis unavailable)
 // ============================================================

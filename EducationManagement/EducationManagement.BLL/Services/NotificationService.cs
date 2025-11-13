@@ -1,7 +1,6 @@
 using EducationManagement.Common.Models;
+using EducationManagement.Common.Interfaces;
 using EducationManagement.DAL.Repositories;
-using Microsoft.AspNetCore.SignalR;
-using EducationManagement.API.Admin.Hubs;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -11,9 +10,9 @@ namespace EducationManagement.BLL.Services
     public class NotificationService
     {
         private readonly NotificationRepository _notificationRepository;
-        private readonly IHubContext<NotificationHub>? _hubContext;
+        private readonly INotificationHubContext? _hubContext;
 
-        public NotificationService(NotificationRepository notificationRepository, IHubContext<NotificationHub>? hubContext = null)
+        public NotificationService(NotificationRepository notificationRepository, INotificationHubContext? hubContext = null)
         {
             _notificationRepository = notificationRepository;
             _hubContext = hubContext;
@@ -45,7 +44,7 @@ namespace EducationManagement.BLL.Services
                     if (notification != null)
                     {
                         // Send to user's personal group
-                        await _hubContext.Clients.Group($"user_{recipientId}").SendAsync("ReceiveNotification", new
+                        await _hubContext.SendNotificationToUserAsync(recipientId, new
                         {
                             notificationId = notification.NotificationId,
                             title = notification.Title,
@@ -58,7 +57,7 @@ namespace EducationManagement.BLL.Services
 
                         // Also send unread count update
                         var unreadCount = await _notificationRepository.GetUnreadCountAsync(recipientId);
-                        await _hubContext.Clients.Group($"user_{recipientId}").SendAsync("UpdateUnreadCount", unreadCount);
+                        await _hubContext.UpdateUnreadCountAsync(recipientId, unreadCount);
                     }
                 }
                 catch (Exception ex)
@@ -116,7 +115,7 @@ namespace EducationManagement.BLL.Services
                 try
                 {
                     var unreadCount = await _notificationRepository.GetUnreadCountAsync(userId);
-                    await _hubContext.Clients.Group($"user_{userId}").SendAsync("UpdateUnreadCount", unreadCount);
+                    await _hubContext.UpdateUnreadCountAsync(userId, unreadCount);
                 }
                 catch (Exception ex)
                 {
@@ -137,7 +136,7 @@ namespace EducationManagement.BLL.Services
             {
                 try
                 {
-                    await _hubContext.Clients.Group($"user_{userId}").SendAsync("UpdateUnreadCount", 0);
+                    await _hubContext.UpdateUnreadCountAsync(userId, 0);
                 }
                 catch (Exception ex)
                 {

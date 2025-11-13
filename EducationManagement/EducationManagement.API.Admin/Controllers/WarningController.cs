@@ -1,4 +1,5 @@
 using EducationManagement.BLL.Services;
+using EducationManagement.Common.DTOs.Advisor;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -37,14 +38,20 @@ namespace EducationManagement.API.Admin.Controllers
                 // Get threshold from config if not provided
                 var attendanceThreshold = threshold ?? 20.0m;
 
+                // Create filters object
+                var filters = new StudentFiltersDto
+                {
+                    FacultyId = facultyId,
+                    MajorId = majorId,
+                    ClassId = classId
+                };
+
                 // Get list of students exceeding threshold
                 var (warnings, totalCount) = await _advisorService.GetAttendanceWarningsAsync(
                     page: 1,
                     pageSize: 1000, // Get all warnings
                     attendanceThreshold: attendanceThreshold,
-                    facultyId: facultyId,
-                    majorId: majorId,
-                    classId: classId
+                    filters: filters
                 );
 
                 if (warnings.Count == 0)
@@ -116,13 +123,19 @@ namespace EducationManagement.API.Admin.Controllers
             {
                 var attendanceThreshold = threshold ?? 20.0m;
 
+                // Create filters object
+                var filters = new StudentFiltersDto
+                {
+                    FacultyId = facultyId,
+                    MajorId = majorId,
+                    ClassId = classId
+                };
+
                 var (warnings, totalCount) = await _advisorService.GetAttendanceWarningsAsync(
                     page,
                     pageSize,
                     attendanceThreshold,
-                    facultyId,
-                    majorId,
-                    classId
+                    filters
                 );
 
                 return Ok(new
