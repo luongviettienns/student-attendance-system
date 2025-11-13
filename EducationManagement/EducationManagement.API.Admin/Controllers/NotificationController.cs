@@ -2,6 +2,7 @@ using EducationManagement.BLL.Services;
 using EducationManagement.Common.DTOs.Notification;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -214,7 +215,14 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    return BadRequest(new { message = "Notification ID không được để trống" });
+                }
+
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                
+                // Try to mark as read - stored procedure will handle validation
                 await _notificationService.MarkAsReadAsync(id, userId);
                 return Ok(new { message = "Đánh dấu đã đọc thành công" });
             }
@@ -222,9 +230,48 @@ namespace EducationManagement.API.Admin.Controllers
             {
                 return BadRequest(new { message = ex.Message });
             }
+            catch (SqlException sqlEx)
+            {
+                // Handle SQL errors (e.g., notification not found)
+                if (sqlEx.Number == 50001 || sqlEx.Message.Contains("Không tìm thấy") || sqlEx.Message.Contains("not found"))
+                {
+                    return NotFound(new { message = "Không tìm thấy thông báo hoặc đã bị xóa" });
+                }
+                // For debugging: include error details in development
+                #if DEBUG
+                return StatusCode(500, new { 
+                    message = "Lỗi hệ thống khi đánh dấu đã đọc", 
+                    error = sqlEx.Message,
+                    errorNumber = sqlEx.Number,
+                    notificationId = id,
+                    userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                });
+                #else
+                return StatusCode(500, new { message = "Lỗi hệ thống khi đánh dấu đã đọc" });
+                #endif
+            }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                // Check if error message indicates not found
+                var errorMessage = ex.Message ?? "";
+                if (errorMessage.Contains("Không tìm thấy") || 
+                    errorMessage.Contains("not found") || 
+                    errorMessage.Contains("does not exist"))
+                {
+                    return NotFound(new { message = "Không tìm thấy thông báo" });
+                }
+                // For debugging: include error details in development
+                #if DEBUG
+                return StatusCode(500, new { 
+                    message = "Lỗi hệ thống khi đánh dấu đã đọc", 
+                    error = ex.Message,
+                    stackTrace = ex.StackTrace,
+                    notificationId = id,
+                    userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                });
+                #else
+                return StatusCode(500, new { message = "Lỗi hệ thống khi đánh dấu đã đọc" });
+                #endif
             }
         }
 

@@ -14,11 +14,19 @@ namespace EducationManagement.API.Admin.Controllers
     public class GradeController : BaseController
     {
         private readonly GradeService _gradeService;
+        private readonly NotificationService _notificationService;
+        private readonly StudentService _studentService;
 
-        public GradeController(GradeService gradeService, AuditLogService? auditLogService = null) 
+        public GradeController(
+            GradeService gradeService, 
+            NotificationService notificationService,
+            StudentService studentService,
+            AuditLogService? auditLogService = null) 
             : base(auditLogService)
         {
             _gradeService = gradeService;
+            _notificationService = notificationService;
+            _studentService = studentService;
         }
 
         [HttpGet]
@@ -36,6 +44,8 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
+        // Cho phép tất cả user đã đăng nhập xem grade detail (giảng viên cần xem để nhập điểm)
+        // [Authorize] đã có ở controller level
         public async Task<IActionResult> GetById(string id)
         {
             try
@@ -79,6 +89,34 @@ namespace EducationManagement.API.Admin.Controllers
                     weight = request.Weight
                 });
 
+                // Gửi thông báo cho sinh viên khi điểm được tạo
+                try
+                {
+                    var student = await _studentService.GetStudentByIdAsync(request.StudentId);
+                    if (student != null && !string.IsNullOrEmpty(student.UserId))
+                    {
+                        var gradeTypeText = request.GradeType == "midterm" ? "giữa kỳ" : request.GradeType == "final" ? "cuối kỳ" : request.GradeType;
+                        var notificationId = await _notificationService.CreateNotificationAsync(
+                            student.UserId,
+                            "Điểm mới đã được cập nhật",
+                            $"Điểm {gradeTypeText} của bạn cho lớp {request.ClassId} đã được cập nhật: {request.Score}/{request.MaxScore}",
+                            "GradeUpdate",
+                            request.CreatedBy ?? GetCurrentUserId() ?? "system"
+                        );
+                        Console.WriteLine($"[GradeController.Create] Notification sent to student {student.UserId}: {notificationId}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[GradeController.Create] Student not found or has no UserId: {request.StudentId}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log error nhưng không fail request nếu notification thất bại
+                    Console.WriteLine($"[GradeController.Create] Error sending notification: {ex.Message}");
+                    Console.WriteLine($"[GradeController.Create] StackTrace: {ex.StackTrace}");
+                }
+
                 return Ok(new { message = "Tạo điểm thành công", gradeId = newId });
             }
             catch (Exception ex)
@@ -121,6 +159,50 @@ namespace EducationManagement.API.Admin.Controllers
 
                 // Audit log: UPDATE GRADE (BẮT BUỘC theo NFR)
                 await LogUpdateAsync("Grade", id, oldValues, newValues);
+
+                // Gửi thông báo cho sinh viên khi điểm được cập nhật
+                if (newGrade != null && !string.IsNullOrEmpty(newGrade.StudentId))
+                {
+                    try
+                    {
+                        var student = await _studentService.GetStudentByIdAsync(newGrade.StudentId);
+                        if (student != null && !string.IsNullOrEmpty(student.UserId))
+                        {
+                            var gradeTypeText = request.GradeType == "midterm" ? "giữa kỳ" : request.GradeType == "final" ? "cuối kỳ" : request.GradeType;
+                            var className = newGrade.ClassName ?? newGrade.ClassCode ?? newGrade.ClassId ?? "lớp học";
+                            var notificationContent = $"Điểm {gradeTypeText} của bạn cho {className} đã được cập nhật: {request.Score}/{request.MaxScore}";
+                            
+                            // Nếu có điểm tổng kết, thêm vào thông báo
+                            if (newGrade.TotalScore.HasValue)
+                            {
+                                notificationContent += $". Điểm tổng kết: {newGrade.TotalScore.Value:F2}";
+                            }
+
+                            var notificationId = await _notificationService.CreateNotificationAsync(
+                                student.UserId,
+                                "Điểm đã được cập nhật",
+                                notificationContent,
+                                "GradeUpdate",
+                                request.UpdatedBy ?? GetCurrentUserId() ?? "system"
+                            );
+                            Console.WriteLine($"[GradeController.Update] Notification sent to student {student.UserId}: {notificationId}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[GradeController.Update] Student not found or has no UserId: {newGrade.StudentId}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log error nhưng không fail request nếu notification thất bại
+                        Console.WriteLine($"[GradeController.Update] Error sending notification: {ex.Message}");
+                        Console.WriteLine($"[GradeController.Update] StackTrace: {ex.StackTrace}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"[GradeController.Update] newGrade is null or StudentId is empty");
+                }
 
                 return Ok(new { message = "Cập nhật điểm thành công" });
             }

@@ -19,7 +19,7 @@
                 </div>
                 <div class="user-details">
                     <span class="user-name">{{currentUser.fullName}}</span>
-                    <span class="user-role">{{currentUser.Role || currentUser.roleName || 'Admin'}}</span>
+                    <span class="user-role">{{getRoleDisplayName(currentUser)}}</span>
                 </div>
             </div>
             <button ng-click="logout()" class="btn btn-outline btn-logout" aria-label="Đăng xuất">
@@ -37,7 +37,7 @@
             </div>
             <div class="user-details">
                 <span class="user-name">{{currentUser.fullName}}</span>
-                <span class="user-role">{{currentUser.Role || currentUser.roleName || 'Admin'}}</span>
+                <span class="user-role">{{getRoleDisplayName(currentUser)}}</span>
             </div>
         </div>
         <button ng-click="logout()" class="btn btn-outline btn-logout-mobile" aria-label="Đăng xuất">
@@ -117,7 +117,7 @@
                 Hủy
             </button>
             <button class="btn btn-primary" 
-                    ng-click="uploadAvatar()" 
+                    ng-click="uploadAvatar($event)" 
                     ng-disabled="!avatarModal.selectedFile || avatarModal.uploading">
                 <i class="fas fa-upload"></i> 
                 <span ng-if="!avatarModal.uploading">Tải lên</span>

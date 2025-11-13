@@ -159,6 +159,92 @@ app.service('GradeService', ['ApiService', function(ApiService) {
     };
 
     /**
+     * Create a new grade for a student
+     * @param {Object} gradeData - { studentId, classId, gradeType, score, maxScore, weight, notes, gradedBy }
+     * @returns {Promise<any>}
+     */
+    this.create = function(gradeData) {
+        return ApiService.post('/grades', gradeData, {
+            cache: false
+        }).then(function(response) {
+            // Clear cache after creating
+            ApiService.clearCache(CACHE_PREFIX + gradeData.studentId + '*');
+            ApiService.clearCache(SUMMARY_CACHE_PREFIX + gradeData.studentId + '*');
+            ApiService.clearCache(CUMULATIVE_CACHE_PREFIX + gradeData.studentId + '*');
+            ApiService.clearCache(TRANSCRIPT_CACHE_PREFIX + gradeData.studentId + '*');
+            
+            // unwrap trả về response.data hoặc response.data.data
+            // Backend trả về { message: "..." } hoặc { data: { gradeId: "..." } }
+            var unwrapped = unwrap(response, null);
+            
+            // Luôn trả về object để đảm bảo không phải null
+            return unwrapped || { message: 'Tạo điểm thành công', success: true };
+        });
+    };
+
+    /**
+     * Update an existing grade
+     * @param {string} gradeId
+     * @param {Object} gradeData - { gradeType, score, maxScore, weight, notes, updatedBy }
+     * @returns {Promise<any>}
+     */
+    this.update = function(gradeId, gradeData) {
+        if (!gradeId) {
+            return Promise.reject(new Error('Grade ID is required'));
+        }
+        
+        return ApiService.put('/grades/' + gradeId, gradeData, {
+            cache: false
+        }).then(function(response) {
+            // Clear cache after updating
+            // Note: We don't have studentId in update request, so clear all grade caches
+            ApiService.clearCache(CACHE_PREFIX);
+            ApiService.clearCache(SUMMARY_CACHE_PREFIX);
+            ApiService.clearCache(CUMULATIVE_CACHE_PREFIX);
+            ApiService.clearCache(TRANSCRIPT_CACHE_PREFIX);
+            
+            // unwrap trả về response.data hoặc response.data.data
+            // Backend trả về { message: "Cập nhật điểm thành công" }
+            // nên unwrap sẽ trả về { message: "..." } hoặc null
+            var unwrapped = unwrap(response, null);
+            
+            // Luôn trả về object để đảm bảo không phải null
+            return unwrapped || { message: 'Cập nhật điểm thành công', success: true };
+        });
+    };
+
+    /**
+     * Get grades by class
+     * @param {string} classId
+     * @param {GradeRequestOptions=} requestOptions
+     * @returns {Promise<any[]>}
+     */
+    this.getByClass = function(classId, requestOptions) {
+        return ApiService.get('/grades/class/' + classId, {}, {
+            cache: !(requestOptions && requestOptions.forceRefresh),
+            cacheTTL: (requestOptions && requestOptions.cacheTTL) || DEFAULT_CACHE_TTL
+        }).then(function(response) {
+            var grades = unwrap(response, []);
+            return Array.isArray(grades) ? grades : [];
+        });
+    };
+
+    /**
+     * Get all grades for a student
+     * @param {string} studentId
+     * @param {GradeRequestOptions=} requestOptions
+     * @returns {Promise<any[]>}
+     */
+    this.getByStudent = function(studentId, requestOptions) {
+        var options = buildCacheOptions(CACHE_PREFIX, studentId, null, null, requestOptions);
+        return ApiService.get('/grades/student/' + studentId, {}, options)
+            .then(function(response) {
+                var grades = unwrap(response, []);
+                return Array.isArray(grades) ? grades : [];
+            });
+    };
+
+    /**
      * Allow manual cache invalidation from controllers.
      * @param {string} pattern
      */

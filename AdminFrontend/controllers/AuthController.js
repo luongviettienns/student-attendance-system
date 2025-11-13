@@ -109,7 +109,6 @@ app.controller('VerifyOTPController', ['$scope', '$location', '$timeout', '$inte
                 }
             })
             .catch(function(error) {
-                console.error('Error loading OTP remaining time:', error);
                 $scope.remainingSeconds = 0;
             });
     }

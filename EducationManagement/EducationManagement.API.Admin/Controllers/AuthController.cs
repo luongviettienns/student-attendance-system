@@ -90,7 +90,8 @@ namespace EducationManagement.API.Admin.Controllers
                 Console.WriteLine($"[AuthController.Login] ❌ User validation failed for: {request.Username}");
                 Console.WriteLine($"[AuthController.Login] Returning 401 Unauthorized");
                 Console.ResetColor();
-                return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu" });
+                // Return consistent error message
+                return Unauthorized(new { message = "Tên đăng nhập hoặc mật khẩu không đúng" });
             }
             
             Console.ForegroundColor = ConsoleColor.Green;

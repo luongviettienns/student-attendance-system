@@ -67,6 +67,7 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
                               path.startsWith('/students') ||
                               path.startsWith('/lecturers') ||
                               path.startsWith('/classes') ||
+                              path.startsWith('/grade-formula') ||
                               path.startsWith('/academic-years') ||
                               path.startsWith('/school-years') ||
                               path.startsWith('/organization') ||
@@ -101,7 +102,8 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
             var isSupportRoute = path === '/dashboard' ||
                                  path.startsWith('/registration-periods') ||
                                  path.startsWith('/enrollments') ||
-                                 path.startsWith('/audit-logs');
+                                 path.startsWith('/audit-logs') ||
+                                 path.startsWith('/admin/reports');
             
             // ✅ Auto-redirect from root path to advisor dashboard
             if (path === '/') {

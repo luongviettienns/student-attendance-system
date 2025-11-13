@@ -262,6 +262,42 @@
    USER FORM - REDESIGNED FROM SCRATCH
    ============================================== */
 
+/* ✅ Đảm bảo sidebar không bị ảnh hưởng bởi CSS của form */
+.sidebar,
+.sidebar *,
+.sidebar-header,
+.sidebar-header *,
+.sidebar-nav,
+.sidebar-nav *,
+.sidebar-menu,
+.sidebar-menu *,
+.menu-section,
+.menu-section *,
+.submenu,
+.submenu * {
+    font-size: inherit !important;
+}
+
+.sidebar-header h2 {
+    font-size: 18px !important;
+}
+
+.sidebar-header p {
+    font-size: 12px !important;
+}
+
+.menu-section-toggle {
+    font-size: 12px !important;
+}
+
+.sidebar-menu a {
+    font-size: 14px !important;
+}
+
+.submenu li a {
+    font-size: 14px !important;
+}
+
 .user-form-container {
     max-width: 900px;
     margin: 0 auto;

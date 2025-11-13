@@ -60,19 +60,28 @@ namespace EducationManagement.DAL.Repositories
         public async Task<GradeFormulaConfig?> GetByScopeAsync(string? classId = null, 
             string? subjectId = null, string? schoolYearId = null)
         {
-            var parameters = new[]
+            try
             {
-                new SqlParameter("@ClassId", (object?)classId ?? DBNull.Value),
-                new SqlParameter("@SubjectId", (object?)subjectId ?? DBNull.Value),
-                new SqlParameter("@SchoolYearId", (object?)schoolYearId ?? DBNull.Value)
-            };
+                var parameters = new[]
+                {
+                    new SqlParameter("@ClassId", (object?)classId ?? DBNull.Value),
+                    new SqlParameter("@SubjectId", (object?)subjectId ?? DBNull.Value),
+                    new SqlParameter("@SchoolYearId", (object?)schoolYearId ?? DBNull.Value)
+                };
 
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetGradeFormulaConfig", parameters);
+                var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetGradeFormulaConfig", parameters);
 
-            if (dt.Rows.Count == 0)
+                if (dt.Rows.Count == 0)
+                    return null;
+
+                return MapToGradeFormulaConfigWithDetails(dt.Rows[0]);
+            }
+            catch (Exception ex)
+            {
+                // Log error and return null (will use default formula)
+                System.Diagnostics.Debug.WriteLine($"Error in GetByScopeAsync: {ex.Message}");
                 return null;
-
-            return MapToGradeFormulaConfigWithDetails(dt.Rows[0]);
+            }
         }
 
         public async Task<(List<GradeFormulaConfig> Configs, int TotalCount)> GetAllAsync(int page = 1, 

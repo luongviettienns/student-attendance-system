@@ -42,14 +42,20 @@ PRINT '🔧 Step 2: Deleting data from all tables...';
 GO
 
 -- Delete từ các bảng con trước (có FK references)
+-- Lưu ý: Thứ tự xóa theo thứ tự ngược lại của foreign key dependencies
 DELETE FROM dbo.notifications;
 DELETE FROM dbo.role_permissions;
+DELETE FROM dbo.grade_appeals;
+DELETE FROM dbo.retake_records;
+DELETE FROM dbo.grade_formula_config;
 DELETE FROM dbo.grades;
 DELETE FROM dbo.attendances;
+DELETE FROM dbo.gpas;
 DELETE FROM dbo.enrollments;
+DELETE FROM dbo.period_classes;
+DELETE FROM dbo.timetable_sessions;
 DELETE FROM dbo.subject_prerequisites;
 DELETE FROM dbo.classes;
-DELETE FROM dbo.gpas;
 DELETE FROM dbo.refresh_tokens;
 DELETE FROM dbo.audit_logs;
 DELETE FROM dbo.registration_periods;
@@ -65,6 +71,8 @@ DELETE FROM dbo.faculties;
 DELETE FROM dbo.users;
 DELETE FROM dbo.permissions;
 DELETE FROM dbo.roles;
+-- Xóa các bảng không có FK nhưng có thể có data
+DELETE FROM dbo.rooms;
 
 PRINT '   ✅ All data deleted from tables';
 GO

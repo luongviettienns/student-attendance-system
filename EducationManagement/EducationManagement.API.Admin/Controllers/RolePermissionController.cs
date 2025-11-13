@@ -42,6 +42,9 @@ namespace EducationManagement.API.Admin.Controllers
                 p.PermissionCode,
                 p.PermissionName,
                 p.Description,
+                p.ParentCode,
+                p.Icon,
+                p.SortOrder,
                 IsAssigned = rolePermIds.Contains(p.PermissionId)
             });
 
@@ -98,9 +101,13 @@ namespace EducationManagement.API.Admin.Controllers
                 p.PermissionId,
                 p.PermissionCode,
                 p.PermissionName,
-                p.Description
+                p.Description,
+                p.ParentCode,
+                p.Icon,
+                p.SortOrder
             })
-            .OrderBy(p => p.PermissionName);
+            .OrderBy(p => p.SortOrder ?? 999)
+            .ThenBy(p => p.PermissionName);
 
             return Ok(result);
         }

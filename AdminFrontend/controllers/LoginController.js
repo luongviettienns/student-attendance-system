@@ -87,7 +87,31 @@ app.controller('LoginController', ['$scope', '$location', 'AuthService', 'RoleSe
             })
             .catch(function(error) {
                 $scope.loading = false;
-                $scope.error = 'Tên đăng nhập hoặc mật khẩu không đúng';
+                
+                // Get error message from response if available
+                var errorMessage = 'Tên đăng nhập hoặc mật khẩu không đúng';
+                
+                if (error && error.data && error.data.message) {
+                    // Use message from backend
+                    errorMessage = error.data.message;
+                } else if (error && error.message) {
+                    // Use error message
+                    errorMessage = error.message;
+                } else if (error && error.status === 401) {
+                    // 401 Unauthorized - wrong credentials
+                    errorMessage = 'Tên đăng nhập hoặc mật khẩu không đúng';
+                } else if (error && error.status === 400) {
+                    // 400 Bad Request - missing or invalid input
+                    errorMessage = 'Vui lòng nhập đầy đủ tài khoản và mật khẩu';
+                } else if (error && error.status === 0) {
+                    // Network error
+                    errorMessage = 'Không thể kết nối đến server. Vui lòng kiểm tra kết nối mạng.';
+                } else if (error && error.status >= 500) {
+                    // Server error
+                    errorMessage = 'Lỗi hệ thống. Vui lòng thử lại sau.';
+                }
+                
+                $scope.error = errorMessage;
             });
     };
 }]);

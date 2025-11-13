@@ -47,6 +47,11 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
                 event.stopPropagation();
             }
             
+            // ✅ Reset flag when closing modal
+            if ($scope._explicitModalOpen !== undefined) {
+                $scope._explicitModalOpen = false;
+            }
+            
             // ✅ Force close modal - Multiple ways to ensure it closes
             $scope.avatarModal.show = false;
             $scope.avatarModal.selectedFile = null;
@@ -163,7 +168,13 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
         };
         
         // Upload Avatar
-        $scope.uploadAvatar = function() {
+        $scope.uploadAvatar = function(event) {
+            // ✅ Prevent event propagation to avoid closing modal
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            
             if (!$scope.avatarModal.selectedFile) {
                 ToastService.warning('Vui lòng chọn ảnh trước khi tải lên');
                 return;
@@ -173,6 +184,11 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
             if (!$scope.currentUser) {
                 ToastService.error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
                 return;
+            }
+            
+            // ✅ Set flag to prevent watch from closing modal during upload
+            if ($scope._explicitModalOpen !== undefined) {
+                $scope._explicitModalOpen = true;
             }
             
             $scope.avatarModal.uploading = true;
@@ -207,6 +223,10 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
                     // Close modal after 800ms
                     $timeout(function() {
                         $scope.closeAvatarModal();
+                        // Reset flag after closing
+                        if ($scope._explicitModalOpen !== undefined) {
+                            $scope._explicitModalOpen = false;
+                        }
                     }, 800);
                 })
                 .catch(function(error) {
@@ -227,6 +247,11 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
                     
                     // Also show in modal
                     $scope.avatarModal.error = errorMessage;
+                    
+                    // Reset flag on error
+                    if ($scope._explicitModalOpen !== undefined) {
+                        $scope._explicitModalOpen = false;
+                    }
                 });
         };
         

@@ -289,6 +289,7 @@ BEGIN
         c.subject_id,
         c.lecturer_id,
         c.academic_year_id,
+        c.school_year_id,
         c.semester,
         c.max_students,
         c.current_enrollment,
@@ -299,11 +300,13 @@ BEGIN
         s.subject_code,
         s.subject_name,
         l.full_name as lecturer_name,
-        ay.year_name
+        ay.year_name,
+        sy.year_code as school_year_code
     FROM dbo.classes c
     LEFT JOIN dbo.subjects s ON c.subject_id = s.subject_id
     LEFT JOIN dbo.lecturers l ON c.lecturer_id = l.lecturer_id
     LEFT JOIN dbo.academic_years ay ON c.academic_year_id = ay.academic_year_id
+    LEFT JOIN dbo.school_years sy ON c.school_year_id = sy.school_year_id
     WHERE c.lecturer_id = @LecturerId AND c.deleted_at IS NULL
     ORDER BY c.created_at DESC;
 END

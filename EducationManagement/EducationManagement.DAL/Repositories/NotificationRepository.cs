@@ -154,19 +154,56 @@ namespace EducationManagement.DAL.Repositories
 
         public async Task MarkAsReadAsync(string notificationId, string? userId = null)
         {
-            var parameters = new[]
+            if (string.IsNullOrWhiteSpace(notificationId))
             {
-                new SqlParameter("@NotificationId", notificationId),
-                new SqlParameter("@UserId", (object?)userId ?? DBNull.Value)
+                throw new ArgumentException("Notification ID không được để trống");
+            }
+
+            // Create parameters with explicit direction and size
+            var notificationIdParam = new SqlParameter("@NotificationId", SqlDbType.VarChar, 50)
+            {
+                Value = notificationId,
+                Direction = ParameterDirection.Input
             };
+            
+            var userIdParam = new SqlParameter("@UserId", SqlDbType.VarChar, 50)
+            {
+                Value = (object?)userId ?? DBNull.Value,
+                Direction = ParameterDirection.Input
+            };
+            
+            var parameters = new[] { notificationIdParam, userIdParam };
             
             try
             {
-                await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_MarkNotificationAsRead", parameters);
+                // Use explicit schema to avoid conflicts with other stored procedures
+                var result = await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "dbo.sp_MarkNotificationAsRead", parameters);
+                // If no rows affected, notification might not exist or already deleted
+                // Note: Stored procedure should throw error 50001, but we check here as backup
+                if (result == 0)
+                {
+                    throw new Exception("Không tìm thấy notification hoặc đã bị xóa");
+                }
+            }
+            catch (SqlException sqlEx)
+            {
+                // Re-throw SQL exceptions (including error 50001 from stored procedure)
+                throw;
             }
             catch (Exception ex)
             {
-                throw;
+                // Check if it's a wrapped SQL exception from DatabaseHelper
+                if (ex.InnerException is SqlException innerSqlEx)
+                {
+                    throw innerSqlEx;
+                }
+                // Check if error message indicates not found
+                if (ex.Message.Contains("Không tìm thấy") || ex.Message.Contains("not found"))
+                {
+                    throw new Exception("Không tìm thấy notification hoặc đã bị xóa", ex);
+                }
+                // Wrap other exceptions
+                throw new Exception($"Lỗi khi đánh dấu notification đã đọc: {ex.Message}", ex);
             }
         }
 

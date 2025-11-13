@@ -1848,9 +1848,13 @@ input[type="radio"] {
     border-radius: 12px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
     border: 1px solid var(--border-color);
+    transform-origin: top right;
+}
+
+/* Animation chỉ chạy khi dropdown được mở lần đầu */
+.notification-dropdown-wrapper .notification-dropdown {
     opacity: 0;
     transform: scale(0.95);
-    transform-origin: top right;
     animation: slideDown 0.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
@@ -1920,12 +1924,28 @@ input[type="radio"] {
     cursor: pointer;
     color: var(--text-secondary);
     font-size: 18px;
-    padding: 4px;
-    transition: color 0.2s;
+    padding: 4px 8px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    pointer-events: auto;
+    z-index: 10;
+    position: relative;
 }
 
 .close-btn:hover {
     color: var(--danger-color);
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.close-btn:active {
+    transform: scale(0.95);
+}
+
+.close-btn i {
+    pointer-events: none;
 }
 
 .notification-dropdown-body {

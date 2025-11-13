@@ -7,6 +7,27 @@ app.directive('appTopbar', ['AuthService', 'AvatarService', function(AuthService
         },
         templateUrl: 'views/partials/topbar.html',
         link: function(scope) {
+            // Map role names to Vietnamese
+            var roleNameMap = {
+                'Admin': 'Quản trị viên',
+                'Lecturer': 'Giảng viên',
+                'Advisor': 'Cố vấn học tập',
+                'Student': 'Sinh viên'
+            };
+            
+            // Get formatted role name
+            scope.getRoleDisplayName = function(user) {
+                if (!user) return 'Người dùng';
+                
+                // Try different possible field names
+                var role = user.Role || user.roleName || user.role || '';
+                
+                if (!role) return 'Người dùng';
+                
+                // Return Vietnamese name if available, otherwise return original
+                return roleNameMap[role] || role;
+            };
+            
             function loadCurrentUser() {
                 scope.currentUser = AuthService.getCurrentUser() || { fullName: 'Admin' };
             }
@@ -32,8 +53,10 @@ app.directive('appTopbar', ['AuthService', 'AvatarService', function(AuthService
                 return scope.avatarModal;
             }, function(newVal, oldVal) {
                 // Prevent modal from auto-opening - only allow explicit open
-                if (newVal && newVal.show && !scope._explicitModalOpen) {
+                // But don't close if modal is already open and user is uploading
+                if (newVal && newVal.show && !scope._explicitModalOpen && !newVal.uploading) {
                     // Modal was opened without explicit user action - close it
+                    // But skip if user is currently uploading (uploading flag prevents accidental close)
                     scope.avatarModal.show = false;
                     // Remove active class from DOM
                     setTimeout(function() {
@@ -52,10 +75,8 @@ app.directive('appTopbar', ['AuthService', 'AvatarService', function(AuthService
                 if (originalOpenAvatarModal) {
                     originalOpenAvatarModal(event);
                 }
-                // Reset flag after a delay
-                setTimeout(function() {
-                    scope._explicitModalOpen = false;
-                }, 100);
+                // Don't reset flag immediately - keep it true during upload
+                // Flag will be reset when modal is closed or upload completes
             };
             
             // ✅ Ensure modal is closed when route changes (prevent auto-open)

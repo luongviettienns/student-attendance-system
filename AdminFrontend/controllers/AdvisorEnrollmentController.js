@@ -11,10 +11,11 @@ app.controller('AdvisorEnrollmentController', [
     'ClassService',
     'SubjectService',
     'SchoolYearService',
+    'CurrentSemesterHelper',
     'ToastService',
     'PaginationService',
     'AvatarService',
-    function($scope, AuthService, EnrollmentService, StudentService, ClassService, SubjectService, SchoolYearService, ToastService, PaginationService, AvatarService) {
+    function($scope, AuthService, EnrollmentService, StudentService, ClassService, SubjectService, SchoolYearService, CurrentSemesterHelper, ToastService, PaginationService, AvatarService) {
         
         // Initialize Avatar Modal Functions
         AvatarService.initAvatarModal($scope);
@@ -75,10 +76,26 @@ app.controller('AdvisorEnrollmentController', [
                     // Error('Error loading students:', error);
                 });
             
-            // Load classes
-            ClassService.getAll()
+            // Load classes (filtered by current semester)
+            CurrentSemesterHelper.getCurrentSemesterInfo()
+                .then(function(currentSemesterInfo) {
+                    $scope.currentSemesterInfo = currentSemesterInfo;
+                    
+                    return ClassService.getAll();
+                })
                 .then(function(response) {
-                    $scope.classes = response.data.data || response.data || [];
+                    var allClasses = response.data.data || response.data || [];
+                    
+                    // Filter theo học kỳ hiện tại (ưu tiên hiển thị học kỳ hiện tại)
+                    if ($scope.currentSemesterInfo && $scope.currentSemesterInfo.semester) {
+                        $scope.classes = CurrentSemesterHelper.filterClassesByCurrentSemester(
+                            allClasses,
+                            $scope.currentSemesterInfo,
+                            { filterOnly: false, sortByCurrent: true }
+                        );
+                    } else {
+                        $scope.classes = allClasses;
+                    }
                 })
                 .catch(function(error) {
                     // Error('Error loading classes:', error);

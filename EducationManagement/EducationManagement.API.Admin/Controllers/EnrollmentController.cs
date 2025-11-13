@@ -108,6 +108,29 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         // ============================================================
+        // 4️⃣.1 GET CLASS ROSTER (Students in class)
+        // ============================================================
+        [HttpGet("class/{classId}/roster")]
+        [Authorize] // Cho phép giảng viên xem danh sách sinh viên trong lớp
+        public async Task<IActionResult> GetClassRoster(string classId)
+        {
+            try
+            {
+                var students = await _service.GetClassRosterAsync(classId);
+                return Ok(new
+                {
+                    success = true,
+                    data = students,
+                    totalCount = students.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        // ============================================================
         // 5️⃣ REGISTER (Student)
         // ============================================================
         [HttpPost("register")]

@@ -14,7 +14,7 @@ app.directive('notificationBell', function() {
                     '<div class="notification-dropdown" ng-click="$event.stopPropagation()">' +
                         '<div class="notification-dropdown-header">' +
                             '<h4><i class="fas fa-bell"></i> Thông báo</h4>' +
-                            '<button ng-click="showDropdown = false" class="close-btn">' +
+                            '<button ng-click="closeDropdown($event)" class="close-btn">' +
                                 '<i class="fas fa-times"></i>' +
                             '</button>' +
                         '</div>' +
@@ -26,7 +26,7 @@ app.directive('notificationBell', function() {
                             '<div ng-if="loading" class="text-center" style="padding: 20px;">' +
                                 '<i class="fas fa-spinner fa-spin"></i> Đang tải...' +
                             '</div>' +
-                            '<div ng-repeat="notif in unreadNotifications" ' +
+                            '<div ng-repeat="notif in unreadNotifications track by (notif.notificationId || notif.id)" ' +
                                  'class="notification-dropdown-item" ' +
                                  'ng-click="markAndView(notif)">' +
                                 '<div class="notif-icon">' +

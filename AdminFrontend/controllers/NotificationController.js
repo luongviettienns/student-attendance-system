@@ -1,12 +1,33 @@
 // Notification Controller
-app.controller('NotificationController', ['$scope', '$location', 'NotificationService', 'PaginationService', 'AuthService', 'AvatarService',
-    function($scope, $location, NotificationService, PaginationService, AuthService, AvatarService) {
+app.controller('NotificationController', ['$scope', '$location', 'NotificationService', 'PaginationService', 'AuthService', 'AvatarService', 'UserService', 'LecturerService',
+    function($scope, $location, NotificationService, PaginationService, AuthService, AvatarService, UserService, LecturerService) {
     
     $scope.notifications = [];
     $scope.displayedNotifications = [];
     $scope.loading = false;
     $scope.error = null;
     $scope.success = null;
+    
+    // Create notification modal
+    $scope.showCreateModal = false;
+    $scope.creatingNotification = false;
+    $scope.availableUsers = [];
+    $scope.filteredUsers = [];
+    $scope.userSearchTerm = '';
+    $scope.newNotification = {
+        recipientId: '',
+        title: '',
+        content: '',
+        type: 'System'
+    };
+    
+    // Check if user can create notifications (only Admin)
+    var currentUser = AuthService.getCurrentUser();
+    $scope.canCreateNotification = currentUser && (
+        currentUser.roleName === 'Admin' || 
+        currentUser.roleName === 'Quản trị viên' ||
+        currentUser.role === 'Admin'
+    );
     
     // Initialize Avatar Modal Functions
     AvatarService.initAvatarModal($scope);
@@ -116,6 +137,10 @@ app.controller('NotificationController', ['$scope', '$location', 'NotificationSe
     
     // Mark as read
     $scope.markAsRead = function(notificationId) {
+        // Prevent multiple clicks
+        if ($scope.markingNotificationId === notificationId) return;
+        $scope.markingNotificationId = notificationId;
+        
         NotificationService.markAsRead(notificationId)
             .then(function() {
                 // Update local data
@@ -130,9 +155,23 @@ app.controller('NotificationController', ['$scope', '$location', 'NotificationSe
                 $scope.success = 'Đã đánh dấu đã đọc';
                 // Reload to refresh count
                 $scope.loadNotifications();
+                $scope.markingNotificationId = null;
             })
             .catch(function(error) {
-                $scope.error = 'Không thể đánh dấu đã đọc: ' + (error.data?.message || error.message || 'Lỗi không xác định');
+                var errorMsg = error.data?.message || error.message || '';
+                // If notification doesn't exist or already read, just update locally
+                if (errorMsg.includes('Không tìm thấy') || errorMsg.includes('đã bị xóa') || errorMsg.includes('already')) {
+                    var notif = $scope.notifications.find(function(n) {
+                        return (n.notificationId === notificationId) || (n.id === notificationId);
+                    });
+                    if (notif) {
+                        notif.isRead = true;
+                    }
+                    $scope.loadNotifications();
+                } else {
+                    $scope.error = 'Không thể đánh dấu đã đọc: ' + errorMsg;
+                }
+                $scope.markingNotificationId = null;
             });
     };
     
@@ -336,8 +375,167 @@ app.controller('NotificationController', ['$scope', '$location', 'NotificationSe
         }
     };
     
+    // Load available users for creating notifications
+    $scope.loadAvailableUsers = function() {
+        if (!$scope.canCreateNotification) return;
+        
+        // Try to load all users first (requires ADMIN_USERS permission)
+        UserService.getAll()
+            .then(function(response) {
+                var users = response.data || [];
+                // Filter only active users
+                $scope.availableUsers = users.filter(function(u) {
+                    return u.isActive !== false;
+                });
+                $scope.filteredUsers = $scope.availableUsers;
+            })
+            .catch(function(error) {
+                // Silently handle 403 (permission denied) - this is expected for non-admin users
+                // Fallback: Try to load lecturers (usually has less strict permission)
+                LecturerService.getAll()
+                    .then(function(response) {
+                        var lecturers = response.data || [];
+                        $scope.availableUsers = lecturers.map(function(l) {
+                            return {
+                                userId: l.userId,
+                                username: l.lecturerCode || l.username,
+                                fullName: l.fullName,
+                                roleName: 'Lecturer'
+                            };
+                        });
+                        $scope.filteredUsers = $scope.availableUsers;
+                    })
+                    .catch(function(err) {
+                        // If both fail, show empty list but don't show error
+                        $scope.availableUsers = [];
+                        $scope.filteredUsers = [];
+                    });
+            });
+    };
+    
+    // Filter users by search term
+    $scope.filterUsers = function() {
+        if (!$scope.userSearchTerm || $scope.userSearchTerm.trim() === '') {
+            $scope.filteredUsers = $scope.availableUsers;
+            return;
+        }
+        
+        var searchLower = $scope.userSearchTerm.toLowerCase();
+        $scope.filteredUsers = $scope.availableUsers.filter(function(user) {
+            var fullName = (user.fullName || '').toLowerCase();
+            var username = (user.username || '').toLowerCase();
+            var email = (user.email || '').toLowerCase();
+            var roleName = (user.roleName || '').toLowerCase();
+            var userId = (user.userId || '').toLowerCase();
+            
+            return fullName.includes(searchLower) || 
+                   username.includes(searchLower) || 
+                   email.includes(searchLower) ||
+                   roleName.includes(searchLower) ||
+                   userId.includes(searchLower);
+        });
+    };
+    
+    // Get users by role for dropdown grouping
+    $scope.getUsersByRole = function(role) {
+        if (!$scope.filteredUsers || $scope.filteredUsers.length === 0) {
+            return [];
+        }
+        
+        return $scope.filteredUsers.filter(function(user) {
+            var userRole = (user.roleName || '').toLowerCase();
+            var roleLower = role.toLowerCase();
+            
+            // Map Vietnamese role names
+            var roleMap = {
+                'giảng viên': 'lecturer',
+                'sinh viên': 'student',
+                'cố vấn': 'advisor',
+                'quản trị viên': 'admin'
+            };
+            
+            return userRole === roleLower || 
+                   userRole === roleMap[userRole] ||
+                   (roleLower === 'lecturer' && (userRole === 'giảng viên' || userRole.includes('lecturer'))) ||
+                   (roleLower === 'student' && (userRole === 'sinh viên' || userRole.includes('student'))) ||
+                   (roleLower === 'advisor' && (userRole === 'cố vấn' || userRole.includes('advisor'))) ||
+                   (roleLower === 'admin' && (userRole === 'quản trị viên' || userRole.includes('admin')));
+        });
+    };
+    
+    // Open create notification modal
+    $scope.openCreateModal = function() {
+        $scope.showCreateModal = true;
+        $scope.newNotification = {
+            recipientId: '',
+            title: '',
+            content: '',
+            type: 'System'
+        };
+        $scope.userSearchTerm = '';
+        if ($scope.availableUsers.length === 0) {
+            $scope.loadAvailableUsers();
+        } else {
+            $scope.filteredUsers = $scope.availableUsers;
+        }
+    };
+    
+    // Close create notification modal
+    $scope.closeCreateModal = function() {
+        $scope.showCreateModal = false;
+        $scope.newNotification = {
+            recipientId: '',
+            title: '',
+            content: '',
+            type: 'System'
+        };
+        $scope.userSearchTerm = '';
+        $scope.filteredUsers = $scope.availableUsers;
+    };
+    
+    // Create notification
+    $scope.createNotification = function() {
+        if (!$scope.newNotification.recipientId || 
+            !$scope.newNotification.title || 
+            !$scope.newNotification.content) {
+            $scope.error = 'Vui lòng điền đầy đủ thông tin';
+            return;
+        }
+        
+        $scope.creatingNotification = true;
+        $scope.error = null;
+        
+        NotificationService.create({
+            recipientId: $scope.newNotification.recipientId,
+            title: $scope.newNotification.title,
+            content: $scope.newNotification.content,
+            type: $scope.newNotification.type || 'System'
+        })
+        .then(function(response) {
+            $scope.success = 'Tạo thông báo thành công!';
+            $scope.closeCreateModal();
+            $scope.loadNotifications();
+            
+            // Clear success message after 3 seconds
+            setTimeout(function() {
+                $scope.success = null;
+                $scope.$apply();
+            }, 3000);
+        })
+        .catch(function(error) {
+            $scope.error = 'Không thể tạo thông báo: ' + (error.data?.message || error.message || 'Lỗi không xác định');
+        })
+        .finally(function() {
+            $scope.creatingNotification = false;
+        });
+    };
+    
     // Initialize
     $scope.loadNotifications();
+    // Don't load users on init - only load when opening create modal
+    // if ($scope.canCreateNotification) {
+    //     $scope.loadAvailableUsers();
+    // }
     
     // Auto-refresh every 30 seconds when page is visible
     var refreshInterval = setInterval(function() {
@@ -438,20 +636,28 @@ app.controller('NotificationBellController', ['$scope', '$interval', '$location'
         NotificationService.getUnread(10) // Get latest 10 unread notifications
             .then(function(result) {
                 var notifications = result.data || [];
-                // Map field names for compatibility
-                $scope.unreadNotifications = notifications.slice(0, 5).map(function(notif) {
-                    return {
-                        notificationId: notif.notificationId || notif.id,
-                        id: notif.notificationId || notif.id,
-                        title: notif.title,
-                        content: notif.content || notif.message,
-                        message: notif.content || notif.message,
-                        type: notif.type || 'System',
-                        isRead: notif.isRead || false,
-                        createdAt: notif.createdAt || notif.sentDate,
-                        sentDate: notif.sentDate || notif.createdAt
-                    };
-                });
+                // Map field names for compatibility và loại bỏ trùng lặp
+                var seenIds = {};
+                $scope.unreadNotifications = notifications.slice(0, 5)
+                    .map(function(notif) {
+                        var id = notif.notificationId || notif.id;
+                        if (seenIds[id]) {
+                            return null; // Skip duplicates
+                        }
+                        seenIds[id] = true;
+                        return {
+                            notificationId: id,
+                            id: id,
+                            title: notif.title,
+                            content: notif.content || notif.message,
+                            message: notif.content || notif.message,
+                            type: notif.type || 'System',
+                            isRead: notif.isRead || false,
+                            createdAt: notif.createdAt || notif.sentDate,
+                            sentDate: notif.sentDate || notif.createdAt
+                        };
+                    })
+                    .filter(function(notif) { return notif !== null; }); // Remove nulls
                 
                 // Update count from service
                 NotificationService.fetchUnreadCount().then(function(count) {
@@ -476,10 +682,21 @@ app.controller('NotificationBellController', ['$scope', '$interval', '$location'
     
     // Toggle dropdown
     $scope.toggleDropdown = function() {
+        var wasOpen = $scope.showDropdown;
         $scope.showDropdown = !$scope.showDropdown;
-        if ($scope.showDropdown) {
+        if ($scope.showDropdown && !wasOpen) {
+            // Chỉ load khi mở lần đầu, không load lại khi đóng/mở
             $scope.loadUnread();
         }
+    };
+    
+    // Close dropdown
+    $scope.closeDropdown = function(event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        $scope.showDropdown = false;
     };
     
     // Initialize on controller load
@@ -501,9 +718,19 @@ app.controller('NotificationBellController', ['$scope', '$interval', '$location'
         }
     });
     
+    // Track notifications being marked to prevent duplicate calls
+    $scope.markingNotifications = {};
+    
     // Mark as read and navigate
     $scope.markAndView = function(notification) {
         var notificationId = notification.notificationId || notification.id;
+        
+        // Prevent multiple clicks for the same notification
+        if ($scope.markingNotifications[notificationId]) {
+            return;
+        }
+        $scope.markingNotifications[notificationId] = true;
+        
         NotificationService.markAsRead(notificationId)
             .then(function() {
                 // Remove from unread list
@@ -520,7 +747,7 @@ app.controller('NotificationBellController', ['$scope', '$interval', '$location'
                 var currentUser = AuthService.getCurrentUser();
                 if (!currentUser) {
                     $location.path('/notifications');
-                    $scope.$apply();
+                    delete $scope.markingNotifications[notificationId];
                     return;
                 }
                 
@@ -561,17 +788,34 @@ app.controller('NotificationBellController', ['$scope', '$interval', '$location'
                     // Navigate to notifications page
                     $location.path('/notifications');
                 }
-                $scope.$apply();
+                delete $scope.markingNotifications[notificationId];
             })
             .catch(function(error) {
-                // Error marking notification as read
+                // Error marking notification as read - don't show error if notification doesn't exist or already read
+                var errorMsg = (error.data && error.data.message) || error.message || '';
+                var status = error.status || 0;
+                
+                // For 500 errors or not found errors, silently remove from list
+                if (status === 500 || status === 404 || 
+                    errorMsg.includes('Không tìm thấy') || 
+                    errorMsg.includes('đã bị xóa') || 
+                    errorMsg.includes('already') ||
+                    errorMsg.includes('not found')) {
+                    // Silently remove from list if notification doesn't exist
+                    $scope.unreadNotifications = $scope.unreadNotifications.filter(function(n) {
+                        return (n.notificationId || n.id) !== notificationId;
+                    });
+                    NotificationService.fetchUnreadCount().then(function(count) {
+                        $scope.unreadCount = count;
+                    });
+                }
+                delete $scope.markingNotifications[notificationId];
             });
     };
     
     // View all notifications
     $scope.viewAll = function() {
         $location.path('/notifications');
-        $scope.$apply();
     };
     
     // Get notification icon for bell dropdown

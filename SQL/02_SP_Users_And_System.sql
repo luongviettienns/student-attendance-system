@@ -286,12 +286,18 @@ BEGIN
         permission_code,
         permission_name,
         description,
+        parent_code,
+        icon,
+        sort_order,
+        is_active,
         created_at,
         created_by,
         updated_at,
-        updated_by
+        updated_by,
+        deleted_at
     FROM dbo.permissions
-    ORDER BY permission_code;
+    WHERE deleted_at IS NULL OR deleted_at = '1900-01-01'
+    ORDER BY ISNULL(sort_order, 999), permission_code;
 END
 GO
 
@@ -666,6 +672,10 @@ BEGIN
 END
 GO
 
+-- NOTE: sp_MarkNotificationAsRead is now defined in 02_SP_Notifications.sql
+-- with proper signature (2 parameters: @NotificationId and @UserId)
+-- This old version is removed to avoid conflicts
+/*
 IF OBJECT_ID('sp_MarkNotificationAsRead', 'P') IS NOT NULL DROP PROCEDURE sp_MarkNotificationAsRead;
 GO
 CREATE PROCEDURE sp_MarkNotificationAsRead
@@ -677,6 +687,7 @@ BEGIN
     WHERE notification_id = @NotificationId;
 END
 GO
+*/
 
 IF OBJECT_ID('sp_RemovePermissionFromRole', 'P') IS NOT NULL DROP PROCEDURE sp_RemovePermissionFromRole;
 GO

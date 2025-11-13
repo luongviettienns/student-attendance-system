@@ -239,6 +239,9 @@ namespace EducationManagement.DAL.Repositories
                 LecturerId = row["lecturer_id"].ToString()!,
                 Semester = row["semester"].ToString()!,
                 AcademicYearId = row["academic_year_id"].ToString()!,
+                SchoolYearId = row.Table.Columns.Contains("school_year_id") && row["school_year_id"] != DBNull.Value
+                    ? row["school_year_id"].ToString()
+                    : null,
                 MaxStudents = row.Table.Columns.Contains("max_students") ? Convert.ToInt32(row["max_students"]) : 0,
                 SubjectName = row.Table.Columns.Contains("subject_name") ? row["subject_name"]?.ToString() : null,
                 LecturerName = row.Table.Columns.Contains("lecturer_name") ? row["lecturer_name"]?.ToString() : null,

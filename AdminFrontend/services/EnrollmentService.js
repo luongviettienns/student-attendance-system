@@ -29,6 +29,11 @@ app.service('EnrollmentService', ['ApiService', function(ApiService) {
         return ApiService.get('/enrollments/class/' + classId);
     };
     
+    // Get class roster (students in class)
+    this.getClassRoster = function(classId) {
+        return ApiService.get('/enrollments/class/' + classId + '/roster');
+    };
+    
     // ============================================================
     // 5️⃣ REGISTER
     // ============================================================

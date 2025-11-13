@@ -1,8 +1,9 @@
 // @ts-check
-/* global angular */
+/* global angular, window */
 'use strict';
 
 // AngularJS Application Configuration
+// @ts-ignore - angular is loaded from CDN
 var app = angular.module('adminApp', ['ngRoute', 'ngAnimate']);
 
 // Academic rules & thresholds (centralised to avoid scattering magic numbers)
@@ -151,6 +152,12 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'ClassController'
         })
         
+        // Grade Formula Management (Admin)
+        .when('/grade-formula', {
+            templateUrl: 'views/advisor/grade-formula.html',
+            controller: 'AdvisorGradeFormulaConfigController'
+        })
+        
         // Lecturer Portal
         .when('/lecturer/dashboard', {
             templateUrl: 'views/lecturer/dashboard.html',
@@ -167,6 +174,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/lecturer/appeals', {
             templateUrl: 'views/lecturer/appeals.html',
             controller: 'LecturerGradeAppealController'
+        })
+        .when('/lecturer/grade-formula', {
+            templateUrl: 'views/lecturer/grade-formula.html',
+            controller: 'LecturerGradeFormulaController'
         })
         .when('/lecturer/timetable', {
             templateUrl: 'views/lecturer/timetable.html',
@@ -509,10 +520,25 @@ app.factory('AuthInterceptor', ['$q', '$location', '$window', '$injector', funct
             if (rejection.status === 401) {
                 // Unauthorized - Try to refresh token first
                 var AuthService = $injector.get('AuthService');
+                var $location = $injector.get('$location');
+                
+                // Check if this is a login endpoint - don't show session expired toast
+                var isLoginEndpoint = rejection.config && rejection.config.url && 
+                                     (rejection.config.url.indexOf('/auth/login') !== -1 ||
+                                      rejection.config.url.indexOf('/login') !== -1);
                 
                 // Check if this is a refresh endpoint (avoid infinite loop)
                 var isRefreshEndpoint = rejection.config && rejection.config.url && 
                                        rejection.config.url.indexOf('/auth/refresh') !== -1;
+                
+                // Check if user is on login page
+                var isOnLoginPage = $location.path() === '/login';
+                
+                // If it's a login endpoint or user is on login page, don't handle 401 here
+                // Let the login controller handle the error message
+                if (isLoginEndpoint || isOnLoginPage) {
+                    return $q.reject(rejection);
+                }
                 
                 if (!isRefreshEndpoint) {
                     // Try to refresh token
@@ -527,12 +553,14 @@ app.factory('AuthInterceptor', ['$q', '$location', '$window', '$injector', funct
                         // Refresh failed - logout
                         AuthService.logout();
                         
-                        // Try to show toast if ToastService is available
-                        try {
-                            var ToastService = $injector.get('ToastService');
-                            ToastService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-                        } catch (e) {
-                            // ToastService not available, skip
+                        // Only show toast if not on login page
+                        if (!isOnLoginPage) {
+                            try {
+                                var ToastService = $injector.get('ToastService');
+                                ToastService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                            } catch (e) {
+                                // ToastService not available, skip
+                            }
                         }
                         
                         return $q.reject(rejection);
@@ -541,12 +569,14 @@ app.factory('AuthInterceptor', ['$q', '$location', '$window', '$injector', funct
                     // Refresh endpoint returned 401 - logout
                     AuthService.logout();
                     
-                    // Try to show toast if ToastService is available
-                    try {
-                        var ToastService = $injector.get('ToastService');
-                        ToastService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-                    } catch (e) {
-                        // ToastService not available, skip
+                    // Only show toast if not on login page
+                    if (!isOnLoginPage) {
+                        try {
+                            var ToastService = $injector.get('ToastService');
+                            ToastService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                        } catch (e) {
+                            // ToastService not available, skip
+                        }
                     }
                 }
             } else if (rejection.status === 403) {
@@ -572,8 +602,10 @@ app.config(['$httpProvider', function($httpProvider) {
 app.run(['$rootScope', function($rootScope) {
     $rootScope.$on('$routeChangeStart', function() {
         // Close all modals when navigating to a new page
-        if (typeof ModalUtils !== 'undefined') {
-            ModalUtils.closeAll();
+        // @ts-ignore - ModalUtils is defined in js/modal.js
+        if (typeof window !== 'undefined' && window.ModalUtils && typeof window.ModalUtils.closeAll === 'function') {
+            // @ts-ignore
+            window.ModalUtils.closeAll();
         }
     });
 }]);

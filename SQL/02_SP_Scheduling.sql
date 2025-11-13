@@ -1547,13 +1547,25 @@ BEGIN
         ac.updated_by,
         ac.deleted_at,
         ac.deleted_by,
-        -- present advisor/major names if available
+        -- Major info
         m.major_name,
+        m.major_code,
+        m.faculty_id,
+        f.faculty_name,
+        -- Advisor info (advisor's department)
         l.full_name AS advisor_name,
-        l.phone     AS advisor_phone
+        l.email AS advisor_email,
+        l.phone AS advisor_phone,
+        l.department_id AS advisor_department_id,
+        d.department_name,
+        -- Academic year info
+        ay.year_name AS academic_year_name
     FROM dbo.administrative_classes ac
     LEFT JOIN dbo.majors m ON m.major_id = ac.major_id
+    LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
     LEFT JOIN dbo.lecturers l ON l.lecturer_id = ac.advisor_id
+    LEFT JOIN dbo.departments d ON l.department_id = d.department_id
+    LEFT JOIN dbo.academic_years ay ON ac.academic_year_id = ay.academic_year_id
     WHERE ac.admin_class_id = @AdminClassId;
 END
 GO
@@ -1575,10 +1587,8 @@ BEGIN
     BEGIN TRY
         DECLARE @Offset INT = (@Page - 1) * @PageSize;
         
-        -- Get total count
-        DECLARE @TotalCount INT;
-        
-        SELECT @TotalCount = COUNT(*)
+        -- Result Set 1: Total Count
+        SELECT COUNT(*) AS TotalCount
         FROM administrative_classes ac
         LEFT JOIN majors m ON ac.major_id = m.major_id
         LEFT JOIN lecturers l ON ac.advisor_id = l.lecturer_id
@@ -1589,26 +1599,27 @@ BEGIN
         AND (@CohortYear IS NULL OR ac.cohort_year = @CohortYear)
         AND (@AdvisorId IS NULL OR ac.advisor_id = @AdvisorId);
         
-        -- Get paginated data
+        -- Result Set 2: Paginated Data
         SELECT 
             ac.admin_class_id,
             ac.class_code,
             ac.class_name,
             ac.major_id,
             m.major_name,
+            m.major_code,
             m.faculty_id,
             f.faculty_name,
             ac.cohort_year,
             ac.advisor_id,
             l.full_name AS advisor_name,
             ac.academic_year_id,
-            ay.year_name,
+            ay.year_name AS academic_year_name,
             ac.max_students,
             ac.current_students,
             ac.description,
+            ac.is_active,
             ac.created_at,
-            ac.created_by,
-            @TotalCount AS TotalCount
+            ac.created_by
         FROM administrative_classes ac
         LEFT JOIN majors m ON ac.major_id = m.major_id
         LEFT JOIN faculties f ON m.faculty_id = f.faculty_id
@@ -2277,7 +2288,7 @@ BEGIN
         -- Check if class exists
         IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
         BEGIN
-            THROW 50002, N'Không tìm thấy lớp học nhạc', 1;
+            THROW 50002, N'Không tìm thấy lớp hành chính', 1;
         END
         
         SELECT 
@@ -2285,16 +2296,20 @@ BEGIN
             s.student_code,
             s.full_name,
             s.email,
-            s.phone_number,
-            s.date_of_birth,
+            s.phone AS phone,
+            s.date_of_birth AS dob,
             s.gender,
             s.address,
+            s.major_id,
+            m.major_name,
             s.admin_class_id,
             ac.class_code AS admin_class_code,
             ac.class_name AS admin_class_name,
+            s.is_active,
             s.created_at AS enrolled_date
         FROM students s
         INNER JOIN administrative_classes ac ON s.admin_class_id = ac.admin_class_id
+        LEFT JOIN majors m ON s.major_id = m.major_id
         WHERE s.admin_class_id = @AdminClassId
         AND s.deleted_at IS NULL
         ORDER BY s.student_code;
