@@ -28,7 +28,17 @@ namespace EducationManagement.API.Admin.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                // Log chi tiết để debug
+                var errorMessage = ex.Message;
+                var innerException = ex.InnerException?.Message;
+                var stackTrace = ex.StackTrace;
+                
+                return StatusCode(500, new { 
+                    message = "Lỗi hệ thống", 
+                    error = errorMessage,
+                    innerException = innerException,
+                    stackTrace = stackTrace?.Substring(0, Math.Min(500, stackTrace?.Length ?? 0))
+                });
             }
         }
 

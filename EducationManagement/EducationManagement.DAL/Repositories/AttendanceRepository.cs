@@ -25,11 +25,27 @@ namespace EducationManagement.DAL.Repositories
         {
             var attendances = new List<Attendance>();
 
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAllAttendances");
-
-            foreach (DataRow row in dt.Rows)
+            try
             {
-                attendances.Add(MapToAttendance(row));
+                var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAllAttendances");
+
+                foreach (DataRow row in dt.Rows)
+                {
+                    try
+                    {
+                        attendances.Add(MapToAttendance(row));
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log mapping error but continue with other rows
+                        System.Diagnostics.Debug.WriteLine($"Error mapping attendance row: {ex.Message}");
+                        throw; // Re-throw to see the actual error
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error in GetAllAsync: {ex.Message}", ex);
             }
 
             return attendances;
@@ -185,32 +201,58 @@ namespace EducationManagement.DAL.Repositories
         /// </summary>
         private static Attendance MapToAttendance(DataRow row)
         {
+            // Stored procedure sp_GetAllAttendances trả về:
+            // attendance_id, enrollment_id, class_id, attendance_date, status, note (không phải notes),
+            // created_at, created_by, updated_at, updated_by, student_id, student_code, student_name, class_code, class_name
+            // KHÔNG có: schedule_id, marked_by, is_active, deleted_at, deleted_by
+            
+            // Lấy schedule_id từ enrollment_id hoặc class_id (nếu cần)
+            // Vì stored procedure không trả về schedule_id, ta sẽ dùng enrollment_id hoặc null
+            var scheduleId = row.Table.Columns.Contains("schedule_id") && row["schedule_id"] != DBNull.Value
+                ? row["schedule_id"].ToString()!
+                : row.Table.Columns.Contains("enrollment_id") && row["enrollment_id"] != DBNull.Value
+                    ? row["enrollment_id"].ToString()!
+                    : string.Empty;
+            
             return new Attendance
             {
                 AttendanceId = row["attendance_id"].ToString()!,
                 StudentId = row["student_id"].ToString()!,
-                ScheduleId = row["schedule_id"].ToString()!,
+                ScheduleId = scheduleId, // Sử dụng enrollment_id nếu không có schedule_id
                 AttendanceDate = row.Table.Columns.Contains("attendance_date") && row["attendance_date"] != DBNull.Value 
                     ? Convert.ToDateTime(row["attendance_date"]) 
                     : DateTime.Now,
                 Status = row["status"].ToString()!,
-                Notes = row.Table.Columns.Contains("notes") ? row["notes"]?.ToString() : null,
-                MarkedBy = row.Table.Columns.Contains("marked_by") ? row["marked_by"]?.ToString() : null,
+                // Stored procedure trả về "note" không phải "notes"
+                Notes = row.Table.Columns.Contains("note") && row["note"] != DBNull.Value
+                    ? row["note"]?.ToString()
+                    : row.Table.Columns.Contains("notes") && row["notes"] != DBNull.Value
+                        ? row["notes"]?.ToString()
+                        : null,
+                MarkedBy = row.Table.Columns.Contains("marked_by") && row["marked_by"] != DBNull.Value
+                    ? row["marked_by"]?.ToString()
+                    : null, // Stored procedure không trả về marked_by
                 IsActive = row.Table.Columns.Contains("is_active") && row["is_active"] != DBNull.Value
                     ? Convert.ToBoolean(row["is_active"])
-                    : true,
+                    : true, // Default true vì stored procedure filter deleted_at IS NULL
                 CreatedAt = row.Table.Columns.Contains("created_at") && row["created_at"] != DBNull.Value 
                     ? Convert.ToDateTime(row["created_at"]) 
                     : DateTime.Now,
-                CreatedBy = row.Table.Columns.Contains("created_by") ? row["created_by"]?.ToString() : null,
+                CreatedBy = row.Table.Columns.Contains("created_by") && row["created_by"] != DBNull.Value
+                    ? row["created_by"]?.ToString()
+                    : null,
                 UpdatedAt = row.Table.Columns.Contains("updated_at") && row["updated_at"] != DBNull.Value 
                     ? Convert.ToDateTime(row["updated_at"]) 
                     : (DateTime?)null,
-                UpdatedBy = row.Table.Columns.Contains("updated_by") ? row["updated_by"]?.ToString() : null,
+                UpdatedBy = row.Table.Columns.Contains("updated_by") && row["updated_by"] != DBNull.Value
+                    ? row["updated_by"]?.ToString()
+                    : null,
                 DeletedAt = row.Table.Columns.Contains("deleted_at") && row["deleted_at"] != DBNull.Value
                     ? Convert.ToDateTime(row["deleted_at"])
-                    : null,
-                DeletedBy = row.Table.Columns.Contains("deleted_by") ? row["deleted_by"]?.ToString() : null
+                    : null, // Stored procedure filter deleted_at IS NULL nên luôn null
+                DeletedBy = row.Table.Columns.Contains("deleted_by") && row["deleted_by"] != DBNull.Value
+                    ? row["deleted_by"]?.ToString()
+                    : null
             };
         }
     }

@@ -70,12 +70,10 @@ namespace EducationManagement.DAL.Repositories
                 new SqlParameter("@PageSize", pageSize)
             };
 
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetRetakeRecordsByStudent", parameters);
-
             var records = new List<RetakeRecord>();
             int totalCount = 0;
 
-            // Check if we have multiple result sets
+            // Use SqlDataReader to handle multiple result sets
             using var conn = new SqlConnection(_connectionString);
             await conn.OpenAsync();
 
@@ -87,18 +85,34 @@ namespace EducationManagement.DAL.Repositories
 
             using var reader = await cmd.ExecuteReaderAsync();
 
-            // Read records
+            // Read first result set (records)
             while (await reader.ReadAsync())
             {
                 records.Add(MapToRetakeRecordFromReader(reader));
             }
 
-            // Read total count
-            if (await reader.NextResultAsync() && await reader.ReadAsync())
+            // Read second result set (total count) if exists
+            if (await reader.NextResultAsync())
             {
-                totalCount = reader["total_count"] != DBNull.Value 
-                    ? Convert.ToInt32(reader["total_count"]) 
-                    : 0;
+                if (await reader.ReadAsync())
+                {
+                    // Check if column exists before reading
+                    if (reader.HasRows && reader.FieldCount > 0)
+                    {
+                        var columnIndex = reader.GetOrdinal("total_count");
+                        if (columnIndex >= 0)
+                        {
+                            totalCount = reader["total_count"] != DBNull.Value 
+                                ? Convert.ToInt32(reader["total_count"]) 
+                                : 0;
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // If no second result set, use records count as total
+                totalCount = records.Count;
             }
 
             return (records, totalCount);
