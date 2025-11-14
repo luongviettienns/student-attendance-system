@@ -2,6 +2,7 @@
    TIMETABLE ADMIN PAGE - SPECIFIC STYLES
    Namespace: timetable-admin-*
    Tránh conflict với các CSS khác
+   ⚠️ 100% CUSTOM CSS - KHÔNG DÙNG BOOTSTRAP
    ============================================== */
 
 /* Toolbar Section */
@@ -33,6 +34,81 @@
 .timetable-admin-btn-nav,
 .timetable-admin-btn-create {
     white-space: nowrap;
+}
+
+/* Class selector với search */
+.timetable-admin-class-selector {
+    position: relative;
+    min-width: 300px;
+    margin-right: 10px;
+    display: inline-block;
+}
+
+.timetable-admin-class-filter-options {
+    margin-bottom: 8px;
+    padding: 8px;
+    background: var(--bg-secondary, #f8f9fa);
+    border-radius: 4px;
+}
+
+.timetable-admin-filter-checkbox {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.timetable-admin-filter-checkbox input[type="checkbox"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.timetable-admin-class-search-wrapper {
+    margin-bottom: 8px;
+    position: relative;
+}
+
+.timetable-admin-class-search {
+    padding-left: 35px;
+    padding-right: 35px;
+}
+
+.timetable-admin-class-search-wrapper::before {
+    content: '\f002';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary, #999);
+    z-index: 1;
+}
+
+.timetable-admin-search-count {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: var(--text-secondary, #666);
+    background: white;
+    padding: 0 5px;
+    pointer-events: none;
+}
+
+.timetable-admin-class-select {
+    width: 100%;
+}
+
+.timetable-admin-class-info {
+    margin-top: 5px;
+    font-size: 14px;
+    color: var(--text-secondary, #666);
+}
+
+.timetable-admin-class-info .badge {
+    margin-right: 5px;
 }
 
 /* Alert Section */

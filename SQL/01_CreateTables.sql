@@ -1385,3 +1385,94 @@ GO
 PRINT '✅ Table created: grade_formula_config';
 GO
 
+-- ===========================================
+-- 22. BẢNG PERIOD_CLASSES (Liên kết đợt đăng ký và lớp học phần)
+-- ===========================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'period_classes')
+BEGIN
+    PRINT 'Creating table: period_classes';
+    
+    CREATE TABLE dbo.period_classes (
+        period_class_id VARCHAR(50) PRIMARY KEY,
+        period_id VARCHAR(50) NOT NULL,
+        class_id VARCHAR(50) NOT NULL,
+        is_active BIT NOT NULL DEFAULT 1,
+        created_at DATETIME NOT NULL DEFAULT(GETDATE()),
+        created_by VARCHAR(50) NULL,
+        updated_at DATETIME NULL,
+        updated_by VARCHAR(50) NULL,
+        deleted_at DATETIME NULL,
+        
+        -- Foreign Keys
+        CONSTRAINT FK_PeriodClass_Period 
+            FOREIGN KEY (period_id) REFERENCES registration_periods(period_id),
+        CONSTRAINT FK_PeriodClass_Class 
+            FOREIGN KEY (class_id) REFERENCES classes(class_id),
+        
+        -- Unique constraint: một lớp chỉ có thể thêm vào một đợt một lần
+        CONSTRAINT UQ_PeriodClass_PeriodClass 
+            UNIQUE (period_id, class_id)
+    );
+    
+    -- Indexes
+    CREATE INDEX IX_PeriodClass_Period ON period_classes(period_id);
+    CREATE INDEX IX_PeriodClass_Class ON period_classes(class_id);
+    CREATE INDEX IX_PeriodClass_Active ON period_classes(is_active, deleted_at);
+    
+    PRINT '✓ Table created: period_classes';
+END
+ELSE
+BEGIN
+    PRINT '✓ Table already exists: period_classes';
+END
+GO
+
+-- ===========================================
+-- 23. BẢNG RETAKE_RECORDS (Học lại)
+-- ===========================================
+IF OBJECT_ID('dbo.retake_records', 'U') IS NOT NULL DROP TABLE dbo.retake_records;
+GO
+
+CREATE TABLE dbo.retake_records (
+    retake_id          VARCHAR(50) PRIMARY KEY,
+    enrollment_id      VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.enrollments(enrollment_id),
+    student_id         VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.students(student_id),
+    class_id           VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.classes(class_id),
+    subject_id         VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.subjects(subject_id),
+    
+    -- Thông tin học lại
+    reason             NVARCHAR(20) NOT NULL, -- ATTENDANCE, GRADE, BOTH
+    threshold_value    DECIMAL(5,2) NULL,     -- Giá trị ngưỡng (20% cho vắng, 4.0 cho điểm)
+    current_value      DECIMAL(5,2) NULL,     -- Giá trị hiện tại (absence rate hoặc grade)
+    
+    -- Workflow
+    status             NVARCHAR(20) NOT NULL DEFAULT 'PENDING', -- PENDING, APPROVED, REJECTED, COMPLETED
+    advisor_notes      NVARCHAR(1000) NULL,   -- Ghi chú từ advisor
+    
+    -- Audit fields
+    created_at         DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by         VARCHAR(50) NULL,      -- System hoặc user tạo
+    updated_at         DATETIME NULL,
+    updated_by         VARCHAR(50) NULL,
+    resolved_at       DATETIME NULL,
+    resolved_by        VARCHAR(50) NULL,     -- Advisor ID
+    deleted_at         DATETIME NULL,
+    deleted_by         VARCHAR(50) NULL,
+    
+    -- Constraints
+    CONSTRAINT CHK_Retake_Reason CHECK (reason IN ('ATTENDANCE', 'GRADE', 'BOTH')),
+    CONSTRAINT CHK_Retake_Status CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'COMPLETED'))
+);
+GO
+
+-- Indexes for retake_records
+CREATE INDEX IX_Retake_Student ON retake_records(student_id, status);
+CREATE INDEX IX_Retake_Enrollment ON retake_records(enrollment_id);
+CREATE INDEX IX_Retake_Class ON retake_records(class_id, status);
+CREATE INDEX IX_Retake_Status ON retake_records(status, created_at);
+CREATE INDEX IX_Retake_Subject ON retake_records(subject_id);
+GO
+
+PRINT '✅ Table created: retake_records';
+GO
+

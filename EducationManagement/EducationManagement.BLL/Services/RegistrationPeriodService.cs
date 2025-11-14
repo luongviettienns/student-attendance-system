@@ -185,6 +185,51 @@ namespace EducationManagement.BLL.Services
         }
 
         // ============================================================
+        // 9️⃣ PERIOD CLASSES MANAGEMENT
+        // ============================================================
+        public async Task<List<Dictionary<string, object>>> GetClassesByPeriodAsync(string periodId)
+        {
+            var dt = await _repository.GetClassesByPeriodAsync(periodId);
+            var list = new List<Dictionary<string, object>>();
+            foreach (System.Data.DataRow row in dt.Rows)
+            {
+                var dict = new Dictionary<string, object>();
+                foreach (System.Data.DataColumn col in dt.Columns)
+                {
+                    dict[col.ColumnName] = row[col] == DBNull.Value ? null : row[col];
+                }
+                list.Add(dict);
+            }
+            return list;
+        }
+
+        public async Task<List<Dictionary<string, object>>> GetAvailableClassesForPeriodAsync(string periodId)
+        {
+            var dt = await _repository.GetAvailableClassesForPeriodAsync(periodId);
+            var list = new List<Dictionary<string, object>>();
+            foreach (System.Data.DataRow row in dt.Rows)
+            {
+                var dict = new Dictionary<string, object>();
+                foreach (System.Data.DataColumn col in dt.Columns)
+                {
+                    dict[col.ColumnName] = row[col] == DBNull.Value ? null : row[col];
+                }
+                list.Add(dict);
+            }
+            return list;
+        }
+
+        public async Task AddClassToPeriodAsync(string periodId, string classId, string createdBy)
+        {
+            await _repository.AddClassToPeriodAsync(periodId, classId, createdBy);
+        }
+
+        public async Task RemoveClassFromPeriodAsync(string periodClassId, string updatedBy)
+        {
+            await _repository.RemoveClassFromPeriodAsync(periodClassId, updatedBy);
+        }
+
+        // ============================================================
         // PRIVATE VALIDATION HELPERS
         // ============================================================
         private void ValidateCreateDto(CreatePeriodDto dto)

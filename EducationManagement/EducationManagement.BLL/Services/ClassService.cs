@@ -106,6 +106,16 @@ namespace EducationManagement.BLL.Services
             await _classRepository.DeleteAsync(classId, deletedBy);
         }
 
+        public async Task ActivateClassAsync(string classId, string updatedBy)
+        {
+            await _classRepository.UpdateIsActiveAsync(classId, true, updatedBy);
+        }
+
+        public async Task DeactivateClassAsync(string classId, string updatedBy)
+        {
+            await _classRepository.UpdateIsActiveAsync(classId, false, updatedBy);
+        }
+
         /// <summary>
         /// Lấy classes theo lecturer ID
         /// </summary>

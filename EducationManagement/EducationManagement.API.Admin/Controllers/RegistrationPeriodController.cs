@@ -215,6 +215,76 @@ namespace EducationManagement.API.Admin.Controllers
                 return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }
+
+        // ============================================================
+        // 9️⃣ PERIOD CLASSES MANAGEMENT
+        // ============================================================
+        [HttpGet("{id}/classes")]
+        [Authorize]
+        public async Task<IActionResult> GetClassesByPeriod(string id)
+        {
+            try
+            {
+                var data = await _service.GetClassesByPeriodAsync(id);
+                return Ok(new { success = true, data });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("{id}/available-classes")]
+        [Authorize]
+        public async Task<IActionResult> GetAvailableClassesForPeriod(string id)
+        {
+            try
+            {
+                var data = await _service.GetAvailableClassesForPeriodAsync(id);
+                return Ok(new { success = true, data });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/classes")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> AddClassToPeriod(string id, [FromBody] AddClassToPeriodInput input)
+        {
+            try
+            {
+                var createdBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+                await _service.AddClassToPeriodAsync(id, input.ClassId, createdBy);
+                return Ok(new { success = true, message = "Thêm lớp vào đợt đăng ký thành công" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpDelete("classes/{periodClassId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> RemoveClassFromPeriod(string periodClassId)
+        {
+            try
+            {
+                var updatedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+                await _service.RemoveClassFromPeriodAsync(periodClassId, updatedBy);
+                return Ok(new { success = true, message = "Xóa lớp khỏi đợt đăng ký thành công" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+    }
+
+    public class AddClassToPeriodInput
+    {
+        public string ClassId { get; set; } = string.Empty;
     }
 }
 

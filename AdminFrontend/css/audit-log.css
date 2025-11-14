@@ -924,11 +924,21 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
-    display: flex;
+    display: none !important;
     align-items: center;
     justify-content: center;
     z-index: 9999;
     animation: fadeIn 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.modal-overlay.active {
+    display: flex !important;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 @keyframes fadeIn {

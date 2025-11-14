@@ -271,6 +271,40 @@ namespace EducationManagement.DAL.Repositories
             return dt;
         }
 
+        // NEW: Get sessions by class and week
+        public async Task<DataTable> GetSessionsByClassAndWeekAsync(string classId, int weekNo)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"SELECT 
+                ts.session_id, ts.class_id, ts.subject_id, ts.lecturer_id, ts.room_id, ts.school_year_id,
+                ts.week_no, ts.weekday, ts.start_time, ts.end_time, ts.period_from, ts.period_to,
+                ts.recurrence, ts.status, ts.notes,
+                c.class_code, c.class_name,
+                s.subject_code, s.subject_name,
+                l.full_name AS lecturer_name,
+                r.room_code, r.building,
+                sy.year_code AS school_year_code
+            FROM dbo.timetable_sessions ts
+            INNER JOIN dbo.classes c ON ts.class_id = c.class_id
+            INNER JOIN dbo.subjects s ON ts.subject_id = s.subject_id
+            LEFT JOIN dbo.lecturers l ON ts.lecturer_id = l.lecturer_id
+            LEFT JOIN dbo.rooms r ON ts.room_id = r.room_id
+            LEFT JOIN dbo.school_years sy ON ts.school_year_id = sy.school_year_id
+            WHERE ts.class_id = @classId
+              AND ts.week_no = @weekNo
+              AND ts.deleted_at IS NULL
+              AND c.deleted_at IS NULL
+            ORDER BY ts.weekday, ts.start_time";
+            cmd.Parameters.AddWithValue("@classId", classId);
+            cmd.Parameters.AddWithValue("@weekNo", weekNo);
+            var dt = new DataTable();
+            using var da = new SqlDataAdapter((SqlCommand)cmd);
+            da.Fill(dt);
+            return dt;
+        }
+
         // NEW: Get sessions by semester
         public async Task<DataTable> GetSessionsBySemesterAsync(string schoolYearId, int semester, string? classId = null)
         {

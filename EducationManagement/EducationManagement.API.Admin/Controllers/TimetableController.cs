@@ -47,6 +47,18 @@ namespace EducationManagement.API.Admin.Controllers
             return Ok(new { data });
         }
 
+        // GET: /api-edu/timetable/sessions/class?classId=...&week=12
+        [HttpGet("sessions/class")]
+        [Authorize]
+        public async Task<IActionResult> GetSessionsByClass([FromQuery] string classId, [FromQuery] int week)
+        {
+            if (string.IsNullOrWhiteSpace(classId))
+                return BadRequest(new { message = "classId required" });
+            
+            var data = await _timetableService.GetSessionsByClassAndWeekAsync(classId, week);
+            return Ok(new { data });
+        }
+
         // DELETE: /api-edu/timetable/session/{id}
         [HttpDelete("session/{id}")]
         [Authorize]

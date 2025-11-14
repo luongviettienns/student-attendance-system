@@ -56,5 +56,24 @@ app.service('RegistrationPeriodService', ['ApiService', function(ApiService) {
     this.close = function(id) {
         return ApiService.post('/registration-periods/' + id + '/close');
     };
+    
+    // Period Classes Management
+    this.getClassesByPeriod = function(periodId) {
+        return ApiService.get('/registration-periods/' + periodId + '/classes');
+    };
+    
+    this.getAvailableClassesForPeriod = function(periodId) {
+        return ApiService.get('/registration-periods/' + periodId + '/available-classes');
+    };
+    
+    this.addClassToPeriod = function(periodId, classId) {
+        return ApiService.post('/registration-periods/' + periodId + '/classes', {
+            classId: classId
+        });
+    };
+    
+    this.removeClassFromPeriod = function(periodClassId) {
+        return ApiService.delete('/registration-periods/classes/' + periodClassId);
+    };
 }]);
 

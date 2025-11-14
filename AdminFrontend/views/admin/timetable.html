@@ -9,19 +9,82 @@
                 <div class="timetable-admin-toolbar-header">
                     <div class="timetable-admin-toolbar-title">
                         <h3>Tuần {{week}} / Năm học {{year}}</h3>
+                        <!-- Thêm thông tin lớp nếu đã chọn -->
+                        <div ng-if="selectedClassInfo" class="timetable-admin-class-info">
+                            <span class="badge badge-primary">{{selectedClassInfo.classCode}}</span>
+                            <span>{{selectedClassInfo.className}}</span>
+                            <small class="text-muted" ng-if="selectedClassInfo.subjectName || selectedClassInfo.lecturerName">
+                                | 
+                                <span ng-if="selectedClassInfo.subjectName">{{selectedClassInfo.subjectName}}</span>
+                                <span ng-if="selectedClassInfo.lecturerName"> - GV: {{selectedClassInfo.lecturerName}}</span>
+                                <span ng-if="selectedClassInfo.semester"> - HK{{selectedClassInfo.semester}}</span>
+                            </small>
+                        </div>
                     </div>
                     <div class="timetable-admin-toolbar-actions">
+                        <!-- Class Selector với Search -->
+                        <div class="timetable-admin-class-selector">
+                            <!-- Filter checkbox -->
+                            <div class="timetable-admin-class-filter-options">
+                                <label class="timetable-admin-filter-checkbox">
+                                    <input type="checkbox" 
+                                           ng-model="showOnlyActive" 
+                                           ng-change="filterClasses()">
+                                    <span>Chỉ hiển thị lớp đang hoạt động</span>
+                                </label>
+                            </div>
+                            
+                            <!-- Input tìm kiếm -->
+                            <div class="timetable-admin-class-search-wrapper">
+                                <input type="text" 
+                                       ng-model="classSearchText" 
+                                       placeholder="🔍 Tìm kiếm lớp (mã, tên, môn học, giảng viên)..."
+                                       class="form-control timetable-admin-class-search"
+                                       ng-focus="showClassDropdown = true">
+                                <span class="timetable-admin-search-count" 
+                                      ng-if="classSearchText && filteredClasses.length > 0">
+                                    Tìm thấy {{filteredClasses.length}} lớp
+                                </span>
+                                <span class="timetable-admin-search-count text-warning" 
+                                      ng-if="classSearchText && filteredClasses.length === 0">
+                                    Không tìm thấy lớp nào
+                                </span>
+                            </div>
+                            
+                            <!-- Dropdown với filtered classes -->
+                            <select ng-model="selectedClassId" 
+                                    ng-change="onClassChange()" 
+                                    class="form-control timetable-admin-class-select">
+                                <option value="">-- Chọn lớp học phần --</option>
+                                <option ng-repeat="c in filteredClasses" value="{{c.classId || c.class_id}}">
+                                    {{c.classCode || c.class_code}} - {{c.className || c.class_name}}
+                                    <span ng-if="c.subjectName || c.subject_name"> | {{c.subjectName || c.subject_name}}</span>
+                                    <span ng-if="c.lecturerName || c.lecturer_name"> | GV: {{c.lecturerName || c.lecturer_name}}</span>
+                                    <span ng-if="c.semester"> | HK{{c.semester}}</span>
+                                    <span ng-if="!(c.isActive || c.is_active_computed || c.isActive === 1)" class="text-muted"> (Đã tắt)</span>
+                                </option>
+                            </select>
+                        </div>
+                        
                         <button ng-click="prevWeek()" class="btn btn-outline timetable-admin-btn-nav">
                             <i class="fas fa-chevron-left"></i> Tuần trước
                         </button>
                         <button ng-click="nextWeek()" class="btn btn-outline timetable-admin-btn-nav">
                             Tuần sau <i class="fas fa-chevron-right"></i>
                         </button>
-                        <button ng-click="openCreateForm()" class="btn btn-primary timetable-admin-btn-create">
+                        <button ng-click="openCreateForm()" 
+                                class="btn btn-primary timetable-admin-btn-create"
+                                ng-disabled="!selectedClassId">
                             <i class="fas fa-plus"></i> Tạo phiên học
                         </button>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Guidance message khi chưa chọn lớp -->
+            <div ng-if="!selectedClassId" class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>Hướng dẫn:</strong> Vui lòng chọn một lớp học phần để xem và quản lý lịch học trong tuần.
             </div>
 
             <!-- Error Message -->
@@ -42,10 +105,18 @@
                         <div class="timetable-admin-form-grid">
                             <div class="timetable-admin-form-field">
                                 <label>Lớp học <span class="timetable-admin-required">*</span></label>
-                                <select ng-model="form.classId" class="form-control" required>
+                                <select ng-model="form.classId" 
+                                        class="form-control" 
+                                        required
+                                        ng-disabled="selectedClassId">
                                     <option value="">-- Chọn lớp --</option>
-                                    <option ng-repeat="c in classes" value="{{c.classId}}">{{c.classCode}} - {{c.className}}</option>
+                                    <option ng-repeat="c in classes" value="{{c.classId || c.class_id}}">
+                                        {{c.classCode || c.class_code}} - {{c.className || c.class_name}}
+                                    </option>
                                 </select>
+                                <small ng-if="selectedClassId" class="text-muted">
+                                    Lớp đã được chọn từ danh sách trên
+                                </small>
                             </div>
                             <div class="timetable-admin-form-field">
                                 <label>Môn học <span class="timetable-admin-required">*</span></label>

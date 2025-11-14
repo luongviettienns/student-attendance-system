@@ -148,7 +148,23 @@ BEGIN
         AND (@AcademicYearId IS NULL OR c.academic_year_id = @AcademicYearId);
     
     -- Data with pagination
-    SELECT c.*, s.subject_name, l.full_name as lecturer_name, ay.year_name
+    SELECT c.*, 
+           s.subject_name, 
+           l.full_name as lecturer_name, 
+           ay.year_name,
+           -- Tính toán is_active động dựa trên registration_period
+           CASE 
+               WHEN EXISTS (
+                   SELECT 1 FROM registration_periods rp
+                   WHERE rp.academic_year_id = c.academic_year_id
+                   AND rp.semester = CAST(c.semester AS INT)
+                   AND rp.status = 'OPEN'
+                   AND GETDATE() BETWEEN rp.start_date AND rp.end_date
+                   AND rp.deleted_at IS NULL
+                   AND rp.is_active = 1
+               ) THEN 1
+               ELSE 0
+           END AS is_active_computed
     FROM dbo.classes c
     LEFT JOIN dbo.subjects s ON c.subject_id = s.subject_id
     LEFT JOIN dbo.lecturers l ON c.lecturer_id = l.lecturer_id

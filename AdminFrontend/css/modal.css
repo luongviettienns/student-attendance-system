@@ -4,7 +4,7 @@
 
 /* Modal Overlay */
 .modal-overlay {
-    display: none;
+    display: none !important;
     position: fixed;
     top: 0;
     left: 0;
@@ -15,15 +15,21 @@
     -webkit-backdrop-filter: blur(4px);
     z-index: 9998;
     animation: fadeIn 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .modal-overlay.active {
-    display: block;
+    display: block !important;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 /* Modal Container */
 .modal {
-    display: none;
+    display: none !important;
     position: fixed;
     top: 50%;
     left: 50%;
@@ -40,10 +46,16 @@
     max-height: 90vh;
     overflow-y: auto;
     animation: fadeIn 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
 }
 
 .modal.active {
-    display: block;
+    display: block !important;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
 }
 
 /* Modal Header */

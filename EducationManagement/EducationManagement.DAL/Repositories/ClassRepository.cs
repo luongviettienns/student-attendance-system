@@ -173,6 +173,22 @@ namespace EducationManagement.DAL.Repositories
             await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_DeleteClass", parameters);
         }
 
+        public async Task UpdateIsActiveAsync(string classId, bool isActive, string updatedBy)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"UPDATE dbo.classes 
+                                SET is_active = @isActive, 
+                                    updated_at = GETDATE(), 
+                                    updated_by = @updatedBy
+                                WHERE class_id = @classId AND deleted_at IS NULL";
+            cmd.Parameters.AddWithValue("@classId", classId);
+            cmd.Parameters.AddWithValue("@isActive", isActive);
+            cmd.Parameters.AddWithValue("@updatedBy", updatedBy);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
         /// <summary>
         /// Lấy classes theo lecturer ID
         /// </summary>

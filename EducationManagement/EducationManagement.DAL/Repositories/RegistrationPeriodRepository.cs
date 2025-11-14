@@ -162,6 +162,109 @@ namespace EducationManagement.DAL.Repositories
         }
 
         // ============================================================
+        // 9️⃣ PERIOD CLASSES MANAGEMENT
+        // ============================================================
+        public async Task<DataTable> GetClassesByPeriodAsync(string periodId)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"SELECT 
+                pc.period_class_id,
+                c.class_id,
+                c.class_code,
+                c.class_name,
+                s.subject_code,
+                s.subject_name,
+                s.credits,
+                l.full_name AS lecturer_name,
+                c.max_students,
+                c.current_enrollment,
+                (c.max_students - c.current_enrollment) AS available_seats,
+                pc.is_active,
+                pc.created_at
+            FROM period_classes pc
+            INNER JOIN classes c ON pc.class_id = c.class_id
+            INNER JOIN subjects s ON c.subject_id = s.subject_id
+            LEFT JOIN lecturers l ON c.lecturer_id = l.lecturer_id
+            WHERE pc.period_id = @periodId
+              AND pc.deleted_at IS NULL
+              AND c.deleted_at IS NULL
+            ORDER BY c.class_code";
+            cmd.Parameters.AddWithValue("@periodId", periodId);
+            var dt = new DataTable();
+            using var da = new SqlDataAdapter((SqlCommand)cmd);
+            da.Fill(dt);
+            return dt;
+        }
+
+        public async Task<DataTable> GetAvailableClassesForPeriodAsync(string periodId)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"SELECT 
+                c.class_id,
+                c.class_code,
+                c.class_name,
+                s.subject_code,
+                s.subject_name,
+                s.credits,
+                l.full_name AS lecturer_name,
+                c.max_students,
+                c.current_enrollment
+            FROM classes c
+            INNER JOIN subjects s ON c.subject_id = s.subject_id
+            LEFT JOIN lecturers l ON c.lecturer_id = l.lecturer_id
+            INNER JOIN registration_periods rp ON rp.period_id = @periodId
+            WHERE c.academic_year_id = rp.academic_year_id
+              AND c.semester = CAST(rp.semester AS VARCHAR(20))
+              AND c.deleted_at IS NULL
+              AND c.is_active = 1
+              AND NOT EXISTS (
+                  SELECT 1 FROM period_classes pc
+                  WHERE pc.class_id = c.class_id
+                    AND pc.period_id = @periodId
+                    AND pc.deleted_at IS NULL
+              )
+            ORDER BY c.class_code";
+            cmd.Parameters.AddWithValue("@periodId", periodId);
+            var dt = new DataTable();
+            using var da = new SqlDataAdapter((SqlCommand)cmd);
+            da.Fill(dt);
+            return dt;
+        }
+
+        public async Task AddClassToPeriodAsync(string periodId, string classId, string createdBy)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            var periodClassId = Guid.NewGuid().ToString();
+            cmd.CommandText = @"INSERT INTO period_classes 
+                (period_class_id, period_id, class_id, created_by)
+                VALUES (@periodClassId, @periodId, @classId, @createdBy)";
+            cmd.Parameters.AddWithValue("@periodClassId", periodClassId);
+            cmd.Parameters.AddWithValue("@periodId", periodId);
+            cmd.Parameters.AddWithValue("@classId", classId);
+            cmd.Parameters.AddWithValue("@createdBy", createdBy);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        public async Task RemoveClassFromPeriodAsync(string periodClassId, string updatedBy)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"UPDATE period_classes 
+                SET deleted_at = GETDATE(), updated_by = @updatedBy
+                WHERE period_class_id = @periodClassId";
+            cmd.Parameters.AddWithValue("@periodClassId", periodClassId);
+            cmd.Parameters.AddWithValue("@updatedBy", updatedBy);
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        // ============================================================
         // MAPPING HELPER
         // ============================================================
         private static PeriodDetailDto MapToPeriodDetailDto(DataRow row)

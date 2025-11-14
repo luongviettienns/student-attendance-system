@@ -126,6 +126,13 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
   $scope.rooms = [];
   $scope.schoolYears = [{ schoolYearId: 'SY2024', schoolYearCode: '2024-2025' }];
 
+  // Class selection
+  $scope.selectedClassId = null;
+  $scope.selectedClassInfo = null;
+  $scope.classSearchText = '';
+  $scope.filteredClasses = [];
+  $scope.showOnlyActive = true;
+
   // Timetable grid
   $scope.grid = {};
   $scope.allSessions = [];
@@ -134,6 +141,7 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
   $scope.loadDropdowns = function() {
     ClassService.getAll().then(function(res) {
       $scope.classes = (res.data && res.data.data) || res.data || [];
+      $scope.filterClasses();
   }).catch(function(err) { LoggerService.error('Load classes error', err); });
     
     SubjectService.getAll().then(function(res) {
@@ -149,11 +157,88 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
   }).catch(function(err) { LoggerService.error('Load rooms error', err); });
   };
 
+  // Filter classes
+  $scope.filterClasses = function() {
+    var classesToFilter = $scope.classes;
+    
+    // Filter theo active status
+    if ($scope.showOnlyActive) {
+      classesToFilter = classesToFilter.filter(function(c) {
+        return c.isActive === true || c.is_active_computed === 1 || c.isActive === 1;
+      });
+    }
+    
+    // Filter theo search text
+    if (!$scope.classSearchText || $scope.classSearchText.trim() === '') {
+      $scope.filteredClasses = classesToFilter;
+      return;
+    }
+    
+    var search = $scope.classSearchText.toLowerCase().trim();
+    $scope.filteredClasses = classesToFilter.filter(function(c) {
+      var codeMatch = c.classCode && c.classCode.toLowerCase().includes(search);
+      var nameMatch = c.className && c.className.toLowerCase().includes(search);
+      var subjectMatch = c.subjectName && c.subjectName.toLowerCase().includes(search);
+      var lecturerMatch = c.lecturerName && c.lecturerName.toLowerCase().includes(search);
+      return codeMatch || nameMatch || subjectMatch || lecturerMatch;
+    });
+  };
+
+  // Auto filter khi search text thay đổi
+  $scope.$watch('classSearchText', function() {
+    $scope.filterClasses();
+  });
+
+  // Filter khi load classes
+  $scope.$watch('classes', function() {
+    $scope.filterClasses();
+  }, true);
+
+  // Watch showOnlyActive
+  $scope.$watch('showOnlyActive', function() {
+    $scope.filterClasses();
+  });
+
+  // Class selection handler
+  $scope.onClassChange = function() {
+    if (!$scope.selectedClassId) {
+      $scope.selectedClassInfo = null;
+      $scope.loadSessions();
+      return;
+    }
+    
+    var selectedClass = $scope.classes.find(function(c) {
+      return c.classId === $scope.selectedClassId || c.class_id === $scope.selectedClassId;
+    });
+    
+    if (selectedClass) {
+      $scope.selectedClassInfo = {
+        classId: selectedClass.classId || selectedClass.class_id,
+        classCode: selectedClass.classCode || selectedClass.class_code,
+        className: selectedClass.className || selectedClass.class_name,
+        subjectName: selectedClass.subjectName || selectedClass.subject_name,
+        lecturerName: selectedClass.lecturerName || selectedClass.lecturer_name,
+        semester: selectedClass.semester,
+        isActive: selectedClass.isActive || selectedClass.is_active_computed || selectedClass.isActive === 1
+      };
+    }
+    
+    $scope.loadSessions();
+  };
+
   // Load sessions for current week
   $scope.loadSessions = function() {
     $scope.loading = true;
     $scope.error = null;
-    TimetableApi.getAllSessionsByWeek($scope.year, $scope.week).then(function(res) {
+    
+    var apiCall;
+    if ($scope.selectedClassId) {
+      apiCall = TimetableApi.getSessionsByClass($scope.selectedClassId, $scope.week);
+    } else {
+      apiCall = TimetableApi.getAllSessionsByWeek($scope.year, $scope.week);
+    }
+    
+    apiCall.then(function(res) {
       var data = (res.data && res.data.data) || [];
       $scope.allSessions = data;
       // Map theo weekday để hiển thị grid
@@ -246,6 +331,21 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
 
   // Create session
   $scope.createSession = function() {
+    // Check class is active
+    if ($scope.selectedClassInfo && !$scope.selectedClassInfo.isActive) {
+      ToastService.error('Không thể tạo phiên học cho lớp đã bị vô hiệu hóa');
+      return;
+    }
+    
+    if ($scope.form.classId) {
+      var formClass = $scope.classes.find(function(c) {
+        return (c.classId === $scope.form.classId || c.class_id === $scope.form.classId);
+      });
+      if (formClass && !(formClass.isActive || formClass.is_active_computed || formClass.isActive === 1)) {
+        ToastService.error('Không thể tạo phiên học cho lớp đã bị vô hiệu hóa');
+        return;
+      }
+    }
     if (!$scope.conflictResult || $scope.conflictResult.lecturerConflicts.length > 0 || 
         $scope.conflictResult.roomConflicts.length > 0 || $scope.conflictResult.isOverCapacity) {
       ToastService.warning('Vui lòng kiểm tra xung đột trước');

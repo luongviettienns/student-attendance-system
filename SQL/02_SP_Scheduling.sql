@@ -347,18 +347,21 @@ BEGIN
             SET @ErrorMessage = N'Lớp học không tồn tại';
         END
         
-        -- Check 3: Registration period is OPEN
+        -- Check 3: Registration period is OPEN AND class is in period
         ELSE IF NOT EXISTS (
             SELECT 1 FROM registration_periods rp
-            INNER JOIN classes c ON rp.academic_year_id = c.academic_year_id AND rp.semester = c.semester
-            WHERE c.class_id = @ClassId
-            AND rp.status = 'OPEN'
-            AND GETDATE() BETWEEN rp.start_date AND rp.end_date
-            AND rp.deleted_at IS NULL
+            INNER JOIN period_classes pc ON rp.period_id = pc.period_id
+            WHERE pc.class_id = @ClassId
+              AND rp.period_id = pc.period_id
+              AND rp.status = 'OPEN'
+              AND GETDATE() BETWEEN rp.start_date AND rp.end_date
+              AND rp.deleted_at IS NULL
+              AND pc.deleted_at IS NULL
+              AND pc.is_active = 1
         )
         BEGIN
             SET @IsEligible = 0;
-            SET @ErrorMessage = N'Không trong thời gian đăng ký';
+            SET @ErrorMessage = N'Lớp không thuộc đợt đăng ký đang mở';
         END
         
         -- Check 4: Class not full

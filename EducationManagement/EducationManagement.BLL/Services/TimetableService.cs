@@ -10,10 +10,12 @@ namespace EducationManagement.BLL.Services
     public class TimetableService
     {
         private readonly TimetableRepository _repo;
+        private readonly ClassRepository _classRepository;
 
-        public TimetableService(TimetableRepository repo)
+        public TimetableService(TimetableRepository repo, ClassRepository classRepository)
         {
             _repo = repo;
+            _classRepository = classRepository;
         }
 
         public async Task<List<TimetableSessionDto>> GetStudentTimetableByWeekAsync(string studentId, int year, int weekNo)
@@ -31,6 +33,12 @@ namespace EducationManagement.BLL.Services
         public async Task<List<TimetableSessionDto>> GetAllSessionsByWeekAsync(int year, int weekNo)
         {
             var dt = await _repo.GetAllSessionsByWeekAsync(year, weekNo);
+            return MapSessions(dt);
+        }
+
+        public async Task<List<TimetableSessionDto>> GetSessionsByClassAndWeekAsync(string classId, int weekNo)
+        {
+            var dt = await _repo.GetSessionsByClassAndWeekAsync(classId, weekNo);
             return MapSessions(dt);
         }
 
@@ -113,6 +121,19 @@ namespace EducationManagement.BLL.Services
             });
             if (fkErrors.Any())
                 throw new InvalidOperationException(string.Join("; ", fkErrors));
+
+            // Check class is active
+            var classItem = await _classRepository.GetByIdAsync(input.ClassId);
+            if (classItem == null)
+                throw new InvalidOperationException("Lớp học không tồn tại");
+            
+            // Check is_active (computed hoặc manual)
+            // Note: is_active_computed được tính từ stored procedure
+            // Nếu class không active, throw exception
+            if (!classItem.IsActive)
+            {
+                throw new InvalidOperationException("Không thể tạo phiên học cho lớp đã bị vô hiệu hóa");
+            }
 
             var id = Guid.NewGuid().ToString("N");
             await _repo.InsertSessionAsync(id, input.ClassId, input.SubjectId, input.LecturerId, input.RoomId,

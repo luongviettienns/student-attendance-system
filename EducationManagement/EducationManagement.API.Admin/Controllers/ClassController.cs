@@ -138,6 +138,38 @@ namespace EducationManagement.API.Admin.Controllers
         /// <summary>
         /// Xóa class (soft delete)
         /// </summary>
+        [HttpPatch("{id}/activate")]
+        [Authorize]
+        public async Task<IActionResult> Activate(string id)
+        {
+            try
+            {
+                var updatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system";
+                await _classService.ActivateClassAsync(id, updatedBy);
+                return Ok(new { message = "Kích hoạt lớp học thành công" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        [HttpPatch("{id}/deactivate")]
+        [Authorize]
+        public async Task<IActionResult> Deactivate(string id)
+        {
+            try
+            {
+                var updatedBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system";
+                await _classService.DeactivateClassAsync(id, updatedBy);
+                return Ok(new { message = "Vô hiệu hóa lớp học thành công" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(string id)
         {
