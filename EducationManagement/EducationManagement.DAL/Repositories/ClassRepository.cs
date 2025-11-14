@@ -19,7 +19,7 @@ namespace EducationManagement.DAL.Repositories
         }
 
         /// <summary>
-        /// Lấy tất cả classes
+        /// Lấy tất cả classes - KHÔNG PAGINATION
         /// </summary>
         public async Task<List<Class>> GetAllAsync()
         {
@@ -52,6 +52,50 @@ namespace EducationManagement.DAL.Repositories
             }
 
             return classes;
+        }
+
+        /// <summary>
+        /// Lấy tất cả classes với pagination
+        /// </summary>
+        public async Task<(List<Class> items, int totalCount)> GetAllPagedAsync(
+            int page = 1,
+            int pageSize = 10,
+            string? search = null,
+            string? subjectId = null,
+            string? lecturerId = null,
+            string? academicYearId = null)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@Page", page),
+                new SqlParameter("@PageSize", pageSize),
+                new SqlParameter("@Search", (object?)search ?? DBNull.Value),
+                new SqlParameter("@SubjectId", (object?)subjectId ?? DBNull.Value),
+                new SqlParameter("@LecturerId", (object?)lecturerId ?? DBNull.Value),
+                new SqlParameter("@AcademicYearId", (object?)academicYearId ?? DBNull.Value)
+            };
+
+            var dataSet = await DatabaseHelper.ExecuteQueryMultipleAsync(
+                _connectionString, "sp_GetAllClasses", parameters);
+
+            // Table[0] = TotalCount
+            int totalCount = 0;
+            if (dataSet.Tables[0].Rows.Count > 0)
+            {
+                totalCount = Convert.ToInt32(dataSet.Tables[0].Rows[0]["TotalCount"]);
+            }
+
+            // Table[1] = Data
+            var items = new List<Class>();
+            if (dataSet.Tables.Count > 1)
+            {
+                foreach (DataRow row in dataSet.Tables[1].Rows)
+                {
+                    items.Add(MapToClass(row));
+                }
+            }
+
+            return (items, totalCount);
         }
 
         /// <summary>
@@ -180,6 +224,9 @@ namespace EducationManagement.DAL.Repositories
                 Semester = row["semester"].ToString()!,
                 AcademicYearId = row["academic_year_id"].ToString()!,
                 MaxStudents = row.Table.Columns.Contains("max_students") ? Convert.ToInt32(row["max_students"]) : 0,
+                SubjectName = row.Table.Columns.Contains("subject_name") ? row["subject_name"]?.ToString() : null,
+                LecturerName = row.Table.Columns.Contains("lecturer_name") ? row["lecturer_name"]?.ToString() : null,
+                AcademicYearName = row.Table.Columns.Contains("year_name") ? row["year_name"]?.ToString() : null,
                 IsActive = row.Table.Columns.Contains("is_active") && row["is_active"] != DBNull.Value
                     ? Convert.ToBoolean(row["is_active"])
                     : true,

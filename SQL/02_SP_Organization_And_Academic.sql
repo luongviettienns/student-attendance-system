@@ -263,21 +263,37 @@
 	IF OBJECT_ID('sp_GetAllDepartments', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllDepartments;
 	GO
 	CREATE PROCEDURE sp_GetAllDepartments
+		@Page INT = 1,
+		@PageSize INT = 10,
+		@Search NVARCHAR(255) = NULL
 	AS
 	BEGIN
 		SET NOCOUNT ON;
     
+		DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
 		-- Total count
 		SELECT COUNT(*) AS TotalCount
 		FROM dbo.departments d
-		WHERE d.deleted_at IS NULL;
+		LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
+		WHERE d.deleted_at IS NULL
+			AND (@Search IS NULL OR 
+				 d.department_code LIKE '%' + @Search + '%' OR 
+				 d.department_name LIKE '%' + @Search + '%' OR
+				 f.faculty_name LIKE '%' + @Search + '%');
     
-		-- Data
+		-- Data with pagination
 		SELECT d.*, f.faculty_name, f.faculty_code
 		FROM dbo.departments d
 		LEFT JOIN dbo.faculties f ON d.faculty_id = f.faculty_id
 		WHERE d.deleted_at IS NULL
-		ORDER BY d.department_name;
+			AND (@Search IS NULL OR 
+				 d.department_code LIKE '%' + @Search + '%' OR 
+				 d.department_name LIKE '%' + @Search + '%' OR
+				 f.faculty_name LIKE '%' + @Search + '%')
+		ORDER BY d.department_name
+		OFFSET @Offset ROWS
+		FETCH NEXT @PageSize ROWS ONLY;
 	END
 	GO
 
@@ -320,21 +336,37 @@
 	IF OBJECT_ID('sp_GetAllMajors', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllMajors;
 	GO
 	CREATE PROCEDURE sp_GetAllMajors
+		@Page INT = 1,
+		@PageSize INT = 10,
+		@Search NVARCHAR(255) = NULL
 	AS
 	BEGIN
 		SET NOCOUNT ON;
     
+		DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
 		-- Total count
 		SELECT COUNT(*) AS TotalCount
 		FROM dbo.majors m
-		WHERE m.deleted_at IS NULL;
+		LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
+		WHERE m.deleted_at IS NULL
+			AND (@Search IS NULL OR 
+				 m.major_code LIKE '%' + @Search + '%' OR 
+				 m.major_name LIKE '%' + @Search + '%' OR
+				 f.faculty_name LIKE '%' + @Search + '%');
     
-		-- Data
+		-- Data with pagination
 		SELECT m.*, f.faculty_name, f.faculty_code
 		FROM dbo.majors m
 		LEFT JOIN dbo.faculties f ON m.faculty_id = f.faculty_id
 		WHERE m.deleted_at IS NULL
-		ORDER BY m.major_name;
+			AND (@Search IS NULL OR 
+				 m.major_code LIKE '%' + @Search + '%' OR 
+				 m.major_name LIKE '%' + @Search + '%' OR
+				 f.faculty_name LIKE '%' + @Search + '%')
+		ORDER BY m.major_name
+		OFFSET @Offset ROWS
+		FETCH NEXT @PageSize ROWS ONLY;
 	END
 	GO
 

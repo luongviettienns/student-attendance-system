@@ -19,10 +19,29 @@ namespace EducationManagement.API.Admin.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null)
         {
-            var data = await _service.GetAllAsync();
-            return Ok(new { data = data });
+            try
+            {
+                var (items, totalCount) = await _service.GetAllPagedAsync(page, pageSize, search);
+                
+                return Ok(new
+                {
+                    success = true,
+                    data = items,
+                    totalCount = totalCount,
+                    page = page,
+                    pageSize = pageSize,
+                    totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
         }
 
         [HttpGet("{id}")]

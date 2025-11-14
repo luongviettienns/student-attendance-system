@@ -23,6 +23,11 @@ namespace EducationManagement.BLL.Services
         }
 
         public Task<List<Subject>> GetAllAsync() => _repo.GetAllAsync();
+        
+        public Task<(List<Subject> items, int totalCount)> GetAllPagedAsync(
+            int page = 1, int pageSize = 10, string? search = null, string? departmentId = null) 
+            => _repo.GetAllPagedAsync(page, pageSize, search, departmentId);
+        
         public Task<Subject?> GetByIdAsync(string id) => _repo.GetByIdAsync(id);
         public Task<List<Subject>> GetByDepartmentAsync(string departmentId) => _repo.GetByDepartmentAsync(departmentId);
 

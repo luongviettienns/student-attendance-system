@@ -20,19 +20,35 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         /// <summary>
-        /// Lấy danh sách tất cả classes
+        /// Lấy danh sách tất cả classes với pagination
         /// </summary>
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null,
+            [FromQuery] string? subjectId = null,
+            [FromQuery] string? lecturerId = null,
+            [FromQuery] string? academicYearId = null)
         {
             try
             {
-                var classes = await _classService.GetAllClassesAsync();
-                return Ok(new { data = classes });
+                var (items, totalCount) = await _classService.GetAllPagedAsync(
+                    page, pageSize, search, subjectId, lecturerId, academicYearId);
+                
+                return Ok(new
+                {
+                    success = true,
+                    data = items,
+                    totalCount = totalCount,
+                    page = page,
+                    pageSize = pageSize,
+                    totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }
 

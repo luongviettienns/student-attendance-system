@@ -20,6 +20,10 @@ namespace EducationManagement.BLL.Services
         }
 
         public async Task<List<Major>> GetAllAsync() => await _repo.GetAllAsync();
+        
+        public Task<(List<Major> items, int totalCount)> GetAllPagedAsync(
+            int page = 1, int pageSize = 10, string? search = null) 
+            => _repo.GetAllPagedAsync(page, pageSize, search);
 
         public async Task<Major?> GetByIdAsync(string id) => await _repo.GetByIdAsync(id);
 

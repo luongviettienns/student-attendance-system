@@ -1,14 +1,18 @@
 // Department Controller
-app.controller('DepartmentController', ['$scope', '$location', '$routeParams', '$timeout', 'DepartmentService', 'FacultyService',
-    function($scope, $location, $routeParams, $timeout, DepartmentService, FacultyService) {
+app.controller('DepartmentController', ['$scope', '$location', '$routeParams', '$timeout', 'DepartmentService', 'FacultyService', 'PaginationService',
+    function($scope, $location, $routeParams, $timeout, DepartmentService, FacultyService, PaginationService) {
     
     $scope.departments = [];
+    $scope.displayedDepartments = [];
     $scope.department = {};
     $scope.faculties = [];
     $scope.loading = false;
     $scope.error = null;
     $scope.success = null;
     $scope.isEditMode = false;
+    
+    // Pagination
+    $scope.pagination = PaginationService.init(10);
     
     // ============================================================
     // 🔹 Load danh sách khoa (cho dropdown)
@@ -24,19 +28,68 @@ app.controller('DepartmentController', ['$scope', '$location', '$routeParams', '
     };
     
     // ============================================================
-    // 🔹 Load danh sách bộ môn
+    // 🔹 Load danh sách bộ môn với server-side pagination
     // ============================================================
     $scope.loadDepartments = function() {
         $scope.loading = true;
-        DepartmentService.getAll()
+        $scope.error = null;
+        
+        var params = {
+            page: $scope.pagination.currentPage,
+            pageSize: $scope.pagination.pageSize,
+            search: $scope.pagination.searchTerm || null
+        };
+        
+        // Remove empty values
+        Object.keys(params).forEach(function(key) {
+            if (params[key] === null || params[key] === '' || params[key] === undefined) {
+                delete params[key];
+            }
+        });
+        
+        DepartmentService.getAll(params)
             .then(function(response) {
-                $scope.departments = response.data;
+                var result = response.data;
+                
+                // Update displayed departments
+                $scope.displayedDepartments = result.data || [];
+                $scope.departments = result.data || [];
+                
+                // Update pagination info from server
+                if (result.totalCount !== undefined) {
+                    $scope.pagination.totalItems = result.totalCount;
+                    $scope.pagination.totalPages = result.totalPages;
+                    $scope.pagination.currentPage = result.page;
+                    $scope.pagination.pageSize = result.pageSize;
+                }
+                
+                // Recalculate pagination UI
+                $scope.pagination = PaginationService.calculate($scope.pagination);
+                
                 $scope.loading = false;
             })
             .catch(function(error) {
                 $scope.error = 'Không thể tải danh sách bộ môn';
                 $scope.loading = false;
             });
+    };
+    
+    // Search handler
+    $scope.handleSearch = function() {
+        $scope.pagination.currentPage = 1;
+        $scope.loadDepartments();
+    };
+    
+    // Page change handler
+    $scope.handlePageChange = function(page) {
+        $scope.pagination.currentPage = page;
+        $scope.loadDepartments();
+    };
+    
+    // Page size change handler
+    $scope.handlePageSizeChange = function() {
+        $scope.pagination.currentPage = 1;
+        $scope.loadDepartments();
     };
     
     // ============================================================

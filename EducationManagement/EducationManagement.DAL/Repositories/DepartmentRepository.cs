@@ -20,11 +20,17 @@ namespace EducationManagement.DAL.Repositories
         }
 
         // ============================================================
-        // 🔹 LẤY DANH SÁCH BỘ MÔN (ACTIVE)
+        // 🔹 LẤY DANH SÁCH BỘ MÔN (ACTIVE) - KHÔNG PAGINATION
         // ============================================================
         public async Task<List<Department>> GetAllAsync()
         {
-            var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(_connectionString, "sp_GetAllDepartments");
+            var parameters = new[]
+            {
+                new SqlParameter("@Page", 1),
+                new SqlParameter("@PageSize", 9999),
+                new SqlParameter("@Search", DBNull.Value)
+            };
+            var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(_connectionString, "sp_GetAllDepartments", parameters);
             var list = new List<Department>();
 
             // Table[0] = TotalCount, Table[1] = Data
@@ -35,6 +41,44 @@ namespace EducationManagement.DAL.Repositories
             }
 
             return list;
+        }
+
+        // ============================================================
+        // 🔹 LẤY DANH SÁCH BỘ MÔN VỚI PAGINATION
+        // ============================================================
+        public async Task<(List<Department> items, int totalCount)> GetAllPagedAsync(
+            int page = 1,
+            int pageSize = 10,
+            string? search = null)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@Page", page),
+                new SqlParameter("@PageSize", pageSize),
+                new SqlParameter("@Search", (object?)search ?? DBNull.Value)
+            };
+
+            var dataSet = await DatabaseHelper.ExecuteQueryMultipleAsync(
+                _connectionString, "sp_GetAllDepartments", parameters);
+
+            // Table[0] = TotalCount
+            int totalCount = 0;
+            if (dataSet.Tables[0].Rows.Count > 0)
+            {
+                totalCount = Convert.ToInt32(dataSet.Tables[0].Rows[0]["TotalCount"]);
+            }
+
+            // Table[1] = Data
+            var items = new List<Department>();
+            if (dataSet.Tables.Count > 1)
+            {
+                foreach (DataRow row in dataSet.Tables[1].Rows)
+                {
+                    items.Add(MapToDepartment(row));
+                }
+            }
+
+            return (items, totalCount);
         }
 
         // ============================================================

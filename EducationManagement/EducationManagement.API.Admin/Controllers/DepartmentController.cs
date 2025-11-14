@@ -20,19 +20,31 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         // ============================================================
-        // 🔹 GET: Lấy danh sách tất cả bộ môn
+        // 🔹 GET: Lấy danh sách tất cả bộ môn với pagination
         // ============================================================
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10,
+            [FromQuery] string? search = null)
         {
             try
             {
-                var departments = await _repository.GetAllAsync();
-                return Ok(new { data = departments });
+                var (items, totalCount) = await _repository.GetAllPagedAsync(page, pageSize, search);
+                
+                return Ok(new
+                {
+                    success = true,
+                    data = items,
+                    totalCount = totalCount,
+                    page = page,
+                    pageSize = pageSize,
+                    totalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+                });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }
 

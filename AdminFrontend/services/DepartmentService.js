@@ -4,8 +4,8 @@ app.service('DepartmentService', ['ApiService', function(ApiService) {
     // ============================================================
     // 🔹 Lấy danh sách tất cả bộ môn
     // ============================================================
-    this.getAll = function() {
-        return ApiService.get('/departments');
+    this.getAll = function(params) {
+        return ApiService.get('/departments', { params: params });
     };
     
     // ============================================================

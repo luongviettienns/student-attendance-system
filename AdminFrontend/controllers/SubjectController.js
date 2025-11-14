@@ -1,9 +1,9 @@
 // Subject Controller
-app.controller('SubjectController', ['$scope', '$location', '$routeParams', '$timeout', 'SubjectService', 'DepartmentService',
-    function($scope, $location, $routeParams, $timeout, SubjectService, DepartmentService) {
+app.controller('SubjectController', ['$scope', '$location', '$routeParams', '$timeout', 'SubjectService', 'DepartmentService', 'PaginationService',
+    function($scope, $location, $routeParams, $timeout, SubjectService, DepartmentService, PaginationService) {
     
     $scope.subjects = [];
-    $scope.filteredSubjects = [];
+    $scope.displayedSubjects = [];
     $scope.subject = {};
     $scope.departments = [];
     $scope.loading = false;
@@ -12,18 +12,50 @@ app.controller('SubjectController', ['$scope', '$location', '$routeParams', '$ti
     $scope.isEditMode = false;
     $scope.filterByDepartment = '';
     
-    // Load all subjects
+    // Pagination
+    $scope.pagination = PaginationService.init(10);
+    
+    // Load subjects with server-side pagination
     $scope.loadSubjects = function() {
         $scope.loading = true;
-        // Use aggregate endpoint to get lecturerCount in one call
-        SubjectService.getAllWithLecturerCount()
+        $scope.error = null;
+        
+        var params = {
+            page: $scope.pagination.currentPage,
+            pageSize: $scope.pagination.pageSize,
+            search: $scope.pagination.searchTerm || null,
+            departmentId: $scope.filterByDepartment || null
+        };
+        
+        // Remove empty values
+        Object.keys(params).forEach(function(key) {
+            if (params[key] === null || params[key] === '' || params[key] === undefined) {
+                delete params[key];
+            }
+        });
+        
+        SubjectService.getAll(params)
             .then(function(response) {
-                $scope.subjects = (response.data || []).map(function(s) {
+                var result = response.data;
+                
+                // Update displayed subjects
+                $scope.displayedSubjects = (result.data || []).map(function(s) {
                     if (typeof s.lecturerCount === 'undefined') s.lecturerCount = 0;
                     return s;
                 });
-                $scope.filteredSubjects = $scope.subjects;
-
+                $scope.subjects = $scope.displayedSubjects;
+                
+                // Update pagination info from server
+                if (result.totalCount !== undefined) {
+                    $scope.pagination.totalItems = result.totalCount;
+                    $scope.pagination.totalPages = result.totalPages;
+                    $scope.pagination.currentPage = result.page;
+                    $scope.pagination.pageSize = result.pageSize;
+                }
+                
+                // Recalculate pagination UI
+                $scope.pagination = PaginationService.calculate($scope.pagination);
+                
                 $scope.loading = false;
             })
             .catch(function(error) {
@@ -45,13 +77,26 @@ app.controller('SubjectController', ['$scope', '$location', '$routeParams', '$ti
     
     // Filter subjects by department
     $scope.filterSubjects = function() {
-        if (!$scope.filterByDepartment) {
-            $scope.filteredSubjects = $scope.subjects;
-        } else {
-            $scope.filteredSubjects = $scope.subjects.filter(function(s) {
-                return s.departmentId === $scope.filterByDepartment;
-            });
-        }
+        $scope.pagination.currentPage = 1;
+        $scope.loadSubjects();
+    };
+    
+    // Search handler
+    $scope.handleSearch = function() {
+        $scope.pagination.currentPage = 1;
+        $scope.loadSubjects();
+    };
+    
+    // Page change handler
+    $scope.handlePageChange = function(page) {
+        $scope.pagination.currentPage = page;
+        $scope.loadSubjects();
+    };
+    
+    // Page size change handler
+    $scope.handlePageSizeChange = function() {
+        $scope.pagination.currentPage = 1;
+        $scope.loadSubjects();
     };
     
     // Load subject by ID for editing

@@ -16,12 +16,24 @@ namespace EducationManagement.BLL.Services
         }
 
         /// <summary>
-        /// Lấy tất cả classes
+        /// Lấy tất cả classes - KHÔNG PAGINATION
         /// </summary>
         public async Task<List<Class>> GetAllClassesAsync()
         {
             return await _classRepository.GetAllAsync();
         }
+
+        /// <summary>
+        /// Lấy tất cả classes với pagination
+        /// </summary>
+        public Task<(List<Class> items, int totalCount)> GetAllPagedAsync(
+            int page = 1, 
+            int pageSize = 10, 
+            string? search = null,
+            string? subjectId = null,
+            string? lecturerId = null,
+            string? academicYearId = null) 
+            => _classRepository.GetAllPagedAsync(page, pageSize, search, subjectId, lecturerId, academicYearId);
 
         /// <summary>
         /// Lấy class theo ID

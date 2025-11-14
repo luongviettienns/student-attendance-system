@@ -1,8 +1,8 @@
 // Major Service
 app.service('MajorService', ['ApiService', function(ApiService) {
     
-    this.getAll = function() {
-        return ApiService.get('/majors');
+    this.getAll = function(params) {
+        return ApiService.get('/majors', { params: params });
     };
 
     this.getByFaculty = function(facultyId) {

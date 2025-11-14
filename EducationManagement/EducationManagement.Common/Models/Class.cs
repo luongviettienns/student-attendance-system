@@ -59,9 +59,12 @@ namespace EducationManagement.Common.Models
         [MaxLength(50)]
         public string? SchoolYearId { get; set; }
 
-        // 🔹 Thêm để map kết quả SP (ay.year_code)
+        // 🔹 Thêm để map kết quả SP (ay.year_code, ay.year_name)
         [NotMapped]
         public string? YearCode { get; set; }
+
+        [NotMapped]
+        public string? AcademicYearName { get; set; }
 
         [Column("max_students")]
         public int MaxStudents { get; set; } = 50;

@@ -2,10 +2,8 @@
 app.service('ClassService', ['ApiService', function(ApiService) {
     
     this.getAll = function(params) {
-        return ApiService.get('/classes', params).then(function(response) {
-            if (response.data && response.data.data) {
-                response.data = response.data.data;
-            }
+        return ApiService.get('/classes', { params: params }).then(function(response) {
+            // Response structure: { success: true, data: [...], totalCount, page, pageSize, totalPages }
             return response;
         });
     };
