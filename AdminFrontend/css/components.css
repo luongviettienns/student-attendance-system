@@ -24,56 +24,109 @@
 }
 
 /* Đảm bảo tất cả icon trong buttons có màu trắng */
-.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i,
-.btn-success:not(.btn-outline):not([class*="btn-outline"]) i,
-.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i,
-.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i,
-.btn-info:not(.btn-outline):not([class*="btn-outline"]) i,
-.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i,
-.btn-sm.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i,
-.btn-sm.btn-success:not(.btn-outline):not([class*="btn-outline"]) i,
-.btn-sm.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i,
-.btn-sm.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i,
-.btn-sm.btn-info:not(.btn-outline):not([class*="btn-outline"]) i,
-.btn-sm.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i {
-    color: white !important;
+/* Tăng specificity thay vì dùng !important */
+.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-success:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-success:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-success:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-info:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-info:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-info:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-sm.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-sm.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-sm.btn-primary:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-sm.btn-success:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-sm.btn-success:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-sm.btn-success:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-sm.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-sm.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-sm.btn-danger:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-sm.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-sm.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-sm.btn-warning:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-sm.btn-info:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-sm.btn-info:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-sm.btn-info:not(.btn-outline):not([class*="btn-outline"]) i.fab,
+.btn-sm.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i.fas,
+.btn-sm.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i.far,
+.btn-sm.btn-secondary:not(.btn-outline):not([class*="btn-outline"]) i.fab {
+    color: white;
 }
 
 /* Icon trong outline buttons giữ màu của button type */
-.btn-outline-primary i,
-.btn-outline.btn-primary i {
-    color: var(--primary-color) !important;
+.btn-outline-primary i.fas,
+.btn-outline-primary i.far,
+.btn-outline-primary i.fab,
+.btn-outline.btn-primary i.fas,
+.btn-outline.btn-primary i.far,
+.btn-outline.btn-primary i.fab {
+    color: var(--primary-color);
 }
 
-.btn-outline-secondary i,
-.btn-outline.btn-secondary i {
-    color: var(--secondary-color) !important;
+.btn-outline-secondary i.fas,
+.btn-outline-secondary i.far,
+.btn-outline-secondary i.fab,
+.btn-outline.btn-secondary i.fas,
+.btn-outline.btn-secondary i.far,
+.btn-outline.btn-secondary i.fab {
+    color: var(--secondary-color);
 }
 
-.btn-outline-success i,
-.btn-outline.btn-success i {
-    color: var(--success-color) !important;
+.btn-outline-success i.fas,
+.btn-outline-success i.far,
+.btn-outline-success i.fab,
+.btn-outline.btn-success i.fas,
+.btn-outline.btn-success i.far,
+.btn-outline.btn-success i.fab {
+    color: var(--success-color);
 }
 
-.btn-outline-danger i,
-.btn-outline.btn-danger i {
-    color: var(--danger-color) !important;
+.btn-outline-danger i.fas,
+.btn-outline-danger i.far,
+.btn-outline-danger i.fab,
+.btn-outline.btn-danger i.fas,
+.btn-outline.btn-danger i.far,
+.btn-outline.btn-danger i.fab {
+    color: var(--danger-color);
 }
 
-.btn-outline-warning i,
-.btn-outline.btn-warning i {
-    color: var(--warning-color) !important;
+.btn-outline-warning i.fas,
+.btn-outline-warning i.far,
+.btn-outline-warning i.fab,
+.btn-outline.btn-warning i.fas,
+.btn-outline.btn-warning i.far,
+.btn-outline.btn-warning i.fab {
+    color: var(--warning-color);
 }
 
-.btn-outline-info i,
-.btn-outline.btn-info i {
-    color: var(--info-color) !important;
+.btn-outline-info i.fas,
+.btn-outline-info i.far,
+.btn-outline-info i.fab,
+.btn-outline.btn-info i.fas,
+.btn-outline.btn-info i.far,
+.btn-outline.btn-info i.fab {
+    color: var(--info-color);
 }
 
 /* Khi hover outline button → icon màu trắng */
-.btn-outline:hover i,
-[class*="btn-outline"]:hover i {
-    color: white !important;
+.btn-outline:hover i.fas,
+.btn-outline:hover i.far,
+.btn-outline:hover i.fab,
+[class*="btn-outline"]:hover i.fas,
+[class*="btn-outline"]:hover i.far,
+[class*="btn-outline"]:hover i.fab {
+    color: white;
 }
 
 .btn:disabled {
@@ -210,9 +263,13 @@
 }
 
 /* Icon trong card header với background gradient/màu đậm */
-.card-header[style*="background"] i,
-.card-header[class*="bg-"] i {
-    color: white !important;
+.card-header[style*="background"] i.fas,
+.card-header[style*="background"] i.far,
+.card-header[style*="background"] i.fab,
+.card-header[class*="bg-"] i.fas,
+.card-header[class*="bg-"] i.far,
+.card-header[class*="bg-"] i.fab {
+    color: white;
 }
 
 .card-title {
@@ -535,8 +592,10 @@ input[type="radio"] {
 }
 
 /* Đảm bảo icon trong badge với background đậm có màu trắng */
-.badge[style*="background"] i {
-    color: white !important;
+.badge[style*="background"] i.fas,
+.badge[style*="background"] i.far,
+.badge[style*="background"] i.fab {
+    color: white;
 }
 
 /* ==============================================
@@ -937,7 +996,12 @@ input[type="radio"] {
     cursor: pointer;
     user-select: none;
     position: relative;
-    padding-right: 25px !important;
+    padding-right: 25px;
+}
+
+/* Đảm bảo padding-right không bị override */
+.sortable-header th {
+    padding-right: 25px;
 }
 
 .sortable-header:hover {
@@ -1993,16 +2057,18 @@ input[type="radio"] {
 }
 
 .view-detail-link:hover {
-    color: white !important;
+    color: white;
     background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
     border-color: #0284c7;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
 }
 
-.view-detail-link:hover i {
+.view-detail-link:hover i.fas,
+.view-detail-link:hover i.far,
+.view-detail-link:hover i.fab {
     transform: scale(1.2);
-    color: white !important;
+    color: white;
 }
 
 .view-detail-link:active {

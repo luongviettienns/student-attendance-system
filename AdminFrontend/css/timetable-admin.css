@@ -5,6 +5,130 @@
    ⚠️ 100% CUSTOM CSS - KHÔNG DÙNG BOOTSTRAP
    ============================================== */
 
+/* ==============================================
+   OVERRIDE CLASS CHUNG - TRÁNH XUNG ĐỘT
+   Override các styles từ enhanced-components.css
+   ============================================== */
+
+/* Override .card trong timetable admin context */
+.timetable-admin-toolbar.card,
+.timetable-admin-form.card,
+.timetable-admin-grid.card {
+    background-color: var(--bg-primary);
+    border-radius: var(--border-radius); /* 8px thay vì 12px */
+    box-shadow: var(--box-shadow);
+    margin-bottom: 24px;
+    border: none; /* Remove border từ enhanced-components */
+}
+
+.timetable-admin-toolbar.card:hover,
+.timetable-admin-form.card:hover,
+.timetable-admin-grid.card:hover {
+    box-shadow: var(--box-shadow); /* Giữ shadow cũ, không dùng enhanced */
+    transform: none; /* Remove transform từ enhanced */
+}
+
+/* Override .btn trong timetable admin context */
+.timetable-admin-toolbar .btn,
+.timetable-admin-form .btn,
+.timetable-admin-grid .btn {
+    font-weight: 500;
+    border-radius: var(--border-radius); /* 8px */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); /* Shadow nhẹ hơn enhanced */
+    transition: all 0.2s;
+}
+
+.timetable-admin-toolbar .btn:hover:not(:disabled),
+.timetable-admin-form .btn:hover:not(:disabled),
+.timetable-admin-grid .btn:hover:not(:disabled) {
+    transform: none; /* Remove transform từ enhanced */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); /* Shadow vừa phải */
+}
+
+/* Override .form-control trong timetable admin context (ngoài form field) */
+.timetable-admin-toolbar .form-control,
+.timetable-admin-class-selector .form-control {
+    padding: 10px 12px;
+    font-size: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.timetable-admin-toolbar .form-control:focus,
+.timetable-admin-class-selector .form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Override .table trong timetable admin context */
+.timetable-admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--bg-primary);
+    margin: 0; /* Remove margin từ enhanced */
+    font-size: 14px;
+}
+
+.timetable-admin-table thead {
+    background-color: var(--bg-secondary); /* Solid color thay vì gradient */
+}
+
+.timetable-admin-table thead th {
+    padding: 12px 16px; /* Padding gốc, không dùng 16px từ enhanced */
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
+}
+
+/* Override .alert trong timetable admin context */
+.timetable-admin-alert.alert {
+    padding: 15px 20px; /* Padding gốc */
+    border-radius: var(--border-radius);
+    margin-bottom: 24px;
+    border-left: none; /* Remove border-left từ enhanced */
+    background-color: rgba(239, 68, 68, 0.1); /* Solid background thay vì gradient */
+}
+
+.timetable-admin-alert.alert-info {
+    background-color: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.2);
+    color: var(--info-color);
+}
+
+/* Override .badge trong timetable admin context */
+.timetable-admin-class-info .badge,
+.timetable-admin-table .badge {
+    padding: 4px 10px; /* Padding gốc từ components.css */
+    border-radius: 12px;
+    border: none; /* Remove border từ enhanced */
+    background-color: rgba(37, 99, 235, 0.1); /* Solid background thay vì gradient */
+    color: var(--primary-color);
+    font-weight: 500;
+}
+
+.timetable-admin-table .badge-success {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--success-color);
+}
+
+.timetable-admin-table .badge-danger {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--danger-color);
+}
+
+.timetable-admin-table .badge-warning {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--warning-color);
+}
+
+/* ==============================================
+   END OVERRIDE CLASS CHUNG
+   ============================================== */
+
 /* Toolbar Section */
 .timetable-admin-toolbar {
     margin-bottom: 24px;
@@ -99,6 +223,15 @@
 
 .timetable-admin-class-select {
     width: 100%;
+    max-width: 500px;
+}
+
+.timetable-admin-class-select option {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 8px 12px;
 }
 
 .timetable-admin-class-info {
@@ -142,7 +275,7 @@
 }
 
 .timetable-admin-form-body {
-    padding: 24px;
+    padding: 16px;
 }
 
 .timetable-admin-form-content {
@@ -151,21 +284,22 @@
 
 .timetable-admin-form-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 20px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
 .timetable-admin-form-field {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
 }
 
 .timetable-admin-form-field label {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--text-secondary);
+    margin-bottom: 0;
 }
 
 .timetable-admin-required {
@@ -175,11 +309,12 @@
 
 .timetable-admin-form-field .form-control {
     width: 100%;
-    padding: 10px 12px;
-    font-size: 14px;
+    padding: 4px 8px;
+    font-size: 12px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     transition: all 0.2s;
+    height: 32px;
 }
 
 .timetable-admin-form-field .form-control:focus {
@@ -191,24 +326,25 @@
 .timetable-admin-form-field-full {
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    margin-bottom: 20px;
+    gap: 4px;
+    margin-bottom: 12px;
 }
 
 .timetable-admin-form-field-full label {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--text-secondary);
+    margin-bottom: 0;
 }
 
 .timetable-admin-textarea {
     width: 100%;
-    padding: 10px 12px;
-    font-size: 14px;
+    padding: 4px 8px;
+    font-size: 12px;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius);
     resize: vertical;
-    min-height: 80px;
+    min-height: 50px;
     font-family: inherit;
     transition: all 0.2s;
 }
@@ -336,25 +472,7 @@
     -webkit-overflow-scrolling: touch;
 }
 
-.timetable-admin-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
-}
-
-.timetable-admin-table thead {
-    background: var(--bg-secondary);
-}
-
-.timetable-admin-table th {
-    padding: 12px 16px;
-    text-align: left;
-    font-weight: 600;
-    color: var(--text-secondary);
-    border-bottom: 2px solid var(--border-color);
-    white-space: nowrap;
-}
-
+/* Table styles đã được định nghĩa ở trên (dòng 65-85) */
 .timetable-admin-table td {
     padding: 12px 16px;
     border-bottom: 1px solid var(--border-color-light);

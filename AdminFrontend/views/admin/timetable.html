@@ -56,12 +56,10 @@
                                     ng-change="onClassChange()" 
                                     class="form-control timetable-admin-class-select">
                                 <option value="">-- Chọn lớp học phần --</option>
-                                <option ng-repeat="c in filteredClasses" value="{{c.classId || c.class_id}}">
-                                    {{c.classCode || c.class_code}} - {{c.className || c.class_name}}
-                                    <span ng-if="c.subjectName || c.subject_name"> | {{c.subjectName || c.subject_name}}</span>
-                                    <span ng-if="c.lecturerName || c.lecturer_name"> | GV: {{c.lecturerName || c.lecturer_name}}</span>
-                                    <span ng-if="c.semester"> | HK{{c.semester}}</span>
-                                    <span ng-if="!(c.isActive || c.is_active_computed || c.isActive === 1)" class="text-muted"> (Đã tắt)</span>
+                                <option ng-repeat="c in filteredClasses" 
+                                        value="{{c.classId || c.class_id}}"
+                                        title="{{getClassFullTitle(c)}}">
+                                    {{getClassDisplayText(c)}}
                                 </option>
                             </select>
                         </div>

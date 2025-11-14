@@ -199,6 +199,47 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
     $scope.filterClasses();
   });
 
+  // Helper function để format text hiển thị lớp ngắn gọn
+  $scope.getClassDisplayText = function(c) {
+    if (!c) return '';
+    var code = c.classCode || c.class_code || '';
+    var name = c.className || c.class_name || '';
+    var display = code + ' - ' + name;
+    
+    // Giới hạn độ dài tối đa 60 ký tự
+    if (display.length > 60) {
+      display = display.substring(0, 57) + '...';
+    }
+    
+    // Thêm trạng thái nếu không active
+    if (!(c.isActive || c.is_active_computed || c.isActive === 1)) {
+      display += ' (Đã tắt)';
+    }
+    
+    return display;
+  };
+  
+  // Helper function để tạo title đầy đủ cho tooltip
+  $scope.getClassFullTitle = function(c) {
+    if (!c) return '';
+    var parts = [];
+    var code = c.classCode || c.class_code || '';
+    var name = c.className || c.class_name || '';
+    if (code || name) {
+      parts.push(code + ' - ' + name);
+    }
+    if (c.subjectName || c.subject_name) {
+      parts.push(c.subjectName || c.subject_name);
+    }
+    if (c.lecturerName || c.lecturer_name) {
+      parts.push('GV: ' + (c.lecturerName || c.lecturer_name));
+    }
+    if (c.semester) {
+      parts.push('HK' + c.semester);
+    }
+    return parts.join(' | ');
+  };
+
   // Class selection handler
   $scope.onClassChange = function() {
     if (!$scope.selectedClassId) {
