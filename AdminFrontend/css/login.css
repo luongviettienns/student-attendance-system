@@ -577,3 +577,423 @@
     color: #1976D2;
 }
 
+/* ============================================
+   FORGOT PASSWORD & OTP STYLES
+   ============================================ */
+
+/* Success Message */
+.login-success-message {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    animation: slideDown 0.3s ease-out;
+}
+
+.login-success-message i {
+    font-size: 18px;
+}
+
+/* OTP Sent Message */
+.otp-sent-message {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.otp-sent-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+.otp-sent-icon i {
+    font-size: 36px;
+    color: white;
+}
+
+.otp-sent-message h3 {
+    color: var(--text-primary, #1e293b);
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.otp-sent-message p {
+    color: var(--text-secondary, #64748b);
+    margin: 8px 0;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.otp-note {
+    font-size: 13px !important;
+    color: var(--text-tertiary, #94a3b8) !important;
+    font-style: italic;
+}
+
+.otp-actions {
+    margin-top: 25px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.login-btn-secondary {
+    width: 100%;
+    padding: 14px 24px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.login-btn-secondary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.login-btn-secondary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.login-btn-outline {
+    width: 100%;
+    padding: 12px 24px;
+    background: transparent;
+    color: var(--primary-color, #3b82f6);
+    border: 2px solid var(--primary-color, #3b82f6);
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.login-btn-outline:hover:not(:disabled) {
+    background: var(--primary-color, #3b82f6);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.login-btn-outline:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.login-link-secondary {
+    color: var(--text-secondary, #64748b);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.login-link-secondary:hover {
+    color: var(--primary-color, #3b82f6);
+}
+
+/* OTP Input Container */
+.otp-info {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.otp-email {
+    color: var(--text-primary, #1e293b);
+    font-size: 15px;
+    font-weight: 500;
+    margin: 0 0 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.otp-timer {
+    color: var(--text-secondary, #64748b);
+    font-size: 14px;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.otp-timer.timer-warning {
+    color: #f59e0b;
+}
+
+.otp-timer.timer-expired {
+    color: #ef4444;
+}
+
+.otp-timer .expired-text {
+    font-weight: 600;
+}
+
+.otp-input-container {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-bottom: 25px;
+}
+
+.otp-input {
+    width: 60px;
+    height: 70px;
+    text-align: center;
+    font-size: 32px;
+    font-weight: 600;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text-primary, #1e293b);
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.otp-input:focus {
+    border-color: var(--primary-color, #3b82f6);
+    background: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    transform: scale(1.05);
+}
+
+.otp-input:invalid {
+    border-color: #ef4444;
+}
+
+/* OTP Verified Message */
+.otp-verified-message {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.otp-verified-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.otp-verified-icon i {
+    font-size: 36px;
+    color: white;
+}
+
+.otp-verified-message h3 {
+    color: var(--text-primary, #1e293b);
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.otp-verified-message p {
+    color: var(--text-secondary, #64748b);
+    margin: 8px 0;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+/* Reset Password Styles */
+.reset-info {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.reset-email {
+    color: var(--text-primary, #1e293b);
+    font-size: 15px;
+    font-weight: 500;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.password-strength-indicator {
+    margin-bottom: 20px;
+}
+
+.strength-bar {
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.strength-fill {
+    height: 100%;
+    transition: width 0.3s ease, background-color 0.3s ease;
+    border-radius: 2px;
+}
+
+.strength-fill.weak {
+    background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.strength-fill.medium {
+    background: linear-gradient(90deg, #f59e0b 0%, #d97706 100%);
+}
+
+.strength-fill.strong {
+    background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.password-strength-indicator small {
+    font-size: 13px;
+    display: block;
+    text-align: center;
+}
+
+.password-strength-indicator small.weak {
+    color: #ef4444;
+}
+
+.password-strength-indicator small.medium {
+    color: #f59e0b;
+}
+
+.password-strength-indicator small.strong {
+    color: #10b981;
+}
+
+.password-mismatch-warning {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    padding: 10px 14px;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    animation: slideDown 0.3s ease-out;
+}
+
+.password-mismatch-warning i {
+    font-size: 16px;
+}
+
+/* Reset Success Message */
+.reset-success-message {
+    text-align: center;
+    padding: 20px 0;
+}
+
+.reset-success-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 20px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    animation: scaleIn 0.5s ease-out;
+}
+
+.reset-success-icon i {
+    font-size: 36px;
+    color: white;
+}
+
+.reset-success-message h3 {
+    color: var(--text-primary, #1e293b);
+    margin: 0 0 10px 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.reset-success-message p {
+    color: var(--text-secondary, #64748b);
+    margin: 8px 0;
+    font-size: 15px;
+    line-height: 1.6;
+}
+
+.reset-success-actions {
+    margin-top: 25px;
+}
+
+/* Footer Links */
+.login-footer-links {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+    .otp-input-container {
+        gap: 8px;
+    }
+    
+    .otp-input {
+        width: 50px;
+        height: 60px;
+        font-size: 28px;
+    }
+    
+    .login-glass-container {
+        padding: 30px 25px;
+    }
+}
+

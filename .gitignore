@@ -486,3 +486,10 @@ $RECYCLE.BIN/
 .vs/
 **/bin/
 **/obj/
+
+# User Secrets và App Settings nhạy cảm
+**/Properties/secrets.json
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.Local.json
+*.secrets.json

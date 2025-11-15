@@ -252,6 +252,12 @@
     box-shadow: var(--box-shadow);
     margin-bottom: 20px;
     overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: var(--box-shadow-lg);
+    transform: translateY(-2px);
 }
 
 .card-header {
@@ -260,6 +266,17 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
+}
+
+/* Card header với gradient background */
+.card-header[style*="background"],
+.card-header[class*="bg-"] {
+    border-bottom: none;
+}
+
+.card-header[style*="background"] .card-title,
+.card-header[class*="bg-"] .card-title {
+    color: white;
 }
 
 /* Icon trong card header với background gradient/màu đậm */
@@ -301,6 +318,11 @@
 
 .card-body {
     padding: 20px;
+}
+
+/* Card body với padding lớn hơn cho enhanced components */
+.card-body.large {
+    padding: 24px;
 }
 
 .card-footer {
@@ -473,6 +495,56 @@ select.form-control {
     flex: 1;
 }
 
+/* ==============================================
+   TOOLBARS & FILTERS
+   ============================================== */
+
+.toolbar,
+.action-toolbar,
+.filter-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.toolbar .toolbar-section,
+.action-toolbar .toolbar-section,
+.filter-toolbar .toolbar-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.toolbar .form-group,
+.filter-toolbar .form-group {
+    margin-bottom: 0;
+}
+
+.toolbar .btn,
+.filter-toolbar .btn {
+    white-space: nowrap;
+}
+
+@media (max-width: 992px) {
+    .toolbar,
+    .action-toolbar,
+    .filter-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .toolbar .toolbar-section,
+    .action-toolbar .toolbar-section,
+    .filter-toolbar .toolbar-section {
+        width: 100%;
+        justify-content: flex-start;
+    }
+}
+
 .checkbox-group,
 .radio-group {
     display: flex;
@@ -566,6 +638,18 @@ input[type="radio"] {
 .table-actions {
     display: flex;
     gap: 8px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+    .table-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .table-actions .btn {
+        width: 100%;
+    }
 }
 
 /* ==============================================
@@ -1282,21 +1366,69 @@ input[type="radio"] {
    AVATAR CHANGE MODAL
    ============================================== */
 
-.avatar-modal {
+/* ✅ Override modal-overlay for avatar-modal */
+.avatar-modal.modal-overlay {
     display: flex !important;
     align-items: center;
     justify-content: center;
     animation: fadeIn 0.2s ease-out;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    z-index: 9999 !important;
+}
+
+/* ✅ Ensure avatar-modal shows when active */
+.avatar-modal.modal-overlay.active {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
 }
 
 .avatar-modal .modal {
     max-width: 500px;
     display: block !important;
-    position: relative;
-    top: auto;
-    left: auto;
-    transform: none;
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    transform: none !important;
     animation: slideInUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    opacity: 1 !important;
+    visibility: visible !important;
+    z-index: 10000 !important;
+    pointer-events: auto !important;
+}
+
+/* ✅ Ensure all elements inside avatar modal are clickable */
+.avatar-modal .modal,
+.avatar-modal .modal * {
+    pointer-events: auto !important;
+}
+
+.avatar-modal .modal button,
+.avatar-modal .modal input[type="file"],
+.avatar-modal .modal input[type="button"],
+.avatar-modal .modal .btn,
+.avatar-modal .modal .avatar-upload-dropzone,
+.avatar-modal .modal .modal-header,
+.avatar-modal .modal .modal-body,
+.avatar-modal .modal .modal-footer,
+.avatar-modal .modal .avatar-preview-container,
+.avatar-modal .modal .avatar-upload-area {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+}
+
+/* ✅ Ensure buttons are clickable */
+.avatar-modal .modal .btn-primary,
+.avatar-modal .modal .btn-outline,
+.avatar-modal .modal .modal-close,
+.avatar-modal .modal .btn-remove {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    z-index: 10001 !important;
+    position: relative !important;
 }
 
 @keyframes fadeIn {

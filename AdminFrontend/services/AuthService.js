@@ -293,24 +293,37 @@ app.service('AuthService', ['$http', '$window', '$location', '$rootScope', 'API_
         return $q.resolve(token);
     };
     
-    // Forgot Password
+    // ============================================================
+    // FORGOT PASSWORD FLOW (OTP-based)
+    // ============================================================
+    
+    // Step 1: Send OTP to email
     this.forgotPassword = function(email) {
         return $http.post(API_CONFIG.BASE_URL + '/auth/forgot-password', {
             email: email
         });
     };
     
-    // Validate Reset Token
-    this.validateResetToken = function(token) {
-        return $http.get(API_CONFIG.BASE_URL + '/auth/validate-reset-token/' + token);
+    // Step 2: Verify OTP
+    this.verifyOTP = function(email, otp) {
+        return $http.post(API_CONFIG.BASE_URL + '/auth/verify-otp', {
+            email: email,
+            otp: otp
+        });
     };
     
-    // Reset Password
-    this.resetPassword = function(token, newPassword) {
+    // Step 3: Reset Password (after OTP verified)
+    this.resetPassword = function(email, newPassword, confirmPassword) {
         return $http.post(API_CONFIG.BASE_URL + '/auth/reset-password', {
-            token: token,
-            newPassword: newPassword
+            email: email,
+            newPassword: newPassword,
+            confirmPassword: confirmPassword
         });
+    };
+    
+    // Get remaining OTP time (for countdown)
+    this.getOTPRemainingTime = function(email) {
+        return $http.get(API_CONFIG.BASE_URL + '/auth/otp-remaining-time?email=' + encodeURIComponent(email));
     };
     
     // Change Password (for logged in users)

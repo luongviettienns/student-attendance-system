@@ -127,7 +127,8 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
                 return;
             }
             
-            if (!$scope.currentUser || !$scope.currentUser.userId) {
+            // ✅ Kiểm tra currentUser tồn tại
+            if (!$scope.currentUser) {
                 ToastService.error('Không tìm thấy thông tin người dùng. Vui lòng đăng nhập lại.');
                 return;
             }
@@ -138,7 +139,7 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
             
             var formData = new FormData();
             formData.append('avatar', $scope.avatarModal.selectedFile);
-            formData.append('userId', $scope.currentUser.userId);
+            // ✅ Không cần gửi userId vì backend sẽ lấy từ token
             
             // Make API call to upload avatar
             ApiService.uploadFile('/users/avatar', formData)
@@ -155,6 +156,9 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
                         if (newAvatarUrl) {
                             $scope.currentUser.avatarUrl = newAvatarUrl;
                             AuthService.updateUser($scope.currentUser);
+                            
+                            // ✅ Trigger reload để topbar cập nhật avatar
+                            $scope.$root.$broadcast('userAvatarUpdated', newAvatarUrl);
                         }
                     }
                     

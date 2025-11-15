@@ -17,6 +17,13 @@ app.directive('appTopbar', ['AuthService', 'AvatarService', function(AuthService
                 loadCurrentUser();
             });
             
+            // ✅ Listen for avatar updates
+            scope.$on('userAvatarUpdated', function(event, newAvatarUrl) {
+                if (scope.currentUser) {
+                    scope.currentUser.avatarUrl = newAvatarUrl;
+                }
+            });
+            
             // ✅ Initialize Avatar Modal
             AvatarService.initAvatarModal(scope);
             

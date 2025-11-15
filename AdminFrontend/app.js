@@ -39,7 +39,12 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'ForgotPasswordController',
             publicAccess: true
         })
-        .when('/reset-password/:token', {
+        .when('/verify-otp', {
+            templateUrl: 'views/auth/verify-otp.html',
+            controller: 'VerifyOTPController',
+            publicAccess: true
+        })
+        .when('/reset-password', {
             templateUrl: 'views/auth/reset-password.html',
             controller: 'ResetPasswordController',
             publicAccess: true
