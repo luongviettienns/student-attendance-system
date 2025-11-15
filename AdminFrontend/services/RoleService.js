@@ -358,7 +358,9 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 // Cho phép admin truy cập màn timetable để test
                 '/student/timetable',
                 '/lecturer/timetable',
-                '/admin/timetable'
+                '/admin/timetable',
+                // Reports
+                '/admin/reports'
             ],
             'Lecturer': [
                 '/dashboard',
@@ -366,6 +368,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/lecturer/grades',
                 '/lecturer/dashboard',
                 '/lecturer/timetable',
+                '/lecturer/reports',
                 '/notifications'
             ],
             'Student': [
@@ -377,6 +380,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/student/attendance',
                 '/student/enrollments',
                 '/student/profile',
+                '/student/reports',
                 '/notifications'
             ],
             'Advisor': [
@@ -384,6 +388,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/advisor/students',
                 '/advisor/warnings', // Warnings page (cảnh báo và gửi email)
                 '/advisor/enrollments', // Enrollments approval page
+                '/advisor/reports', // Reports & Statistics
                 '/notifications'
             ]
         };
@@ -447,6 +452,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'STUDENT_ATTENDANCE': '/student/attendance',
         'STUDENT_PROFILE': '/student/profile',
         'STUDENT_ENROLLMENT': '/student/enrollments',
+        'STUDENT_REPORTS': '/student/reports',
         'STUDENT_NOTIFICATIONS': '/notifications',
         
         // Lecturer permissions
@@ -454,6 +460,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'TEACHER_ATTENDANCE': '/lecturer/attendance',
         'TEACHER_GRADES': '/lecturer/grades',
         'TEACHER_TIMETABLE': '/lecturer/timetable',
+        'TEACHER_REPORTS': '/lecturer/reports',
         'TEACHER_NOTIFICATIONS': '/notifications',
         
         // Advisor permissions
@@ -461,6 +468,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'ADVISOR_STUDENTS': '/advisor/students', // Fixed: route is /advisor/students, not /students
         'ADVISOR_WARNINGS': '/advisor/warnings', // Task 1.5: Cảnh báo và gửi email
         'ADVISOR_ENROLLMENTS': '/advisor/enrollments', // Task 2: Duyệt đăng ký học phần
+        'ADVISOR_REPORTS': '/advisor/reports',
         'ADVISOR_NOTIFICATIONS': '/notifications',
         
         // Admin permissions
@@ -478,6 +486,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'ADMIN_REGISTRATION_PERIODS': '/registration-periods',
         'ADMIN_ENROLLMENTS': '/enrollments',
         'ADMIN_TIMETABLE': '/admin/timetable',
+        'ADMIN_REPORTS': '/admin/reports',
         'ADMIN_AUDIT_LOGS': '/audit-logs',
         'ADMIN_NOTIFICATIONS': '/notifications',
         
@@ -543,14 +552,41 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                         }
                     }
                     
-                    // ✅ Debug logging for menu items in QUẢN LÝ ĐÀO TẠO section
-                    if (menu.label && (menu.label.includes('ĐÀO TẠO') || menu.label.includes('ACADEMIC'))) {
+                    // ✅ Step 5: If still no path and label contains report/thống kê/báo cáo, infer from current role
+                    if (!path || path === '/dashboard') {
+                        // Get role from AuthService since we can't use 'this' in this context
+                        var currentUser = AuthService.getCurrentUser();
+                        var role = currentUser ? (currentUser.Role || currentUser.role) : null;
+                        var labelLower = (subItem.label || '').toLowerCase();
+                        if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) {
+                            if (role === 'Admin') {
+                                path = '/admin/reports';
+                                pathSource = 'inferFromLabelAndRole';
+                            } else if (role === 'Advisor') {
+                                path = '/advisor/reports';
+                                pathSource = 'inferFromLabelAndRole';
+                            } else if (role === 'Lecturer') {
+                                path = '/lecturer/reports';
+                                pathSource = 'inferFromLabelAndRole';
+                            } else if (role === 'Student') {
+                                path = '/student/reports';
+                                pathSource = 'inferFromLabelAndRole';
+                            }
+                        }
+                    }
+                    
+                    // ✅ Debug logging for menu items in QUẢN LÝ ĐÀO TẠO section or REPORTS
+                    if (menu.label && ((menu.label.includes('ĐÀO TẠO') || menu.label.includes('ACADEMIC')) || 
+                        (subItem.label && (subItem.label.includes('Thống kê') || subItem.label.includes('Báo cáo') || subItem.label.includes('report'))))) {
+                        var currentUser = AuthService.getCurrentUser();
+                        var role = currentUser ? (currentUser.Role || currentUser.role) : null;
                         LoggerService.log('Menu Item Mapping:', {
                             label: subItem.label,
                             state: subItem.state,
                             path: path,
                             pathSource: pathSource,
-                            section: menu.label
+                            section: menu.label,
+                            role: role
                         });
                     }
                     
@@ -601,6 +637,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('attendance') || labelLower.includes('điểm danh')) return '/student/attendance';
             if (labelLower.includes('profile') || labelLower.includes('cá nhân')) return '/student/profile';
             if (labelLower.includes('enrollment') || labelLower.includes('đăng ký')) return '/student/enrollments';
+            if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/student/reports';
         }
         
         // Lecturer routes
@@ -609,6 +646,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('attendance') || labelLower.includes('điểm danh')) return '/lecturer/attendance';
             if (labelLower.includes('grade') || labelLower.includes('điểm')) return '/lecturer/grades';
             if (labelLower.includes('timetable') || labelLower.includes('thời khóa biểu')) return '/lecturer/timetable';
+            if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/lecturer/reports';
         }
         
         // Advisor routes
@@ -617,6 +655,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('student') || labelLower.includes('sinh viên')) return '/advisor/students';
             if (labelLower.includes('warning') || labelLower.includes('cảnh báo')) return '/advisor/warnings';
             if (labelLower.includes('enrollment') || labelLower.includes('đăng ký học phần') || labelLower.includes('duyệt đăng ký')) return '/advisor/enrollments';
+            if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/advisor/reports';
             if (labelLower.includes('notification') || labelLower.includes('thông báo')) return '/notifications';
         }
         
@@ -637,6 +676,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('quản lý đăng ký') || (labelLower.includes('đăng ký') && labelLower.includes('quản lý'))) return '/enrollments';
             if (labelLower.includes('thời khóa biểu') || labelLower.includes('timetable') || labelLower.includes('xếp lịch')) return '/admin/timetable';
             if (labelLower.includes('nhật ký') || labelLower.includes('audit log')) return '/audit-logs';
+            if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/admin/reports';
             if (labelLower.includes('chương trình đào tạo') || labelLower.includes('training program')) return '/subject-prerequisites'; // Default for section
         }
         

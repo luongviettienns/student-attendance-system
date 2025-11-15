@@ -289,6 +289,24 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'AdminTimetableController'
         })
         
+        // Reports & Statistics
+        .when('/admin/reports', {
+            templateUrl: 'views/admin/reports.html',
+            controller: 'AdminReportController'
+        })
+        .when('/advisor/reports', {
+            templateUrl: 'views/advisor/reports.html',
+            controller: 'AdvisorReportController'
+        })
+        .when('/lecturer/reports', {
+            templateUrl: 'views/lecturer/reports.html',
+            controller: 'LecturerReportController'
+        })
+        .when('/student/reports', {
+            templateUrl: 'views/student/reports.html',
+            controller: 'StudentReportController'
+        })
+        
         // Default route
         .otherwise({
             redirectTo: '/login'
@@ -390,7 +408,7 @@ app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', 'Notificatio
     });
 }]);
 
-// HTTP Interceptor for adding JWT token and formatting dates
+// HTTP Interceptor for adding JWT token, auto-refresh, and formatting dates
 app.factory('AuthInterceptor', ['$q', '$location', '$window', '$injector', function($q, $location, $window, $injector) {
     // Helper to format date strings to YYYY-MM-DD format
     function formatDateString(dateString) {
@@ -441,13 +459,33 @@ app.factory('AuthInterceptor', ['$q', '$location', '$window', '$injector', funct
     
     return {
         request: function(config) {
-            // Check both localStorage and sessionStorage for token
-            var token = $window.localStorage.getItem('auth_token') || 
-                       $window.sessionStorage.getItem('auth_token');
-            if (token) {
-                config.headers.Authorization = 'Bearer ' + token;
+            // Skip token check for public endpoints
+            var publicEndpoints = ['/auth/login', '/auth/register', '/auth/forgot-password', '/auth/refresh'];
+            var isPublicEndpoint = publicEndpoints.some(function(endpoint) {
+                return config.url.indexOf(endpoint) !== -1;
+            });
+            
+            if (isPublicEndpoint) {
+                return config;
             }
-            return config;
+            
+            // Get AuthService (using $injector to avoid circular dependency)
+            var AuthService = $injector.get('AuthService');
+            
+            // Check and refresh token before sending request
+            return AuthService.checkAndRefreshToken().then(function(token) {
+                // Token is valid (or was refreshed), add to header
+                config.headers.Authorization = 'Bearer ' + token;
+                return config;
+            }).catch(function(error) {
+                // Token check/refresh failed - will be handled by responseError
+                // Still try to get token (might be valid but refresh failed)
+                var token = AuthService.getToken();
+                if (token) {
+                    config.headers.Authorization = 'Bearer ' + token;
+                }
+                return config;
+            });
         },
         response: function(response) {
             // DISABLED: Format dates in response data
@@ -463,18 +501,47 @@ app.factory('AuthInterceptor', ['$q', '$location', '$window', '$injector', funct
         },
         responseError: function(rejection) {
             if (rejection.status === 401) {
-                // Unauthorized - Clear tokens and redirect to login
-                $window.localStorage.removeItem('auth_token');
-                $window.localStorage.removeItem('user_info');
-                $window.sessionStorage.removeItem('auth_token');
-                $window.sessionStorage.removeItem('user_info');
-                $location.path('/login');
-                // Try to show toast if ToastService is available
-                try {
-                    var ToastService = $injector.get('ToastService');
-                    ToastService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
-                } catch (e) {
-                    // ToastService not available, skip
+                // Unauthorized - Try to refresh token first
+                var AuthService = $injector.get('AuthService');
+                
+                // Check if this is a refresh endpoint (avoid infinite loop)
+                var isRefreshEndpoint = rejection.config && rejection.config.url && 
+                                       rejection.config.url.indexOf('/auth/refresh') !== -1;
+                
+                if (!isRefreshEndpoint) {
+                    // Try to refresh token
+                    return AuthService.refreshToken().then(function(newTokens) {
+                        // Retry original request with new token
+                        var $http = $injector.get('$http');
+                        var originalConfig = rejection.config;
+                        originalConfig.headers.Authorization = 'Bearer ' + newTokens.token;
+                        
+                        return $http(originalConfig);
+                    }).catch(function(refreshError) {
+                        // Refresh failed - logout
+                        AuthService.logout();
+                        
+                        // Try to show toast if ToastService is available
+                        try {
+                            var ToastService = $injector.get('ToastService');
+                            ToastService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                        } catch (e) {
+                            // ToastService not available, skip
+                        }
+                        
+                        return $q.reject(rejection);
+                    });
+                } else {
+                    // Refresh endpoint returned 401 - logout
+                    AuthService.logout();
+                    
+                    // Try to show toast if ToastService is available
+                    try {
+                        var ToastService = $injector.get('ToastService');
+                        ToastService.warning('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+                    } catch (e) {
+                        // ToastService not available, skip
+                    }
                 }
             } else if (rejection.status === 403) {
                 // Forbidden - User doesn't have permission

@@ -66,6 +66,12 @@
     box-shadow: 0 4px 16px rgba(249, 115, 22, 0.4);
 }
 
+/* 🟡 YELLOW - Cảnh báo điểm danh */
+.stat-icon.yellow {
+    background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+    box-shadow: 0 4px 16px rgba(234, 179, 8, 0.4);
+}
+
 /* 🟣 PURPLE - Khoa, Cảnh báo chuyên cần */
 .stat-icon.purple {
     background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
@@ -2819,10 +2825,12 @@
     .schedule-table-card .card-header h2 {
         font-size: 17px;
         gap: 10px;
+        color: #ffffff !important;
     }
     
     .schedule-table-card .card-header h2 i {
         font-size: 17px;
+        color: white !important;
     }
     
     .schedule-weekly-table thead th {
@@ -2901,10 +2909,12 @@
     .schedule-list-card .card-header h2 {
         font-size: 17px;
         gap: 10px;
+        color: #ffffff !important;
     }
     
     .schedule-list-card .card-header h2 i {
         font-size: 17px;
+        color: white !important;
     }
     
     .schedule-count-badge {
@@ -3122,6 +3132,7 @@
         font-size: 18px;
         margin: 0;
         width: 100%;
+        color: #ffffff !important;
     }
     
     .card-body {
@@ -3137,6 +3148,7 @@
     
     .card-header h2 {
         font-size: 16px;
+        color: #ffffff !important;
     }
     
     .card-body {

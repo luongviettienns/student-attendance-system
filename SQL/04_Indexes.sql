@@ -94,6 +94,17 @@ END
 ELSE
     PRINT '   ⏭️  Skipped: IX_Students_Email (already exists)';
 
+-- Index cho last_warning_sent (warning system)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Students_LastWarningSent')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Students_LastWarningSent
+    ON dbo.students(last_warning_sent)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_Students_LastWarningSent';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_Students_LastWarningSent (already exists)';
+
 -- =============================================
 -- 3. LECTURERS TABLE INDEXES
 -- =============================================

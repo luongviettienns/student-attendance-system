@@ -57,12 +57,17 @@
                     <h2><i class="fas fa-calendar-day"></i> Lịch học hôm nay</h2>
                 </div>
                 <div class="card-body">
-                    <div ng-if="todaySchedule.length === 0" class="text-center">
+                    <div ng-if="loading" class="text-center" style="padding: 40px;">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <p>Đang tải lịch học...</p>
+                    </div>
+                    
+                    <div ng-if="!loading && todaySchedule.length === 0" class="text-center">
                         <i class="fas fa-calendar-times fa-3x" style="color: #94a3b8;"></i>
                         <p>Không có lịch học hôm nay</p>
                     </div>
                     
-                    <div ng-if="todaySchedule.length > 0" class="schedule-list">
+                    <div ng-if="!loading && todaySchedule.length > 0" class="schedule-list">
                         <div class="schedule-item" ng-repeat="schedule in todaySchedule">
                             <div class="schedule-time">
                                 <div class="time-period">Tiết {{schedule.period}}</div>

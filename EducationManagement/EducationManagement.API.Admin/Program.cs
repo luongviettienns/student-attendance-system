@@ -279,6 +279,7 @@ Console.ResetColor();
 app.UseCors("AllowFrontend");
 
 // ⚠️ Response Compression sau CORS
+// Note: Browser Link warnings for Swagger are harmless and can be ignored
 app.UseResponseCompression();
 
 // ⚠️ Rate Limiting

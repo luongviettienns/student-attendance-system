@@ -480,6 +480,7 @@ BEGIN
     ('PERM_STU_ATTENDANCE', 'STUDENT_ATTENDANCE', N'Điểm danh', 'STUDENT_SECTION_STUDY', 'fas fa-clipboard-check', 4, N'Xem lịch sử điểm danh', 1),
     ('PERM_STU_ENROLLMENT', 'STUDENT_ENROLLMENT', N'Đăng ký học phần', 'STUDENT_SECTION_STUDY', 'fas fa-edit', 5, N'Đăng ký học phần', 1),
     ('PERM_STU_PROFILE_ITEM', 'STUDENT_PROFILE', N'Thông tin cá nhân', 'STUDENT_SECTION_PROFILE', 'fas fa-user', 1, N'Quản lý thông tin cá nhân', 1),
+    ('PERM_STU_REPORTS', 'STUDENT_REPORTS', N'Thống kê học tập', 'STUDENT_SECTION_STUDY', 'fas fa-chart-bar', 6, N'Xem thống kê học tập', 1),
     ('PERM_STU_NOTIFICATIONS', 'STUDENT_NOTIFICATIONS', N'Thông báo', 'STUDENT_SECTION_SYSTEM', 'fas fa-bell', 1, N'Xem thông báo', 1);
 END
 
@@ -500,6 +501,7 @@ BEGIN
     ('PERM_TCH_ATTENDANCE', 'TEACHER_ATTENDANCE', N'Điểm danh', 'TEACHER_SECTION_TEACHING', 'fas fa-check-square', 1, N'Điểm danh sinh viên', 1),
     ('PERM_TCH_GRADES', 'TEACHER_GRADES', N'Nhập điểm', 'TEACHER_SECTION_TEACHING', 'fas fa-graduation-cap', 2, N'Nhập điểm sinh viên', 1),
     ('PERM_TCH_TIMETABLE', 'TEACHER_TIMETABLE', N'Thời khóa biểu', 'TEACHER_SECTION_TEACHING', 'fas fa-calendar-alt', 3, N'Xem thời khóa biểu giảng dạy', 1),
+    ('PERM_TCH_REPORTS', 'TEACHER_REPORTS', N'Thống kê lớp chủ nhiệm', 'TEACHER_SECTION_TEACHING', 'fas fa-chart-line', 4, N'Thống kê lớp chủ nhiệm', 1),
     ('PERM_TCH_NOTIFICATIONS', 'TEACHER_NOTIFICATIONS', N'Thông báo', 'TEACHER_SECTION_SYSTEM', 'fas fa-bell', 1, N'Xem thông báo', 1);
 END
 
@@ -522,6 +524,7 @@ BEGIN
     ('PERM_ADV_APPEALS', 'ADVISOR_APPEALS', N'Phúc khảo', 'ADVISOR_SECTION_ADVISING', 'fas fa-gavel', 3, N'Quản lý phúc khảo điểm', 1),
     ('PERM_ADV_GRADE_FORMULA', 'ADVISOR_GRADE_FORMULA', N'Công thức điểm', 'ADVISOR_SECTION_ADVISING', 'fas fa-calculator', 4, N'Cấu hình công thức tính điểm', 1),
     ('PERM_ADV_ENROLLMENTS', 'ADVISOR_ENROLLMENTS', N'Duyệt đăng ký', 'ADVISOR_SECTION_ADVISING', 'fas fa-clipboard-check', 5, N'Duyệt và quản lý đăng ký học phần của sinh viên', 1),
+    ('PERM_ADV_REPORTS', 'ADVISOR_REPORTS', N'Thống kê & Báo cáo', 'ADVISOR_SECTION_ADVISING', 'fas fa-chart-pie', 6, N'Thống kê và báo cáo sinh viên', 1),
     ('PERM_ADV_NOTIFICATIONS', 'ADVISOR_NOTIFICATIONS', N'Thông báo', 'ADVISOR_SECTION_SYSTEM', 'fas fa-bell', 1, N'Xem thông báo', 1);
 END
 
@@ -557,6 +560,7 @@ BEGIN
     ('PERM_ADM_REGISTRATION_PERIODS', 'ADMIN_REGISTRATION_PERIODS', N'Đợt đăng ký', 'ADMIN_SECTION_ENROLLMENT', 'fas fa-clock', 1, N'Quản lý đợt đăng ký học phần', 1),
     ('PERM_ADM_ENROLLMENTS', 'ADMIN_ENROLLMENTS', N'Quản lý đăng ký', 'ADMIN_SECTION_ENROLLMENT', 'fas fa-clipboard-list', 2, N'Quản lý đăng ký học phần', 1),
     ('PERM_ADM_TIMETABLE_ITEM', 'ADMIN_TIMETABLE', N'Xếp lịch', 'ADMIN_SECTION_TIMETABLE', 'fas fa-calendar-alt', 1, N'Quản lý thời khóa biểu', 1),
+    ('PERM_ADM_REPORTS', 'ADMIN_REPORTS', N'Thống kê & Báo cáo', 'ADMIN_SECTION_SYSTEM', 'fas fa-chart-bar', 3, N'Thống kê và báo cáo hệ thống', 1),
     ('PERM_ADM_AUDIT_LOGS', 'ADMIN_AUDIT_LOGS', N'Nhật ký hệ thống', 'ADMIN_SECTION_SYSTEM', 'fas fa-history', 1, N'Xem nhật ký hệ thống', 1),
     ('PERM_ADM_NOTIFICATIONS', 'ADMIN_NOTIFICATIONS', N'Thông báo', 'ADMIN_SECTION_SYSTEM', 'fas fa-bell', 2, N'Quản lý thông báo', 1);
 END
@@ -583,6 +587,7 @@ BEGIN
     ('ROLE_STUDENT', 'PERM_STU_GRADES'),
     ('ROLE_STUDENT', 'PERM_STU_ATTENDANCE'),
     ('ROLE_STUDENT', 'PERM_STU_ENROLLMENT'),
+    ('ROLE_STUDENT', 'PERM_STU_REPORTS'),
     -- Student Profile
     ('ROLE_STUDENT', 'PERM_STU_PROFILE'),
     ('ROLE_STUDENT', 'PERM_STU_PROFILE_ITEM'),
@@ -603,6 +608,7 @@ BEGIN
     ('ROLE_LECTURER', 'PERM_TCH_ATTENDANCE'),
     ('ROLE_LECTURER', 'PERM_TCH_GRADES'),
     ('ROLE_LECTURER', 'PERM_TCH_TIMETABLE'),
+    ('ROLE_LECTURER', 'PERM_TCH_REPORTS'),
     -- Lecturer System
     ('ROLE_LECTURER', 'PERM_TCH_SYSTEM'),
     ('ROLE_LECTURER', 'PERM_TCH_NOTIFICATIONS');
@@ -622,6 +628,7 @@ BEGIN
     ('ROLE_ADVISOR', 'PERM_ADV_APPEALS'),
     ('ROLE_ADVISOR', 'PERM_ADV_GRADE_FORMULA'),
     ('ROLE_ADVISOR', 'PERM_ADV_ENROLLMENTS'),
+    ('ROLE_ADVISOR', 'PERM_ADV_REPORTS'),
     -- Advisor System
     ('ROLE_ADVISOR', 'PERM_ADV_SYSTEM'),
     ('ROLE_ADVISOR', 'PERM_ADV_NOTIFICATIONS');
@@ -661,6 +668,7 @@ BEGIN
     ('ROLE_ADMIN', 'PERM_ADM_TIMETABLE_ITEM'),
     -- Admin System
     ('ROLE_ADMIN', 'PERM_ADM_SYSTEM'),
+    ('ROLE_ADMIN', 'PERM_ADM_REPORTS'),
     ('ROLE_ADMIN', 'PERM_ADM_AUDIT_LOGS'),
     ('ROLE_ADMIN', 'PERM_ADM_NOTIFICATIONS');
 END

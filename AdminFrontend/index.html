@@ -47,6 +47,9 @@
     <!-- SheetJS for Excel Import/Export (Local) -->
     <script src="js/xlsx.full.min.js"></script>
     
+    <!-- Chart.js for Data Visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
     <!-- App Scripts -->
     <script src="app.js"></script>
     
@@ -90,6 +93,12 @@
     <script src="controllers/StudentRetakeController.js"></script>
     <script src="controllers/LecturerTimetableController.js"></script>
     <script src="controllers/AdminTimetableController.js"></script>
+    
+    <!-- Report Controllers -->
+    <script src="controllers/AdminReportController.js"></script>
+    <script src="controllers/AdvisorReportController.js"></script>
+    <script src="controllers/LecturerReportController.js"></script>
+    <script src="controllers/StudentReportController.js"></script>
     
     <!-- System Controllers -->
     <script src="controllers/AuditLogController.js?v=2.1"></script>
@@ -143,6 +152,9 @@
     <script src="services/EnrollmentService.js"></script>
     <script src="services/SubjectPrerequisiteService.js"></script>
     
+    <!-- Report Service -->
+    <script src="services/ReportService.js"></script>
+    
     <!-- Directives -->
     <script src="directives/routeGuard.js"></script>
     <script src="directives/pagination.js"></script>
@@ -159,9 +171,6 @@
     <!-- UI Scripts -->
     <script src="js/sidebar.js"></script>
     <script src="js/modal.js"></script>
-    
-    <!-- Date Debug Helper (remove in production) -->
-    <script src="js/dateDebug.js"></script>
 </head>
 <body>
     <!-- Toast Notifications Container -->

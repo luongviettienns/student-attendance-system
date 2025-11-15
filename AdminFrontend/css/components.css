@@ -272,6 +272,21 @@
     color: white;
 }
 
+/* Đảm bảo tất cả h1, h2, h3 trong card-header có màu trắng */
+.card-header h1,
+.card-header h2,
+.card-header h3 {
+    color: #ffffff !important;
+    margin: 0;
+}
+
+.card-header h1 i,
+.card-header h2 i,
+.card-header h3 i {
+    color: white !important;
+    opacity: 0.9;
+}
+
 .card-title {
     font-size: 18px;
     font-weight: 600;

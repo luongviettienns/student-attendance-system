@@ -21,7 +21,9 @@ app.service('ApiService', ['$http', '$q', 'API_CONFIG', 'CacheService', function
         
         // Wrap params trong { params: ... } để Angular $http convert thành query string
         var config = params ? { params: params } : {};
-        return $http.get(API_CONFIG.BASE_URL + endpoint, config).then(function(response) {
+        var fullUrl = API_CONFIG.BASE_URL + endpoint;
+        
+        return $http.get(fullUrl, config).then(function(response) {
             // Cache the response if caching is enabled
             if (options.cache !== false) {
                 var cacheKey = options.cacheKey || endpoint + '?' + JSON.stringify(params || {});
@@ -148,6 +150,13 @@ app.service('ApiService', ['$http', '$q', 'API_CONFIG', 'CacheService', function
         } else {
             CacheService.clear();
         }
+    };
+    
+    /**
+     * Get base URL for manual URL construction
+     */
+    this.getBaseUrl = function() {
+        return API_CONFIG.BASE_URL;
     };
 }]);
 

@@ -262,6 +262,7 @@ CREATE TABLE dbo.students (
     academic_year_id VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.academic_years(academic_year_id),
     advisor_id       VARCHAR(50) NULL,
     user_id          VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.users(user_id),
+    last_warning_sent DATETIME NULL,
     is_active        BIT NOT NULL DEFAULT 1,
     created_at       DATETIME NOT NULL DEFAULT(GETDATE()),
     created_by       VARCHAR(50) NULL,
