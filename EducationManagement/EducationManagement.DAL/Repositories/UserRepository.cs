@@ -100,6 +100,64 @@ namespace EducationManagement.DAL.Repositories
         }
 
         // ============================================================
+        // 🔹 LẤY NGƯỜI DÙNG THEO EMAIL (CHO FORGOT PASSWORD)
+        // ============================================================
+        public async Task<User?> GetByEmailAsync(string email)
+        {
+            var query = @"
+                SELECT u.*, r.role_name
+                FROM dbo.users u
+                LEFT JOIN dbo.roles r ON u.role_id = r.role_id
+                WHERE LOWER(LTRIM(RTRIM(u.email))) = LOWER(LTRIM(RTRIM(@Email)))
+                    AND u.deleted_at IS NULL
+                    AND u.is_active = 1";
+
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@Email", email.Trim().ToLower());
+                
+                await conn.OpenAsync();
+                using var reader = await cmd.ExecuteReaderAsync();
+                
+                if (await reader.ReadAsync())
+                {
+                    return MapToUserFromReader(reader);
+                }
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+        }
+
+        // Helper method để map từ DataReader
+        private User MapToUserFromReader(System.Data.Common.DbDataReader reader)
+        {
+            return new User
+            {
+                UserId = reader["user_id"]?.ToString() ?? string.Empty,
+                Username = reader["username"]?.ToString() ?? string.Empty,
+                PasswordHash = reader["password_hash"]?.ToString() ?? string.Empty,
+                Email = reader["email"]?.ToString() ?? string.Empty,
+                Phone = reader["phone"]?.ToString(),
+                FullName = reader["full_name"]?.ToString() ?? string.Empty,
+                AvatarUrl = reader["avatar_url"]?.ToString(),
+                RoleId = reader["role_id"]?.ToString() ?? string.Empty,
+                RoleName = reader["role_name"]?.ToString(),
+                IsActive = Convert.ToBoolean(reader["is_active"]),
+                LastLoginAt = reader["last_login_at"] != DBNull.Value ? (DateTime?)reader["last_login_at"] : null,
+                CreatedAt = reader["created_at"] != DBNull.Value ? Convert.ToDateTime(reader["created_at"]) : DateTime.UtcNow,
+                CreatedBy = reader["created_by"]?.ToString(),
+                UpdatedAt = reader["updated_at"] != DBNull.Value ? (DateTime?)reader["updated_at"] : null,
+                UpdatedBy = reader["updated_by"]?.ToString()
+            };
+        }
+
+        // ============================================================
         // 🔹 TẠO MỚI NGƯỜI DÙNG
         // ============================================================
         public async Task<string?> CreateAsync(User user)
@@ -140,6 +198,36 @@ namespace EducationManagement.DAL.Repositories
             };
 
             return await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_UpdateUser", parameters);
+        }
+
+        // ============================================================
+        // 🔹 CẬP NHẬT MẬT KHẨU (CHO FORGOT PASSWORD)
+        // ============================================================
+        public async Task<bool> UpdatePasswordAsync(string userId, string newPasswordHash)
+        {
+            var query = @"
+                UPDATE dbo.users 
+                SET password_hash = @PasswordHash, 
+                    updated_at = GETUTCDATE()
+                WHERE user_id = @UserId 
+                    AND deleted_at IS NULL
+                    AND is_active = 1";
+
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                using var cmd = new SqlCommand(query, conn);
+                cmd.Parameters.AddWithValue("@UserId", userId);
+                cmd.Parameters.AddWithValue("@PasswordHash", newPasswordHash);
+                
+                await conn.OpenAsync();
+                var rowsAffected = await cmd.ExecuteNonQueryAsync();
+                return rowsAffected > 0;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
         }
 
         // ============================================================
@@ -224,7 +312,6 @@ namespace EducationManagement.DAL.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting user IDs by role: {ex.Message}");
             }
 
             return userIds;
@@ -265,7 +352,6 @@ namespace EducationManagement.DAL.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting users by role: {ex.Message}");
             }
 
             return users;

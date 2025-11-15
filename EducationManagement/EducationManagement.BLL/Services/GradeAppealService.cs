@@ -85,14 +85,11 @@ namespace EducationManagement.BLL.Services
                             }
                             catch (Exception ex)
                             {
-                                Console.WriteLine($"Error sending email to advisor {advisorUserId}: {ex.Message}");
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        // Log error but don't fail the appeal creation
-                        Console.WriteLine($"Error sending notification to advisor {advisorUserId}: {ex.Message}");
                     }
                 }
 
@@ -111,7 +108,6 @@ namespace EducationManagement.BLL.Services
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Error sending notification to student: {ex.Message}");
                     }
                 }
             }
@@ -201,13 +197,11 @@ namespace EducationManagement.BLL.Services
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Error sending email to student: {ex.Message}");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error sending notification to student: {ex.Message}");
                 }
 
                 // If NEED_REVIEW, send notification to advisors
@@ -228,7 +222,6 @@ namespace EducationManagement.BLL.Services
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Error sending notification to advisor {advisorUserId}: {ex.Message}");
                         }
                     }
                 }
@@ -312,7 +305,6 @@ namespace EducationManagement.BLL.Services
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Error sending email to student: {ex.Message}");
                         }
                     }
 
@@ -330,13 +322,11 @@ namespace EducationManagement.BLL.Services
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($"Error sending grade notification email: {ex.Message}");
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error sending notification to student: {ex.Message}");
                 }
             }
         }

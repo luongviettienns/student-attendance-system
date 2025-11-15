@@ -80,15 +80,12 @@ namespace EducationManagement.DAL.Repositories
                     // use the count of notifications as totalCount
                     // This handles backward compatibility but indicates a problem
                     totalCount = notifications.Count;
-                    Console.WriteLine("Warning: sp_GetNotificationsByUser only returned 1 result set. Using notification count as totalCount. Please ensure the updated stored procedure is deployed.");
                 }
                 
                 return (notifications, totalCount);
             }
             catch (Exception ex)
             {
-                // Log error if needed
-                Console.WriteLine($"Error getting notifications: {ex.Message}");
                 return (notifications, 0);
             }
         }
@@ -110,7 +107,6 @@ namespace EducationManagement.DAL.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting unread notifications: {ex.Message}");
             }
 
             return notifications;
@@ -134,7 +130,6 @@ namespace EducationManagement.DAL.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting notification count: {ex.Message}");
             }
 
             return 0;
@@ -152,7 +147,6 @@ namespace EducationManagement.DAL.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error getting notification by id: {ex.Message}");
             }
 
             return null;
@@ -172,7 +166,6 @@ namespace EducationManagement.DAL.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error marking notification as read: {ex.Message}");
                 throw;
             }
         }
@@ -195,7 +188,6 @@ namespace EducationManagement.DAL.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error marking all notifications as read: {ex.Message}");
                 throw;
             }
 
@@ -216,7 +208,6 @@ namespace EducationManagement.DAL.Repositories
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error deleting notification: {ex.Message}");
                 throw;
             }
         }

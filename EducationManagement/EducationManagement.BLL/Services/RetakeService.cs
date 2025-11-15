@@ -165,9 +165,7 @@ namespace EducationManagement.BLL.Services
             }
             catch (Exception ex)
             {
-                // Log error but don't fail the calling operation
-                // In production, use ILogger
-                Console.WriteLine($"Warning: Failed to create retake record: {ex.Message}");
+                // Log error silently
             }
         }
 

@@ -25,32 +25,54 @@ namespace EducationManagement.API.Admin.Controllers
         [Authorize(Roles = "Admin,Student,Lecturer")] // ✅ Cho phép tất cả roles đã authenticated
         public async Task<IActionResult> GetAll()
         {
-            var list = await _service.GetAllAsync();
-            return Ok(new { data = list });
+            try
+            {
+                var list = await _service.GetAllAsync();
+                return Ok(new { success = true, data = list });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
         }
 
         [HttpGet("{id}")]
         [Authorize(Roles = "Admin,Student,Lecturer")] // ✅ Cho phép tất cả roles đã authenticated
         public async Task<IActionResult> GetById(string id)
         {
-            var item = await _service.GetByIdAsync(id);
-            if (item == null) return NotFound(new { message = "❌ Không tìm thấy niên khóa!" });
-            return Ok(item);
+            try
+            {
+                var item = await _service.GetByIdAsync(id);
+                if (item == null) 
+                    return NotFound(new { success = false, message = "Không tìm thấy niên khóa" });
+                return Ok(new { success = true, data = item });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
         }
 
         [HttpPost]
         [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được tạo
         public async Task<IActionResult> Create([FromBody] AcademicYear model)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ", errors = ModelState });
+
             try
             {
                 var userName = User.Identity?.Name ?? "admin";
                 await _service.AddAsync(model, userName);
-                return Ok(new { message = "✅ Thêm niên khóa thành công!", data = model });
+                return Ok(new { success = true, message = "Thêm niên khóa thành công", data = model });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }
 
@@ -58,18 +80,25 @@ namespace EducationManagement.API.Admin.Controllers
         [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được cập nhật
         public async Task<IActionResult> Update(string id, [FromBody] AcademicYear model)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ", errors = ModelState });
+
             try
             {
                 if (id != model.AcademicYearId)
-                    return BadRequest(new { message = "❌ ID không khớp!" });
+                    return BadRequest(new { success = false, message = "ID không khớp" });
 
                 var userName = User.Identity?.Name ?? "admin";
                 await _service.UpdateAsync(model, userName);
-                return Ok(new { message = "✅ Cập nhật niên khóa thành công!" });
+                return Ok(new { success = true, message = "Cập nhật niên khóa thành công" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }
 
@@ -80,11 +109,15 @@ namespace EducationManagement.API.Admin.Controllers
             try
             {
                 await _service.DeleteAsync(id);
-                return Ok(new { message = "🗑 Xóa niên khóa thành công!" });
+                return Ok(new { success = true, message = "Xóa niên khóa thành công" });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }
 
@@ -108,13 +141,18 @@ namespace EducationManagement.API.Admin.Controllers
                 
                 return Ok(new 
                 { 
-                    message = $"✅ Đã tự động tạo niên khóa {cohort.CohortCode}",
+                    success = true,
+                    message = $"Đã tự động tạo niên khóa {cohort.CohortCode}",
                     data = cohort
                 });
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }
 
@@ -134,13 +172,18 @@ namespace EducationManagement.API.Admin.Controllers
                 
                 return Ok(new 
                 { 
-                    message = $"✅ Đã tạo {cohorts.Count} niên khóa",
+                    success = true,
+                    message = $"Đã tạo {cohorts.Count} niên khóa",
                     data = cohorts
                 });
             }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
             catch (Exception ex)
             {
-                return BadRequest(new { message = ex.Message });
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }
 
@@ -155,8 +198,15 @@ namespace EducationManagement.API.Admin.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> GetActiveCohorts()
         {
-            var cohorts = await _service.GetActiveCohortsAsync();
-            return Ok(cohorts);
+            try
+            {
+                var cohorts = await _service.GetActiveCohortsAsync();
+                return Ok(new { success = true, data = cohorts });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
         }
 
         /// <summary>
@@ -166,8 +216,15 @@ namespace EducationManagement.API.Admin.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> GetCurrentCohorts()
         {
-            var cohorts = await _service.GetCohortsForCurrentYearAsync();
-            return Ok(cohorts);
+            try
+            {
+                var cohorts = await _service.GetCohortsForCurrentYearAsync();
+                return Ok(new { success = true, data = cohorts });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
         }
     }
 }

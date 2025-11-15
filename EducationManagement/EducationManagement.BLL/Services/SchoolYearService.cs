@@ -116,7 +116,6 @@ namespace EducationManagement.BLL.Services
                 catch (Exception ex)
                 {
                     // Skip if already exists
-                    Console.WriteLine($"⚠️  Năm học {year} đã tồn tại: {ex.Message}");
                 }
             }
 

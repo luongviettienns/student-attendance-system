@@ -86,5 +86,17 @@ namespace EducationManagement.BLL.Services
         {
             return await _userRepository.GetByIdAsync(userId);
         }
+
+        // 🔹 Lấy thông tin user theo email (cho forgot password)
+        public async Task<User?> GetUserByEmailAsync(string email)
+        {
+            return await _userRepository.GetByEmailAsync(email);
+        }
+
+        // 🔹 Cập nhật mật khẩu user
+        public async Task<bool> UpdatePasswordAsync(string userId, string newPassword)
+        {
+            return await _userRepository.UpdatePasswordAsync(userId, HashPassword(newPassword));
+        }
     }
 }

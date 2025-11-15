@@ -187,10 +187,6 @@ namespace EducationManagement.API.Admin.Controllers
             // ✅ Tạo URL đầy đủ để FE hiển thị
             var fullAvatarUrl = FileHelper.BuildFullAvatarUrl(_gatewayUrl, user.AvatarUrl);
 
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"✅ Avatar uploaded successfully: {fullAvatarUrl}");
-            Console.WriteLine($"   File saved to: {filePath}");
-            Console.ResetColor();
 
             return Ok(new
             {

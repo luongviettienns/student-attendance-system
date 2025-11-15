@@ -565,14 +565,12 @@ namespace EducationManagement.BLL.Services
                                                 }
                                                 catch (Exception ex2)
                                                 {
-                                                    Console.WriteLine($"Warning: Failed to check retake after warning: {ex2.Message}");
                                                 }
                                             });
                                         }
                                     }
                                     catch (Exception ex2)
                                     {
-                                        Console.WriteLine($"Warning: Failed to get enrollment for retake check: {ex2.Message}");
                                     }
                                 }
                             }
@@ -582,9 +580,6 @@ namespace EducationManagement.BLL.Services
             }
             catch (Exception ex)
             {
-                // Log error but don't fail the attendance creation
-                // In production, use proper logging (ILogger)
-                Console.WriteLine($"Warning: Failed to check/send warning after attendance: {ex.Message}");
             }
         }
     }

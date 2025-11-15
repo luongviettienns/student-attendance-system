@@ -77,16 +77,12 @@ namespace EducationManagement.BLL.Services
                             }
                             catch (Exception ex)
                             {
-                                // Log error but don't fail attendance creation
-                                Console.WriteLine($"Warning: Failed to check warning: {ex.Message}");
                             }
                         });
                     }
                 }
                 catch (Exception ex)
                 {
-                    // Log error but don't fail attendance creation
-                    Console.WriteLine($"Warning: Failed to get classId for warning check: {ex.Message}");
                 }
             }
 

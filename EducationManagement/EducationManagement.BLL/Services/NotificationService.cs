@@ -62,8 +62,7 @@ namespace EducationManagement.BLL.Services
                 }
                 catch (Exception ex)
                 {
-                    // Log error but don't fail notification creation
-                    Console.WriteLine($"Warning: Failed to send real-time notification: {ex.Message}");
+                    // Log error silently
                 }
             }
 
@@ -119,7 +118,6 @@ namespace EducationManagement.BLL.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Warning: Failed to update unread count via SignalR: {ex.Message}");
                 }
             }
         }
@@ -140,7 +138,6 @@ namespace EducationManagement.BLL.Services
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Warning: Failed to update unread count via SignalR: {ex.Message}");
                 }
             }
 

@@ -57,10 +57,6 @@
                         })
                         .ToList();
 
-                    // ✅ Debug: Log permissions để kiểm tra
-                    Console.WriteLine($"🔍 Total permissions: {permissions.Count}");
-                    Console.WriteLine($"🔍 Permissions with NULL ParentCode: {permissions.Count(p => string.IsNullOrEmpty(p.ParentCode))}");
-                    Console.WriteLine($"🔍 Permissions with ParentCode: {permissions.Count(p => !string.IsNullOrEmpty(p.ParentCode))}");
 
                     // ✅ Xây dựng cây menu cha - con (theo ParentCode)
                     // Lọc chỉ lấy sections (parent_code IS NULL hoặc empty)
@@ -88,12 +84,6 @@
                         })
                         .ToList();
 
-                    // ✅ Debug: Log menu tree
-                    Console.WriteLine($"🔍 Menu tree sections: {menuTree.Count}");
-                    foreach (var section in menuTree)
-                    {
-                        Console.WriteLine($"  - {section.label}: {section.sub.Count} items");
-                    }
 
                     return Ok(new
                     {

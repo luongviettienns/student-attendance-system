@@ -45,6 +45,9 @@ builder.Services.AddScoped<EducationManagement.BLL.Services.IRefreshTokenStore,
 builder.Services.AddScoped<EducationManagement.Common.Interfaces.INotificationHubContext,
     EducationManagement.API.Admin.Helpers.SignalRNotificationHubContext>();
 
+// ✅ Register OTPService (no interface, needs explicit registration)
+builder.Services.AddScoped<EducationManagement.BLL.Services.OTPService>();
+
 // ============================================================
 // 🔹 2.5️⃣ REDIS CACHING (OPTIONAL - Fallback to Memory Cache if Redis unavailable)
 // ============================================================
@@ -60,11 +63,9 @@ if (useRedis)
             options.Configuration = redisConnectionString;
             options.InstanceName = "EduSystem_";
         });
-        Console.WriteLine("✅ Redis caching enabled");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"⚠️ Redis connection failed, falling back to Memory Cache: {ex.Message}");
         builder.Services.AddDistributedMemoryCache();
     }
 }
@@ -72,7 +73,6 @@ else
 {
     // Fallback to in-memory cache if Redis is disabled
     builder.Services.AddDistributedMemoryCache();
-    Console.WriteLine("⚠️ Redis disabled, using Memory Cache (not recommended for production)");
 }
 
 // ============================================================
@@ -210,10 +210,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         {
             OnAuthenticationFailed = context =>
             {
-                // Chỉ log lỗi authentication
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"❌ JWT Invalid: {context.Exception.Message}");
-                Console.ResetColor();
                 return Task.CompletedTask;
             },
             // ✅ SignalR: Đọc JWT token từ query string (access_token)
@@ -249,9 +245,6 @@ var avatarFolder = Path.Combine(projectRoot!, "Avatar_User");
 if (!Directory.Exists(avatarFolder))
 {
     Directory.CreateDirectory(avatarFolder);
-    Console.ForegroundColor = ConsoleColor.Yellow;
-    Console.WriteLine($"⚠️ Created Avatar_User folder at: {avatarFolder}");
-    Console.ResetColor();
 }
 
 // Serve static files từ Avatar_User folder với URL prefix /avatars
@@ -260,10 +253,6 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(avatarFolder),
     RequestPath = "/avatars"
 });
-
-Console.ForegroundColor = ConsoleColor.Cyan;
-Console.WriteLine($"📁 Static avatars served from: {avatarFolder}");
-Console.ResetColor();
 
 // ============================================================
 // 🔹 7️⃣ Middleware pipeline
@@ -307,8 +296,4 @@ app.MapHub<EducationManagement.API.Admin.Hubs.NotificationHub>("/notificationHub
 // ============================================================
 // 🚀 Run
 // ============================================================
-Console.ForegroundColor = ConsoleColor.Green;
-Console.WriteLine("✅ EducationManagement.API.Admin started at http://localhost:5227 (HTTP mode for Gateway TLS termination)");
-Console.ResetColor();
-
 app.Run();

@@ -12,7 +12,7 @@ namespace EducationManagement.API.Admin.Controllers
     /// Controller for manual warning trigger and management
     /// </summary>
     [ApiController]
-    [Route("api/warnings")]
+    [Route("api-edu/warnings")]
     [Authorize(Roles = "Admin,Advisor")]
     public class WarningController : ControllerBase
     {

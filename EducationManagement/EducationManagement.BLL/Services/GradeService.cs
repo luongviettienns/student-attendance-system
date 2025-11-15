@@ -84,7 +84,6 @@ namespace EducationManagement.BLL.Services
                                 }
                                 catch (Exception ex)
                                 {
-                                    Console.WriteLine($"Warning: Failed to check retake after grade update: {ex.Message}");
                                 }
                             });
                         }
@@ -92,8 +91,6 @@ namespace EducationManagement.BLL.Services
                 }
                 catch (Exception ex)
                 {
-                    // Log error but don't fail grade update
-                    Console.WriteLine($"Warning: Failed to get grade for retake check: {ex.Message}");
                 }
             }
         }

@@ -10,11 +10,12 @@ namespace EducationManagement.API.Admin.Controllers
     [Authorize]
     [ApiController]
     [Route("api-edu/grades")]
-    public class GradeController : ControllerBase
+    public class GradeController : BaseController
     {
         private readonly GradeService _gradeService;
 
-        public GradeController(GradeService gradeService)
+        public GradeController(GradeService gradeService, AuditLogService? auditLogService = null) 
+            : base(auditLogService)
         {
             _gradeService = gradeService;
         }
@@ -51,6 +52,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Admin,Lecturer")]
         public async Task<IActionResult> Create([FromBody] CreateGradeRequest request)
         {
             if (!ModelState.IsValid)
@@ -62,8 +64,19 @@ namespace EducationManagement.API.Admin.Controllers
                 var newId = await _gradeService.CreateGradeAsync(
                     gradeId, request.StudentId, request.ClassId, request.GradeType,
                     request.Score, request.MaxScore, request.Weight, request.Notes,
-                    request.GradedBy, request.CreatedBy ?? "system"
+                    request.GradedBy, request.CreatedBy ?? GetCurrentUserId() ?? "system"
                 );
+
+                // Audit log: CREATE GRADE
+                await LogCreateAsync("Grade", newId, new
+                {
+                    studentId = request.StudentId,
+                    classId = request.ClassId,
+                    gradeType = request.GradeType,
+                    score = request.Score,
+                    maxScore = request.MaxScore,
+                    weight = request.Weight
+                });
 
                 return Ok(new { message = "Tạo điểm thành công", gradeId = newId });
             }
@@ -74,6 +87,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin,Lecturer")]
         public async Task<IActionResult> Update(string id, [FromBody] UpdateGradeRequest request)
         {
             if (!ModelState.IsValid)
@@ -81,8 +95,31 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
+                // Get old grade values for audit log
+                var oldGrade = await _gradeService.GetGradeByIdAsync(id);
+                var oldValues = oldGrade != null ? new
+                {
+                    gradeType = oldGrade.MidtermScore.HasValue ? "Midterm" : oldGrade.FinalScore.HasValue ? "Final" : "Unknown",
+                    score = oldGrade.MidtermScore ?? oldGrade.FinalScore ?? 0,
+                    totalScore = oldGrade.TotalScore
+                } : null;
+
                 await _gradeService.UpdateGradeAsync(id, request.GradeType, request.Score,
-                    request.MaxScore, request.Weight, request.Notes, request.UpdatedBy ?? "system");
+                    request.MaxScore, request.Weight, request.Notes, request.UpdatedBy ?? GetCurrentUserId() ?? "system");
+
+                // Get updated grade for audit log
+                var newGrade = await _gradeService.GetGradeByIdAsync(id);
+                var newValues = newGrade != null ? new
+                {
+                    gradeType = request.GradeType,
+                    score = request.Score,
+                    maxScore = request.MaxScore,
+                    weight = request.Weight,
+                    totalScore = newGrade.TotalScore
+                } : null;
+
+                // Audit log: UPDATE GRADE (BẮT BUỘC theo NFR)
+                await LogUpdateAsync("Grade", id, oldValues, newValues);
 
                 return Ok(new { message = "Cập nhật điểm thành công" });
             }
@@ -93,11 +130,27 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(string id, [FromBody] DeleteGradeRequest request)
         {
             try
             {
-                await _gradeService.DeleteGradeAsync(id, request.DeletedBy ?? "system");
+                // Get grade before deletion for audit log
+                var grade = await _gradeService.GetGradeByIdAsync(id);
+                var gradeData = grade != null ? new
+                {
+                    studentId = grade.StudentId,
+                    classId = grade.ClassId,
+                    midtermScore = grade.MidtermScore,
+                    finalScore = grade.FinalScore,
+                    totalScore = grade.TotalScore
+                } : null;
+
+                await _gradeService.DeleteGradeAsync(id, request.DeletedBy ?? GetCurrentUserId() ?? "system");
+
+                // Audit log: DELETE GRADE
+                await LogDeleteAsync("Grade", id, gradeData);
+
                 return Ok(new { message = "Xóa điểm thành công" });
             }
             catch (Exception ex)
