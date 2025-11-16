@@ -6,6 +6,58 @@ SET NOCOUNT ON;
 PRINT 'Bat dau seed full test dataset';
 
 -- ===========================================
+-- XÓA CÁC SECTIONS KHÔNG CẦN THIẾT (ĐÃ GỘP VÀO SECTIONS KHÁC)
+-- ===========================================
+-- BƯỚC 1: Cập nhật parent_code của các permissions con TRƯỚC KHI xóa sections
+-- (Để tránh lỗi foreign key constraint)
+PRINT 'Cap nhat parent_code cua cac permissions con...';
+
+UPDATE dbo.permissions
+SET parent_code = 'ADMIN_SECTION_ACADEMIC',
+    sort_order = 7,
+    updated_at = GETDATE(),
+    updated_by = 'seed_full_test'
+WHERE permission_code = 'ADMIN_SUBJECT_PREREQUISITES'
+  AND (parent_code = 'ADMIN_SECTION_SUBJECTS' OR parent_code IS NULL);
+
+UPDATE dbo.permissions
+SET parent_code = 'ADMIN_SECTION_ACADEMIC',
+    sort_order = 8,
+    updated_at = GETDATE(),
+    updated_by = 'seed_full_test'
+WHERE permission_code = 'ADMIN_CLASSES'
+  AND (parent_code = 'ADMIN_SECTION_SUBJECTS' OR parent_code IS NULL);
+
+UPDATE dbo.permissions
+SET parent_code = 'ADMIN_SECTION_ACADEMIC',
+    sort_order = 9,
+    updated_at = GETDATE(),
+    updated_by = 'seed_full_test'
+WHERE permission_code = 'ADMIN_TIMETABLE'
+  AND (parent_code = 'ADMIN_SECTION_TIMETABLE' OR parent_code IS NULL);
+
+-- BƯỚC 2: Xóa ADMIN_SECTION_SUBJECTS (đã gộp vào ADMIN_SECTION_ACADEMIC)
+PRINT 'Xoa ADMIN_SECTION_SUBJECTS...';
+DELETE FROM dbo.role_permissions WHERE permission_id = 'PERM_ADM_SUBJECTS';
+DELETE FROM dbo.permissions WHERE permission_id = 'PERM_ADM_SUBJECTS';
+
+-- BƯỚC 3: Xóa ADMIN_SECTION_TIMETABLE (đã gộp vào ADMIN_SECTION_ACADEMIC)
+PRINT 'Xoa ADMIN_SECTION_TIMETABLE...';
+DELETE FROM dbo.role_permissions WHERE permission_id = 'PERM_ADM_TIMETABLE';
+DELETE FROM dbo.permissions WHERE permission_id = 'PERM_ADM_TIMETABLE';
+
+-- BƯỚC 4: Xóa PERM_ADV_ENROLLMENTS (đã gộp vào PERM_ADM_ENROLLMENTS)
+PRINT 'Xoa PERM_ADV_ENROLLMENTS (da gop vao PERM_ADM_ENROLLMENTS)...';
+DELETE FROM dbo.role_permissions WHERE permission_id = 'PERM_ADV_ENROLLMENTS';
+DELETE FROM dbo.permissions WHERE permission_id = 'PERM_ADV_ENROLLMENTS';
+
+-- BƯỚC 5: Xóa PERM_ADV_REPORTS (đã gộp vào PERM_ADV_SYSTEM_REPORTS)
+PRINT 'Xoa PERM_ADV_REPORTS (da gop vao PERM_ADV_SYSTEM_REPORTS)...';
+DELETE FROM dbo.role_permissions WHERE permission_id = 'PERM_ADV_REPORTS';
+DELETE FROM dbo.permissions WHERE permission_id = 'PERM_ADV_REPORTS';
+GO
+
+-- ===========================================
 -- PHAN 1: VAI TRO HE THONG
 -- ===========================================
 MERGE dbo.roles AS target
@@ -66,16 +118,89 @@ GO
 -- ===========================================
 -- PHAN 3: DON VI DAO TAO
 -- ===========================================
--- Xử lý xung đột: Tạo faculty mới trước, sau đó cập nhật tham chiếu, rồi xóa faculty cũ
--- Bước 1: Tạo faculty mới (nếu chưa tồn tại) hoặc cập nhật nếu đã có cùng code
+-- Xử lý xung đột: Kiểm tra UNIQUE constraint trên faculty_code
+-- Nếu có faculty với code 'CNTT' hoặc 'BUS' nhưng khác ID, cập nhật các bảng con rồi xóa và tạo mới
+BEGIN
+    DECLARE @OldFacultyIdCNTT VARCHAR(50), @OldFacultyIdBUS VARCHAR(50);
+    SELECT @OldFacultyIdCNTT = faculty_id FROM dbo.faculties WHERE faculty_code = 'CNTT' AND faculty_id != 'FAC_IT';
+    SELECT @OldFacultyIdBUS = faculty_id FROM dbo.faculties WHERE faculty_code = 'BUS' AND faculty_id != 'FAC_BUS';
+
+    -- Xử lý FAC001 (code 'CNTT')
+    IF @OldFacultyIdCNTT IS NOT NULL
+    BEGIN
+        -- Tạo FAC_IT trước nếu chưa có (tạm thời dùng code khác để tránh UNIQUE constraint)
+        IF NOT EXISTS (SELECT 1 FROM dbo.faculties WHERE faculty_id = 'FAC_IT')
+        BEGIN
+            -- Tạm thời INSERT với code tạm, sau đó sẽ UPDATE lại
+            INSERT INTO dbo.faculties (faculty_id, faculty_code, faculty_name, description, is_active, created_by)
+            VALUES ('FAC_IT', 'CNTT_TEMP', N'Cong nghe Thong tin', N'Khoa dao tao cong nghe', 1, 'seed_full_test');
+        END
+        ELSE
+        BEGIN
+            -- Nếu FAC_IT đã tồn tại nhưng code khác 'CNTT', tạm thời đổi code để tránh UNIQUE constraint
+            DECLARE @CurrentFAC_ITCode VARCHAR(20);
+            SELECT @CurrentFAC_ITCode = faculty_code FROM dbo.faculties WHERE faculty_id = 'FAC_IT';
+            IF @CurrentFAC_ITCode != 'CNTT' AND @CurrentFAC_ITCode != 'CNTT_TEMP'
+            BEGIN
+                UPDATE dbo.faculties SET faculty_code = 'CNTT_TEMP' WHERE faculty_id = 'FAC_IT';
+            END
+        END
+        
+        -- Cập nhật các bảng con để tham chiếu đến FAC_IT
+        UPDATE dbo.departments SET faculty_id = 'FAC_IT' WHERE faculty_id = @OldFacultyIdCNTT;
+        UPDATE dbo.majors SET faculty_id = 'FAC_IT' WHERE faculty_id = @OldFacultyIdCNTT;
+        UPDATE dbo.students SET faculty_id = 'FAC_IT' WHERE faculty_id = @OldFacultyIdCNTT;
+        
+        -- Xóa bản ghi cũ sau khi đã cập nhật xong
+        DELETE FROM dbo.faculties WHERE faculty_id = @OldFacultyIdCNTT;
+        
+        -- Cập nhật lại code của FAC_IT về 'CNTT'
+        UPDATE dbo.faculties SET faculty_code = 'CNTT' WHERE faculty_id = 'FAC_IT';
+    END
+
+    -- Xử lý FAC_BUS (code 'BUS') - nếu có xung đột
+    IF @OldFacultyIdBUS IS NOT NULL
+    BEGIN
+        -- Tạo FAC_BUS trước nếu chưa có
+        IF NOT EXISTS (SELECT 1 FROM dbo.faculties WHERE faculty_id = 'FAC_BUS')
+        BEGIN
+            INSERT INTO dbo.faculties (faculty_id, faculty_code, faculty_name, description, is_active, created_by)
+            VALUES ('FAC_BUS', 'BUS_TEMP', N'Kinh doanh So', N'Khoa kinh doanh va quan tri', 1, 'seed_full_test');
+        END
+        ELSE
+        BEGIN
+            -- Nếu FAC_BUS đã tồn tại nhưng code khác 'BUS', tạm thời đổi code
+            DECLARE @CurrentFAC_BUSCode VARCHAR(20);
+            SELECT @CurrentFAC_BUSCode = faculty_code FROM dbo.faculties WHERE faculty_id = 'FAC_BUS';
+            IF @CurrentFAC_BUSCode != 'BUS' AND @CurrentFAC_BUSCode != 'BUS_TEMP'
+            BEGIN
+                UPDATE dbo.faculties SET faculty_code = 'BUS_TEMP' WHERE faculty_id = 'FAC_BUS';
+            END
+        END
+        
+        -- Cập nhật các bảng con
+        UPDATE dbo.departments SET faculty_id = 'FAC_BUS' WHERE faculty_id = @OldFacultyIdBUS;
+        UPDATE dbo.majors SET faculty_id = 'FAC_BUS' WHERE faculty_id = @OldFacultyIdBUS;
+        UPDATE dbo.students SET faculty_id = 'FAC_BUS' WHERE faculty_id = @OldFacultyIdBUS;
+        
+        -- Xóa bản ghi cũ
+        DELETE FROM dbo.faculties WHERE faculty_id = @OldFacultyIdBUS;
+        
+        -- Cập nhật lại code
+        UPDATE dbo.faculties SET faculty_code = 'BUS' WHERE faculty_id = 'FAC_BUS';
+    END
+END
+GO
+
+-- Bước 2: MERGE faculties (chỉ INSERT hoặc UPDATE các trường khác, không UPDATE faculty_id)
 MERGE dbo.faculties AS target
 USING (VALUES
     ('FAC_IT',  'CNTT', N'Cong nghe Thong tin', N'Khoa dao tao cong nghe', 1),
     ('FAC_BUS', 'BUS',  N'Kinh doanh So',      N'Khoa kinh doanh va quan tri', 1)
 ) AS src(faculty_id, faculty_code, faculty_name, description, is_active)
-ON target.faculty_code = src.faculty_code
+ON target.faculty_id = src.faculty_id
 WHEN MATCHED THEN
-    UPDATE SET faculty_id = src.faculty_id,
+    UPDATE SET faculty_code = src.faculty_code,
                faculty_name = src.faculty_name,
                description = src.description,
                is_active = src.is_active,
@@ -86,15 +211,68 @@ WHEN NOT MATCHED THEN
     VALUES (src.faculty_id, src.faculty_code, src.faculty_name, src.description, src.is_active, 'seed_full_test');
 GO
 
--- Bước 2: Cập nhật các bản ghi liên quan từ FAC001 sang FAC_IT (nếu FAC001 tồn tại)
-IF EXISTS (SELECT 1 FROM dbo.faculties WHERE faculty_id = 'FAC001')
+-- Xử lý xung đột departments: Kiểm tra UNIQUE constraint trên department_code
 BEGIN
-    IF EXISTS (SELECT 1 FROM dbo.faculties WHERE faculty_id = 'FAC_IT')
+    DECLARE @OldDeptIdSE VARCHAR(50), @OldDeptIdDS VARCHAR(50);
+    SELECT @OldDeptIdSE = department_id FROM dbo.departments WHERE department_code = 'SE' AND department_id != 'DEP_SE';
+    SELECT @OldDeptIdDS = department_id FROM dbo.departments WHERE department_code = 'DS' AND department_id != 'DEP_DS';
+
+    -- Xử lý DEPT001 (code 'SE')
+    IF @OldDeptIdSE IS NOT NULL
     BEGIN
-        UPDATE dbo.departments SET faculty_id = 'FAC_IT' WHERE faculty_id = 'FAC001';
-        UPDATE dbo.majors SET faculty_id = 'FAC_IT' WHERE faculty_id = 'FAC001';
-        UPDATE dbo.students SET faculty_id = 'FAC_IT' WHERE faculty_id = 'FAC001';
-        DELETE FROM dbo.faculties WHERE faculty_id = 'FAC001';
+        -- Tạo DEP_SE trước nếu chưa có (tạm thời dùng code khác)
+        IF NOT EXISTS (SELECT 1 FROM dbo.departments WHERE department_id = 'DEP_SE')
+        BEGIN
+            INSERT INTO dbo.departments (department_id, department_code, department_name, faculty_id, description, created_by)
+            VALUES ('DEP_SE', 'SE_TEMP', N'Bo mon Cong nghe Phan mem', 'FAC_IT', N'Quan ly chuong trinh phan mem', 'seed_full_test');
+        END
+        ELSE
+        BEGIN
+            -- Nếu DEP_SE đã tồn tại nhưng code khác 'SE', tạm thời đổi code
+            DECLARE @CurrentDEP_SECode VARCHAR(20);
+            SELECT @CurrentDEP_SECode = department_code FROM dbo.departments WHERE department_id = 'DEP_SE';
+            IF @CurrentDEP_SECode != 'SE' AND @CurrentDEP_SECode != 'SE_TEMP'
+            BEGIN
+                UPDATE dbo.departments SET department_code = 'SE_TEMP' WHERE department_id = 'DEP_SE';
+            END
+        END
+        
+        -- Cập nhật các bảng con trước
+        UPDATE dbo.lecturers SET department_id = 'DEP_SE' WHERE department_id = @OldDeptIdSE;
+        UPDATE dbo.subjects SET department_id = 'DEP_SE' WHERE department_id = @OldDeptIdSE;
+        -- Xóa bản ghi cũ
+        DELETE FROM dbo.departments WHERE department_id = @OldDeptIdSE;
+        -- Cập nhật lại code
+        UPDATE dbo.departments SET department_code = 'SE' WHERE department_id = 'DEP_SE';
+    END
+
+    -- Xử lý DEPT002 (code 'DS')
+    IF @OldDeptIdDS IS NOT NULL
+    BEGIN
+        -- Tạo DEP_DS trước nếu chưa có (tạm thời dùng code khác)
+        IF NOT EXISTS (SELECT 1 FROM dbo.departments WHERE department_id = 'DEP_DS')
+        BEGIN
+            INSERT INTO dbo.departments (department_id, department_code, department_name, faculty_id, description, created_by)
+            VALUES ('DEP_DS', 'DS_TEMP', N'Bo mon Khoa hoc Du lieu', 'FAC_IT', N'Nghien cuu va day du lieu', 'seed_full_test');
+        END
+        ELSE
+        BEGIN
+            -- Nếu DEP_DS đã tồn tại nhưng code khác 'DS', tạm thời đổi code
+            DECLARE @CurrentDEP_DSCode VARCHAR(20);
+            SELECT @CurrentDEP_DSCode = department_code FROM dbo.departments WHERE department_id = 'DEP_DS';
+            IF @CurrentDEP_DSCode != 'DS' AND @CurrentDEP_DSCode != 'DS_TEMP'
+            BEGIN
+                UPDATE dbo.departments SET department_code = 'DS_TEMP' WHERE department_id = 'DEP_DS';
+            END
+        END
+        
+        -- Cập nhật các bảng con trước
+        UPDATE dbo.lecturers SET department_id = 'DEP_DS' WHERE department_id = @OldDeptIdDS;
+        UPDATE dbo.subjects SET department_id = 'DEP_DS' WHERE department_id = @OldDeptIdDS;
+        -- Xóa bản ghi cũ
+        DELETE FROM dbo.departments WHERE department_id = @OldDeptIdDS;
+        -- Cập nhật lại code
+        UPDATE dbo.departments SET department_code = 'DS' WHERE department_id = 'DEP_DS';
     END
 END
 GO
@@ -118,20 +296,69 @@ WHEN NOT MATCHED THEN
     VALUES (src.department_id, src.department_code, src.department_name, src.faculty_id, src.description, 'seed_full_test');
 GO
 
--- Xử lý xung đột departments: Cập nhật các bản ghi liên quan từ DEPT001/DEPT002 sang DEP_SE/DEP_DS
-IF EXISTS (SELECT 1 FROM dbo.departments WHERE department_id IN ('DEPT001', 'DEPT002'))
+-- Xử lý xung đột majors: Kiểm tra UNIQUE constraint trên major_code
 BEGIN
-    IF EXISTS (SELECT 1 FROM dbo.departments WHERE department_id = 'DEP_SE')
+    DECLARE @OldMajorIdSE VARCHAR(50), @OldMajorIdDS VARCHAR(50);
+    SELECT @OldMajorIdSE = major_id FROM dbo.majors WHERE major_code = 'SE' AND major_id != 'MAJ_SE';
+    SELECT @OldMajorIdDS = major_id FROM dbo.majors WHERE major_code = 'DS' AND major_id != 'MAJ_DS';
+
+    -- Xử lý MAJ001 (code 'SE')
+    IF @OldMajorIdSE IS NOT NULL
     BEGIN
-        UPDATE dbo.lecturers SET department_id = 'DEP_SE' WHERE department_id = 'DEPT001';
-        UPDATE dbo.subjects SET department_id = 'DEP_SE' WHERE department_id = 'DEPT001';
+        -- Tạo MAJ_SE trước nếu chưa có (tạm thời dùng code khác)
+        IF NOT EXISTS (SELECT 1 FROM dbo.majors WHERE major_id = 'MAJ_SE')
+        BEGIN
+            INSERT INTO dbo.majors (major_id, major_name, major_code, faculty_id, description, created_by)
+            VALUES ('MAJ_SE', N'Cong nghe Phan mem', 'SE_TEMP', 'FAC_IT', N'Chuong trinh ky su phan mem', 'seed_full_test');
+        END
+        ELSE
+        BEGIN
+            -- Nếu MAJ_SE đã tồn tại nhưng code khác 'SE', tạm thời đổi code
+            DECLARE @CurrentMAJ_SECode VARCHAR(20);
+            SELECT @CurrentMAJ_SECode = major_code FROM dbo.majors WHERE major_id = 'MAJ_SE';
+            IF @CurrentMAJ_SECode != 'SE' AND @CurrentMAJ_SECode != 'SE_TEMP'
+            BEGIN
+                UPDATE dbo.majors SET major_code = 'SE_TEMP' WHERE major_id = 'MAJ_SE';
+            END
+        END
+        
+        -- Cập nhật các bảng con trước
+        UPDATE dbo.students SET major_id = 'MAJ_SE' WHERE major_id = @OldMajorIdSE;
+        UPDATE dbo.administrative_classes SET major_id = 'MAJ_SE' WHERE major_id = @OldMajorIdSE;
+        -- Xóa bản ghi cũ
+        DELETE FROM dbo.majors WHERE major_id = @OldMajorIdSE;
+        -- Cập nhật lại code
+        UPDATE dbo.majors SET major_code = 'SE' WHERE major_id = 'MAJ_SE';
     END
-    IF EXISTS (SELECT 1 FROM dbo.departments WHERE department_id = 'DEP_DS')
+
+    -- Xử lý MAJ002 (code 'DS')
+    IF @OldMajorIdDS IS NOT NULL
     BEGIN
-        UPDATE dbo.lecturers SET department_id = 'DEP_DS' WHERE department_id = 'DEPT002';
-        UPDATE dbo.subjects SET department_id = 'DEP_DS' WHERE department_id = 'DEPT002';
+        -- Tạo MAJ_DS trước nếu chưa có (tạm thời dùng code khác)
+        IF NOT EXISTS (SELECT 1 FROM dbo.majors WHERE major_id = 'MAJ_DS')
+        BEGIN
+            INSERT INTO dbo.majors (major_id, major_name, major_code, faculty_id, description, created_by)
+            VALUES ('MAJ_DS', N'Khoa hoc Du lieu', 'DS_TEMP', 'FAC_IT', N'Chuong trinh phan tich du lieu', 'seed_full_test');
+        END
+        ELSE
+        BEGIN
+            -- Nếu MAJ_DS đã tồn tại nhưng code khác 'DS', tạm thời đổi code
+            DECLARE @CurrentMAJ_DSCode VARCHAR(20);
+            SELECT @CurrentMAJ_DSCode = major_code FROM dbo.majors WHERE major_id = 'MAJ_DS';
+            IF @CurrentMAJ_DSCode != 'DS' AND @CurrentMAJ_DSCode != 'DS_TEMP'
+            BEGIN
+                UPDATE dbo.majors SET major_code = 'DS_TEMP' WHERE major_id = 'MAJ_DS';
+            END
+        END
+        
+        -- Cập nhật các bảng con trước
+        UPDATE dbo.students SET major_id = 'MAJ_DS' WHERE major_id = @OldMajorIdDS;
+        UPDATE dbo.administrative_classes SET major_id = 'MAJ_DS' WHERE major_id = @OldMajorIdDS;
+        -- Xóa bản ghi cũ
+        DELETE FROM dbo.majors WHERE major_id = @OldMajorIdDS;
+        -- Cập nhật lại code
+        UPDATE dbo.majors SET major_code = 'DS' WHERE major_id = 'MAJ_DS';
     END
-    DELETE FROM dbo.departments WHERE department_id IN ('DEPT001', 'DEPT002');
 END
 GO
 
@@ -152,23 +379,6 @@ WHEN MATCHED THEN
 WHEN NOT MATCHED THEN
     INSERT (major_id, major_name, major_code, faculty_id, description, created_by)
     VALUES (src.major_id, src.major_name, src.major_code, src.faculty_id, src.description, 'seed_full_test');
-GO
-
--- Xử lý xung đột majors: Cập nhật các bản ghi liên quan từ MAJ001/MAJ002 sang MAJ_SE/MAJ_DS
-IF EXISTS (SELECT 1 FROM dbo.majors WHERE major_id IN ('MAJ001', 'MAJ002'))
-BEGIN
-    IF EXISTS (SELECT 1 FROM dbo.majors WHERE major_id = 'MAJ_SE')
-    BEGIN
-        UPDATE dbo.students SET major_id = 'MAJ_SE' WHERE major_id = 'MAJ001';
-        UPDATE dbo.administrative_classes SET major_id = 'MAJ_SE' WHERE major_id = 'MAJ001';
-    END
-    IF EXISTS (SELECT 1 FROM dbo.majors WHERE major_id = 'MAJ_DS')
-    BEGIN
-        UPDATE dbo.students SET major_id = 'MAJ_DS' WHERE major_id = 'MAJ002';
-        UPDATE dbo.administrative_classes SET major_id = 'MAJ_DS' WHERE major_id = 'MAJ002';
-    END
-    DELETE FROM dbo.majors WHERE major_id IN ('MAJ001', 'MAJ002');
-END
 GO
 
 -- ===========================================
@@ -798,7 +1008,7 @@ USING (VALUES
     ('PERM_STU_STUDY',    'STUDENT_SECTION_STUDY',    N'Học tập',             NULL,                     'fas fa-book',              2, N'Menu học tập cho sinh viên',                  1),
     ('PERM_STU_PROFILE',  'STUDENT_SECTION_PROFILE',  N'Cá nhân',             NULL,                     'fas fa-user',              3, N'Menu cá nhân',                                1),
     ('PERM_STU_SYSTEM',   'STUDENT_SECTION_SYSTEM',   N'Hệ thống',            NULL,                     'fas fa-cog',               4, N'Menu hệ thống',                               1),
-    ('PERM_STU_DASHBOARD','STUDENT_DASHBOARD',        N'Dashboard',           'STUDENT_SECTION_OVERVIEW','fas fa-tachometer-alt',   1, N'Dashboard sinh viên',                         1),
+    ('PERM_STU_DASHBOARD','STUDENT_DASHBOARD',        N'Bảng điều khiển',      'STUDENT_SECTION_OVERVIEW','fas fa-tachometer-alt',   1, N'Bảng điều khiển sinh viên',                   1),
     ('PERM_STU_TIMETABLE','STUDENT_TIMETABLE',        N'Thời khóa biểu',      'STUDENT_SECTION_STUDY',  'fas fa-calendar-alt',     1, N'Xem thời khóa biểu',                          1),
     ('PERM_STU_SCHEDULE', 'STUDENT_SCHEDULE',         N'Lịch học',            'STUDENT_SECTION_STUDY',  'fas fa-calendar',         2, N'Xem lịch học',                                 1),
     ('PERM_STU_GRADES',   'STUDENT_GRADES',           N'Kết quả học tập',     'STUDENT_SECTION_STUDY',  'fas fa-graduation-cap',   3, N'Xem bảng điểm',                                1),
@@ -811,35 +1021,35 @@ USING (VALUES
     ('PERM_TCH_OVERVIEW', 'TEACHER_SECTION_OVERVIEW', N'Tổng quan',           NULL,                     'fas fa-home',             1, N'Menu tổng quan cho giảng viên',               1),
     ('PERM_TCH_TEACHING', 'TEACHER_SECTION_TEACHING', N'Giảng dạy',           NULL,                     'fas fa-chalkboard-teacher',2,N'Menu giảng dạy',                                1),
     ('PERM_TCH_SYSTEM',   'TEACHER_SECTION_SYSTEM',   N'Hệ thống',            NULL,                     'fas fa-cog',              3, N'Menu hệ thống giảng viên',                    1),
-    ('PERM_TCH_DASHBOARD','TEACHER_DASHBOARD',        N'Dashboard',           'TEACHER_SECTION_OVERVIEW','fas fa-tachometer-alt',  1, N'Dashboard giảng viên',                        1),
+    ('PERM_TCH_DASHBOARD','TEACHER_DASHBOARD',        N'Bảng điều khiển',      'TEACHER_SECTION_OVERVIEW','fas fa-tachometer-alt',  1, N'Bảng điều khiển giảng viên',                  1),
     ('PERM_TCH_ATTENDANCE','TEACHER_ATTENDANCE',      N'Điểm danh',           'TEACHER_SECTION_TEACHING','fas fa-check-square',   1, N'Điểm danh sinh viên',                         1),
     ('PERM_TCH_GRADES',   'TEACHER_GRADES',           N'Nhập điểm',           'TEACHER_SECTION_TEACHING','fas fa-graduation-cap', 2, N'Nhập điểm',                                     1),
     ('PERM_TCH_TIMETABLE','TEACHER_TIMETABLE',        N'Thời khóa biểu',      'TEACHER_SECTION_TEACHING','fas fa-calendar-alt',   3, N'Lịch giảng dạy',                               1),
-    ('PERM_TCH_REPORTS',  'TEACHER_REPORTS',          N'Thống kê lớp',        'TEACHER_SECTION_TEACHING','fas fa-chart-line',     4, N'Thống kê lớp',                                1),
+    ('PERM_TCH_REPORTS',  'TEACHER_REPORTS',          N'Thống kê lớp',        'TEACHER_SECTION_TEACHING','fas fa-chart-bar',     4, N'Thống kê lớp',                                1),
     ('PERM_TCH_NOTIFICATIONS','TEACHER_NOTIFICATIONS',N'Thông báo',           'TEACHER_SECTION_SYSTEM', 'fas fa-bell',            1, N'Thông báo hệ thống',                           1),
     ('PERM_TCH_GRADE_FORMULA','TEACHER_GRADE_FORMULA',N'Công thức điểm',      'TEACHER_SECTION_TEACHING','fas fa-equals',        5, N'Quản lý công thức điểm lớp dạy',               1),
     ('PERM_ADV_OVERVIEW', 'ADVISOR_SECTION_OVERVIEW', N'Tổng quan',           NULL,                     'fas fa-home',            1, N'Menu tổng quan cố vấn',                        1),
-    ('PERM_ADV_ADVISING', 'ADVISOR_SECTION_ADVISING', N'Cố vấn',              NULL,                     'fas fa-user-graduate',   2, N'Menu công việc cố vấn',                        1),
+    ('PERM_ADV_ADVISING', 'ADVISOR_SECTION_ADVISING', N'Cố vấn học tập',      NULL,                     'fas fa-user-graduate',   2, N'Menu công việc cố vấn học tập',                1),
     ('PERM_ADV_SYSTEM',   'ADVISOR_SECTION_SYSTEM',   N'Hệ thống',            NULL,                     'fas fa-cog',             3, N'Menu hệ thống cố vấn',                        1),
-    ('PERM_ADV_DASHBOARD','ADVISOR_DASHBOARD',        N'Dashboard',           'ADVISOR_SECTION_OVERVIEW','fas fa-tachometer-alt', 1, N'Dashboard cố vấn',                            1),
-    ('PERM_ADV_STUDENTS', 'ADVISOR_STUDENTS',         N'Sinh viên',           'ADVISOR_SECTION_ADVISING','fas fa-user-graduate', 1, N'Quản lý sinh viên được phân công',             1),
-    ('PERM_ADV_WARNINGS', 'ADVISOR_WARNINGS',         N'Cảnh báo',            'ADVISOR_SECTION_ADVISING','fas fa-exclamation-triangle',2,N'Quản lý cảnh báo',                         1),
+    ('PERM_ADV_DASHBOARD','ADVISOR_DASHBOARD',        N'Bảng điều khiển',      'ADVISOR_SECTION_OVERVIEW','fas fa-tachometer-alt', 1, N'Bảng điều khiển cố vấn',                      1),
+    ('PERM_ADV_STUDENTS', 'ADVISOR_STUDENTS',         N'Sinh viên được phân công', 'ADVISOR_SECTION_ADVISING','fas fa-user-graduate', 1, N'Quản lý sinh viên được phân công',             1),
+    ('PERM_ADV_WARNINGS', 'ADVISOR_WARNINGS',         N'Cảnh báo học tập',     'ADVISOR_SECTION_ADVISING','fas fa-exclamation-triangle',2,N'Quản lý cảnh báo học tập',                 1),
     ('PERM_ADV_APPEALS',  'ADVISOR_APPEALS',          N'Phúc khảo',           'ADVISOR_SECTION_ADVISING','fas fa-gavel',          3, N'Duyệt phúc khảo',                             1),
-    ('PERM_ADV_GRADE_FORMULA','ADVISOR_GRADE_FORMULA',N'Công thức điểm',      'ADVISOR_SECTION_ADVISING','fas fa-calculator',    4, N'Quản lý công thức điểm',                      1),
-    ('PERM_ADV_ENROLLMENTS','ADVISOR_ENROLLMENTS',    N'Duyệt đăng ký',       'ADVISOR_SECTION_ADVISING','fas fa-clipboard-check',5,N'Duyệt đăng ký',                               1),
-    ('PERM_ADV_REPORTS',  'ADVISOR_REPORTS',          N'Thống kê',            'ADVISOR_SECTION_ADVISING','fas fa-chart-pie',      6, N'Báo cáo',                                      1),
+    ('PERM_ADV_RETAKE',   'ADVISOR_RETAKE',           N'Quản lý học lại',     'ADVISOR_SECTION_ADVISING','fas fa-history',       4, N'Quản lý hồ sơ học lại',                       1),
+    ('PERM_ADV_GRADE_FORMULA','ADVISOR_GRADE_FORMULA',N'Công thức điểm',      'ADVISOR_SECTION_ADVISING','fas fa-calculator',    5, N'Quản lý công thức điểm',                      1),
     ('PERM_ADV_NOTIFICATIONS','ADVISOR_NOTIFICATIONS',N'Thông báo',           'ADVISOR_SECTION_SYSTEM', 'fas fa-bell',           1, N'Nhận thông báo',                              1),
-    ('PERM_ADV_RETAKE',   'ADVISOR_RETAKE',           N'Quản lý học lại',     'ADVISOR_SECTION_ADVISING','fas fa-history',       7, N'Quản lý hồ sơ học lại',                       1),
     ('PERM_ADM_OVERVIEW', 'ADMIN_SECTION_OVERVIEW',   N'Tổng quan',           NULL,                     'fas fa-home',           1, N'Menu tổng quan admin',                        1),
     ('PERM_ADM_USERS',    'ADMIN_SECTION_USERS',      N'Quản lý người dùng',  NULL,                     'fas fa-users',          2, N'Menu người dùng',                              1),
     ('PERM_ADM_ACADEMIC', 'ADMIN_SECTION_ACADEMIC',   N'Quản lý đào tạo',     NULL,                     'fas fa-graduation-cap', 3, N'Menu đào tạo',                                  1),
-    ('PERM_ADM_SUBJECTS', 'ADMIN_SECTION_SUBJECTS',   N'Học phần',            NULL,                     'fas fa-book',           4, N'Menu học phần',                               1),
-    -- ADMIN_SECTION_CLASSES: vừa là menu vừa là quyền quản lý lớp hành chính (không cần permission con riêng)
-    ('PERM_ADM_ADMIN_CLASSES_SECTION','ADMIN_SECTION_CLASSES', N'Lớp hành chính', NULL,                 'fas fa-users-class',     5, N'Menu và quyền quản lý lớp hành chính',      1),
+    -- Xóa ADMIN_SECTION_SUBJECTS (đã gộp vào ADMIN_SECTION_ACADEMIC)
+    -- ('PERM_ADM_SUBJECTS', 'ADMIN_SECTION_SUBJECTS',   N'Học phần',            NULL,                     'fas fa-book',           4, N'Menu học phần',                               1),
+    -- ADMIN_SECTION_CLASSES: Menu quản lý lớp hành chính
+    ('PERM_ADM_ADMIN_CLASSES_SECTION','ADMIN_SECTION_CLASSES', N'Lớp hành chính', NULL,                 'fas fa-users-class',     5, N'Menu quản lý lớp hành chính',              1),
     ('PERM_ADM_ENROLLMENT','ADMIN_SECTION_ENROLLMENT',N'Đăng ký học phần',    NULL,                     'fas fa-clipboard-list', 6, N'Menu đăng ký',                                 1),
-    ('PERM_ADM_TIMETABLE','ADMIN_SECTION_TIMETABLE',  N'Quản lý thời khóa biểu',NULL,                   'fas fa-calendar-alt',    7, N'Menu thời khóa biểu',                         1),
-    ('PERM_ADM_SYSTEM',   'ADMIN_SECTION_SYSTEM',     N'Hệ thống',            NULL,                     'fas fa-cog',            8, N'Menu hệ thống',                               1),
-    ('PERM_ADM_DASHBOARD','ADMIN_DASHBOARD',          N'Dashboard',           'ADMIN_SECTION_OVERVIEW', 'fas fa-tachometer-alt', 1, N'Dashboard admin',                              1),
+    -- Xóa ADMIN_SECTION_TIMETABLE (đã gộp vào ADMIN_SECTION_ACADEMIC)
+    -- ('PERM_ADM_TIMETABLE','ADMIN_SECTION_TIMETABLE',  N'Quản lý thời khóa biểu',NULL,                   'fas fa-calendar-alt',    7, N'Menu thời khóa biểu',                         1),
+    ('PERM_ADM_SYSTEM',   'ADMIN_SECTION_SYSTEM',     N'Quản lý hệ thống',    NULL,                     'fas fa-cog',            8, N'Menu quản lý hệ thống cho admin',             1),
+    ('PERM_ADM_DASHBOARD','ADMIN_DASHBOARD',          N'Bảng điều khiển',      'ADMIN_SECTION_OVERVIEW', 'fas fa-tachometer-alt', 1, N'Bảng điều khiển admin',                       1),
     ('PERM_ADM_USERS_ITEM','ADMIN_USERS',             N'Tài khoản',           'ADMIN_SECTION_USERS',    'fas fa-users',          1, N'Quản lý tài khoản',                           1),
     ('PERM_ADM_ROLES',    'ADMIN_ROLES',              N'Vai trò & quyền',     'ADMIN_SECTION_USERS',    'fas fa-shield-alt',     2, N'Quản lý vai trò',                             1),
     ('PERM_ADM_ORGANIZATION','ADMIN_ORGANIZATION',    N'Quản lý tổ chức',     'ADMIN_SECTION_ACADEMIC', 'fas fa-sitemap',        1, N'Quản lý khoa, bộ môn',                       1),
@@ -848,16 +1058,21 @@ USING (VALUES
     ('PERM_ADM_ACADEMIC_YEARS','ADMIN_ACADEMIC_YEARS',N'Niên khóa',           'ADMIN_SECTION_ACADEMIC', 'fas fa-calendar-alt',   4, N'Quản lý niên khóa',                           1),
     ('PERM_ADM_SCHOOL_YEARS','ADMIN_SCHOOL_YEARS',    N'Năm học',             'ADMIN_SECTION_ACADEMIC', 'fas fa-calendar-check', 5, N'Quản lý năm học',                              1),
     ('PERM_ADM_GRADE_FORMULA','ADMIN_GRADE_FORMULA',  N'Công thức điểm',      'ADMIN_SECTION_ACADEMIC', 'fas fa-calculator',     6, N'Quản lý công thức điểm',                      1),
-    ('PERM_ADM_SUBJECT_PREREQUISITES','ADMIN_SUBJECT_PREREQUISITES', N'Tiên quyết','ADMIN_SECTION_SUBJECTS','fas fa-project-diagram',1,N'Quản lý tiên quyết',                       1),
-    ('PERM_ADM_CLASSES',  'ADMIN_CLASSES',            N'Lớp học phần',        'ADMIN_SECTION_SUBJECTS', 'fas fa-chalkboard',     2, N'Quản lý lớp học phần',                        1),
-    -- PERM_ADM_ADMIN_CLASSES đã được thay thế bởi PERM_ADM_ADMIN_CLASSES_SECTION (ADMIN_SECTION_CLASSES)
-    -- ADMIN_SECTION_CLASSES vừa là menu vừa là quyền quản lý lớp hành chính, không cần permission riêng nữa
+    -- Gộp ADMIN_SECTION_SUBJECTS vào ADMIN_SECTION_ACADEMIC (vì chỉ có 2 con và đều liên quan đến đào tạo)
+    ('PERM_ADM_SUBJECT_PREREQUISITES','ADMIN_SUBJECT_PREREQUISITES', N'Tiên quyết','ADMIN_SECTION_ACADEMIC','fas fa-project-diagram',7,N'Quản lý tiên quyết môn học',                 1),
+    ('PERM_ADM_CLASSES',  'ADMIN_CLASSES',            N'Lớp học phần',        'ADMIN_SECTION_ACADEMIC', 'fas fa-chalkboard',     8, N'Quản lý lớp học phần',                        1),
+    -- Permission con cho ADMIN_SECTION_CLASSES
+    ('PERM_ADM_ADMIN_CLASSES', 'ADMIN_ADMIN_CLASSES', N'Quản lý lớp hành chính', 'ADMIN_SECTION_CLASSES', 'fas fa-users-class', 1, N'Quản lý lớp hành chính (lớp sinh viên theo niên khóa)', 1),
     ('PERM_ADM_REGISTRATION_PERIODS','ADMIN_REGISTRATION_PERIODS', N'Đợt đăng ký','ADMIN_SECTION_ENROLLMENT','fas fa-clock',1,N'Quản lý đợt đăng ký',                          1),
-    ('PERM_ADM_ENROLLMENTS','ADMIN_ENROLLMENTS',      N'Quản lý đăng ký',     'ADMIN_SECTION_ENROLLMENT','fas fa-clipboard-list',2,N'Duyệt đăng ký',                               1),
-    ('PERM_ADM_TIMETABLE_ITEM','ADMIN_TIMETABLE',     N'Xếp lịch',            'ADMIN_SECTION_TIMETABLE','fas fa-calendar-alt',  1, N'Quản lý thời khóa biểu',                       1),
-    ('PERM_ADM_REPORTS',  'ADMIN_REPORTS',            N'Thống kê & Báo cáo',  'ADMIN_SECTION_SYSTEM',   'fas fa-chart-bar',      3, N'Thống kê hệ thống',                           1),
-    ('PERM_ADM_AUDIT_LOGS','ADMIN_AUDIT_LOGS',        N'Nhật ký hệ thống',    'ADMIN_SECTION_SYSTEM',   'fas fa-history',        1, N'Xem nhật ký',                                 1),
-    ('PERM_ADM_NOTIFICATIONS','ADMIN_NOTIFICATIONS',  N'Thông báo',           'ADMIN_SECTION_SYSTEM',   'fas fa-bell',           2, N'Quản lý thông báo',                           1)
+    ('PERM_ADM_ENROLLMENTS','ADMIN_ENROLLMENTS',      N'Duyệt đăng ký',       'ADMIN_SECTION_ENROLLMENT','fas fa-clipboard-check',2,N'Xem và duyệt/từ chối đăng ký học phần của sinh viên', 1),
+    -- Gộp ADMIN_SECTION_TIMETABLE vào ADMIN_SECTION_ACADEMIC (vì chỉ có 1 con và liên quan đến đào tạo)
+    ('PERM_ADM_TIMETABLE_ITEM','ADMIN_TIMETABLE',     N'Xếp lịch',            'ADMIN_SECTION_ACADEMIC','fas fa-calendar-alt',  9, N'Quản lý thời khóa biểu',                       1),
+    ('PERM_ADM_REPORTS',  'ADMIN_REPORTS',            N'Thống kê & Báo cáo',  'ADMIN_SECTION_SYSTEM',   'fas fa-chart-bar',      2, N'Thống kê và báo cáo hệ thống',                1),
+    ('PERM_ADM_AUDIT_LOGS','ADMIN_AUDIT_LOGS',        N'Nhật ký hệ thống',    'ADMIN_SECTION_SYSTEM',   'fas fa-history',        3, N'Xem nhật ký',                                 1),
+    -- Permissions cho ADVISOR để gộp vào ADVISOR_SECTION_SYSTEM
+    ('PERM_ADV_SYSTEM_REPORTS', 'ADVISOR_SYSTEM_REPORTS', N'Thống kê & Báo cáo', 'ADVISOR_SECTION_SYSTEM', 'fas fa-chart-bar', 2, N'Thống kê và báo cáo hệ thống', 1),
+    ('PERM_ADV_SYSTEM_AUDIT_LOGS', 'ADVISOR_SYSTEM_AUDIT_LOGS', N'Nhật ký hệ thống', 'ADVISOR_SECTION_SYSTEM', 'fas fa-history', 3, N'Xem nhật ký hệ thống', 1),
+    ('PERM_ADM_NOTIFICATIONS','ADMIN_NOTIFICATIONS',  N'Thông báo',           'ADMIN_SECTION_SYSTEM',   'fas fa-bell',           1, N'Quản lý thông báo',                           1)
 ) AS src(permission_id, permission_code, permission_name, parent_code, icon, sort_order, description, is_active)
 ON target.permission_id = src.permission_id
 WHEN MATCHED THEN
@@ -908,23 +1123,20 @@ USING (VALUES
     ('ROLE_ADVISOR','PERM_ADV_STUDENTS'),
     ('ROLE_ADVISOR','PERM_ADV_WARNINGS'),
     ('ROLE_ADVISOR','PERM_ADV_APPEALS'),
+    ('ROLE_ADVISOR','PERM_ADV_RETAKE'),
     ('ROLE_ADVISOR','PERM_ADV_GRADE_FORMULA'),
-    ('ROLE_ADVISOR','PERM_ADV_ENROLLMENTS'),
-    ('ROLE_ADVISOR','PERM_ADV_REPORTS'),
+    -- Lưu ý: PERM_ADV_ENROLLMENTS đã bị xóa vì trùng với PERM_ADM_ENROLLMENTS (cả hai đều là "Duyệt đăng ký")
+    -- Xóa PERM_ADV_REPORTS khỏi menu Cố vấn học tập (đã có PERM_ADV_SYSTEM_REPORTS trong menu Hệ thống)
     ('ROLE_ADVISOR','PERM_ADV_SYSTEM'),
     ('ROLE_ADVISOR','PERM_ADV_NOTIFICATIONS'),
-    ('ROLE_ADVISOR','PERM_ADV_RETAKE'),
     -- Quyền Nhân viên phòng đào tạo (gộp vào ROLE_ADVISOR)
-    ('ROLE_ADVISOR','PERM_ADM_OVERVIEW'),
-    ('ROLE_ADVISOR','PERM_ADM_DASHBOARD'),
-    ('ROLE_ADVISOR','PERM_ADM_ENROLLMENT'),
+    -- Thêm ADMIN_SECTION_ENROLLMENT để các permissions con có thể hiển thị
+    ('ROLE_ADVISOR','PERM_ADM_ENROLLMENT'),  -- ADMIN_SECTION_ENROLLMENT: "Đăng ký học phần"
     ('ROLE_ADVISOR','PERM_ADM_REGISTRATION_PERIODS'),
     ('ROLE_ADVISOR','PERM_ADM_ENROLLMENTS'),
-    ('ROLE_ADVISOR','PERM_ADM_REPORTS'),
-    ('ROLE_ADVISOR','PERM_ADM_SYSTEM'),
-    ('ROLE_ADVISOR','PERM_ADM_AUDIT_LOGS'),
-    ('ROLE_ADVISOR','PERM_ADM_NOTIFICATIONS'),
-    ('ROLE_ADVISOR','PERM_ADM_GRADE_FORMULA'),
+    -- Thêm permissions hệ thống vào ADVISOR_SECTION_SYSTEM để gộp chung menu
+    ('ROLE_ADVISOR','PERM_ADV_SYSTEM_REPORTS'),  -- Thống kê & Báo cáo trong menu Hệ thống
+    ('ROLE_ADVISOR','PERM_ADV_SYSTEM_AUDIT_LOGS'),  -- Nhật ký hệ thống trong menu Hệ thống
     ('ROLE_ADMIN','PERM_ADM_OVERVIEW'),
     ('ROLE_ADMIN','PERM_ADM_DASHBOARD'),
     ('ROLE_ADMIN','PERM_ADM_USERS'),
@@ -937,15 +1149,15 @@ USING (VALUES
     ('ROLE_ADMIN','PERM_ADM_ACADEMIC_YEARS'),
     ('ROLE_ADMIN','PERM_ADM_SCHOOL_YEARS'),
     ('ROLE_ADMIN','PERM_ADM_GRADE_FORMULA'),
-    ('ROLE_ADMIN','PERM_ADM_SUBJECTS'),
+    -- Xóa PERM_ADM_SUBJECTS (đã gộp vào ADMIN_SECTION_ACADEMIC)
     ('ROLE_ADMIN','PERM_ADM_SUBJECT_PREREQUISITES'),
     ('ROLE_ADMIN','PERM_ADM_CLASSES'),
-    ('ROLE_ADMIN','PERM_ADM_ADMIN_CLASSES_SECTION'), -- ADMIN_SECTION_CLASSES: vừa là menu vừa là quyền quản lý lớp hành chính
-    -- PERM_ADM_ADMIN_CLASSES đã bị xóa: không cần nữa vì ADMIN_SECTION_CLASSES đã thay thế
+    ('ROLE_ADMIN','PERM_ADM_ADMIN_CLASSES_SECTION'), -- ADMIN_SECTION_CLASSES: menu quản lý lớp hành chính
+    ('ROLE_ADMIN','PERM_ADM_ADMIN_CLASSES'), -- Permission con cho ADMIN_SECTION_CLASSES
     ('ROLE_ADMIN','PERM_ADM_ENROLLMENT'),
     ('ROLE_ADMIN','PERM_ADM_REGISTRATION_PERIODS'),
     ('ROLE_ADMIN','PERM_ADM_ENROLLMENTS'),
-    ('ROLE_ADMIN','PERM_ADM_TIMETABLE'),
+    -- Xóa PERM_ADM_TIMETABLE (đã gộp vào ADMIN_SECTION_ACADEMIC)
     ('ROLE_ADMIN','PERM_ADM_TIMETABLE_ITEM'),
     ('ROLE_ADMIN','PERM_ADM_SYSTEM'),
     ('ROLE_ADMIN','PERM_ADM_REPORTS'),

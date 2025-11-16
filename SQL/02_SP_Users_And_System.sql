@@ -286,12 +286,18 @@ BEGIN
         permission_code,
         permission_name,
         description,
+        parent_code,
+        icon,
+        sort_order,
+        is_active,
         created_at,
         created_by,
         updated_at,
-        updated_by
+        updated_by,
+        deleted_at
     FROM dbo.permissions
-    ORDER BY permission_code;
+    WHERE deleted_at IS NULL OR deleted_at = '1900-01-01'
+    ORDER BY ISNULL(sort_order, 999), permission_code;
 END
 GO
 

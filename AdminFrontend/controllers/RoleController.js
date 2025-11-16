@@ -188,9 +188,25 @@ app.controller('RoleController', [
     /**
      * Group permissions by sections (parent permissions)
      */
-    $scope.groupPermissionsBySection = function(permissions) {
+    $scope.groupPermissionsBySection = function(permissions, allPermissions) {
         var sections = [];
         var sectionsMap = {};
+        
+        // Tạo lookup map từ allPermissions để tìm permission name từ code
+        var allPermsMap = {};
+        if (allPermissions && allPermissions.length > 0) {
+            allPermissions.forEach(function(p) {
+                var code = p.permissionCode || p.PermissionCode;
+                if (code) {
+                    allPermsMap[code] = {
+                        permissionName: p.permissionName || p.PermissionName,
+                        description: p.description || p.Description,
+                        icon: p.icon || p.Icon || 'fas fa-folder',
+                        sortOrder: p.sortOrder || p.SortOrder || 999
+                    };
+                }
+            });
+        }
         
         // Normalize permission data
         var normalizedPerms = permissions.map(function(p) {
@@ -228,15 +244,16 @@ app.controller('RoleController', [
                 if (parent) {
                     parent.children.push(perm);
                 } else {
-                    // Nếu parent chưa tồn tại, tạo section ẩn
+                    // Nếu parent chưa tồn tại, tạo section ẩn và tìm permission name từ allPermissions
                     if (!sectionsMap[perm.parentCode]) {
+                        var parentInfo = allPermsMap[perm.parentCode] || {};
                         var hiddenSection = {
                             permissionId: null,
                             permissionCode: perm.parentCode,
-                            permissionName: perm.parentCode,
-                            description: null,
-                            icon: 'fas fa-folder',
-                            sortOrder: 999,
+                            permissionName: parentInfo.permissionName || perm.parentCode, // Dùng tên từ allPermissions nếu có
+                            description: parentInfo.description || null,
+                            icon: parentInfo.icon || 'fas fa-folder',
+                            sortOrder: parentInfo.sortOrder || 999,
                             children: []
                         };
                         sectionsMap[perm.parentCode] = hiddenSection;
@@ -344,11 +361,28 @@ app.controller('RoleController', [
     };
     
     /**
-     * Toggle section expand/collapse
+     * Toggle section expand/collapse - ĐƠN GIẢN HÓA
      */
-    $scope.toggleSectionExpand = function(sectionCode) {
-        $scope.permissionManagement.expandedSections[sectionCode] = 
-            !$scope.permissionManagement.expandedSections[sectionCode];
+    $scope.toggleSectionExpandSimple = function(sectionCode) {
+        // Đảm bảo expandedSections object tồn tại
+        if (!$scope.permissionManagement.expandedSections) {
+            $scope.permissionManagement.expandedSections = {};
+        }
+        
+        // Toggle state đơn giản
+        var currentState = $scope.permissionManagement.expandedSections[sectionCode] === true;
+        $scope.permissionManagement.expandedSections[sectionCode] = !currentState;
+    };
+    
+    /**
+     * Toggle section expand/collapse (giữ lại cho tương thích)
+     */
+    $scope.toggleSectionExpand = function(sectionCode, event) {
+        if (event) {
+            event.stopPropagation();
+            event.preventDefault();
+        }
+        $scope.toggleSectionExpandSimple(sectionCode);
     };
     
     /**
@@ -369,18 +403,37 @@ app.controller('RoleController', [
         $scope.permissionManagement.groupedPermissions = [];
         $scope.permissionManagement.expandedSections = {};
         
-        // Load permissions for this role
-        RoleManagementService.getPermissionsByRole(role.roleId)
+        // Load tất cả permissions trước để có thể lookup permission name
+        var allPermissionsPromise = RoleManagementService.getAllPermissions()
             .then(function(response) {
-                $scope.permissionManagement.permissions = response.data.permissions || response.data.Permissions || [];
+                return response.data || [];
+            })
+            .catch(function(error) {
+                console.warn('Không thể tải tất cả permissions, sẽ dùng danh sách hiện có');
+                return [];
+            });
+        
+        // Load permissions for this role
+        var rolePermissionsPromise = RoleManagementService.getPermissionsByRole(role.roleId)
+            .then(function(response) {
+                return response.data.permissions || response.data.Permissions || [];
+            });
+        
+        // Chờ cả hai promise hoàn thành
+        Promise.all([allPermissionsPromise, rolePermissionsPromise])
+            .then(function(results) {
+                var allPermissions = results[0];
+                var rolePermissions = results[1];
+                
+                $scope.permissionManagement.permissions = rolePermissions;
                 
                 // Extract selected permission IDs
-                $scope.permissionManagement.selectedPermissions = $scope.permissionManagement.permissions
+                $scope.permissionManagement.selectedPermissions = rolePermissions
                     .filter(function(p) { return p.isAssigned || p.IsAssigned; })
                     .map(function(p) { return p.permissionId || p.PermissionId; });
                 
-                // Group permissions by sections
-                $scope.permissionManagement.groupedPermissions = $scope.groupPermissionsBySection($scope.permissionManagement.permissions);
+                // Group permissions by sections (truyền allPermissions để lookup permission name)
+                $scope.permissionManagement.groupedPermissions = $scope.groupPermissionsBySection(rolePermissions, allPermissions);
                 
                 // Mở tất cả sections mặc định
                 $scope.permissionManagement.groupedPermissions.forEach(function(section) {
@@ -395,6 +448,11 @@ app.controller('RoleController', [
                         $scope.setCheckboxIndeterminate(checkboxId, state === 'partial');
                     });
                 }, 100);
+                
+                // Apply scope changes
+                if (!$scope.$$phase && !$scope.$root.$$phase) {
+                    $scope.$apply();
+                }
                     
                 openModal('permissionModal');
             })

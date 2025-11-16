@@ -481,6 +481,9 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'ADVISOR_ENROLLMENTS': '/advisor/enrollments', // Task 2: Duyệt đăng ký học phần
         'ADVISOR_REPORTS': '/advisor/reports',
         'ADVISOR_NOTIFICATIONS': '/notifications',
+        // Advisor System permissions (gộp vào menu Hệ thống)
+        'ADVISOR_SYSTEM_REPORTS': '/admin/reports', // Thống kê & Báo cáo trong menu Hệ thống
+        'ADVISOR_SYSTEM_AUDIT_LOGS': '/audit-logs', // Nhật ký hệ thống trong menu Hệ thống
         
         // Admin permissions
         'ADMIN_DASHBOARD': '/dashboard',
@@ -493,8 +496,8 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'ADMIN_SCHOOL_YEARS': '/school-years',
         'ADMIN_SUBJECT_PREREQUISITES': '/subject-prerequisites',
         'ADMIN_CLASSES': '/classes',
-        'ADMIN_ADMIN_CLASSES': '/admin-classes', // Deprecated - dùng ADMIN_SECTION_CLASSES thay thế
-        'ADMIN_SECTION_CLASSES': '/admin-classes', // Section permission vừa là menu vừa là quyền quản lý
+        'ADMIN_ADMIN_CLASSES': '/admin-classes', // Quản lý lớp hành chính
+        'ADMIN_SECTION_CLASSES': '/admin-classes', // Section permission cho menu lớp hành chính
         'ADMIN_REGISTRATION_PERIODS': '/registration-periods',
         'ADMIN_ENROLLMENTS': '/enrollments',
         'ADMIN_TIMETABLE': '/admin/timetable',

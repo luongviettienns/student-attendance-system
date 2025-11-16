@@ -181,57 +181,59 @@
                     <p style="margin-top: 15px;">Đang tải danh sách quyền...</p>
                 </div>
                 
-                <!-- Hiển thị quyền theo nhóm sections -->
+                <!-- Hiển thị quyền theo nhóm sections - ĐƠN GIẢN HÓA -->
                 <div class="permission-section" 
                      ng-repeat="section in permissionManagement.groupedPermissions"
-                     style="border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; overflow: hidden;">
+                     style="border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 12px; overflow: hidden; background: white;">
                     
-                    <!-- Section Header -->
-                    <div class="section-header" 
-                         style="background: #f9fafb; padding: 14px 16px; cursor: pointer; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e5e7eb;"
-                         ng-click="toggleSectionExpand(section.permissionCode)">
-                        <div style="display: flex; align-items: center; flex: 1;">
+                    <!-- Section Header - ĐƠN GIẢN -->
+                    <div class="section-header-simple" 
+                         style="padding: 12px 16px; display: flex; align-items: center; background: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+                        <!-- Chevron - CHỈ HIỂN THỊ KHI CÓ CHILDREN -->
+                        <button type="button" 
+                                ng-if="section.children && section.children.length > 0"
+                                style="background: none; border: none; padding: 4px; margin-right: 12px; cursor: pointer; color: #6b7280;"
+                                ng-click="toggleSectionExpandSimple(section.permissionCode)">
                             <i class="fas" 
                                ng-class="isSectionExpanded(section.permissionCode) ? 'fa-chevron-down' : 'fa-chevron-right'"
-                               style="margin-right: 12px; color: #6b7280; transition: transform 0.2s; width: 16px; text-align: center;"></i>
-                            
-                            <label class="checkbox-container" 
-                                   style="margin: 0; display: flex; align-items: center; flex: 1;"
-                                   ng-click="$event.stopPropagation(); toggleSection(section);">
-                                <input type="checkbox" 
-                                       id="section-{{section.permissionCode}}"
-                                       ng-checked="getSectionState(section) === 'all'"
-                                       ng-attr-indeterminate="{{getSectionState(section) === 'partial' ? true : false}}"
-                                       readonly>
-                                <span class="checkmark" style="margin-right: 12px;"></span>
-                                <i ng-class="section.icon" style="margin-right: 10px; color: #667eea; font-size: 1.1em;"></i>
-                                <strong style="font-size: 1.05em; color: #374151;">
-                                    {{section.permissionName}}
-                                </strong>
-                                <span ng-if="section.children && section.children.length > 0" 
-                                      style="margin-left: 8px; color: #6b7280; font-size: 0.9em; font-weight: normal;">
-                                    ({{section.children.length}} quyền)
-                                </span>
-                            </label>
-                        </div>
+                               style="width: 16px; display: inline-block;"></i>
+                        </button>
+                        <span ng-if="!section.children || section.children.length === 0" 
+                              style="width: 28px; display: inline-block;"></span>
+                        
+                        <!-- Checkbox -->
+                        <label style="display: flex; align-items: center; flex: 1; cursor: pointer; margin: 0;">
+                            <input type="checkbox" 
+                                   id="section-{{section.permissionCode}}"
+                                   ng-checked="getSectionState(section) === 'all'"
+                                   ng-attr-indeterminate="{{getSectionState(section) === 'partial' ? true : false}}"
+                                   style="margin-right: 10px; cursor: pointer;"
+                                   ng-click="toggleSection(section); $event.stopPropagation();">
+                            <i ng-class="section.icon" style="margin-right: 10px; color: #667eea; font-size: 1.1em;"></i>
+                            <strong style="font-size: 1.05em; color: #374151;">
+                                {{section.permissionName}}
+                            </strong>
+                            <span ng-if="section.children && section.children.length > 0" 
+                                  style="margin-left: 8px; color: #6b7280; font-size: 0.9em; font-weight: normal;">
+                                ({{section.children.length}} quyền)
+                            </span>
+                        </label>
                     </div>
                     
-                    <!-- Section Children (Collapsible) -->
-                    <div class="section-children" 
-                         ng-if="isSectionExpanded(section.permissionCode)"
-                         style="background: #ffffff; padding: 8px;">
+                    <!-- Section Children - SỬ DỤNG NG-IF THAY VÌ NG-SHOW -->
+                    <div ng-if="isSectionExpanded(section.permissionCode) && section.children && section.children.length > 0" 
+                         style="background: #f8f9fa; border-left: 3px solid #e0e7ff; padding: 8px;">
                         
                         <!-- Children permissions -->
-                        <div class="permission-item child-permission" 
-                             ng-repeat="child in section.children"
-                             style="padding: 10px 12px 10px 44px; border-bottom: 1px solid #f3f4f6; display: flex; align-items: start; transition: background 0.2s;">
-                            <label class="checkbox-container" style="margin: 0; display: flex; align-items: start; flex: 1;">
+                        <div ng-repeat="child in section.children"
+                             style="padding: 10px 12px 10px 20px; border-bottom: 1px solid #f3f4f6;">
+                            <label style="display: flex; align-items: start; cursor: pointer; margin: 0;">
                                 <input type="checkbox" 
                                        ng-checked="isPermissionSelected(child.permissionId)"
-                                       ng-click="togglePermission(child.permissionId)">
-                                <span class="checkmark" style="margin-top: 2px;"></span>
-                                <div style="margin-left: 10px; flex: 1;">
-                                    <strong style="color: #1f2937; font-size: 0.95em;">
+                                       style="margin-right: 10px; margin-top: 4px; cursor: pointer;"
+                                       ng-click="togglePermission(child.permissionId); $event.stopPropagation();">
+                                <div style="flex: 1;">
+                                    <strong style="color: #1f2937; font-size: 0.95em; display: block;">
                                         {{child.permissionName}}
                                     </strong>
                                     <div style="color: #6b7280; font-size: 0.85em; margin-top: 4px;">
@@ -246,17 +248,16 @@
                             </label>
                         </div>
                         
-                        <!-- Section permission itself (if exists and has children) -->
-                        <div ng-if="section.permissionId && section.children && section.children.length > 0" 
-                             class="permission-item child-permission"
-                             style="padding: 10px 12px 10px 44px; border-top: 2px solid #e5e7eb; background: #fafafa; display: flex; align-items: start;">
-                            <label class="checkbox-container" style="margin: 0; display: flex; align-items: start; flex: 1;">
+                        <!-- Section permission itself (if exists) -->
+                        <div ng-if="section.permissionId" 
+                             style="padding: 10px 12px 10px 20px; border-top: 2px solid #e5e7eb; background: #fafafa;">
+                            <label style="display: flex; align-items: start; cursor: pointer; margin: 0;">
                                 <input type="checkbox" 
                                        ng-checked="isPermissionSelected(section.permissionId)"
-                                       ng-click="togglePermission(section.permissionId)">
-                                <span class="checkmark" style="margin-top: 2px;"></span>
-                                <div style="margin-left: 10px; flex: 1;">
-                                    <strong style="color: #1f2937; font-size: 0.95em;">
+                                       style="margin-right: 10px; margin-top: 4px; cursor: pointer;"
+                                       ng-click="togglePermission(section.permissionId); $event.stopPropagation();">
+                                <div style="flex: 1;">
+                                    <strong style="color: #1f2937; font-size: 0.95em; display: block;">
                                         <i class="fas fa-shield-alt" style="margin-right: 6px; color: #667eea;"></i>
                                         Quyền truy cập {{section.permissionName}}
                                     </strong>
@@ -271,27 +272,18 @@
                                 </div>
                             </label>
                         </div>
-                        
-                        <!-- No children message -->
-                        <div ng-if="!section.children || section.children.length === 0" 
-                             class="text-center"
-                             style="padding: 20px; color: #9ca3af; font-size: 0.9em;">
-                            <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
-                            Section này không có quyền con
-                        </div>
                     </div>
                     
-                    <!-- Section without children (standalone permission) -->
-                    <div ng-if="!section.children || section.children.length === 0" 
-                         class="permission-item standalone-permission"
-                         style="padding: 12px 16px; background: #ffffff; display: flex; align-items: start;">
-                        <label class="checkbox-container" style="margin: 0; display: flex; align-items: start; flex: 1;">
+                    <!-- Standalone permission (không có children) -->
+                    <div ng-if="(!section.children || section.children.length === 0) && section.permissionId" 
+                         style="padding: 12px 16px; background: #f8f9fa; border-left: 3px solid #e0e7ff;">
+                        <label style="display: flex; align-items: start; cursor: pointer; margin: 0;">
                             <input type="checkbox" 
                                    ng-checked="isPermissionSelected(section.permissionId)"
-                                   ng-click="togglePermission(section.permissionId)">
-                            <span class="checkmark" style="margin-top: 2px;"></span>
-                            <div style="margin-left: 10px; flex: 1;">
-                                <strong style="color: #1f2937;">
+                                   style="margin-right: 10px; margin-top: 4px; cursor: pointer;"
+                                   ng-click="togglePermission(section.permissionId); $event.stopPropagation();">
+                            <div style="flex: 1;">
+                                <strong style="color: #1f2937; display: block;">
                                     <i ng-class="section.icon" style="margin-right: 8px; color: #667eea;"></i>
                                     {{section.permissionName}}
                                 </strong>
@@ -334,6 +326,63 @@
 .card-actions {
     display: flex;
     gap: 10px;
+}
+
+/* ============================================================
+   PERMISSION SECTION DROPDOWN ANIMATION
+   ============================================================ */
+
+/* Section header - đơn giản */
+.section-header-simple {
+    user-select: none;
+}
+
+.section-header-simple button:hover {
+    background: #e5e7eb !important;
+    border-radius: 4px;
+}
+
+/* Hover effect for section header */
+.section-header {
+    transition: background-color 0.2s ease;
+}
+
+.section-header:hover {
+    background-color: #f3f4f6 !important;
+}
+
+/* Section header without children - có background color riêng */
+.section-header-no-children {
+    background: #f8f9fa !important;
+    border-left: 3px solid #e0e7ff !important;
+}
+
+.section-header-no-children:hover {
+    background: #f3f4f6 !important;
+}
+
+/* Smooth fade-in for child permissions */
+.permission-item.child-permission {
+    animation: fadeInUp 0.3s ease-out;
+    animation-fill-mode: both;
+}
+
+.permission-item.child-permission:nth-child(1) { animation-delay: 0.05s; }
+.permission-item.child-permission:nth-child(2) { animation-delay: 0.1s; }
+.permission-item.child-permission:nth-child(3) { animation-delay: 0.15s; }
+.permission-item.child-permission:nth-child(4) { animation-delay: 0.2s; }
+.permission-item.child-permission:nth-child(5) { animation-delay: 0.25s; }
+.permission-item.child-permission:nth-child(n+6) { animation-delay: 0.3s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .btn-group {
@@ -624,12 +673,14 @@
 }
 
 /* Standalone Permission */
-.standalone-permission {
+.permission-item.standalone-permission {
     transition: background 0.2s ease;
+    background: #f8f9fa !important;
+    border-left: 3px solid #e0e7ff !important;
 }
 
-.standalone-permission:hover {
-    background: #f9fafb !important;
+.permission-item.standalone-permission:hover {
+    background: #f3f4f6 !important;
 }
 
 /* Checkbox Container Styling */

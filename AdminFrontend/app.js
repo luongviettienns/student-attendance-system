@@ -1,8 +1,9 @@
 // @ts-check
-/* global angular */
+/* global angular, window */
 'use strict';
 
 // AngularJS Application Configuration
+// @ts-ignore - angular is loaded from CDN
 var app = angular.module('adminApp', ['ngRoute', 'ngAnimate']);
 
 // Academic rules & thresholds (centralised to avoid scattering magic numbers)
@@ -572,8 +573,10 @@ app.config(['$httpProvider', function($httpProvider) {
 app.run(['$rootScope', function($rootScope) {
     $rootScope.$on('$routeChangeStart', function() {
         // Close all modals when navigating to a new page
-        if (typeof ModalUtils !== 'undefined') {
-            ModalUtils.closeAll();
+        // @ts-ignore - ModalUtils is defined in js/modal.js
+        if (typeof window !== 'undefined' && window.ModalUtils && typeof window.ModalUtils.closeAll === 'function') {
+            // @ts-ignore
+            window.ModalUtils.closeAll();
         }
     });
 }]);
