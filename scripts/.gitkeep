@@ -1,0 +1,7 @@
+# Scripts Directory
+
+This directory contains PowerShell scripts for:
+- Running individual test phases
+- Running all tests
+- Cleaning up test data
+- Generating test reports

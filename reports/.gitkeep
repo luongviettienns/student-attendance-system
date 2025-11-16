@@ -1,0 +1,6 @@
+# Reports Directory
+
+This directory contains generated test reports in various formats:
+- Markdown (.md)
+- JSON (.json)
+- HTML (.html)
