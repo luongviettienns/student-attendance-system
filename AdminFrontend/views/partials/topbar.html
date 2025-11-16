@@ -12,7 +12,7 @@
         </div>
         <!-- Desktop: User Info and Logout in same row -->
         <div class="header-right">
-            <div class="user-info" ng-click="openAvatarModal()">
+            <div class="user-info" ng-click="openAvatarModal($event)">
                 <div class="user-avatar">
                     <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
                     <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
@@ -30,7 +30,7 @@
 
     <!-- Bottom Row: User Info + Logout (Mobile only) -->
     <div class="header-bottom-row">
-        <div class="user-info" ng-click="openAvatarModal()">
+        <div class="user-info" ng-click="openAvatarModal($event)">
             <div class="user-avatar">
                 <img ng-if="currentUser.avatarUrl" ng-src="{{currentUser.avatarUrl}}" alt="Avatar">
                 <span ng-if="!currentUser.avatarUrl">{{currentUser.fullName ? currentUser.fullName.charAt(0) : 'U'}}</span>
@@ -48,11 +48,11 @@
 </header>
 
 <!-- Avatar Change Modal -->
-<div class="modal-overlay avatar-modal" ng-class="{'active': avatarModal && avatarModal.show}" ng-if="avatarModal && avatarModal.show" ng-click="closeAvatarModal()">
+<div class="modal-overlay avatar-modal" ng-class="{'active': avatarModal && avatarModal.show}" ng-if="avatarModal && avatarModal.show" ng-click="closeAvatarModal($event)">
     <div class="modal active" ng-click="$event.stopPropagation()">
         <div class="modal-header">
             <h3 class="modal-title"><i class="fas fa-user-circle"></i> Thay đổi ảnh đại diện</h3>
-            <button class="modal-close" ng-click="closeAvatarModal()">
+            <button class="modal-close" ng-click="closeAvatarModal($event)" type="button" aria-label="Đóng modal">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -113,7 +113,7 @@
         </div>
         
         <div class="modal-footer">
-            <button class="btn btn-outline" ng-click="closeAvatarModal()" ng-disabled="avatarModal.uploading">
+            <button class="btn btn-outline" ng-click="closeAvatarModal($event)" ng-disabled="avatarModal.uploading" type="button">
                 Hủy
             </button>
             <button class="btn btn-primary" 

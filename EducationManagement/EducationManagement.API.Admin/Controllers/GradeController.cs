@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using EducationManagement.Common.Helpers;
 using System.Threading.Tasks;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -52,7 +53,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin,Lecturer")]
+        [RequireAnyPermission("TCH_CLASSES", "ADMIN_STUDENTS")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] CreateGradeRequest request)
         {
             if (!ModelState.IsValid)
@@ -87,7 +88,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Lecturer")]
+        [RequireAnyPermission("TCH_CLASSES", "ADMIN_STUDENTS")] // ✅ Permission từ database
         public async Task<IActionResult> Update(string id, [FromBody] UpdateGradeRequest request)
         {
             if (!ModelState.IsValid)
@@ -130,7 +131,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_STUDENTS")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id, [FromBody] DeleteGradeRequest request)
         {
             try

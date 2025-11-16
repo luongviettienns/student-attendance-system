@@ -4,11 +4,12 @@ using System.Security.Claims;
 using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
 using EducationManagement.Common.Helpers;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
     [Route("api-edu/roles")]
     public class RolesController : ControllerBase
     {
@@ -24,6 +25,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Lấy danh sách tất cả vai trò (Role)
         /// </summary>
         [HttpGet]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> GetAll()
         {
             var roles = await _roleRepository.GetAllAsync();
@@ -45,6 +47,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Lấy chi tiết 1 vai trò theo ID
         /// </summary>
         [HttpGet("{id}")]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
             var role = await _roleRepository.GetByIdAsync(id);
@@ -61,6 +64,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Tạo mới một vai trò (Role)
         /// </summary>
         [HttpPost]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] Role request)
         {
             if (string.IsNullOrWhiteSpace(request.RoleName))
@@ -90,6 +94,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Cập nhật thông tin vai trò theo ID
         /// </summary>
         [HttpPut("{id}")]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> Update(string id, [FromBody] Role request)
         {
             var role = await _roleRepository.GetByIdAsync(id);
@@ -115,6 +120,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Xoá mềm vai trò (đặt DeletedAt và IsActive = false)
         /// </summary>
         [HttpDelete("{id}")]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id)
         {
             var role = await _roleRepository.GetByIdAsync(id);
@@ -133,6 +139,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Chuyển trạng thái kích hoạt (active/inactive) cho Role
         /// </summary>
         [HttpPut("{id}/toggle-status")]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> ToggleStatus(string id)
         {
             var role = await _roleRepository.GetByIdAsync(id);

@@ -193,6 +193,7 @@
 .activity-title {
     font-weight: 500;
     margin-bottom: 3px;
+    color: var(--text-primary);
 }
 
 .activity-time {
@@ -3177,6 +3178,12 @@
         font-size: 18px;
         margin: 0;
         width: 100%;
+        color: var(--text-primary);
+    }
+    
+    /* Chỉ khi có background gradient mới dùng màu trắng */
+    .card-header[style*="background"] h2,
+    .card-header[class*="bg-"] h2 {
         color: #ffffff !important;
     }
     
@@ -3193,6 +3200,12 @@
     
     .card-header h2 {
         font-size: 16px;
+        color: var(--text-primary);
+    }
+    
+    /* Chỉ khi có background gradient mới dùng màu trắng */
+    .card-header[style*="background"] h2,
+    .card-header[class*="bg-"] h2 {
         color: #ffffff !important;
     }
     

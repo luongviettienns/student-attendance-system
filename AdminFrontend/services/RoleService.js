@@ -202,7 +202,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             canViewNotifications: true
         },
         'Advisor': {
-            // Cố vấn - quản lý sinh viên được phụ trách
+            // Cố vấn học tập & Nhân viên phòng đào tạo - quản lý sinh viên được phụ trách + quản lý đăng ký
             canManageUsers: false,
             canManageRoles: false,
             canManageStudents: true, // Chỉ sinh viên được phụ trách
@@ -221,7 +221,12 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             canExportReports: true,
             canViewDashboard: true,
             canCreateNotifications: true,
-            canViewNotifications: true
+            canViewNotifications: true,
+            // Quyền Nhân viên phòng đào tạo (gộp vào Advisor)
+            canViewAuditLogs: true, // Xem nhật ký hệ thống
+            canManageEnrollment: true, // Quản lý đăng ký học phần
+            canViewRegistrationPeriods: true, // Xem đợt đăng ký
+            canManageRegistrationPeriods: true // Quản lý đợt đăng ký
         }
     };
     
@@ -384,12 +389,18 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/notifications'
             ],
             'Advisor': [
+                // Quyền Cố vấn học tập
                 '/advisor/dashboard',
                 '/advisor/students',
                 '/advisor/warnings', // Warnings page (cảnh báo và gửi email)
                 '/advisor/enrollments', // Enrollments approval page
                 '/advisor/reports', // Reports & Statistics
-                '/notifications'
+                '/notifications',
+                // Quyền Nhân viên phòng đào tạo (gộp vào Advisor)
+                '/dashboard', // Dashboard admin (Overview)
+                '/registration-periods', // Quản lý đợt đăng ký
+                '/enrollments', // Quản lý đăng ký học phần
+                '/audit-logs' // Nhật ký hệ thống
             ]
         };
         
@@ -482,7 +493,8 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'ADMIN_SCHOOL_YEARS': '/school-years',
         'ADMIN_SUBJECT_PREREQUISITES': '/subject-prerequisites',
         'ADMIN_CLASSES': '/classes',
-        'ADMIN_ADMIN_CLASSES': '/admin-classes',
+        'ADMIN_ADMIN_CLASSES': '/admin-classes', // Deprecated - dùng ADMIN_SECTION_CLASSES thay thế
+        'ADMIN_SECTION_CLASSES': '/admin-classes', // Section permission vừa là menu vừa là quyền quản lý
         'ADMIN_REGISTRATION_PERIODS': '/registration-periods',
         'ADMIN_ENROLLMENTS': '/enrollments',
         'ADMIN_TIMETABLE': '/admin/timetable',
@@ -760,7 +772,10 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         if (permissionCode.includes('SUBJECT_PREREQUISITE')) {
             if (PERMISSION_CODE_TO_PATH['ADMIN_SUBJECT_PREREQUISITES']) return PERMISSION_CODE_TO_PATH['ADMIN_SUBJECT_PREREQUISITES'];
         }
-        if (permissionCode.includes('ADMIN_CLASS')) {
+        if (permissionCode.includes('ADMIN_CLASS') || permissionCode.includes('SECTION_CLASSES')) {
+            // Ưu tiên ADMIN_SECTION_CLASSES (section permission vừa là menu vừa là quyền quản lý)
+            if (PERMISSION_CODE_TO_PATH['ADMIN_SECTION_CLASSES']) return PERMISSION_CODE_TO_PATH['ADMIN_SECTION_CLASSES'];
+            // Fallback về ADMIN_ADMIN_CLASSES (deprecated)
             if (PERMISSION_CODE_TO_PATH['ADMIN_ADMIN_CLASSES']) return PERMISSION_CODE_TO_PATH['ADMIN_ADMIN_CLASSES'];
         }
         if (permissionCode.includes('REGISTRATION_PERIOD')) {

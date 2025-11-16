@@ -3,6 +3,7 @@ using EducationManagement.Common.DTOs.RegistrationPeriod;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -22,6 +23,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 1️⃣ GET ALL
         // ============================================================
         [HttpGet]
+        [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> GetAll()
         {
             try
@@ -44,6 +46,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 2️⃣ GET ACTIVE PERIOD
         // ============================================================
         [HttpGet("active")]
+        [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> GetActive()
         {
             try
@@ -65,6 +68,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 3️⃣ GET BY ID
         // ============================================================
         [HttpGet("{id}")]
+        [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
             try
@@ -85,7 +89,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 4️⃣ CREATE (Admin Only)
         // ============================================================
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] CreatePeriodDto dto)
         {
             if (!ModelState.IsValid)
@@ -117,7 +121,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 5️⃣ UPDATE (Admin Only)
         // ============================================================
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> Update(string id, [FromBody] UpdatePeriodDto dto)
         {
             if (!ModelState.IsValid)
@@ -144,7 +148,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 6️⃣ DELETE (Admin Only)
         // ============================================================
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id)
         {
             try
@@ -168,7 +172,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 7️⃣ OPEN PERIOD (Admin Only)
         // ============================================================
         [HttpPost("{id}/open")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> Open(string id)
         {
             try
@@ -196,7 +200,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 8️⃣ CLOSE PERIOD (Admin Only)
         // ============================================================
         [HttpPost("{id}/close")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> Close(string id)
         {
             try
@@ -220,7 +224,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 9️⃣ PERIOD CLASSES MANAGEMENT
         // ============================================================
         [HttpGet("{id}/classes")]
-        [Authorize]
+        [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> GetClassesByPeriod(string id)
         {
             try
@@ -235,7 +239,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}/available-classes")]
-        [Authorize]
+        [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> GetAvailableClassesForPeriod(string id)
         {
             try
@@ -250,7 +254,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPost("{id}/classes")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> AddClassToPeriod(string id, [FromBody] AddClassToPeriodInput input)
         {
             try
@@ -266,7 +270,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpDelete("classes/{periodClassId}")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> RemoveClassFromPeriod(string periodClassId)
         {
             try

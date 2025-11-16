@@ -6,11 +6,12 @@ using EducationManagement.Common.Models;
 using EducationManagement.Common.Helpers;
 using EducationManagement.Common.DTOs.User;
 using EducationManagement.BLL.Services;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
     [Route("api-edu/account-management")]
     public class UserAdminController : BaseController
     {
@@ -42,6 +43,7 @@ namespace EducationManagement.API.Admin.Controllers
 
         #region 🔹 GET: Danh sách + Chi tiết
         [HttpGet]
+        [RequirePermission("ADMIN_USERS")] // ✅ Permission từ database
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
@@ -89,6 +91,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
+        [RequirePermission("ADMIN_USERS")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
             var user = await _userRepository.GetByIdAsync(id);
@@ -129,6 +132,7 @@ namespace EducationManagement.API.Admin.Controllers
 
         #region 🔹 POST/PUT/DELETE: CRUD
         [HttpPost]
+        [RequirePermission("ADMIN_USERS")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] UserCreateDto request)
         {
             if (await _userRepository.ExistsByUsernameAsync(request.Username))
@@ -175,6 +179,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}")]
+        [RequirePermission("ADMIN_USERS")] // ✅ Permission từ database
         public async Task<IActionResult> Update(string id, [FromBody] UserUpdateAdminDto request)
         {
             var user = await _userRepository.GetByIdAsync(id);
@@ -222,6 +227,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpDelete("{id}")]
+        [RequirePermission("ADMIN_USERS")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id)
         {
             var user = await _userRepository.GetByIdAsync(id);
@@ -248,6 +254,7 @@ namespace EducationManagement.API.Admin.Controllers
 
         #region 🔹 PUT: Toggle trạng thái hoạt động
         [HttpPut("{id}/toggle-status")]
+        [RequirePermission("ADMIN_USERS")] // ✅ Permission từ database
         public async Task<IActionResult> ToggleStatus(string id)
         {
             var user = await _userRepository.GetByIdAsync(id);

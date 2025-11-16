@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -21,7 +22,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Advisor,Admin")]
+        [RequireAnyPermission("ADVISOR_GRADE_FORMULA", "ADMIN_GRADE_FORMULA")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] GradeFormulaConfigCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -43,7 +44,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Advisor,Admin")]
+        [RequireAnyPermission("ADVISOR_GRADE_FORMULA", "ADMIN_GRADE_FORMULA")] // ✅ Permission từ database
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
@@ -75,7 +76,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Advisor,Admin")]
+        [RequireAnyPermission("ADVISOR_GRADE_FORMULA", "ADMIN_GRADE_FORMULA")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
             try
@@ -97,7 +98,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("resolve")]
-        [Authorize(Roles = "Advisor,Admin,Lecturer")]
+        [RequireAnyPermission("ADVISOR_GRADE_FORMULA", "ADMIN_GRADE_FORMULA", "TCH_CLASSES")] // ✅ Permission từ database
         public async Task<IActionResult> GetByScope([FromQuery] GradeFormulaResolveRequestDto request)
         {
             try
@@ -117,7 +118,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Advisor,Admin")]
+        [RequireAnyPermission("ADVISOR_GRADE_FORMULA", "ADMIN_GRADE_FORMULA")] // ✅ Permission từ database
         public async Task<IActionResult> Update(string id, [FromBody] GradeFormulaConfigUpdateDto dto)
         {
             if (!ModelState.IsValid)
@@ -139,7 +140,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Advisor,Admin")]
+        [RequireAnyPermission("ADVISOR_GRADE_FORMULA", "ADMIN_GRADE_FORMULA")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id, [FromBody] DeleteConfigRequest request)
         {
             try

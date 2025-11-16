@@ -2,6 +2,7 @@ using EducationManagement.BLL.Services;
 using EducationManagement.Common.DTOs.Report;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -22,7 +23,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// GET /api-edu/reports/admin
         /// </summary>
         [HttpGet("admin")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_REPORTS")] // ✅ Permission từ database
         public async Task<IActionResult> GetAdminReports(
             [FromQuery] string? schoolYearId = null,
             [FromQuery] int? semester = null,
@@ -45,7 +46,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// GET /api-edu/reports/advisor
         /// </summary>
         [HttpGet("advisor")]
-        [Authorize(Roles = "Admin,Advisor")]
+        [RequireAnyPermission("ADVISOR_DASHBOARD", "ADMIN_REPORTS")] // ✅ Permission từ database
         public async Task<IActionResult> GetAdvisorReports(
             [FromQuery] string? schoolYearId = null,
             [FromQuery] int? semester = null,
@@ -70,7 +71,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// GET /api-edu/reports/lecturer
         /// </summary>
         [HttpGet("lecturer")]
-        [Authorize(Roles = "Admin,Lecturer")]
+        [RequireAnyPermission("TCH_CLASSES", "ADMIN_REPORTS")] // ✅ Permission từ database
         public async Task<IActionResult> GetLecturerReports(
             [FromQuery] string? schoolYearId = null,
             [FromQuery] int? semester = null,
@@ -92,7 +93,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// GET /api-edu/reports/student
         /// </summary>
         [HttpGet("student")]
-        [Authorize(Roles = "Admin,Student")]
+        [RequireAnyPermission("STUDENT_SECTION_STUDY", "ADMIN_REPORTS")] // ✅ Permission từ database
         public async Task<IActionResult> GetStudentReports(
             [FromQuery] string? schoolYearId = null,
             [FromQuery] int? semester = null)

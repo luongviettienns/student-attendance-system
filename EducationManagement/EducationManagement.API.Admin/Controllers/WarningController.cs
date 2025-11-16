@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -13,7 +14,7 @@ namespace EducationManagement.API.Admin.Controllers
     /// </summary>
     [ApiController]
     [Route("api-edu/warnings")]
-    [Authorize(Roles = "Admin,Advisor")]
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
     public class WarningController : ControllerBase
     {
         private readonly AdvisorService _advisorService;
@@ -27,6 +28,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Manual trigger: Check and send warnings for all students exceeding threshold
         /// </summary>
         [HttpPost("check-and-send")]
+        [RequireAnyPermission("ADVISOR_WARNINGS", "ADMIN_REPORTS")] // ✅ Permission từ database
         public async Task<IActionResult> CheckAndSendWarnings(
             [FromQuery] decimal? threshold = null,
             [FromQuery] string? classId = null,
@@ -111,6 +113,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Get list of students exceeding threshold (without sending email)
         /// </summary>
         [HttpGet("list")]
+        [RequireAnyPermission("ADVISOR_WARNINGS", "ADMIN_REPORTS")] // ✅ Permission từ database
         public async Task<IActionResult> GetWarningList(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50,
@@ -166,6 +169,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Send warning to specific students
         /// </summary>
         [HttpPost("send-to-students")]
+        [RequireAnyPermission("ADVISOR_WARNINGS", "ADMIN_REPORTS")] // ✅ Permission từ database
         public async Task<IActionResult> SendWarningsToStudents(
             [FromBody] SendWarningsRequest request)
         {

@@ -575,6 +575,39 @@ CREATE TABLE dbo.refresh_tokens (
 );
 GO
 
+-- ===========================================
+-- 20. BẢNG ADVISOR_WARNING_CONFIG (Cấu hình cảnh báo cho cố vấn học tập)
+-- ===========================================
+IF OBJECT_ID('dbo.advisor_warning_config', 'U') IS NOT NULL DROP TABLE dbo.advisor_warning_config;
+GO
+
+CREATE TABLE dbo.advisor_warning_config (
+    config_id             INT IDENTITY(1,1) PRIMARY KEY,
+    attendance_threshold  DECIMAL(5,2) NOT NULL DEFAULT 20.0 CHECK (attendance_threshold >= 0 AND attendance_threshold <= 100),
+    gpa_threshold         DECIMAL(4,2) NOT NULL DEFAULT 2.0 CHECK (gpa_threshold >= 0 AND gpa_threshold <= 10),
+    email_template        NVARCHAR(MAX) NULL,
+    email_subject         NVARCHAR(500) NULL,
+    auto_send_emails      BIT NOT NULL DEFAULT 0,
+    created_at            DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by            VARCHAR(50) NULL,
+    updated_at            DATETIME NULL,
+    updated_by            VARCHAR(50) NULL
+);
+GO
+
+-- Chỉ cho phép 1 bản ghi config duy nhất
+CREATE UNIQUE INDEX IX_AdvisorWarningConfig_Single ON dbo.advisor_warning_config(config_id);
+GO
+
+-- Insert default config nếu chưa có
+IF NOT EXISTS (SELECT 1 FROM dbo.advisor_warning_config)
+BEGIN
+    INSERT INTO dbo.advisor_warning_config (attendance_threshold, gpa_threshold, auto_send_emails)
+    VALUES (20.0, 2.0, 0);
+    PRINT '   ✅ Inserted default advisor warning config';
+END
+GO
+
 PRINT '✅ Đã tạo xong các bảng core system!';
 GO
 

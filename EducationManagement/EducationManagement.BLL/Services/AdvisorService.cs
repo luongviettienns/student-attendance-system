@@ -288,9 +288,8 @@ namespace EducationManagement.BLL.Services
             if (pageSize < 1) pageSize = 20;
             if (pageSize > 100) pageSize = 100;
 
-            // Get threshold from config or use default
-            var threshold = attendanceThreshold ?? 
-                decimal.Parse(_configuration["Advisor:WarningThresholds:Attendance"] ?? "20.0");
+            // Get threshold from parameter, database config, or default
+            var threshold = attendanceThreshold ?? await GetAttendanceThresholdAsync();
 
             try
             {
@@ -323,9 +322,8 @@ namespace EducationManagement.BLL.Services
             if (pageSize < 1) pageSize = 20;
             if (pageSize > 100) pageSize = 100;
 
-            // Get threshold from config or use default
-            var threshold = gpaThreshold ?? 
-                decimal.Parse(_configuration["Advisor:WarningThresholds:Gpa"] ?? "2.0");
+            // Get threshold from parameter, database config, or default
+            var threshold = gpaThreshold ?? await GetGpaThresholdAsync();
 
             try
             {
@@ -452,11 +450,27 @@ namespace EducationManagement.BLL.Services
         }
 
         /// <summary>
-        /// Get warning configuration
+        /// Get warning configuration from database with fallback to appsettings.json
         /// </summary>
-        public Task<WarningConfigDto> GetWarningConfigAsync()
+        public async Task<WarningConfigDto> GetWarningConfigAsync()
         {
-            var config = new WarningConfigDto
+            try
+            {
+                // Try to get config from database first
+                var dbConfig = await _advisorRepository.GetWarningConfigAsync();
+                
+                if (dbConfig != null)
+                {
+                    return dbConfig; // Return config from database
+                }
+            }
+            catch (Exception)
+            {
+                // If database read fails, fall back to appsettings.json
+            }
+
+            // Fallback to appsettings.json if database config doesn't exist
+            return new WarningConfigDto
             {
                 AttendanceThreshold = decimal.Parse(_configuration["Advisor:WarningThresholds:Attendance"] ?? "20.0"),
                 GpaThreshold = decimal.Parse(_configuration["Advisor:WarningThresholds:Gpa"] ?? "2.0"),
@@ -464,31 +478,65 @@ namespace EducationManagement.BLL.Services
                 EmailSubject = _configuration["Advisor:Email:Subject"],
                 AutoSendEmails = bool.Parse(_configuration["Advisor:Email:AutoSend"] ?? "false")
             };
-            return Task.FromResult(config);
         }
 
         /// <summary>
-        /// Update warning configuration (saved to appsettings.json - requires app restart)
-        /// Note: In production, consider using a database table for configuration
+        /// Helper method to get attendance threshold from database or config file
         /// </summary>
-        public async Task UpdateWarningConfigAsync(WarningConfigDto config)
+        private async Task<decimal> GetAttendanceThresholdAsync()
         {
-            // Note: This is a simplified implementation
-            // In production, you should save to a database table
-            // For now, we'll just validate the configuration
+            try
+            {
+                var config = await GetWarningConfigAsync();
+                return config.AttendanceThreshold;
+            }
+            catch (Exception)
+            {
+                return decimal.Parse(_configuration["Advisor:WarningThresholds:Attendance"] ?? "20.0");
+            }
+        }
+
+        /// <summary>
+        /// Helper method to get GPA threshold from database or config file
+        /// </summary>
+        private async Task<decimal> GetGpaThresholdAsync()
+        {
+            try
+            {
+                var config = await GetWarningConfigAsync();
+                return config.GpaThreshold;
+            }
+            catch (Exception)
+            {
+                return decimal.Parse(_configuration["Advisor:WarningThresholds:Gpa"] ?? "2.0");
+            }
+        }
+
+        /// <summary>
+        /// Update warning configuration (saved to database)
+        /// </summary>
+        public async Task UpdateWarningConfigAsync(WarningConfigDto config, string? updatedBy = null)
+        {
+            // Validate configuration
             if (config.AttendanceThreshold < 0 || config.AttendanceThreshold > 100)
             {
-                throw new ArgumentException("Attendance threshold must be between 0 and 100", nameof(config));
+                throw new ArgumentException("Ngưỡng cảnh báo điểm danh phải nằm trong khoảng 0-100%", nameof(config));
             }
 
             if (config.GpaThreshold < 0 || config.GpaThreshold > 10)
             {
-                throw new ArgumentException("GPA threshold must be between 0 and 10", nameof(config));
+                throw new ArgumentException("Ngưỡng cảnh báo GPA phải nằm trong khoảng 0-10", nameof(config));
             }
 
-            // In a real implementation, you would update the configuration file or database
-            // For now, we'll just return success after validation
-            await Task.CompletedTask;
+            try
+            {
+                // Save to database
+                await _advisorRepository.UpdateWarningConfigAsync(config, updatedBy);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi cập nhật cấu hình: {ex.Message}", ex);
+            }
         }
 
         /// <summary>
@@ -511,9 +559,16 @@ namespace EducationManagement.BLL.Services
                 if (!absenceRate.HasValue)
                     return; // No attendance data yet
 
-                // 2. Get threshold from config (default 20%)
-                var threshold = decimal.Parse(_configuration["Advisor:WarningThresholds:Attendance"] ?? "20.0");
+                // 2. Get threshold from config (database with fallback to appsettings.json)
+                var threshold = await GetAttendanceThresholdAsync();
                 var minDaysBetweenWarnings = int.Parse(_configuration["Advisor:WarningSettings:MinDaysBetweenWarnings"] ?? "7");
+                
+                // Check if auto-send is enabled
+                var config = await GetWarningConfigAsync();
+                if (!config.AutoSendEmails)
+                {
+                    return; // Auto-send is disabled, don't send warning
+                }
 
                 // 3. Check if exceeds threshold
                 if (absenceRate.Value > threshold)

@@ -4,11 +4,12 @@ using EducationManagement.Common.Models;
 using EducationManagement.Common.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using EducationManagement.BLL.Services;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
     [Route("api-edu/departments")]
     public class DepartmentController : BaseController
     {
@@ -23,6 +24,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 GET: Lấy danh sách tất cả bộ môn với pagination
         // ============================================================
         [HttpGet]
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
@@ -52,6 +54,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 GET: Lấy bộ môn theo ID
         // ============================================================
         [HttpGet("{id}")]
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
             try
@@ -90,6 +93,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 POST: Tạo bộ môn mới
         // ============================================================
         [HttpPost]
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] Department model)
         {
             if (!ModelState.IsValid)
@@ -131,6 +135,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 PUT: Cập nhật bộ môn
         // ============================================================
         [HttpPut("{id}")]
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Update(string id, [FromBody] Department model)
         {
             if (id != model.DepartmentId)
@@ -167,6 +172,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 DELETE: Xóa bộ môn (soft delete)
         // ============================================================
         [HttpDelete("{id}")]
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id)
         {
             try

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using EducationManagement.BLL.Services;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -71,7 +72,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Gửi cảnh báo vắng học
         /// </summary>
         [HttpPost("attendance-warning")]
-        [Authorize(Roles = "Admin,Lecturer")]
+        [RequireAnyPermission("TCH_CLASSES", "ADVISOR_WARNINGS", "ADMIN_REPORTS")] // ✅ Permission từ database
         public async Task<IActionResult> SendAttendanceWarning([FromBody] AttendanceWarningRequest request)
         {
             try
@@ -94,7 +95,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Gửi thông báo điểm
         /// </summary>
         [HttpPost("grade-notification")]
-        [Authorize(Roles = "Admin,Lecturer")]
+        [RequireAnyPermission("TCH_CLASSES", "ADMIN_STUDENTS")] // ✅ Permission từ database
         public async Task<IActionResult> SendGradeNotification([FromBody] GradeNotificationRequest request)
         {
             try

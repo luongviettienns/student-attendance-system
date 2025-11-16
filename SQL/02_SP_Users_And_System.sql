@@ -625,12 +625,18 @@ CREATE PROCEDURE sp_GetUserByUsername
     @Username VARCHAR(50)
 AS
 BEGIN
-    -- ✅ FIX: Case-insensitive comparison (code normalize to lowercase)
+    SET NOCOUNT ON;
+    
+    -- ✅ PERFORMANCE: Normalize username in parameter (not in query) to allow index usage
+    -- Username should already be normalized to lowercase in code, but ensure here
+    DECLARE @NormalizedUsername VARCHAR(50) = LOWER(LTRIM(RTRIM(@Username)));
+    
+    -- ✅ OPTIMIZED: Direct comparison without LOWER() to use index efficiently
     SELECT u.user_id, u.username, u.password_hash, u.full_name, u.email, 
            u.phone, u.role_id, r.role_name, u.avatar_url, u.is_active, u.last_login_at
     FROM dbo.users u
     LEFT JOIN dbo.roles r ON u.role_id = r.role_id
-    WHERE LOWER(u.username) = LOWER(@Username) AND u.deleted_at IS NULL;
+    WHERE u.username = @NormalizedUsername AND u.deleted_at IS NULL;
 END
 GO
 

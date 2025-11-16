@@ -3,6 +3,7 @@ using EducationManagement.BLL.Services;
 using EducationManagement.Common.Models;
 using EducationManagement.Common.Helpers;
 using Microsoft.AspNetCore.Authorization;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -19,7 +20,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
@@ -46,7 +47,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
             var item = await _service.GetByIdAsync(id);
@@ -56,7 +57,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được tạo
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] Faculty f)
         {
             try
@@ -109,7 +110,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được cập nhật
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Update(string id, [FromBody] Faculty f)
         {
             if (string.IsNullOrWhiteSpace(id))
@@ -171,7 +172,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được xóa
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id)
         {
             var faculty = await _service.GetByIdAsync(id);

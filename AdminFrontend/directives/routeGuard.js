@@ -44,8 +44,9 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
         }
         
         // ✅ Redirect non-Admin users away from admin-only routes
-        var adminOnlyRoutes = ['/dashboard', '/users', '/roles', '/audit-logs'];
-        if (role !== 'Admin' && adminOnlyRoutes.some(function(route) { return path === route || path.startsWith(route + '/'); })) {
+        // Advisor có quyền truy cập một số route admin (do gộp với Support)
+        var adminOnlyRoutes = ['/users', '/roles'];
+        if (role !== 'Admin' && role !== 'Advisor' && adminOnlyRoutes.some(function(route) { return path === route || path.startsWith(route + '/'); })) {
             event.preventDefault();
             var defaultRoute = getDefaultRouteForRole(role);
             $location.path(defaultRoute);
@@ -87,13 +88,20 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
                 return;
             }
         } else if (role === 'Advisor') {
-            // For Advisor, allow route if:
+            // For Advisor (gộp với Support), allow route if:
             // 1. It's a valid advisor route (starts with /advisor/ or /notifications) - CHECK THIS FIRST
-            // 2. It's in allowed routes (from menu or fallback)
+            // 2. It's a Support route (dashboard, registration-periods, enrollments, audit-logs)
+            // 3. It's in allowed routes (from menu or fallback)
             // This prevents "no permission" errors when menu items are still loading
             var isAdvisorRoute = path.startsWith('/advisor/') ||
                                  path.startsWith('/notifications') ||
                                  path === '/login';
+            
+            // Routes mà Support có quyền (giờ Advisor cũng có)
+            var isSupportRoute = path === '/dashboard' ||
+                                 path.startsWith('/registration-periods') ||
+                                 path.startsWith('/enrollments') ||
+                                 path.startsWith('/audit-logs');
             
             // ✅ Auto-redirect from root path to advisor dashboard
             if (path === '/') {
@@ -102,12 +110,12 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
                 return;
             }
             
-            // ✅ Allow advisor routes immediately (don't wait for menu to load)
-            if (isAdvisorRoute) {
+            // ✅ Allow advisor routes and support routes immediately (don't wait for menu to load)
+            if (isAdvisorRoute || isSupportRoute) {
                 return; // Allow access
             }
             
-            // If not an advisor route, check if it's in allowed routes
+            // If not an advisor/support route, check if it's in allowed routes
             var isAllowed = RoleService.isRouteAllowed(path);
             if (!isAllowed) {
                 event.preventDefault();

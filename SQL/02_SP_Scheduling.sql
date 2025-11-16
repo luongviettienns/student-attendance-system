@@ -808,7 +808,9 @@ BEGIN
             rp.period_id,
             rp.period_name,
             rp.academic_year_id,
-            ay.year_name,
+            ay.year_name AS academic_year_name,
+            ay.start_year,
+            ay.end_year,
             rp.semester,
             rp.start_date,
             rp.end_date,
@@ -819,6 +821,12 @@ BEGIN
             rp.created_by,
             rp.updated_at,
             rp.updated_by,
+            (SELECT COUNT(*) FROM enrollments e WHERE e.enrollment_status = 'APPROVED' AND EXISTS (
+                SELECT 1 FROM period_classes pc WHERE pc.period_id = rp.period_id AND pc.class_id = e.class_id AND pc.deleted_at IS NULL
+            )) AS total_enrollments,
+            (SELECT COUNT(DISTINCT e.student_id) FROM enrollments e WHERE e.enrollment_status = 'APPROVED' AND EXISTS (
+                SELECT 1 FROM period_classes pc WHERE pc.period_id = rp.period_id AND pc.class_id = e.class_id AND pc.deleted_at IS NULL
+            )) AS total_students_enrolled,
             DATEDIFF(DAY, rp.start_date, rp.end_date) AS duration_days,
             CASE 
                 WHEN GETDATE() < rp.start_date THEN DATEDIFF(DAY, GETDATE(), rp.start_date)
@@ -1386,12 +1394,23 @@ BEGIN
             rp.period_id,
             rp.period_name,
             rp.academic_year_id,
-            ay.year_name,
+            ay.year_name AS academic_year_name,
+            ay.start_year,
+            ay.end_year,
             rp.semester,
             rp.start_date,
             rp.end_date,
             rp.status,
             rp.description,
+            rp.is_active,
+            rp.created_at,
+            rp.created_by,
+            (SELECT COUNT(*) FROM enrollments e WHERE e.enrollment_status = 'APPROVED' AND EXISTS (
+                SELECT 1 FROM period_classes pc WHERE pc.period_id = rp.period_id AND pc.class_id = e.class_id AND pc.deleted_at IS NULL
+            )) AS total_enrollments,
+            (SELECT COUNT(DISTINCT e.student_id) FROM enrollments e WHERE e.enrollment_status = 'APPROVED' AND EXISTS (
+                SELECT 1 FROM period_classes pc WHERE pc.period_id = rp.period_id AND pc.class_id = e.class_id AND pc.deleted_at IS NULL
+            )) AS total_students_enrolled,
             DATEDIFF(DAY, GETDATE(), rp.end_date) AS days_remaining
         FROM registration_periods rp
         LEFT JOIN academic_years ay ON rp.academic_year_id = ay.academic_year_id
@@ -1628,7 +1647,9 @@ BEGIN
             rp.period_id,
             rp.period_name,
             rp.academic_year_id,
-            ay.year_name,
+            ay.year_name AS academic_year_name,
+            ay.start_year,
+            ay.end_year,
             rp.semester,
             rp.start_date,
             rp.end_date,
@@ -1637,6 +1658,12 @@ BEGIN
             rp.is_active,
             rp.created_at,
             rp.created_by,
+            (SELECT COUNT(*) FROM enrollments e WHERE e.enrollment_status = 'APPROVED' AND EXISTS (
+                SELECT 1 FROM period_classes pc WHERE pc.period_id = rp.period_id AND pc.class_id = e.class_id AND pc.deleted_at IS NULL
+            )) AS total_enrollments,
+            (SELECT COUNT(DISTINCT e.student_id) FROM enrollments e WHERE e.enrollment_status = 'APPROVED' AND EXISTS (
+                SELECT 1 FROM period_classes pc WHERE pc.period_id = rp.period_id AND pc.class_id = e.class_id AND pc.deleted_at IS NULL
+            )) AS total_students_enrolled,
             CASE 
                 WHEN rp.status = 'OPEN' THEN 1
                 WHEN GETDATE() < rp.start_date THEN 2

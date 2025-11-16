@@ -2,6 +2,7 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
 using Scrutor;
@@ -38,7 +39,7 @@ builder.Services.Scan(scan => scan
 
 // ✅ Explicit registration for IRefreshTokenStore (DATABASE storage - SCALABLE!)
 // ❌ REMOVED: InMemoryRefreshTokenStore (not scalable for production)
-builder.Services.AddScoped<EducationManagement.BLL.Services.IRefreshTokenStore, 
+builder.Services.AddScoped<EducationManagement.BLL.Services.IRefreshTokenStore,
     EducationManagement.BLL.Services.DatabaseRefreshTokenStore>();
 
 // ✅ Register SignalR Notification Hub Context (for real-time notifications)
@@ -117,7 +118,7 @@ builder.Services.AddRateLimiter(options =>
                 QueueLimit = 0
             });
     });
-    
+
     // Stricter rate limit for login endpoint - 5 requests per 15 minutes per IP
     options.AddPolicy("login", context =>
         RateLimitPartition.GetFixedWindowLimiter(
@@ -129,7 +130,7 @@ builder.Services.AddRateLimiter(options =>
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0
             }));
-    
+
     // Rejection response
     options.OnRejected = async (context, token) =>
     {
@@ -138,8 +139,8 @@ builder.Services.AddRateLimiter(options =>
         {
             error = "Too many requests",
             message = "Rate limit exceeded. Please try again later.",
-            retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter) 
-                ? (double?)retryAfter.TotalSeconds 
+            retryAfter = context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
+                ? (double?)retryAfter.TotalSeconds
                 : (double?)null
         }, cancellationToken: token);
     };
@@ -193,6 +194,79 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         // ✅ Cho phép Gateway (HTTPS) gọi tới Admin API (HTTP)
         options.RequireHttpsMetadata = false;
         options.SaveToken = true;
+        
+        // ✅ QUAN TRỌNG: Không tự động challenge khi không có token
+        // Cho phép anonymous requests tiếp tục
+        options.Challenge = "Bearer";
+        options.Events = new JwtBearerEvents
+        {
+            // ✅ Khi không có token hoặc token invalid, KHÔNG challenge
+            // Cho phép request tiếp tục - authorization middleware sẽ quyết định
+            OnChallenge = context =>
+            {
+                var path = context.HttpContext.Request.Path.Value ?? "";
+                var endpoint = context.HttpContext.GetEndpoint();
+                var hasAllowAnonymous = endpoint?.Metadata.GetMetadata<AllowAnonymousAttribute>() != null;
+                
+                // ✅ QUAN TRỌNG: Kiểm tra path trực tiếp vì endpoint metadata có thể chưa được load
+                var isAuthPath = path.StartsWith("/api-edu/auth", StringComparison.OrdinalIgnoreCase);
+                
+                // 🔍 DEBUG LOG
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"[JWT OnChallenge] Path: {path}");
+                Console.WriteLine($"[JWT OnChallenge] Endpoint: {endpoint?.DisplayName ?? "null"}");
+                Console.WriteLine($"[JWT OnChallenge] HasAllowAnonymous: {hasAllowAnonymous}");
+                Console.WriteLine($"[JWT OnChallenge] IsAuthPath: {isAuthPath}");
+                Console.WriteLine($"[JWT OnChallenge] Error: {context.Error}");
+                Console.WriteLine($"[JWT OnChallenge] ErrorDescription: {context.ErrorDescription}");
+                Console.ResetColor();
+                
+                // ✅ Nếu endpoint có [AllowAnonymous] HOẶC là auth path, SKIP challenge hoàn toàn
+                if (hasAllowAnonymous || isAuthPath)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"[JWT OnChallenge] ✅ Skipping challenge for anonymous endpoint: {path}");
+                    Console.ResetColor();
+                    // ✅ QUAN TRỌNG: Handle response để skip challenge, nhưng không block request
+                    context.HandleResponse();
+                    return Task.CompletedTask;
+                }
+                
+                // Endpoint yêu cầu authentication - thực hiện challenge bình thường
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[JWT OnChallenge] ❌ Challenging for protected endpoint: {path}");
+                Console.ResetColor();
+                return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = context =>
+            {
+                var path = context.HttpContext.Request.Path.Value ?? "";
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[JWT OnAuthenticationFailed] Path: {path}");
+                Console.WriteLine($"[JWT OnAuthenticationFailed] Exception: {context.Exception?.Message}");
+                Console.ResetColor();
+                
+                // ✅ KHÔNG tự động challenge - để authorization middleware quyết định
+                context.NoResult();
+                return Task.CompletedTask;
+            },
+            // ✅ SignalR: Đọc JWT token từ query string (access_token)
+            OnMessageReceived = context =>
+            {
+                // SignalR gửi token qua query string, không phải header
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+
+                // Chỉ áp dụng cho SignalR hub endpoints
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notificationHub"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
+        
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -202,34 +276,26 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidIssuer = jwtSection["Issuer"],
             ValidAudience = jwtSection["Audience"],
             IssuerSigningKey = key,
-            ClockSkew = TimeSpan.Zero
-        };
-
-        // ✅ JWT Events (chỉ log lỗi, không log mỗi lần validate)
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = context =>
-            {
-                return Task.CompletedTask;
-            },
-            // ✅ SignalR: Đọc JWT token từ query string (access_token)
-            OnMessageReceived = context =>
-            {
-                // SignalR gửi token qua query string, không phải header
-                var accessToken = context.Request.Query["access_token"];
-                var path = context.HttpContext.Request.Path;
-                
-                // Chỉ áp dụng cho SignalR hub endpoints
-                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/notificationHub"))
-                {
-                    context.Token = accessToken;
-                }
-                
-                return Task.CompletedTask;
-            }
-            // Tắt OnTokenValidated để tránh log quá nhiều
+            ClockSkew = TimeSpan.Zero,
+            // ✅ QUAN TRỌNG: Cho phép authentication scheme thành công ngay cả khi không có token
+            // Không throw exception khi không có token
+            RequireSignedTokens = true
         };
     });
+
+// ✅ Cấu hình Authorization để cho phép anonymous mặc định
+// ✅ Register PermissionAuthorizationHandler
+builder.Services.AddScoped<IAuthorizationHandler, EducationManagement.API.Admin.Authorization.PermissionAuthorizationHandler>();
+
+// ✅ Register PermissionPolicyProvider để tạo policy động cho permissions
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, EducationManagement.API.Admin.Authorization.PermissionPolicyProvider>();
+
+builder.Services.AddAuthorization(options =>
+{
+    // ✅ Default policy: Cho phép anonymous nếu không có [Authorize]
+    // Chỉ yêu cầu authentication nếu có [Authorize] attribute
+    options.FallbackPolicy = null; // Cho phép anonymous mặc định
+});
 
 // ============================================================
 // 🔹 5️⃣ Build app
@@ -277,8 +343,48 @@ app.UseRateLimiter();
 // ⚠️ Không redirect HTTPS (Gateway đã xử lý SSL termination)
 // app.UseHttpsRedirection(); // DISABLED
 
+// ✅ DEBUG: Middleware để log request flow
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? "";
+    if (path.StartsWith("/api-edu/auth"))
+    {
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine($"[Middleware] Request: {context.Request.Method} {path}");
+        Console.WriteLine($"[Middleware] Has Authorization Header: {context.Request.Headers.ContainsKey("Authorization")}");
+        Console.ResetColor();
+    }
+    await next();
+    if (path.StartsWith("/api-edu/auth"))
+    {
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine($"[Middleware] Response: {context.Response.StatusCode} for {path}");
+        Console.ResetColor();
+    }
+});
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+// ✅ DEBUG: Log sau authentication/authorization
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? "";
+    if (path.StartsWith("/api-edu/auth"))
+    {
+        var endpoint = context.GetEndpoint();
+        var hasAllowAnonymous = endpoint?.Metadata.GetMetadata<AllowAnonymousAttribute>() != null;
+        var isAuthenticated = context.User?.Identity?.IsAuthenticated ?? false;
+        
+        Console.ForegroundColor = ConsoleColor.Magenta;
+        Console.WriteLine($"[After Auth] Path: {path}");
+        Console.WriteLine($"[After Auth] Endpoint: {endpoint?.DisplayName ?? "null"}");
+        Console.WriteLine($"[After Auth] HasAllowAnonymous: {hasAllowAnonymous}");
+        Console.WriteLine($"[After Auth] IsAuthenticated: {isAuthenticated}");
+        Console.ResetColor();
+    }
+    await next();
+});
 
 // ✅ Swagger - chỉ bật trong Development
 if (app.Environment.IsDevelopment())

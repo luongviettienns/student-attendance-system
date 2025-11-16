@@ -3,6 +3,7 @@ using EducationManagement.Common.DTOs.Enrollment;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -22,6 +23,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 1️⃣ GET ALL
         // ============================================================
         [HttpGet]
+        [RequireAnyPermission("ADMIN_ENROLLMENTS", "ADVISOR_ENROLLMENTS")] // ✅ Permission từ database (Admin hoặc Advisor)
         public async Task<IActionResult> GetAll()
         {
             try
@@ -44,6 +46,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 2️⃣ GET BY ID
         // ============================================================
         [HttpGet("{id}")]
+        [RequireAnyPermission("ADMIN_ENROLLMENTS", "ADV_ENROLLMENTS")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
             try
@@ -139,7 +142,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 6️⃣ APPROVE (Admin & Advisor)
         // ============================================================
         [HttpPost("{id}/approve")]
-        [Authorize(Roles = "Admin,Advisor")]
+        [RequireAnyPermission("ADMIN_ENROLLMENTS", "ADV_ENROLLMENTS")] // ✅ Permission từ database
         public async Task<IActionResult> Approve(string id)
         {
             try
@@ -189,7 +192,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 8️⃣ WITHDRAW (Admin Only)
         // ============================================================
         [HttpPost("{id}/withdraw")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_ENROLLMENTS")] // ✅ Permission từ database
         public async Task<IActionResult> Withdraw(string id, [FromBody] WithdrawEnrollmentDto dto)
         {
             if (!ModelState.IsValid)
@@ -261,7 +264,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 1️⃣1️⃣ GET PENDING ENROLLMENTS (Admin & Advisor)
         // ============================================================
         [HttpGet("pending")]
-        [Authorize(Roles = "Admin,Advisor")]
+        [RequireAnyPermission("ADMIN_ENROLLMENTS", "ADV_ENROLLMENTS")] // ✅ Permission từ database
         public async Task<IActionResult> GetPendingEnrollments(
             [FromQuery] string? studentId = null,
             [FromQuery] string? classId = null,

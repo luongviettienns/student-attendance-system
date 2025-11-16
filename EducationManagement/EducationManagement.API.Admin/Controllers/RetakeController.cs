@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -27,7 +28,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Create retake record manually
         /// </summary>
         [HttpPost]
-        [Authorize(Roles = "Admin,Advisor")]
+        [RequireAnyPermission("ADVISOR_STUDENTS", "ADMIN_STUDENTS")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] RetakeRecordCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -52,6 +53,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Get retake record by ID
         /// </summary>
         [HttpGet("{id}")]
+        [RequireAnyPermission("ADVISOR_STUDENTS", "ADMIN_STUDENTS", "STUDENT_SECTION_STUDY")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
             try
@@ -76,7 +78,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Get retake records by student ID
         /// </summary>
         [HttpGet("student/{studentId}")]
-        [Authorize(Roles = "Student,Admin,Advisor")]
+        [RequireAnyPermission("ADVISOR_STUDENTS", "ADMIN_STUDENTS", "STUDENT_SECTION_STUDY")] // ✅ Permission từ database
         public async Task<IActionResult> GetByStudent(
             string studentId,
             [FromQuery] string? status = null,
@@ -123,7 +125,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Get retake records by class ID
         /// </summary>
         [HttpGet("class/{classId}")]
-        [Authorize(Roles = "Admin,Advisor,Lecturer")]
+        [RequireAnyPermission("ADVISOR_STUDENTS", "ADMIN_STUDENTS", "TCH_CLASSES")] // ✅ Permission từ database
         public async Task<IActionResult> GetByClass(
             string classId,
             [FromQuery] string? status = null,
@@ -161,7 +163,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Update retake status (approve/reject)
         /// </summary>
         [HttpPut("{id}/status")]
-        [Authorize(Roles = "Admin,Advisor")]
+        [RequireAnyPermission("ADVISOR_STUDENTS", "ADMIN_STUDENTS")] // ✅ Permission từ database
         public async Task<IActionResult> UpdateStatus(string id, [FromBody] RetakeRecordUpdateDto dto)
         {
             if (!ModelState.IsValid)
@@ -189,7 +191,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Get all retake records (for admin/advisor)
         /// </summary>
         [HttpGet]
-        [Authorize(Roles = "Admin,Advisor")]
+        [RequireAnyPermission("ADVISOR_STUDENTS", "ADMIN_STUDENTS")] // ✅ Permission từ database
         public async Task<IActionResult> GetAll(
             [FromQuery] string? studentId = null,
             [FromQuery] string? classId = null,

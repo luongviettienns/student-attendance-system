@@ -289,17 +289,37 @@
     color: white;
 }
 
-/* Đảm bảo tất cả h1, h2, h3 trong card-header có màu trắng */
+/* Đảm bảo h1, h2, h3 trong card-header có màu mặc định */
 .card-header h1,
 .card-header h2,
 .card-header h3 {
-    color: #ffffff !important;
+    color: var(--text-primary);
     margin: 0;
 }
 
 .card-header h1 i,
 .card-header h2 i,
 .card-header h3 i {
+    color: var(--text-primary);
+    opacity: 0.9;
+}
+
+/* Chỉ khi card-header có background gradient/màu đậm thì mới dùng màu trắng */
+.card-header[style*="background"] h1,
+.card-header[style*="background"] h2,
+.card-header[style*="background"] h3,
+.card-header[class*="bg-"] h1,
+.card-header[class*="bg-"] h2,
+.card-header[class*="bg-"] h3 {
+    color: #ffffff !important;
+}
+
+.card-header[style*="background"] h1 i,
+.card-header[style*="background"] h2 i,
+.card-header[style*="background"] h3 i,
+.card-header[class*="bg-"] h1 i,
+.card-header[class*="bg-"] h2 i,
+.card-header[class*="bg-"] h3 i {
     color: white !important;
     opacity: 0.9;
 }
@@ -309,6 +329,7 @@
     font-weight: 600;
     margin: 0;
     letter-spacing: -0.01em;
+    color: var(--text-primary);
 }
 
 .card-actions {
@@ -1366,8 +1387,17 @@ input[type="radio"] {
    AVATAR CHANGE MODAL
    ============================================== */
 
-/* ✅ Override modal-overlay for avatar-modal */
+/* ✅ Override modal-overlay for avatar-modal - ONLY show when active */
 .avatar-modal.modal-overlay {
+    /* Default: Hidden */
+    display: none !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
+/* ✅ Ensure avatar-modal shows ONLY when active class is present */
+.avatar-modal.modal-overlay.active {
     display: flex !important;
     align-items: center;
     justify-content: center;
@@ -1376,14 +1406,6 @@ input[type="radio"] {
     visibility: visible !important;
     pointer-events: auto !important;
     z-index: 9999 !important;
-}
-
-/* ✅ Ensure avatar-modal shows when active */
-.avatar-modal.modal-overlay.active {
-    display: flex !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
 }
 
 .avatar-modal .modal {
@@ -1429,6 +1451,24 @@ input[type="radio"] {
     cursor: pointer !important;
     z-index: 10001 !important;
     position: relative !important;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* ✅ Ensure modal-close button is always clickable in avatar modal */
+.avatar-modal .modal-header .modal-close {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    z-index: 10002 !important;
+    position: relative !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.avatar-modal .modal-header .modal-close:active {
+    transform: scale(0.95);
 }
 
 @keyframes fadeIn {

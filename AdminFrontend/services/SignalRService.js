@@ -22,16 +22,24 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
             return Promise.reject('No token available');
         }
         
-        // Get API base URL - SignalR hub is at root, not /api-edu
-        // Extract base URL from API_CONFIG.BASE_URL (remove /api-edu)
-        var apiBaseUrl = 'http://localhost:5227'; // Default
+        // Get API base URL - SignalR hub needs direct connection (not via Gateway)
+        // SignalR uses WebSocket which needs direct connection to Admin API
+        // Gateway is only for HTTP REST APIs
+        var apiBaseUrl = 'http://localhost:5227'; // Default: Direct to Admin API
         try {
             // Try to get from API_CONFIG if available
             var injector = angular.injector(['ng', 'adminApp']);
             var API_CONFIG = injector.get('API_CONFIG');
             if (API_CONFIG && API_CONFIG.BASE_URL) {
-                // Remove /api-edu suffix if present
-                apiBaseUrl = API_CONFIG.BASE_URL.replace('/api-edu', '');
+                // If using Gateway, SignalR still needs direct connection to Admin API
+                // Gateway URL (https://localhost:7033) -> Admin API (http://localhost:5227)
+                if (API_CONFIG.BASE_URL.includes('localhost:7033')) {
+                    // Using Gateway - SignalR connects directly to Admin API
+                    apiBaseUrl = 'http://localhost:5227';
+                } else {
+                    // Not using Gateway - use API_CONFIG directly
+                    apiBaseUrl = API_CONFIG.BASE_URL.replace('/api-edu', '');
+                }
             }
         } catch (e) {
             // Fallback to default

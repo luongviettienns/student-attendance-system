@@ -2,6 +2,7 @@
 using EducationManagement.BLL.Services;
 using EducationManagement.Common.Models;
 using Microsoft.AspNetCore.Authorization;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -22,7 +23,7 @@ namespace EducationManagement.API.Admin.Controllers
         // ============================================================
 
         [HttpGet]
-        [Authorize(Roles = "Admin,Student,Lecturer")] // ✅ Cho phép tất cả roles đã authenticated
+        [RequirePermission("ADMIN_ACADEMIC_YEARS")] // ✅ Kiểm tra permission từ database thay vì hardcode roles
         public async Task<IActionResult> GetAll()
         {
             try
@@ -37,7 +38,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin,Student,Lecturer")] // ✅ Cho phép tất cả roles đã authenticated
+        [RequirePermission("ADMIN_ACADEMIC_YEARS")] // ✅ Kiểm tra permission từ database thay vì hardcode roles
         public async Task<IActionResult> GetById(string id)
         {
             try

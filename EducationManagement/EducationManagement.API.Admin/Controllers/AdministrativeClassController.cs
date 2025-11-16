@@ -3,6 +3,7 @@ using EducationManagement.Common.DTOs.AdministrativeClass;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -22,6 +23,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 1️⃣ GET ALL with Pagination & Filters
         // ============================================================
         [HttpGet]
+        [RequirePermission("ADMIN_SECTION_CLASSES")] // ✅ Section permission vừa là menu vừa là quyền quản lý
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
@@ -55,6 +57,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 2️⃣ GET BY ID
         // ============================================================
         [HttpGet("{id}")]
+        [RequirePermission("ADMIN_SECTION_CLASSES")] // ✅ Section permission vừa là menu vừa là quyền quản lý
         public async Task<IActionResult> GetById(string id)
         {
             try
@@ -75,6 +78,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 3️⃣ GET STUDENTS BY CLASS
         // ============================================================
         [HttpGet("{id}/students")]
+        [RequirePermission("ADMIN_SECTION_CLASSES")] // ✅ Section permission vừa là menu vừa là quyền quản lý
         public async Task<IActionResult> GetStudents(string id)
         {
             try
@@ -92,6 +96,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 4️⃣ GET CLASS REPORT
         // ============================================================
         [HttpGet("{id}/report")]
+        [RequirePermission("ADMIN_SECTION_CLASSES")] // ✅ Section permission vừa là menu vừa là quyền quản lý
         public async Task<IActionResult> GetReport(
             string id,
             [FromQuery] int? semester = null,
@@ -115,7 +120,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 5️⃣ CREATE (Admin Only)
         // ============================================================
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_SECTION_CLASSES")] // ✅ Section permission vừa là menu vừa là quyền quản lý
         public async Task<IActionResult> Create([FromBody] CreateAdminClassDto dto)
         {
             if (!ModelState.IsValid)
@@ -147,7 +152,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 6️⃣ UPDATE (Admin Only)
         // ============================================================
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_SECTION_CLASSES")] // ✅ Section permission vừa là menu vừa là quyền quản lý
         public async Task<IActionResult> Update(string id, [FromBody] UpdateAdminClassDto dto)
         {
             if (!ModelState.IsValid)
@@ -174,7 +179,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 7️⃣ DELETE (Admin Only)
         // ============================================================
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_SECTION_CLASSES")] // ✅ Section permission vừa là menu vừa là quyền quản lý
         public async Task<IActionResult> Delete(string id)
         {
             try
@@ -198,7 +203,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 8️⃣ ASSIGN STUDENTS (Admin Only)
         // ============================================================
         [HttpPost("{id}/assign-students")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_SECTION_CLASSES")] // ✅ Section permission vừa là menu vừa là quyền quản lý
         public async Task<IActionResult> AssignStudents(string id, [FromBody] AssignStudentsDto dto)
         {
             if (!ModelState.IsValid)
@@ -229,7 +234,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 9️⃣ REMOVE STUDENT (Admin Only)
         // ============================================================
         [HttpDelete("{classId}/students/{studentId}")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_SECTION_CLASSES")] // ✅ Section permission vừa là menu vừa là quyền quản lý
         public async Task<IActionResult> RemoveStudent(string classId, string studentId)
         {
             try

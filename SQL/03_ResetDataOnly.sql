@@ -116,7 +116,7 @@ INSERT INTO dbo.roles (role_id, role_name, description, is_active) VALUES
 ('ROLE_ADMIN', N'Admin', N'Quản trị viên hệ thống', 1),
 ('ROLE_LECTURER', N'Lecturer', N'Giảng viên', 1),
 ('ROLE_STUDENT', N'Student', N'Sinh viên', 1),
-('ROLE_ADVISOR', N'Advisor', N'Cố vấn học tập', 1);
+('ROLE_ADVISOR', N'Advisor', N'Cố vấn học tập & Nhân viên phòng đào tạo', 1);
 
 PRINT '   ✅ 4 roles created';
 GO

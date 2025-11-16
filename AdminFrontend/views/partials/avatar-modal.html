@@ -1,9 +1,9 @@
 <!-- Avatar Change Modal -->
-<div class="modal-overlay avatar-modal" ng-if="avatarModal.show" ng-click="closeAvatarModal()">
+<div class="modal-overlay avatar-modal" ng-if="avatarModal.show" ng-click="closeAvatarModal($event)">
     <div class="modal" ng-click="$event.stopPropagation()">
         <div class="modal-header">
             <h3 class="modal-title"><i class="fas fa-user-circle"></i> Thay đổi ảnh đại diện</h3>
-            <button class="modal-close" ng-click="closeAvatarModal()">
+            <button class="modal-close" ng-click="closeAvatarModal($event)" type="button" aria-label="Đóng modal">
                 <i class="fas fa-times"></i>
             </button>
         </div>
@@ -64,7 +64,7 @@
         </div>
         
         <div class="modal-footer">
-            <button class="btn btn-outline" ng-click="closeAvatarModal()" ng-disabled="avatarModal.uploading">
+            <button class="btn btn-outline" ng-click="closeAvatarModal($event)" ng-disabled="avatarModal.uploading" type="button">
                 Hủy
             </button>
             <button class="btn btn-primary" 

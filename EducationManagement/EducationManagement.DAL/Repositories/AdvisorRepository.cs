@@ -1105,6 +1105,132 @@ namespace EducationManagement.DAL.Repositories
 
             return null;
         }
+
+        /// <summary>
+        /// Get warning configuration from database
+        /// Returns null if not found (will use appsettings.json as fallback)
+        /// </summary>
+        public async Task<WarningConfigDto?> GetWarningConfigAsync()
+        {
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                using var cmd = new SqlCommand(@"
+                    SELECT TOP 1
+                        attendance_threshold,
+                        gpa_threshold,
+                        email_template,
+                        email_subject,
+                        auto_send_emails
+                    FROM dbo.advisor_warning_config
+                    ORDER BY config_id DESC
+                ", conn);
+
+                using var reader = await cmd.ExecuteReaderAsync();
+                
+                if (await reader.ReadAsync())
+                {
+                    return new WarningConfigDto
+                    {
+                        AttendanceThreshold = reader.GetDecimal(0),
+                        GpaThreshold = reader.GetDecimal(1),
+                        EmailTemplate = reader.IsDBNull(2) ? null : reader.GetString(2),
+                        EmailSubject = reader.IsDBNull(3) ? null : reader.GetString(3),
+                        AutoSendEmails = reader.GetBoolean(4)
+                    };
+                }
+
+                return null; // No config in database, will use appsettings.json fallback
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't throw - allow fallback to appsettings.json
+                throw new Exception($"Error getting warning config from database: {ex.Message}", ex);
+            }
+        }
+
+        /// <summary>
+        /// Update or insert warning configuration in database
+        /// </summary>
+        public async Task UpdateWarningConfigAsync(WarningConfigDto config, string? updatedBy = null)
+        {
+            try
+            {
+                using var conn = new SqlConnection(_connectionString);
+                await conn.OpenAsync();
+
+                // Check if config exists
+                using var checkCmd = new SqlCommand(@"
+                    SELECT COUNT(*) FROM dbo.advisor_warning_config
+                ", conn);
+                var exists = (int)await checkCmd.ExecuteScalarAsync() > 0;
+
+                if (exists)
+                {
+                    // Update existing config
+                    using var updateCmd = new SqlCommand(@"
+                        UPDATE dbo.advisor_warning_config
+                        SET 
+                            attendance_threshold = @AttendanceThreshold,
+                            gpa_threshold = @GpaThreshold,
+                            email_template = @EmailTemplate,
+                            email_subject = @EmailSubject,
+                            auto_send_emails = @AutoSendEmails,
+                            updated_at = GETDATE(),
+                            updated_by = @UpdatedBy
+                        WHERE config_id = (SELECT TOP 1 config_id FROM dbo.advisor_warning_config ORDER BY config_id DESC)
+                    ", conn);
+
+                    updateCmd.Parameters.AddWithValue("@AttendanceThreshold", config.AttendanceThreshold);
+                    updateCmd.Parameters.AddWithValue("@GpaThreshold", config.GpaThreshold);
+                    updateCmd.Parameters.AddWithValue("@EmailTemplate", (object?)config.EmailTemplate ?? DBNull.Value);
+                    updateCmd.Parameters.AddWithValue("@EmailSubject", (object?)config.EmailSubject ?? DBNull.Value);
+                    updateCmd.Parameters.AddWithValue("@AutoSendEmails", config.AutoSendEmails);
+                    updateCmd.Parameters.AddWithValue("@UpdatedBy", (object?)updatedBy ?? DBNull.Value);
+
+                    await updateCmd.ExecuteNonQueryAsync();
+                }
+                else
+                {
+                    // Insert new config
+                    using var insertCmd = new SqlCommand(@"
+                        INSERT INTO dbo.advisor_warning_config (
+                            attendance_threshold,
+                            gpa_threshold,
+                            email_template,
+                            email_subject,
+                            auto_send_emails,
+                            created_by,
+                            updated_by
+                        ) VALUES (
+                            @AttendanceThreshold,
+                            @GpaThreshold,
+                            @EmailTemplate,
+                            @EmailSubject,
+                            @AutoSendEmails,
+                            @CreatedBy,
+                            @UpdatedBy
+                        )
+                    ", conn);
+
+                    insertCmd.Parameters.AddWithValue("@AttendanceThreshold", config.AttendanceThreshold);
+                    insertCmd.Parameters.AddWithValue("@GpaThreshold", config.GpaThreshold);
+                    insertCmd.Parameters.AddWithValue("@EmailTemplate", (object?)config.EmailTemplate ?? DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@EmailSubject", (object?)config.EmailSubject ?? DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@AutoSendEmails", config.AutoSendEmails);
+                    insertCmd.Parameters.AddWithValue("@CreatedBy", (object?)updatedBy ?? DBNull.Value);
+                    insertCmd.Parameters.AddWithValue("@UpdatedBy", (object?)updatedBy ?? DBNull.Value);
+
+                    await insertCmd.ExecuteNonQueryAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error updating warning config: {ex.Message}", ex);
+            }
+        }
     }
 }
 

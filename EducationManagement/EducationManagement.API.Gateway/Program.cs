@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Extensions.FileProviders;
 using Ocelot.DependencyInjection;
@@ -35,27 +36,63 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             )
         };
 
-        // 🧠 Ghi log JWT để debug
+        // 🧠 Ghi log JWT để debug và xử lý anonymous requests
         options.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = context =>
             {
+                var path = context.HttpContext.Request.Path.Value ?? "";
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"❌ JWT Authentication Failed: {context.Exception.Message}");
+                Console.WriteLine($"[Gateway JWT] ❌ Authentication Failed: {path}");
+                Console.WriteLine($"[Gateway JWT] Exception: {context.Exception?.Message}");
                 Console.ResetColor();
+                
+                // ✅ Cho phép anonymous requests tiếp tục - Ocelot sẽ quyết định
+                context.NoResult();
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                var path = context.HttpContext.Request.Path.Value ?? "";
+                var isAuthPath = path.StartsWith("/api-edu/auth", StringComparison.OrdinalIgnoreCase);
+                
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine($"[Gateway JWT] OnChallenge: {path}");
+                Console.WriteLine($"[Gateway JWT] IsAuthPath: {isAuthPath}");
+                Console.WriteLine($"[Gateway JWT] Error: {context.Error}");
+                Console.ResetColor();
+                
+                // ✅ QUAN TRỌNG: Skip challenge cho auth routes
+                // Gateway không nên challenge các auth endpoints vì chúng cần anonymous access
+                if (isAuthPath)
+                {
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.WriteLine($"[Gateway JWT] ✅ Skipping challenge for auth endpoint: {path}");
+                    Console.ResetColor();
+                    context.HandleResponse();
+                    return Task.CompletedTask;
+                }
+                
+                // Cho các protected routes khác, thực hiện challenge bình thường
                 return Task.CompletedTask;
             },
             OnTokenValidated = context =>
             {
                 Console.ForegroundColor = ConsoleColor.Green;
-                Console.WriteLine($"✅ Token Valid: {context.Principal?.Identity?.Name}");
+                Console.WriteLine($"[Gateway JWT] ✅ Token Valid: {context.Principal?.Identity?.Name}");
                 Console.ResetColor();
                 return Task.CompletedTask;
             }
         };
     });
 
-builder.Services.AddAuthorization();
+// ✅ Cấu hình Authorization để cho phép anonymous mặc định
+// Gateway chỉ enforce authentication cho routes có AuthenticationOptions trong ocelot.json
+builder.Services.AddAuthorization(options =>
+{
+    // Cho phép anonymous mặc định - Ocelot sẽ quyết định routes nào cần authentication
+    options.FallbackPolicy = null;
+});
 
 // ============================================================
 // 🧩 3️⃣ CORS (cho phép FE gọi Gateway trực tiếp)
@@ -126,13 +163,26 @@ Console.ResetColor();
 // 🔹 Log tất cả request qua Gateway (TẮT LOG AVATAR để tránh spam)
 app.Use(async (context, next) =>
 {
+    var path = context.Request.Path.Value ?? "";
+    
     // Chỉ log các request KHÔNG PHẢI avatar để tránh spam log
     if (!context.Request.Path.StartsWithSegments("/avatars"))
     {
-        Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] {context.Request.Method} {context.Request.Path}");
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine($"[Gateway] [{DateTime.Now:HH:mm:ss}] {context.Request.Method} {path}");
+        Console.WriteLine($"[Gateway] Has Authorization Header: {context.Request.Headers.ContainsKey("Authorization")}");
+        Console.ResetColor();
     }
-    
+
     await next();
+    
+    // Log response
+    if (!path.StartsWith("/avatars"))
+    {
+        Console.ForegroundColor = ConsoleColor.Cyan;
+        Console.WriteLine($"[Gateway] Response: {context.Response.StatusCode} for {path}");
+        Console.ResetColor();
+    }
 });
 
 app.UseCors("AllowFrontend");
@@ -149,8 +199,31 @@ app.UseStaticFiles(new StaticFileOptions
     }
 });
 
+// ✅ QUAN TRỌNG: Gateway authentication middleware
+// Authentication ở Gateway chỉ để validate token cho các protected routes
+// Routes không có AuthenticationOptions trong ocelot.json sẽ được Ocelot xử lý
 app.UseAuthentication();
 app.UseAuthorization();
+
+// ✅ DEBUG: Log sau authentication/authorization để xem request có bị chặn không
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? "";
+    
+    // Chỉ log auth routes để debug
+    if (path.StartsWith("/api-edu/auth"))
+    {
+        var isAuthenticated = context.User?.Identity?.IsAuthenticated ?? false;
+        
+        Console.ForegroundColor = ConsoleColor.Magenta;
+        Console.WriteLine($"[Gateway After Auth] Path: {path}");
+        Console.WriteLine($"[Gateway After Auth] IsAuthenticated: {isAuthenticated}");
+        Console.WriteLine($"[Gateway After Auth] User: {context.User?.Identity?.Name ?? "null"}");
+        Console.ResetColor();
+    }
+    
+    await next();
+});
 
 // ============================================================
 // 🧩 8️⃣ Cuối cùng: Ocelot Middleware

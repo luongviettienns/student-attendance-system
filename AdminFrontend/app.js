@@ -16,11 +16,12 @@ app.constant('ACADEMIC_RULES', {
 
 // API Configuration (Microservices Pattern - All via Gateway)
 app.constant('API_CONFIG', {
-    BASE_URL: 'http://localhost:5227/api-edu',        // Direct to Admin API (for testing)
-    // BASE_URL: 'https://localhost:7033/api-edu',    // API Gateway URL (production)
-    GATEWAY_URL: 'https://localhost:7033'             // Gateway URL (all requests go through here)
-    // ✅ Avatars cũng load qua Gateway: https://localhost:7033/avatars/...
-    // ✅ Gateway sẽ proxy đến Admin API
+    // ✅ Production: Tất cả requests qua Gateway (Microservices Pattern)
+    BASE_URL: 'https://localhost:7033/api-edu',    // API Gateway URL (all requests go through here)
+    // BASE_URL: 'http://localhost:5227/api-edu',   // Direct to Admin API (for testing only)
+    GATEWAY_URL: 'https://localhost:7033'             // Gateway URL (for avatars and static files)
+    // ✅ Avatars load qua Gateway: https://localhost:7033/avatars/...
+    // ✅ Gateway sẽ proxy tất cả requests đến Admin API (port 5227)
 });
 
 // Route Configuration

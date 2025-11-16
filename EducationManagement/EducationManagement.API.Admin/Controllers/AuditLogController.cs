@@ -4,10 +4,11 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
     [ApiController]
     [Route("api-edu/audit-logs")]
     public class AuditLogController : ControllerBase
@@ -20,6 +21,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet]
+        [RequirePermission("ADMIN_AUDIT_LOGS")] // ✅ Permission từ database
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 25,
@@ -54,6 +56,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
+        [RequirePermission("ADMIN_AUDIT_LOGS")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(long id)
         {
             try
@@ -73,6 +76,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("user/{userId}")]
+        [RequirePermission("ADMIN_AUDIT_LOGS")] // ✅ Permission từ database
         public async Task<IActionResult> GetByUser(
             string userId,
             [FromQuery] int page = 1,
@@ -101,6 +105,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("entity/{entityType}/{entityId}")]
+        [RequirePermission("ADMIN_AUDIT_LOGS")] // ✅ Permission từ database
         public async Task<IActionResult> GetByEntity(
             string entityType,
             string entityId,

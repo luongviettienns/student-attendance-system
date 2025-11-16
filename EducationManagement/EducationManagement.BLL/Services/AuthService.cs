@@ -21,29 +21,75 @@ namespace EducationManagement.BLL.Services
         public async Task<User?> ValidateUserAsync(string username, string password)
         {
             var normalizedUsername = username.Trim().ToLower();
+            var dbLookupStart = DateTime.UtcNow;
+
+            // 🔍 DEBUG LOG
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Looking up user: {normalizedUsername} [{dbLookupStart:HH:mm:ss.fff}]");
+            Console.ResetColor();
 
             // ✅ Lấy user từ repository
             var user = await _userRepository.GetByUsernameAsync(normalizedUsername);
+            
+            var dbLookupTime = (DateTime.UtcNow - dbLookupStart).TotalMilliseconds;
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[AuthService.ValidateUserAsync] ⏱️ Database lookup took: {dbLookupTime:F2}ms");
+            Console.ResetColor();
 
-            if (user == null || !user.IsActive)
+            if (user == null)
             {
-                // Console.WriteLine($"[Login] ❌ User không tồn tại"); // Tắt log
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[AuthService.ValidateUserAsync] ❌ User not found: {normalizedUsername}");
+                Console.ResetColor();
                 return null;
             }
+            
+            if (!user.IsActive)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[AuthService.ValidateUserAsync] ❌ User is not active: {normalizedUsername}");
+                Console.ResetColor();
+                return null;
+            }
+
+            // 🔍 DEBUG LOG
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[AuthService.ValidateUserAsync] User found: {user.Username} (ID: {user.UserId}, Active: {user.IsActive})");
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Checking password...");
+            Console.ResetColor();
 
             // ✅ Kiểm tra mật khẩu (BCrypt)
             // 🔧 FIX: Trim hash để tránh trailing spaces từ database
             var passwordHash = user.PasswordHash?.Trim() ?? "";
+            var bcryptStartTime = DateTime.UtcNow;
+            
+            // 🔍 DEBUG LOG - KHÔNG log password hash thực tế vì bảo mật
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Password hash exists: {!string.IsNullOrEmpty(passwordHash)}");
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Password hash length: {passwordHash.Length}");
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Password hash prefix: {(passwordHash.Length >= 10 ? passwordHash.Substring(0, 10) : "N/A")}");
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Password length: {password?.Length ?? 0}");
+            Console.WriteLine($"[AuthService.ValidateUserAsync] Password (first 3 chars): {(password?.Length >= 3 ? password.Substring(0, 3) : "N/A")}");
+            Console.ResetColor();
+            
             var isValid = BCrypt.Net.BCrypt.Verify(password, passwordHash);
-            // Console.WriteLine($"[Login] BCrypt.Verify"); // Tắt log timing
+            
+            var bcryptTime = (DateTime.UtcNow - bcryptStartTime).TotalMilliseconds;
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[AuthService.ValidateUserAsync] ⏱️ BCrypt verification took: {bcryptTime:F2}ms");
+            Console.ResetColor();
 
             if (!isValid)
             {
-                // Console.WriteLine($"[Login] ❌ Sai mật khẩu"); // Tắt log
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[AuthService.ValidateUserAsync] ❌ Password verification failed for: {normalizedUsername}");
+                Console.ResetColor();
                 return null;
             }
 
-            // Console.WriteLine($"[Login] ✅ Thành công"); // Tắt log
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"[AuthService.ValidateUserAsync] ✅ Password verified successfully for: {normalizedUsername}");
+            Console.ResetColor();
             return user;
         }
 

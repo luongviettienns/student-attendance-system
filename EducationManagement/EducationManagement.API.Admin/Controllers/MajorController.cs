@@ -2,6 +2,7 @@
 using EducationManagement.BLL.Services;
 using EducationManagement.Common.Models;
 using Microsoft.AspNetCore.Authorization;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -18,7 +19,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
@@ -45,7 +46,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
             var major = await _service.GetByIdAsync(id);
@@ -54,7 +55,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("by-faculty/{facultyId}")]
-        [Authorize(Roles = "Admin,Student,Lecturer,Advisor")] // ✅ Cho phép tất cả roles đã authenticated (bao gồm Advisor)
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> GetByFaculty(string facultyId)
         {
             var list = await _service.GetByFacultyAsync(facultyId);
@@ -62,7 +63,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được tạo
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] Major model)
         {
             try
@@ -85,7 +86,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được cập nhật
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Update(string id, [FromBody] Major model)
         {
             if (id != model.MajorId)
@@ -106,7 +107,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được xóa
+        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id)
         {
             var major = await _service.GetByIdAsync(id);

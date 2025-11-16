@@ -87,6 +87,22 @@
             }
         },
         {
+            "DownstreamPathTemplate": "/api-edu/menu/{everything}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5227
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/menu/{everything}",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+        {
             "DownstreamPathTemplate": "/api-edu/roles",
             "DownstreamScheme": "http",
             "DownstreamHostAndPorts": [

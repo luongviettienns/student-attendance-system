@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Threading.Tasks;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -21,7 +22,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Student,Admin")]
+        [RequireAnyPermission("STUDENT_SECTION_STUDY", "ADMIN_STUDENTS")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] GradeAppealCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -43,6 +44,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet]
+        [RequireAnyPermission("ADVISOR_APPEALS", "ADMIN_STUDENTS", "TCH_CLASSES", "STUDENT_SECTION_STUDY")] // ✅ Permission từ database
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
@@ -73,6 +75,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
+        [RequireAnyPermission("ADVISOR_APPEALS", "ADMIN_STUDENTS", "TCH_CLASSES", "STUDENT_SECTION_STUDY")] // ✅ Permission từ database
         public async Task<IActionResult> GetById(string id)
         {
             try
@@ -94,7 +97,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}/lecturer-response")]
-        [Authorize(Roles = "Lecturer,Admin")]
+        [RequireAnyPermission("TCH_CLASSES", "ADMIN_STUDENTS")] // ✅ Permission từ database
         public async Task<IActionResult> UpdateLecturerResponse(string id, [FromBody] GradeAppealLecturerResponseDto dto)
         {
             if (!ModelState.IsValid)
@@ -116,7 +119,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}/advisor-decision")]
-        [Authorize(Roles = "Advisor,Admin")]
+        [RequireAnyPermission("ADVISOR_APPEALS", "ADMIN_STUDENTS")] // ✅ Permission từ database
         public async Task<IActionResult> UpdateAdvisorDecision(string id, [FromBody] GradeAppealAdvisorDecisionDto dto)
         {
             if (!ModelState.IsValid)
@@ -138,7 +141,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}/cancel")]
-        [Authorize(Roles = "Student,Admin")]
+        [RequireAnyPermission("STUDENT_SECTION_STUDY", "ADMIN_STUDENTS")] // ✅ Permission từ database
         public async Task<IActionResult> Cancel(string id, [FromBody] GradeAppealCancelDto dto)
         {
             if (!ModelState.IsValid)

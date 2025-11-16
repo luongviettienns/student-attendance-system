@@ -429,7 +429,7 @@
 
 .section-header i {
     font-size: 20px;
-    color: #10b981;
+    color: var(--primary-color, #3b82f6);
 }
 
 .section-header h6 {

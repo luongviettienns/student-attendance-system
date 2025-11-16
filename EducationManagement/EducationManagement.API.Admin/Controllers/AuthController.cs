@@ -51,21 +51,61 @@ namespace EducationManagement.API.Admin.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
+            // ⏱️ PERFORMANCE TRACKING
+            var startTime = DateTime.UtcNow;
+            
+            // 🔍 DEBUG LOG
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"[AuthController.Login] ✅ Request reached controller! [{DateTime.UtcNow:HH:mm:ss.fff}]");
+            Console.WriteLine($"[AuthController.Login] Request: {request?.Username ?? "null"}");
+            Console.ResetColor();
+            
             if (request == null ||
                 string.IsNullOrWhiteSpace(request.Username) ||
                 string.IsNullOrWhiteSpace(request.Password))
             {
+                Console.ForegroundColor = ConsoleColor.Yellow;
+                Console.WriteLine("[AuthController.Login] ❌ BadRequest: Missing credentials");
+                Console.ResetColor();
                 return BadRequest(new { message = "Vui lòng nhập đầy đủ tài khoản và mật khẩu" });
             }
 
+            // 🔍 DEBUG LOG
+            var validationStartTime = DateTime.UtcNow;
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            Console.WriteLine($"[AuthController.Login] Validating user: {request.Username} [{validationStartTime:HH:mm:ss.fff}]");
+            Console.ResetColor();
+            
             var user = await _authService.ValidateUserAsync(request.Username, request.Password);
+            
+            var validationTime = (DateTime.UtcNow - validationStartTime).TotalMilliseconds;
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[AuthController.Login] ⏱️ User validation took: {validationTime:F2}ms");
+            Console.ResetColor();
+            
+            // 🔍 DEBUG LOG
             if (user == null)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[AuthController.Login] ❌ User validation failed for: {request.Username}");
+                Console.WriteLine($"[AuthController.Login] Returning 401 Unauthorized");
+                Console.ResetColor();
                 return Unauthorized(new { message = "Sai tài khoản hoặc mật khẩu" });
+            }
+            
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"[AuthController.Login] ✅ User validated: {user.Username} (ID: {user.UserId})");
+            Console.ResetColor();
 
             // ✅ Sinh token
+            var tokenStartTime = DateTime.UtcNow;
             var accessToken = _jwtService.GenerateAccessToken(user);
             var refreshToken = _jwtService.GenerateRefreshToken();
             await _authService.SaveRefreshTokenAsync(user.UserId, refreshToken);
+            var tokenTime = (DateTime.UtcNow - tokenStartTime).TotalMilliseconds;
+            Console.ForegroundColor = ConsoleColor.Cyan;
+            Console.WriteLine($"[AuthController.Login] ⏱️ Token generation & save took: {tokenTime:F2}ms");
+            Console.ResetColor();
 
             // ✅ Chuẩn hóa đường dẫn avatar
             string avatarPath = FileHelper.NormalizeAvatarUrl(user.AvatarUrl, _avatarFolder);
@@ -88,14 +128,38 @@ namespace EducationManagement.API.Admin.Controllers
                 AvatarUrl = fullAvatarUrl
             };
 
-            // ✅ Audit Log: Login (Full tiếng Việt)
-            await LogLoginAsync(user.UserId, new { 
-                ten_dang_nhap = user.Username, 
-                vai_tro = user.RoleName,
-                thoi_gian_dang_nhap = DateTime.UtcNow 
+            // ✅ Audit Log: Login (async, không block response)
+            // Chạy audit log trong background để không làm chậm response
+            var auditStartTime = DateTime.UtcNow;
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await LogLoginAsync(user.UserId, new { 
+                        ten_dang_nhap = user.Username, 
+                        vai_tro = user.RoleName,
+                        thoi_gian_dang_nhap = DateTime.UtcNow 
+                    });
+                    var auditTime = (DateTime.UtcNow - auditStartTime).TotalMilliseconds;
+                    Console.ForegroundColor = ConsoleColor.Cyan;
+                    Console.WriteLine($"[AuthController.Login] ⏱️ Audit log (background) took: {auditTime:F2}ms");
+                    Console.ResetColor();
+                }
+                catch (Exception ex)
+                {
+                    // Không fail request nếu audit log fail
+                    Console.ForegroundColor = ConsoleColor.Yellow;
+                    Console.WriteLine($"[AuthController.Login] ⚠️ Audit log failed: {ex.Message}");
+                    Console.ResetColor();
+                }
             });
 
-            // Console.WriteLine($"[Login] ✅ {user.Username} đăng nhập thành công"); // Tắt để tránh spam log
+            var totalTime = (DateTime.UtcNow - startTime).TotalMilliseconds;
+            Console.ForegroundColor = ConsoleColor.Green;
+            Console.WriteLine($"[AuthController.Login] ✅ Login completed in: {totalTime:F2}ms");
+            Console.WriteLine($"[AuthController.Login] ✅ Response: 200 OK for {user.Username}");
+            Console.ResetColor();
+            
             return Ok(new { data = response });
         }
 

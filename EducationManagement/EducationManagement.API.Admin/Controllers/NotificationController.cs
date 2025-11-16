@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -173,7 +174,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("user/{userId}")]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_NOTIFICATIONS")] // ✅ Permission từ database
         public async Task<IActionResult> GetByUser(string userId, [FromQuery] int page = 1, [FromQuery] int pageSize = 50)
         {
             try
@@ -278,7 +279,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 POST: Tạo notification
         // ============================================================
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [RequirePermission("ADMIN_NOTIFICATIONS")] // ✅ Permission từ database
         public async Task<IActionResult> Create([FromBody] NotificationCreateDto dto)
         {
             try

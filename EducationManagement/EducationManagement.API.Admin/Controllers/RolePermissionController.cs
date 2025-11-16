@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using EducationManagement.DAL.Repositories;
 using EducationManagement.Common.Models;
+using EducationManagement.API.Admin.Authorization;
 
 namespace EducationManagement.API.Admin.Controllers
 {
     [ApiController]
-    [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được phép quản lý phân quyền
+    [Authorize] // ✅ Yêu cầu authentication, nhưng không giới hạn role
     [Route("api-edu/role-permissions")]
     public class RolePermissionController : ControllerBase
     {
@@ -25,6 +26,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Lấy danh sách quyền của một vai trò cụ thể
         /// </summary>
         [HttpGet("{roleId}")]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> GetPermissionsByRole(string roleId)
         {
             var role = await _roleRepository.GetByIdAsync(roleId);
@@ -57,6 +59,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Cập nhật danh sách quyền cho một vai trò (Admin only)
         /// </summary>
         [HttpPost("{roleId}")]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> AssignPermissions(string roleId, [FromBody] List<string> permissionIds)
         {
             if (permissionIds == null)
@@ -85,6 +88,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Lấy toàn bộ danh sách quyền trong hệ thống
         /// </summary>
         [HttpGet("all")]
+        [RequirePermission("ADMIN_ROLES")] // ✅ Permission từ database
         public async Task<IActionResult> GetAllPermissions()
         {
             var permissions = await _permissionRepository.GetAllAsync();
