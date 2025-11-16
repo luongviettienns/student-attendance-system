@@ -66,14 +66,16 @@ GO
 -- ===========================================
 -- PHAN 3: DON VI DAO TAO
 -- ===========================================
+-- Xử lý xung đột: Tạo faculty mới trước, sau đó cập nhật tham chiếu, rồi xóa faculty cũ
+-- Bước 1: Tạo faculty mới (nếu chưa tồn tại) hoặc cập nhật nếu đã có cùng code
 MERGE dbo.faculties AS target
 USING (VALUES
     ('FAC_IT',  'CNTT', N'Cong nghe Thong tin', N'Khoa dao tao cong nghe', 1),
     ('FAC_BUS', 'BUS',  N'Kinh doanh So',      N'Khoa kinh doanh va quan tri', 1)
 ) AS src(faculty_id, faculty_code, faculty_name, description, is_active)
-ON target.faculty_id = src.faculty_id
+ON target.faculty_code = src.faculty_code
 WHEN MATCHED THEN
-    UPDATE SET faculty_code = src.faculty_code,
+    UPDATE SET faculty_id = src.faculty_id,
                faculty_name = src.faculty_name,
                description = src.description,
                is_active = src.is_active,
@@ -82,6 +84,19 @@ WHEN MATCHED THEN
 WHEN NOT MATCHED THEN
     INSERT (faculty_id, faculty_code, faculty_name, description, is_active, created_by)
     VALUES (src.faculty_id, src.faculty_code, src.faculty_name, src.description, src.is_active, 'seed_full_test');
+GO
+
+-- Bước 2: Cập nhật các bản ghi liên quan từ FAC001 sang FAC_IT (nếu FAC001 tồn tại)
+IF EXISTS (SELECT 1 FROM dbo.faculties WHERE faculty_id = 'FAC001')
+BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.faculties WHERE faculty_id = 'FAC_IT')
+    BEGIN
+        UPDATE dbo.departments SET faculty_id = 'FAC_IT' WHERE faculty_id = 'FAC001';
+        UPDATE dbo.majors SET faculty_id = 'FAC_IT' WHERE faculty_id = 'FAC001';
+        UPDATE dbo.students SET faculty_id = 'FAC_IT' WHERE faculty_id = 'FAC001';
+        DELETE FROM dbo.faculties WHERE faculty_id = 'FAC001';
+    END
+END
 GO
 
 MERGE dbo.departments AS target
@@ -103,6 +118,23 @@ WHEN NOT MATCHED THEN
     VALUES (src.department_id, src.department_code, src.department_name, src.faculty_id, src.description, 'seed_full_test');
 GO
 
+-- Xử lý xung đột departments: Cập nhật các bản ghi liên quan từ DEPT001/DEPT002 sang DEP_SE/DEP_DS
+IF EXISTS (SELECT 1 FROM dbo.departments WHERE department_id IN ('DEPT001', 'DEPT002'))
+BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.departments WHERE department_id = 'DEP_SE')
+    BEGIN
+        UPDATE dbo.lecturers SET department_id = 'DEP_SE' WHERE department_id = 'DEPT001';
+        UPDATE dbo.subjects SET department_id = 'DEP_SE' WHERE department_id = 'DEPT001';
+    END
+    IF EXISTS (SELECT 1 FROM dbo.departments WHERE department_id = 'DEP_DS')
+    BEGIN
+        UPDATE dbo.lecturers SET department_id = 'DEP_DS' WHERE department_id = 'DEPT002';
+        UPDATE dbo.subjects SET department_id = 'DEP_DS' WHERE department_id = 'DEPT002';
+    END
+    DELETE FROM dbo.departments WHERE department_id IN ('DEPT001', 'DEPT002');
+END
+GO
+
 MERGE dbo.majors AS target
 USING (VALUES
     ('MAJ_SE',  N'Cong nghe Phan mem',  'SE',  'FAC_IT',  N'Chuong trinh ky su phan mem'),
@@ -120,6 +152,23 @@ WHEN MATCHED THEN
 WHEN NOT MATCHED THEN
     INSERT (major_id, major_name, major_code, faculty_id, description, created_by)
     VALUES (src.major_id, src.major_name, src.major_code, src.faculty_id, src.description, 'seed_full_test');
+GO
+
+-- Xử lý xung đột majors: Cập nhật các bản ghi liên quan từ MAJ001/MAJ002 sang MAJ_SE/MAJ_DS
+IF EXISTS (SELECT 1 FROM dbo.majors WHERE major_id IN ('MAJ001', 'MAJ002'))
+BEGIN
+    IF EXISTS (SELECT 1 FROM dbo.majors WHERE major_id = 'MAJ_SE')
+    BEGIN
+        UPDATE dbo.students SET major_id = 'MAJ_SE' WHERE major_id = 'MAJ001';
+        UPDATE dbo.administrative_classes SET major_id = 'MAJ_SE' WHERE major_id = 'MAJ001';
+    END
+    IF EXISTS (SELECT 1 FROM dbo.majors WHERE major_id = 'MAJ_DS')
+    BEGIN
+        UPDATE dbo.students SET major_id = 'MAJ_DS' WHERE major_id = 'MAJ002';
+        UPDATE dbo.administrative_classes SET major_id = 'MAJ_DS' WHERE major_id = 'MAJ002';
+    END
+    DELETE FROM dbo.majors WHERE major_id IN ('MAJ001', 'MAJ002');
+END
 GO
 
 -- ===========================================
