@@ -672,6 +672,10 @@ BEGIN
 END
 GO
 
+-- NOTE: sp_MarkNotificationAsRead is now defined in 02_SP_Notifications.sql
+-- with proper signature (2 parameters: @NotificationId and @UserId)
+-- This old version is removed to avoid conflicts
+/*
 IF OBJECT_ID('sp_MarkNotificationAsRead', 'P') IS NOT NULL DROP PROCEDURE sp_MarkNotificationAsRead;
 GO
 CREATE PROCEDURE sp_MarkNotificationAsRead
@@ -683,6 +687,7 @@ BEGIN
     WHERE notification_id = @NotificationId;
 END
 GO
+*/
 
 IF OBJECT_ID('sp_RemovePermissionFromRole', 'P') IS NOT NULL DROP PROCEDURE sp_RemovePermissionFromRole;
 GO

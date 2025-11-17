@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using EducationManagement.Common.Helpers;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -185,15 +186,43 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         /// <summary>
-        /// Lấy classes theo lecturer ID
+        /// Lấy classes theo lecturer ID hoặc userId
+        /// Tự động detect: nếu bắt đầu bằng "USR_" thì là userId, cần convert sang lecturerId
         /// </summary>
         [HttpGet("lecturer/{lecturerId}")]
         public async Task<IActionResult> GetByLecturer(string lecturerId)
         {
             try
             {
-                var classes = await _classService.GetClassesByLecturerAsync(lecturerId);
-                return Ok(new { data = classes });
+                string actualLecturerId = lecturerId;
+                
+                // Nếu là userId (bắt đầu bằng USR_), cần convert sang lecturerId
+                if (lecturerId.StartsWith("USR_", StringComparison.OrdinalIgnoreCase))
+                {
+                    var lecturerService = HttpContext.RequestServices.GetRequiredService<LecturerService>();
+                    var lecturer = await lecturerService.GetByUserIdAsync(lecturerId);
+                    
+                    if (lecturer == null)
+                    {
+                        return Ok(new { 
+                            data = new List<object>(), 
+                            message = "Không tìm thấy giảng viên với userId: " + lecturerId,
+                            debug = new { inputId = lecturerId, isUserId = true, lecturerFound = false }
+                        });
+                    }
+                    
+                    actualLecturerId = lecturer.LecturerId;
+                }
+                
+                var classes = await _classService.GetClassesByLecturerAsync(actualLecturerId);
+                return Ok(new { 
+                    data = classes,
+                    debug = new { 
+                        inputId = lecturerId, 
+                        actualLecturerId = actualLecturerId,
+                        classesCount = classes.Count 
+                    }
+                });
             }
             catch (Exception ex)
             {

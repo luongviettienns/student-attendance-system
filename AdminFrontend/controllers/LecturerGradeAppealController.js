@@ -8,9 +8,10 @@ app.controller('LecturerGradeAppealController', [
     'AuthService',
     'GradeAppealService',
     'ClassService',
+    'CurrentSemesterHelper',
     'ToastService',
     'LoggerService',
-    function($scope, AuthService, GradeAppealService, ClassService, ToastService, LoggerService) {
+    function($scope, AuthService, GradeAppealService, ClassService, CurrentSemesterHelper, ToastService, LoggerService) {
         $scope.currentUser = AuthService.getCurrentUser();
         $scope.lecturerId = $scope.currentUser?.lecturerId || null;
         
@@ -77,12 +78,31 @@ app.controller('LecturerGradeAppealController', [
                 });
         }
         
-        // Load classes
+        // Load classes (filtered by current semester)
         function loadClasses() {
             $scope.loadingClasses = true;
-            ClassService.getAll()
-                .then(function(classes) {
-                    $scope.classes = classes || [];
+            
+            // Lấy thông tin học kỳ hiện tại và filter classes
+            CurrentSemesterHelper.getCurrentSemesterInfo()
+                .then(function(currentSemesterInfo) {
+                    $scope.currentSemesterInfo = currentSemesterInfo;
+                    
+                    return ClassService.getAll();
+                })
+                .then(function(response) {
+                    var allClasses = (response.data && response.data.data) || response.data || [];
+                    
+                    // Filter theo học kỳ hiện tại (ưu tiên hiển thị học kỳ hiện tại)
+                    if ($scope.currentSemesterInfo && $scope.currentSemesterInfo.semester) {
+                        $scope.classes = CurrentSemesterHelper.filterClassesByCurrentSemester(
+                            allClasses,
+                            $scope.currentSemesterInfo,
+                            { filterOnly: false, sortByCurrent: true }
+                        );
+                    } else {
+                        $scope.classes = allClasses;
+                    }
+                    
                     $scope.loadingClasses = false;
                 })
                 .catch(function(error) {

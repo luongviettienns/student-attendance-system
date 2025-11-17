@@ -1,6 +1,6 @@
 // Lecturer Report Controller
-app.controller('LecturerReportController', ['$scope', 'ReportService', 'SchoolYearService', 'ClassService', 'ToastService', 'LoggerService', 'AuthService',
-    function($scope, ReportService, SchoolYearService, ClassService, ToastService, LoggerService, AuthService) {
+app.controller('LecturerReportController', ['$scope', 'ReportService', 'SchoolYearService', 'ClassService', 'CurrentSemesterHelper', 'ToastService', 'LoggerService', 'AuthService',
+    function($scope, ReportService, SchoolYearService, ClassService, CurrentSemesterHelper, ToastService, LoggerService, AuthService) {
     
     $scope.loading = false;
     $scope.error = null;
@@ -52,11 +52,20 @@ app.controller('LecturerReportController', ['$scope', 'ReportService', 'SchoolYe
     
     // Load dropdowns
     $scope.loadDropdowns = function() {
+        // Load school years và tự động chọn năm học hiện tại
         SchoolYearService.getAll().then(function(res) {
             $scope.schoolYears = (res.data && res.data.data) || res.data || [];
-            if ($scope.schoolYears.length > 0 && !$scope.filters.schoolYearId) {
-                $scope.filters.schoolYearId = $scope.schoolYears[0].schoolYearId;
-            }
+            
+            // Tự động chọn năm học hiện tại
+            CurrentSemesterHelper.getCurrentSemesterInfo()
+                .then(function(currentSemesterInfo) {
+                    if (currentSemesterInfo && currentSemesterInfo.schoolYearId) {
+                        $scope.filters.schoolYearId = currentSemesterInfo.schoolYearId;
+                        $scope.filters.semester = currentSemesterInfo.semester;
+                    } else if ($scope.schoolYears.length > 0 && !$scope.filters.schoolYearId) {
+                        $scope.filters.schoolYearId = $scope.schoolYears[0].schoolYearId;
+                    }
+                });
         }).catch(function(err) {
             LoggerService.error('Load school years error', err);
         });
@@ -64,9 +73,21 @@ app.controller('LecturerReportController', ['$scope', 'ReportService', 'SchoolYe
         // Load administrative classes mà lecturer là chủ nhiệm
         // Note: Cần API để lấy lớp chủ nhiệm của lecturer
         ClassService.getAll().then(function(res) {
-            // Filter các lớp mà lecturer là chủ nhiệm
-            // Tạm thời load tất cả, sẽ filter ở backend
-            $scope.classes = (res.data && res.data.data) || res.data || [];
+            var allClasses = (res.data && res.data.data) || res.data || [];
+            
+            // Filter theo học kỳ hiện tại (ưu tiên hiển thị học kỳ hiện tại)
+            CurrentSemesterHelper.getCurrentSemesterInfo()
+                .then(function(currentSemesterInfo) {
+                    if (currentSemesterInfo && currentSemesterInfo.semester) {
+                        $scope.classes = CurrentSemesterHelper.filterClassesByCurrentSemester(
+                            allClasses,
+                            currentSemesterInfo,
+                            { filterOnly: false, sortByCurrent: true }
+                        );
+                    } else {
+                        $scope.classes = allClasses;
+                    }
+                });
         }).catch(function(err) {
             LoggerService.error('Load classes error', err);
         });

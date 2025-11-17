@@ -353,6 +353,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/users', '/roles',
                 '/faculties', '/departments', '/majors', '/subjects',
                 '/students', '/lecturers', '/classes', '/admin-classes',
+                '/grade-formula',
                 '/academic-years', '/school-years',
                 '/subject-prerequisites',
                 '/registration-periods',
@@ -463,6 +464,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'STUDENT_ATTENDANCE': '/student/attendance',
         'STUDENT_PROFILE': '/student/profile',
         'STUDENT_ENROLLMENT': '/student/enrollments',
+        'STUDENT_APPEALS': '/student/appeals', // ✅ Phúc khảo
         'STUDENT_REPORTS': '/student/reports',
         'STUDENT_NOTIFICATIONS': '/notifications',
         
@@ -470,8 +472,10 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'TEACHER_DASHBOARD': '/lecturer/dashboard',
         'TEACHER_ATTENDANCE': '/lecturer/attendance',
         'TEACHER_GRADES': '/lecturer/grades',
+        'TEACHER_GRADE_FORMULA': '/lecturer/grade-formula', // ✅ Công thức điểm cho giảng viên
         'TEACHER_TIMETABLE': '/lecturer/timetable',
         'TEACHER_REPORTS': '/lecturer/reports',
+        'TEACHER_APPEALS': '/lecturer/appeals', // ✅ Phúc khảo cho giảng viên
         'TEACHER_NOTIFICATIONS': '/notifications',
         
         // Advisor permissions
@@ -479,6 +483,9 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'ADVISOR_STUDENTS': '/advisor/students', // Fixed: route is /advisor/students, not /students
         'ADVISOR_WARNINGS': '/advisor/warnings', // Task 1.5: Cảnh báo và gửi email
         'ADVISOR_ENROLLMENTS': '/advisor/enrollments', // Task 2: Duyệt đăng ký học phần
+        'ADVISOR_APPEALS': '/advisor/appeals', // ✅ Phúc khảo cho cố vấn
+        'ADVISOR_RETAKE': '/advisor/retakes', // ✅ Quản lý học lại
+        'ADVISOR_GRADE_FORMULA': '/grade-formula', // ✅ Công thức điểm cho cố vấn
         'ADVISOR_REPORTS': '/advisor/reports',
         'ADVISOR_NOTIFICATIONS': '/notifications',
         // Advisor System permissions (gộp vào menu Hệ thống)
@@ -504,6 +511,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'ADMIN_REPORTS': '/admin/reports',
         'ADMIN_AUDIT_LOGS': '/audit-logs',
         'ADMIN_NOTIFICATIONS': '/notifications',
+        'ADMIN_GRADE_FORMULA': '/grade-formula',
         
         // Admin Section Permissions (for mapping)
         'ADMIN_SECTION_OVERVIEW': '/dashboard',
@@ -659,7 +667,9 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         if (stateLower.includes('teacher') || stateLower.includes('lecturer')) {
             if (labelLower.includes('dashboard')) return '/lecturer/dashboard';
             if (labelLower.includes('attendance') || labelLower.includes('điểm danh')) return '/lecturer/attendance';
+            if ((labelLower.includes('công thức') || labelLower.includes('formula')) && (labelLower.includes('điểm') || labelLower.includes('grade'))) return '/lecturer/grade-formula';
             if (labelLower.includes('grade') || labelLower.includes('điểm')) return '/lecturer/grades';
+            if (labelLower.includes('appeal') || labelLower.includes('phúc khảo')) return '/lecturer/appeals';
             if (labelLower.includes('timetable') || labelLower.includes('thời khóa biểu')) return '/lecturer/timetable';
             if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/lecturer/reports';
         }
@@ -670,6 +680,8 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('student') || labelLower.includes('sinh viên')) return '/advisor/students';
             if (labelLower.includes('warning') || labelLower.includes('cảnh báo')) return '/advisor/warnings';
             if (labelLower.includes('enrollment') || labelLower.includes('đăng ký học phần') || labelLower.includes('duyệt đăng ký')) return '/advisor/enrollments';
+            if (labelLower.includes('appeal') || labelLower.includes('phúc khảo')) return '/advisor/appeals';
+            if (labelLower.includes('retake') || labelLower.includes('học lại')) return '/advisor/retake';
             if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/advisor/reports';
             if (labelLower.includes('notification') || labelLower.includes('thông báo')) return '/notifications';
         }
@@ -687,6 +699,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('tiên quyết') || labelLower.includes('prerequisite')) return '/subject-prerequisites';
             if (labelLower.includes('lớp học phần') || (labelLower.includes('lớp') && labelLower.includes('học phần'))) return '/classes';
             if (labelLower.includes('lớp chính khóa') || (labelLower.includes('lớp') && labelLower.includes('chính khóa'))) return '/admin-classes';
+            if (labelLower.includes('công thức điểm') || (labelLower.includes('công thức') && labelLower.includes('điểm')) || labelLower.includes('grade formula')) return '/grade-formula';
             if (labelLower.includes('đợt đăng ký') || labelLower.includes('registration period')) return '/registration-periods';
             if (labelLower.includes('quản lý đăng ký') || (labelLower.includes('đăng ký') && labelLower.includes('quản lý'))) return '/enrollments';
             if (labelLower.includes('thời khóa biểu') || labelLower.includes('timetable') || labelLower.includes('xếp lịch')) return '/admin/timetable';
@@ -784,6 +797,18 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         if (permissionCode.includes('REGISTRATION_PERIOD')) {
             if (PERMISSION_CODE_TO_PATH['ADMIN_REGISTRATION_PERIODS']) return PERMISSION_CODE_TO_PATH['ADMIN_REGISTRATION_PERIODS'];
         }
+        if (permissionCode.includes('GRADE_FORMULA')) {
+            // Handle different role prefixes
+            if (permissionCode.startsWith('TEACHER_')) {
+                if (PERMISSION_CODE_TO_PATH['TEACHER_GRADE_FORMULA']) return PERMISSION_CODE_TO_PATH['TEACHER_GRADE_FORMULA'];
+            }
+            if (permissionCode.startsWith('ADVISOR_')) {
+                if (PERMISSION_CODE_TO_PATH['ADVISOR_GRADE_FORMULA']) return PERMISSION_CODE_TO_PATH['ADVISOR_GRADE_FORMULA'];
+            }
+            if (permissionCode.startsWith('ADMIN_')) {
+                if (PERMISSION_CODE_TO_PATH['ADMIN_GRADE_FORMULA']) return PERMISSION_CODE_TO_PATH['ADMIN_GRADE_FORMULA'];
+            }
+        }
         
         return null;
     }
@@ -862,6 +887,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             'tiên quyết': '/subject-prerequisites',
             'lớp học phần': '/classes',
             'lớp chính khóa': '/admin-classes',
+            'công thức điểm': '/grade-formula',
             'đợt đăng ký': '/registration-periods',
             'quản lý đăng ký': '/enrollments',
             'thời khóa biểu': '/admin/timetable',

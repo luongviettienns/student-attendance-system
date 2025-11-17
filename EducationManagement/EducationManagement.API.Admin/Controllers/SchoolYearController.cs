@@ -26,11 +26,22 @@ namespace EducationManagement.API.Admin.Controllers
         /// Lấy tất cả năm học
         /// </summary>
         [HttpGet]
-        [RequirePermission("ADMIN_SCHOOL_YEARS")] // ✅ Permission từ database
+        [Authorize] // Cho phép tất cả user đã đăng nhập (Admin, Lecturer, Advisor, Student)
         public async Task<IActionResult> GetAll()
         {
             var list = await _service.GetAllAsync();
             return Ok(list);
+        }
+        
+        /// <summary>
+        /// Lấy danh sách năm học (public - cho giảng viên, cố vấn)
+        /// </summary>
+        [HttpGet("list")]
+        [Authorize] // Cho phép tất cả user đã đăng nhập
+        public async Task<IActionResult> GetList()
+        {
+            var list = await _service.GetAllAsync();
+            return Ok(new { success = true, data = list });
         }
 
         /// <summary>

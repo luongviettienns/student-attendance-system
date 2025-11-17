@@ -1,5 +1,5 @@
 // Notification Service
-app.service('NotificationService', ['ApiService', '$rootScope', function(ApiService, $rootScope) {
+app.service('NotificationService', ['ApiService', '$rootScope', '$q', function(ApiService, $rootScope, $q) {
     
     var unreadCount = 0;
     
@@ -97,18 +97,35 @@ app.service('NotificationService', ['ApiService', '$rootScope', function(ApiServ
         });
     };
     
+    // Track notifications being marked as read to prevent duplicate requests
+    var markingAsRead = {};
+    
     /**
      * Mark notification as read
      * @param {string} id - Notification ID
      */
     this.markAsRead = function(id) {
+        // Prevent duplicate requests for the same notification
+        if (markingAsRead[id]) {
+            return markingAsRead[id];
+        }
+        
         var self = this;
-        return ApiService.put('/notifications/' + id + '/read', {})
+        var promise = ApiService.put('/notifications/' + id + '/read', {})
             .then(function(response) {
                 // Refresh unread count
                 self.fetchUnreadCount();
+                delete markingAsRead[id];
                 return response;
+            })
+            .catch(function(error) {
+                // Remove from tracking on error so it can be retried later if needed
+                delete markingAsRead[id];
+                return $q.reject(error);
             });
+        
+        markingAsRead[id] = promise;
+        return promise;
     };
     
     /**

@@ -1028,6 +1028,7 @@ USING (VALUES
     ('PERM_TCH_REPORTS',  'TEACHER_REPORTS',          N'Thống kê lớp',        'TEACHER_SECTION_TEACHING','fas fa-chart-bar',     4, N'Thống kê lớp',                                1),
     ('PERM_TCH_NOTIFICATIONS','TEACHER_NOTIFICATIONS',N'Thông báo',           'TEACHER_SECTION_SYSTEM', 'fas fa-bell',            1, N'Thông báo hệ thống',                           1),
     ('PERM_TCH_GRADE_FORMULA','TEACHER_GRADE_FORMULA',N'Công thức điểm',      'TEACHER_SECTION_TEACHING','fas fa-equals',        5, N'Quản lý công thức điểm lớp dạy',               1),
+    ('PERM_TCH_CLASSES',     'TCH_CLASSES',           N'Quản lý lớp học phần (Giảng viên)', 'TEACHER_SECTION_TEACHING','fas fa-chalkboard', 6, N'Cho phép giảng viên quản lý các lớp học phần của mình', 1),
     ('PERM_ADV_OVERVIEW', 'ADVISOR_SECTION_OVERVIEW', N'Tổng quan',           NULL,                     'fas fa-home',            1, N'Menu tổng quan cố vấn',                        1),
     ('PERM_ADV_ADVISING', 'ADVISOR_SECTION_ADVISING', N'Cố vấn học tập',      NULL,                     'fas fa-user-graduate',   2, N'Menu công việc cố vấn học tập',                1),
     ('PERM_ADV_SYSTEM',   'ADVISOR_SECTION_SYSTEM',   N'Hệ thống',            NULL,                     'fas fa-cog',             3, N'Menu hệ thống cố vấn',                        1),
@@ -1116,6 +1117,7 @@ USING (VALUES
     ('ROLE_LECTURER','PERM_TCH_SYSTEM'),
     ('ROLE_LECTURER','PERM_TCH_NOTIFICATIONS'),
     ('ROLE_LECTURER','PERM_TCH_GRADE_FORMULA'),
+    ('ROLE_LECTURER','PERM_TCH_CLASSES'),
     -- Quyền Cố vấn học tập
     ('ROLE_ADVISOR','PERM_ADV_OVERVIEW'),
     ('ROLE_ADVISOR','PERM_ADV_DASHBOARD'),

@@ -272,7 +272,7 @@
                 <i class="fas fa-times"></i> Hủy
             </button>
             <button class="btn btn-primary" 
-                    ng-click="uploadAvatar()" 
+                    ng-click="uploadAvatar($event)" 
                     ng-disabled="!avatarModal.selectedFile || avatarModal.uploading">
                 <i class="fas fa-upload"></i>
                 <span ng-if="!avatarModal.uploading">Tải lên</span>

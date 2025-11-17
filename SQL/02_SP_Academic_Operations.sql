@@ -294,15 +294,122 @@ IF OBJECT_ID('sp_CreateGrade', 'P') IS NOT NULL DROP PROCEDURE sp_CreateGrade;
 GO
 CREATE PROCEDURE sp_CreateGrade
     @GradeId VARCHAR(50),
-    @EnrollmentId VARCHAR(50),
-    @MidtermScore DECIMAL(4,2) = NULL,
-    @FinalScore DECIMAL(4,2) = NULL,
+    @StudentId VARCHAR(50) = NULL,  -- New: Student ID (if EnrollmentId not provided)
+    @ClassId VARCHAR(50) = NULL,    -- New: Class ID (if EnrollmentId not provided)
+    @EnrollmentId VARCHAR(50) = NULL, -- Optional: Can provide directly or find from StudentId+ClassId
+    @GradeType VARCHAR(20) = NULL,   -- New: midterm, final, assignment, quiz, project
+    @Score DECIMAL(4,2) = NULL,      -- New: Score value
+    @MaxScore DECIMAL(4,2) = 10.0,  -- New: Max score (default 10)
+    @Weight DECIMAL(5,2) = NULL,     -- New: Weight (for formula calculation)
+    @Notes NVARCHAR(500) = NULL,     -- New: Notes
+    @GradedBy VARCHAR(50) = NULL,    -- New: Who graded this
+    @MidtermScore DECIMAL(4,2) = NULL, -- Legacy: For backward compatibility
+    @FinalScore DECIMAL(4,2) = NULL,   -- Legacy: For backward compatibility
     @CreatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
-    INSERT INTO dbo.grades (grade_id, enrollment_id, midterm_score, final_score,
-                            created_at, created_by)
-    VALUES (@GradeId, @EnrollmentId, @MidtermScore, @FinalScore, GETDATE(), @CreatedBy);
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        DECLARE @ActualEnrollmentId VARCHAR(50);
+        DECLARE @ActualMidtermScore DECIMAL(4,2) = NULL;
+        DECLARE @ActualFinalScore DECIMAL(4,2) = NULL;
+        
+        -- 1. Resolve EnrollmentId
+        IF @EnrollmentId IS NOT NULL AND @EnrollmentId != ''
+        BEGIN
+            SET @ActualEnrollmentId = @EnrollmentId;
+        END
+        ELSE IF @StudentId IS NOT NULL AND @ClassId IS NOT NULL
+        BEGIN
+            -- Find enrollment by studentId and classId
+            SELECT TOP 1 @ActualEnrollmentId = enrollment_id
+            FROM dbo.enrollments
+            WHERE student_id = @StudentId
+            AND class_id = @ClassId
+            AND enrollment_status = 'APPROVED'
+            AND deleted_at IS NULL
+            ORDER BY enrollment_date DESC;
+            
+            IF @ActualEnrollmentId IS NULL
+            BEGIN
+                THROW 50001, N'Không tìm thấy đăng ký học phần cho sinh viên này trong lớp học', 1;
+            END
+        END
+        ELSE
+        BEGIN
+            THROW 50001, N'Phải cung cấp EnrollmentId hoặc (StudentId + ClassId)', 1;
+        END
+        
+        -- 2. Map GradeType to midterm_score or final_score
+        IF @GradeType IS NOT NULL AND @Score IS NOT NULL
+        BEGIN
+            IF @GradeType IN ('midterm', 'Midterm', 'MIDTERM')
+            BEGIN
+                SET @ActualMidtermScore = @Score;
+            END
+            ELSE IF @GradeType IN ('final', 'Final', 'FINAL')
+            BEGIN
+                SET @ActualFinalScore = @Score;
+            END
+            -- Note: assignment, quiz, project are not stored in grades table
+            -- They might be stored in a separate table or calculated later
+        END
+        ELSE IF @MidtermScore IS NOT NULL OR @FinalScore IS NOT NULL
+        BEGIN
+            -- Legacy mode: use provided midterm/final scores
+            SET @ActualMidtermScore = @MidtermScore;
+            SET @ActualFinalScore = @FinalScore;
+        END
+        ELSE
+        BEGIN
+            THROW 50001, N'Phải cung cấp điểm (Score + GradeType hoặc MidtermScore/FinalScore)', 1;
+        END
+        
+        -- 3. Check if grade already exists for this enrollment
+        DECLARE @ExistingGradeId VARCHAR(50);
+        SELECT TOP 1 @ExistingGradeId = grade_id
+        FROM dbo.grades
+        WHERE enrollment_id = @ActualEnrollmentId;
+        
+        IF @ExistingGradeId IS NOT NULL
+        BEGIN
+            -- Update existing grade instead of creating new one
+            IF @ActualMidtermScore IS NOT NULL
+            BEGIN
+                UPDATE dbo.grades
+                SET midterm_score = @ActualMidtermScore,
+                    updated_at = GETDATE(),
+                    updated_by = @CreatedBy
+                WHERE grade_id = @ExistingGradeId;
+            END
+            
+            IF @ActualFinalScore IS NOT NULL
+            BEGIN
+                UPDATE dbo.grades
+                SET final_score = @ActualFinalScore,
+                    updated_at = GETDATE(),
+                    updated_by = @CreatedBy
+                WHERE grade_id = @ExistingGradeId;
+            END
+            
+            SELECT @ExistingGradeId as grade_id;
+        END
+        ELSE
+        BEGIN
+            -- Create new grade
+            INSERT INTO dbo.grades (grade_id, enrollment_id, midterm_score, final_score,
+                                    created_at, created_by)
+            VALUES (@GradeId, @ActualEnrollmentId, @ActualMidtermScore, @ActualFinalScore, 
+                    GETDATE(), @CreatedBy);
+            
+            SELECT @GradeId as grade_id;
+        END
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
 END
 GO
 
@@ -718,6 +825,11 @@ CREATE PROCEDURE sp_GetGradesByClass
     @ClassId VARCHAR(50)
 AS
 BEGIN
+    SET NOCOUNT ON;
+    
+    -- Return grades with student info
+    -- Note: Since grades table only has midterm_score and final_score,
+    -- we return both as separate rows or combine them
     SELECT 
         g.grade_id,
         g.enrollment_id,
@@ -732,11 +844,20 @@ BEGIN
         e.student_id,
         e.class_id,
         s.student_code,
-        s.full_name as student_name
+        s.full_name as student_name,
+        -- Add grade type indicators (derived from which score is not null)
+        CASE 
+            WHEN g.midterm_score IS NOT NULL THEN 'midterm'
+            WHEN g.final_score IS NOT NULL THEN 'final'
+            ELSE NULL
+        END AS grade_type,
+        -- Score value (for the grade type)
+        COALESCE(g.midterm_score, g.final_score) AS score
     FROM dbo.grades g
     INNER JOIN dbo.enrollments e ON g.enrollment_id = e.enrollment_id
     INNER JOIN dbo.students s ON e.student_id = s.student_id
     WHERE e.class_id = @ClassId
+    AND e.deleted_at IS NULL
     ORDER BY s.student_code;
 END
 GO
@@ -785,6 +906,15 @@ CREATE PROCEDURE sp_GetGradesByStudentSchoolYear
     @Semester VARCHAR(20) = NULL
 AS
 BEGIN
+    SET NOCOUNT ON;
+    
+    -- Convert semester to INT if provided
+    DECLARE @SemesterInt INT = NULL;
+    IF @Semester IS NOT NULL AND @Semester != ''
+    BEGIN
+        SET @SemesterInt = CAST(@Semester AS INT);
+    END
+    
     SELECT 
         g.grade_id,
         g.enrollment_id,
@@ -821,7 +951,7 @@ BEGIN
     LEFT JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
     WHERE e.student_id = @StudentId
         AND (@SchoolYearId IS NULL OR c.school_year_id = @SchoolYearId)
-        AND (@Semester IS NULL OR c.semester = @Semester)
+        AND (@SemesterInt IS NULL OR c.semester = @SemesterInt)
         AND e.deleted_at IS NULL
     ORDER BY sy.start_date DESC, c.semester, sub.subject_name;
 END
@@ -846,15 +976,74 @@ IF OBJECT_ID('sp_UpdateGrade', 'P') IS NOT NULL DROP PROCEDURE sp_UpdateGrade;
 GO
 CREATE PROCEDURE sp_UpdateGrade
     @GradeId VARCHAR(50),
-    @MidtermScore DECIMAL(4,2) = NULL,
-    @FinalScore DECIMAL(4,2) = NULL,
+    @GradeType VARCHAR(20) = NULL,   -- New: midterm, final, assignment, quiz, project
+    @Score DECIMAL(4,2) = NULL,      -- New: Score value
+    @MaxScore DECIMAL(4,2) = 10.0,  -- New: Max score (default 10)
+    @Weight DECIMAL(5,2) = NULL,     -- New: Weight (for formula calculation)
+    @Notes NVARCHAR(500) = NULL,     -- New: Notes
+    @MidtermScore DECIMAL(4,2) = NULL, -- Legacy: For backward compatibility
+    @FinalScore DECIMAL(4,2) = NULL,   -- Legacy: For backward compatibility
     @UpdatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
-    UPDATE dbo.grades
-    SET midterm_score = @MidtermScore, final_score = @FinalScore,
-        updated_at = GETDATE(), updated_by = @UpdatedBy
-    WHERE grade_id = @GradeId;
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        DECLARE @ActualMidtermScore DECIMAL(4,2) = NULL;
+        DECLARE @ActualFinalScore DECIMAL(4,2) = NULL;
+        
+        -- Get current grade values
+        DECLARE @CurrentMidtermScore DECIMAL(4,2);
+        DECLARE @CurrentFinalScore DECIMAL(4,2);
+        
+        SELECT @CurrentMidtermScore = midterm_score,
+               @CurrentFinalScore = final_score
+        FROM dbo.grades
+        WHERE grade_id = @GradeId;
+        
+        IF @@ROWCOUNT = 0
+        BEGIN
+            THROW 50001, N'Không tìm thấy điểm số', 1;
+        END
+        
+        -- Map GradeType to midterm_score or final_score
+        IF @GradeType IS NOT NULL AND @Score IS NOT NULL
+        BEGIN
+            IF @GradeType IN ('midterm', 'Midterm', 'MIDTERM')
+            BEGIN
+                SET @ActualMidtermScore = @Score;
+                SET @ActualFinalScore = @CurrentFinalScore; -- Keep existing final score
+            END
+            ELSE IF @GradeType IN ('final', 'Final', 'FINAL')
+            BEGIN
+                SET @ActualFinalScore = @Score;
+                SET @ActualMidtermScore = @CurrentMidtermScore; -- Keep existing midterm score
+            END
+            -- Note: assignment, quiz, project are not stored in grades table
+        END
+        ELSE IF @MidtermScore IS NOT NULL OR @FinalScore IS NOT NULL
+        BEGIN
+            -- Legacy mode: use provided midterm/final scores
+            SET @ActualMidtermScore = ISNULL(@MidtermScore, @CurrentMidtermScore);
+            SET @ActualFinalScore = ISNULL(@FinalScore, @CurrentFinalScore);
+        END
+        ELSE
+        BEGIN
+            THROW 50001, N'Phải cung cấp điểm để cập nhật', 1;
+        END
+        
+        -- Update grade
+        UPDATE dbo.grades
+        SET midterm_score = @ActualMidtermScore,
+            final_score = @ActualFinalScore,
+            updated_at = GETDATE(),
+            updated_by = @UpdatedBy
+        WHERE grade_id = @GradeId;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
 END
 GO
 

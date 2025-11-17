@@ -1,9 +1,9 @@
 // Enrollment Controller
 app.controller('EnrollmentController', [
     '$scope', '$routeParams', 'EnrollmentService', 'StudentService', 'ClassService', 
-    'RegistrationPeriodService', 'ToastService', 'AuthService',
+    'RegistrationPeriodService', 'CurrentSemesterHelper', 'ToastService', 'AuthService',
     function($scope, $routeParams, EnrollmentService, StudentService, ClassService, 
-             RegistrationPeriodService, ToastService, AuthService) {
+             RegistrationPeriodService, CurrentSemesterHelper, ToastService, AuthService) {
     
     // ============================================================
     // INITIALIZATION
@@ -67,27 +67,74 @@ app.controller('EnrollmentController', [
         if (user && user.relatedId) {
             $scope.filters.studentId = user.relatedId;
             $scope.loadEnrollments();
-            $scope.loadSummary(user.relatedId);
-            $scope.loadAvailableClasses(user.relatedId);
+            
+            // Tự động lấy học kỳ hiện tại và load summary + available classes
+            CurrentSemesterHelper.getCurrentSemesterInfo()
+                .then(function(currentSemesterInfo) {
+                    var semester = currentSemesterInfo.semester;
+                    var academicYearId = currentSemesterInfo.schoolYear && currentSemesterInfo.schoolYear.academicYearId;
+                    
+                    $scope.loadSummary(user.relatedId, semester, academicYearId);
+                    $scope.loadAvailableClasses(user.relatedId, semester, academicYearId);
+                })
+                .catch(function(error) {
+                    // Nếu không lấy được học kỳ hiện tại, load không filter
+                    $scope.loadSummary(user.relatedId);
+                    $scope.loadAvailableClasses(user.relatedId);
+                });
         }
     };
     
     $scope.loadAvailableClasses = function(studentId, semester, academicYearId) {
-        EnrollmentService.getAvailableClasses(studentId, semester, academicYearId)
-            .then(function(response) {
-                if (response.data.success) {
-                    $scope.availableClasses = response.data.data;
-                }
-            });
+        // Nếu không có semester, tự động lấy học kỳ hiện tại
+        if (!semester) {
+            CurrentSemesterHelper.getCurrentSemesterInfo()
+                .then(function(currentSemesterInfo) {
+                    semester = currentSemesterInfo.semester;
+                    if (!academicYearId && currentSemesterInfo.schoolYear) {
+                        academicYearId = currentSemesterInfo.schoolYear.academicYearId;
+                    }
+                    return EnrollmentService.getAvailableClasses(studentId, semester, academicYearId);
+                })
+                .then(function(response) {
+                    if (response.data.success) {
+                        $scope.availableClasses = response.data.data;
+                    }
+                });
+        } else {
+            EnrollmentService.getAvailableClasses(studentId, semester, academicYearId)
+                .then(function(response) {
+                    if (response.data.success) {
+                        $scope.availableClasses = response.data.data;
+                    }
+                });
+        }
     };
     
     $scope.loadSummary = function(studentId, semester, academicYearId) {
-        EnrollmentService.getSummary(studentId, semester, academicYearId)
-            .then(function(response) {
-                if (response.data.success) {
-                    $scope.summary = response.data.data;
-                }
-            });
+        // Nếu không có semester, tự động lấy học kỳ hiện tại
+        if (!semester) {
+            CurrentSemesterHelper.getCurrentSemesterInfo()
+                .then(function(currentSemesterInfo) {
+                    semester = currentSemesterInfo.semester;
+                    if (!academicYearId && currentSemesterInfo.schoolYear) {
+                        academicYearId = currentSemesterInfo.schoolYear.academicYearId;
+                    }
+                    return EnrollmentService.getSummary(studentId, semester, academicYearId);
+                })
+                .then(function(response) {
+                    if (response.data.success) {
+                        $scope.summary = response.data.data;
+                    }
+                });
+        } else {
+            EnrollmentService.getSummary(studentId, semester, academicYearId)
+                .then(function(response) {
+                    if (response.data.success) {
+                        $scope.summary = response.data.data;
+                    }
+                });
+        }
     };
     
     $scope.loadActivePeriod = function() {

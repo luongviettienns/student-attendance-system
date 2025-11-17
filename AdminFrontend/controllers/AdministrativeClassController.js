@@ -1,8 +1,8 @@
 // Administrative Class Controller
 app.controller('AdministrativeClassController', [
-    '$scope', '$location', '$routeParams', 'AdministrativeClassService', 'MajorService', 
+    '$scope', '$location', '$routeParams', '$timeout', 'AdministrativeClassService', 'MajorService', 
     'LecturerService', 'AcademicYearService', 'ToastService', 'AuthService',
-    function($scope, $location, $routeParams, AdministrativeClassService, MajorService, 
+    function($scope, $location, $routeParams, $timeout, AdministrativeClassService, MajorService, 
              LecturerService, AcademicYearService, ToastService, AuthService) {
     
     // ============================================================
@@ -41,6 +41,7 @@ app.controller('AdministrativeClassController', [
     // ============================================================
     $scope.loadClasses = function() {
         $scope.loading = true;
+        
         AdministrativeClassService.getAll(
             $scope.pagination.page,
             $scope.pagination.pageSize,
@@ -49,10 +50,17 @@ app.controller('AdministrativeClassController', [
             $scope.filters.cohortYear,
             $scope.filters.advisorId
         ).then(function(response) {
-            if (response.data.success) {
-                $scope.classes = response.data.data;
-                $scope.pagination.totalCount = response.data.totalCount;
-                $scope.pagination.totalPages = response.data.totalPages;
+            if (response.data && response.data.success) {
+                var classesData = response.data.data || [];
+                
+                // Đảm bảo data là array
+                if (!Array.isArray(classesData)) {
+                    classesData = [];
+                }
+                
+                $scope.classes = classesData;
+                $scope.pagination.totalCount = response.data.totalCount || 0;
+                $scope.pagination.totalPages = response.data.totalPages || 0;
             }
             $scope.loading = false;
         }).catch(function(error) {
@@ -83,20 +91,57 @@ app.controller('AdministrativeClassController', [
     // VIEW DETAIL
     // ============================================================
     $scope.viewDetail = function(classId) {
+        $scope.loading = true;
         AdministrativeClassService.getById(classId).then(function(response) {
             if (response.data.success) {
                 $scope.currentClass = response.data.data;
-                $scope.loadStudents(classId);
+                $scope.loadStudents(classId).then(function() {
+                    $scope.loading = false;
+                    // Use ModalUtils to open modal
+                    $timeout(function() {
+                        if (window.ModalUtils && typeof window.ModalUtils.open === 'function') {
+                            window.ModalUtils.open('detailModal');
+                        } else {
+                            // Fallback: use class-based approach
+                            $('#detailModal').addClass('active');
+                            $('#modal-overlay').addClass('active');
+                            $('body').css('overflow', 'hidden');
+                        }
+                    }, 100);
+                });
+            } else {
+                $scope.loading = false;
+                ToastService.error('Không thể tải thông tin lớp hành chính');
             }
+        }).catch(function(error) {
+            $scope.loading = false;
+            ToastService.error('Không thể tải thông tin lớp hành chính');
         });
     };
     
     $scope.loadStudents = function(classId) {
-        AdministrativeClassService.getStudents(classId).then(function(response) {
+        return AdministrativeClassService.getStudents(classId).then(function(response) {
             if (response.data.success) {
-                $scope.students = response.data.data;
+                $scope.students = response.data.data || [];
+            } else {
+                $scope.students = [];
             }
+        }).catch(function(error) {
+            $scope.students = [];
         });
+    };
+    
+    $scope.closeDetailModal = function() {
+        if (window.ModalUtils && typeof window.ModalUtils.close === 'function') {
+            window.ModalUtils.close('detailModal');
+        } else if (window.ModalUtils && typeof window.ModalUtils.closeAll === 'function') {
+            window.ModalUtils.closeAll();
+        } else {
+            // Fallback: use class-based approach
+            $('#detailModal').removeClass('active');
+            $('#modal-overlay').removeClass('active');
+            $('body').css('overflow', '');
+        }
     };
     
     // ============================================================

@@ -44,7 +44,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet]
-        [RequireAnyPermission("ADVISOR_GRADE_FORMULA", "ADMIN_GRADE_FORMULA")] // ✅ Permission từ database
+        // Cho phép tất cả user đã đăng nhập xem (Admin, Advisor, Lecturer) - [Authorize] đã có ở controller level
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
@@ -98,7 +98,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("resolve")]
-        [RequireAnyPermission("ADVISOR_GRADE_FORMULA", "ADMIN_GRADE_FORMULA", "TCH_CLASSES")] // ✅ Permission từ database
+        [Authorize] // Cho phép tất cả user đã đăng nhập (Admin, Lecturer, Advisor) xem công thức điểm
         public async Task<IActionResult> GetByScope([FromQuery] GradeFormulaResolveRequestDto request)
         {
             try
@@ -107,13 +107,63 @@ namespace EducationManagement.API.Admin.Controllers
                     request.ClassId, request.SubjectId, request.SchoolYearId);
 
                 if (config == null)
-                    return NotFound(new { message = "Không tìm thấy cấu hình công thức cho scope này" });
+                {
+                    // Return default formula if not found
+                    return Ok(new { 
+                        data = new GradeFormulaConfigResponseDto
+                        {
+                            ConfigId = "DEFAULT",
+                            MidtermWeight = 0.30m,
+                            FinalWeight = 0.70m,
+                            AssignmentWeight = 0.00m,
+                            QuizWeight = 0.00m,
+                            ProjectWeight = 0.00m,
+                            RoundingMethod = "STANDARD",
+                            DecimalPlaces = 2,
+                            IsDefault = true
+                        },
+                        message = "Sử dụng công thức mặc định"
+                    });
+                }
 
-                return Ok(new { data = config });
+                // Convert Model to DTO
+                var dto = new GradeFormulaConfigResponseDto
+                {
+                    ConfigId = config.ConfigId,
+                    SubjectId = config.SubjectId,
+                    ClassId = config.ClassId,
+                    SchoolYearId = config.SchoolYearId,
+                    MidtermWeight = config.MidtermWeight,
+                    FinalWeight = config.FinalWeight,
+                    AssignmentWeight = config.AssignmentWeight,
+                    QuizWeight = config.QuizWeight,
+                    ProjectWeight = config.ProjectWeight,
+                    CustomFormula = config.CustomFormula,
+                    RoundingMethod = config.RoundingMethod,
+                    DecimalPlaces = config.DecimalPlaces,
+                    Description = config.Description,
+                    IsDefault = config.IsDefault,
+                    CreatedAt = config.CreatedAt,
+                    CreatedBy = config.CreatedBy,
+                    UpdatedAt = config.UpdatedAt,
+                    UpdatedBy = config.UpdatedBy,
+                    SubjectCode = config.SubjectCode,
+                    SubjectName = config.SubjectName,
+                    ClassCode = config.ClassCode,
+                    ClassName = config.ClassName,
+                    SchoolYearCode = config.SchoolYearCode,
+                    SchoolYearName = config.SchoolYearName
+                };
+
+                return Ok(new { data = dto });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                return StatusCode(500, new { 
+                    message = "Lỗi hệ thống", 
+                    error = ex.Message,
+                    stackTrace = ex.StackTrace
+                });
             }
         }
 

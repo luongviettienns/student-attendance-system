@@ -543,9 +543,10 @@ END
 GO
 
 -- 6. MARK NOTIFICATION AS READ
-IF OBJECT_ID('sp_MarkNotificationAsRead', 'P') IS NOT NULL DROP PROCEDURE sp_MarkNotificationAsRead;
+-- ✅ This is the correct version with 2 parameters (@NotificationId and @UserId)
+IF OBJECT_ID('dbo.sp_MarkNotificationAsRead', 'P') IS NOT NULL DROP PROCEDURE dbo.sp_MarkNotificationAsRead;
 GO
-CREATE PROCEDURE sp_MarkNotificationAsRead
+CREATE PROCEDURE dbo.sp_MarkNotificationAsRead
     @NotificationId VARCHAR(50),
     @UserId VARCHAR(50) = NULL
 AS
@@ -553,6 +554,7 @@ BEGIN
     SET NOCOUNT ON;
     
     BEGIN TRY
+        -- Update notification to mark as read
         UPDATE dbo.notifications
         SET is_read = 1,
             updated_at = GETDATE(),
@@ -560,12 +562,15 @@ BEGIN
         WHERE notification_id = @NotificationId
             AND (deleted_at IS NULL);
         
+        -- Check if any row was updated
         IF @@ROWCOUNT = 0
             THROW 50001, 'Không tìm thấy notification hoặc đã bị xóa', 1;
         
+        -- Return success indicator
         SELECT 1 AS success;
     END TRY
     BEGIN CATCH
+        -- Re-throw the error to be handled by the calling code
         THROW;
     END CATCH
 END

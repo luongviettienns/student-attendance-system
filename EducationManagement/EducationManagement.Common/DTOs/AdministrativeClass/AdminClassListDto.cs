@@ -14,6 +14,10 @@ namespace EducationManagement.Common.DTOs.AdministrativeClass
         public string? AdvisorName { get; set; }
         public string? FacultyName { get; set; }
         
+        // Academic Year info
+        public string? AcademicYearId { get; set; }
+        public string? AcademicYearName { get; set; }
+        
         public int CohortYear { get; set; }
         public int MaxStudents { get; set; }
         public int CurrentStudents { get; set; }

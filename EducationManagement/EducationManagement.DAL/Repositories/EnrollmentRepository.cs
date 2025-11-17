@@ -268,13 +268,21 @@ namespace EducationManagement.DAL.Repositories
                 new SqlParameter("@ClassId", classId)
             };
 
-            var dt = await DatabaseHelper.ExecuteQueryAsync(
+            // Stored procedure returns 2 result sets:
+            // - Result set 1: Class info (1 row)
+            // - Result set 2: Student roster (multiple rows)
+            var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(
                 _connectionString, "sp_GetClassRoster", parameters);
 
             var students = new List<Student>();
-            foreach (DataRow row in dt.Rows)
+            
+            // Read result set 2 (student roster) - index 1
+            if (ds.Tables.Count > 1 && ds.Tables[1] != null)
             {
-                students.Add(MapToStudentRoster(row));
+                foreach (DataRow row in ds.Tables[1].Rows)
+                {
+                    students.Add(MapToStudentRoster(row));
+                }
             }
 
             return students;
@@ -492,8 +500,9 @@ namespace EducationManagement.DAL.Repositories
                 StudentCode = row["student_code"].ToString()!,
                 FullName = row["full_name"].ToString()!,
                 Email = row["email"]?.ToString(),
-                Phone = row["phone"]?.ToString(),
-                Gender = row["gender"]?.ToString(),
+                Phone = row.Table.Columns.Contains("phone_number") ? row["phone_number"]?.ToString() : 
+                        (row.Table.Columns.Contains("phone") ? row["phone"]?.ToString() : null),
+                Gender = row.Table.Columns.Contains("gender") ? row["gender"]?.ToString() : null,
                 AdminClassName = row.Table.Columns.Contains("admin_class_name") ? row["admin_class_name"]?.ToString() : null,
                 AdminClassCode = row.Table.Columns.Contains("admin_class_code") ? row["admin_class_code"]?.ToString() : null
             };

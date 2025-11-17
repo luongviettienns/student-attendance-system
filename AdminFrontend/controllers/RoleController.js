@@ -409,7 +409,6 @@ app.controller('RoleController', [
                 return response.data || [];
             })
             .catch(function(error) {
-                console.warn('Không thể tải tất cả permissions, sẽ dùng danh sách hiện có');
                 return [];
             });
         
