@@ -20,7 +20,20 @@
                 { "Host": "localhost", "Port": 5227 }
             ],
             "UpstreamPathTemplate": "/api-edu/rooms",
-            "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+        {
+            "DownstreamPathTemplate": "/api-edu/rooms/{everything}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                { "Host": "localhost", "Port": 5227 }
+            ],
+            "UpstreamPathTemplate": "/api-edu/rooms/{everything}",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
@@ -1325,6 +1338,38 @@
             ],
             "UpstreamPathTemplate": "/api-edu/subjects/with-lecturer-count",
             "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+        {
+            "DownstreamPathTemplate": "/api-edu/exam-schedules/{everything}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5227
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/exam-schedules/{everything}",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+        {
+            "DownstreamPathTemplate": "/api-edu/exam-schedules",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5227
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/exam-schedules",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
             "AuthenticationOptions": {
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []

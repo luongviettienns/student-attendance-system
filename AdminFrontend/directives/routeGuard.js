@@ -67,6 +67,7 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
                               path.startsWith('/students') ||
                               path.startsWith('/lecturers') ||
                               path.startsWith('/classes') ||
+                              path.startsWith('/rooms') ||  // ✅ THÊM: Quản lý phòng học
                               path.startsWith('/grade-formula') ||
                               path.startsWith('/academic-years') ||
                               path.startsWith('/school-years') ||
@@ -126,8 +127,35 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
                 ToastService.warning('Bạn không có quyền truy cập trang này');
                 return;
             }
+        } else if (role === 'Lecturer') {
+            // For Lecturer, allow lecturer-specific routes immediately
+            var isLecturerRoute = path.startsWith('/lecturer/') ||
+                                 path.startsWith('/notifications') ||
+                                 path === '/login';
+            
+            // ✅ Auto-redirect from root path to lecturer dashboard
+            if (path === '/') {
+                event.preventDefault();
+                $location.path('/lecturer/dashboard');
+                return;
+            }
+            
+            // ✅ Allow lecturer routes immediately (don't wait for menu to load)
+            if (isLecturerRoute) {
+                return; // Allow access
+            }
+            
+            // If not a lecturer route, check if it's in allowed routes
+            var isAllowed = RoleService.isRouteAllowed(path);
+            if (!isAllowed) {
+                event.preventDefault();
+                var defaultRoute = getDefaultRouteForRole(role);
+                $location.path(defaultRoute);
+                ToastService.warning('Bạn không có quyền truy cập trang này');
+                return;
+            }
         } else {
-            // For other roles (Lecturer, Student), use strict route checking
+            // For other roles (Student), use strict route checking
             if (!RoleService.isRouteAllowed(path)) {
                 event.preventDefault();
                 var defaultRoute = getDefaultRouteForRole(role);

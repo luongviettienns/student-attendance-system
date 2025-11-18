@@ -215,13 +215,100 @@ app.controller('SchoolYearController', ['$scope', '$location', '$routeParams', '
         SchoolYearService.transitionToNextSemester()
             .then(function(response) {
                 ToastService.success('Đã chuyển sang học kỳ mới thành công!');
+                
+                // Reload data
                 $scope.loadSchoolYears();
                 $scope.loadCurrentSchoolYear();
                 $scope.loadCurrentSemesterInfo();
+                
+                // Emit event để các controller khác có thể tự động refresh
+                // Lấy thông tin năm học hiện tại để emit
+                SchoolYearService.getCurrent()
+                    .then(function(currentResponse) {
+                        if (currentResponse.data && currentResponse.data.schoolYearId) {
+                            $scope.$root.$broadcast('semester:transitioned', {
+                                schoolYearId: currentResponse.data.schoolYearId,
+                                currentSemester: currentResponse.data.currentSemester,
+                                timestamp: new Date()
+                            });
+                        }
+                    })
+                    .catch(function(err) {
+                        // Ignore error, event vẫn được emit với thông tin hiện có
+                        LoggerService.warn('Could not get current school year for event', err);
+                    });
             })
             .catch(function(error) {
                 ToastService.error(error.data?.message || 'Không thể chuyển học kỳ');
                 LoggerService.error('Error transitioning semester', error);
+            })
+            .finally(function() {
+                $scope.loading = false;
+            });
+    };
+    
+    // Force transition to specific semester (FOR TEST ONLY)
+    $scope.forceTransitionSemester = function(targetSemester) {
+        var semesterName = targetSemester === 1 ? 'Học kỳ 1' : 'Học kỳ 2';
+        if (!confirm('⚠️ FORCE chuyển sang ' + semesterName + '?\n\n' +
+                     'Tính năng này CHỈ DÙNG CHO TEST.\n' +
+                     'Hệ thống sẽ force chuyển học kỳ mà không kiểm tra ngày tháng.\n\n' +
+                     'Bạn có chắc chắn muốn tiếp tục?')) {
+            return;
+        }
+        
+        $scope.loading = true;
+        SchoolYearService.forceTransitionSemester(targetSemester)
+            .then(function(response) {
+                ToastService.success(response.data?.message || 'Đã force chuyển học kỳ thành công!');
+                
+                // Reload data
+                $scope.loadSchoolYears();
+                $scope.loadCurrentSchoolYear();
+                $scope.loadCurrentSemesterInfo();
+                
+                // Emit event để các controller khác có thể tự động refresh
+                if (response.data && response.data.schoolYearId) {
+                    $scope.$root.$broadcast('semester:transitioned', {
+                        schoolYearId: response.data.schoolYearId,
+                        currentSemester: response.data.newSemester,
+                        oldSemester: response.data.oldSemester,
+                        timestamp: new Date()
+                    });
+                }
+            })
+            .catch(function(error) {
+                // Log detailed error for debugging
+                LoggerService.error('Error force transitioning semester', {
+                    error: error,
+                    status: error.status,
+                    statusText: error.statusText,
+                    data: error.data,
+                    config: error.config
+                });
+                
+                // Show detailed error message
+                var errorMessage = 'Không thể force chuyển học kỳ';
+                if (error.data) {
+                    if (error.data.message) {
+                        errorMessage = error.data.message;
+                    } else if (typeof error.data === 'string') {
+                        errorMessage = error.data;
+                    } else if (error.data.errors) {
+                        errorMessage = 'Lỗi validation: ' + JSON.stringify(error.data.errors);
+                    }
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
+                ToastService.error(errorMessage);
+                
+                // Log to console for debugging
+                console.error('Force transition semester error:', {
+                    status: error.status,
+                    message: errorMessage,
+                    fullError: error
+                });
             })
             .finally(function() {
                 $scope.loading = false;

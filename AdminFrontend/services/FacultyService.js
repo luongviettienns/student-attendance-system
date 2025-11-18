@@ -1,7 +1,8 @@
 // Faculty Service
 app.service('FacultyService', ['ApiService', function(ApiService) {
     
-    this.getAll = function(page, pageSize, search) {
+    this.getAll = function(page, pageSize, search, options) {
+        options = options || {};
         var params = {
             page: page || 1,
             pageSize: pageSize || 10
@@ -11,7 +12,15 @@ app.service('FacultyService', ['ApiService', function(ApiService) {
             params.search = search;
         }
         
-        return ApiService.get('/faculties', { params: params });
+        // ✅ Add cache-busting timestamp if forceRefresh is requested
+        if (options.forceRefresh) {
+            params._t = new Date().getTime();
+        }
+        
+        return ApiService.get('/faculties', { params: params }, {
+            cache: !options.forceRefresh, // Disable cache if forceRefresh
+            cacheTTL: options.cacheTTL || 5 * 60 * 1000 // 5 minutes default
+        });
     };
     
     this.getById = function(id) {

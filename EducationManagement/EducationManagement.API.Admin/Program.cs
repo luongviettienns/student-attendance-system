@@ -32,7 +32,7 @@ builder.Services.Scan(scan => scan
     .AddClasses(classes => classes.InNamespaces(
         "EducationManagement.BLL.Services",
         "EducationManagement.DAL.Repositories"
-    ))
+    ).Where(type => !type.IsAssignableTo(typeof(Microsoft.Extensions.Hosting.IHostedService))))
     .AsSelfWithInterfaces()
     .WithScopedLifetime()
 );
@@ -48,6 +48,12 @@ builder.Services.AddScoped<EducationManagement.Common.Interfaces.INotificationHu
 
 // ✅ Register OTPService (no interface, needs explicit registration)
 builder.Services.AddScoped<EducationManagement.BLL.Services.OTPService>();
+
+// ✅ Register RoomService (explicit registration to ensure it's available)
+builder.Services.AddScoped<EducationManagement.BLL.Services.RoomService>();
+
+// ✅ Register Exam Reminder Notification Background Service (for scheduled notifications)
+builder.Services.AddHostedService<EducationManagement.BLL.Services.ExamReminderNotificationService>();
 
 // ============================================================
 // 🔹 2.5️⃣ REDIS CACHING (OPTIONAL - Fallback to Memory Cache if Redis unavailable)
@@ -149,9 +155,33 @@ builder.Services.AddRateLimiter(options =>
 // ============================================================
 // 🔹 3️⃣ Cấu hình Controller, Swagger, CORS, SignalR
 // ============================================================
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // ✅ Configure JSON serialization to use camelCase (JavaScript convention)
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Education Management API - Admin",
+        Version = "v1",
+        Description = "API for Education Management System - Admin Module"
+    });
+    
+    // ✅ Include XML comments if available
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath);
+    }
+    
+    // ✅ Ignore circular references
+    options.CustomSchemaIds(type => type.FullName);
+});
 
 // ✅ SignalR for real-time notifications
 builder.Services.AddSignalR();

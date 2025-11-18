@@ -274,6 +274,57 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         /// <summary>
+        /// FORCE chuyển học kỳ (CHỈ DÙNG CHO TEST)
+        /// Cho phép force chuyển sang học kỳ cụ thể mà không cần kiểm tra ngày tháng
+        /// </summary>
+        [HttpPost("force-transition-semester/{targetSemester}")]
+        [RequirePermission("ADMIN_SCHOOL_YEARS")] // ✅ Permission từ database
+        public async Task<IActionResult> ForceTransitionSemester([FromRoute] int targetSemester)
+        {
+            // Check ModelState first
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(new { 
+                    message = "❌ Dữ liệu không hợp lệ",
+                    errors = ModelState,
+                    receivedValue = targetSemester
+                });
+            }
+
+            try
+            {
+                if (targetSemester < 1 || targetSemester > 2)
+                {
+                    return BadRequest(new { 
+                        message = "❌ Học kỳ phải là 1 hoặc 2",
+                        receivedValue = targetSemester
+                    });
+                }
+
+                var userName = User.Identity?.Name ?? "system";
+                var result = await _service.ForceTransitionSemesterAsync(targetSemester, userName);
+                
+                return Ok(new 
+                { 
+                    message = $"✅ Đã force chuyển sang Học kỳ {targetSemester}",
+                    schoolYearId = result.SchoolYearId,
+                    oldSemester = result.OldSemester,
+                    newSemester = result.NewSemester
+                });
+            }
+            catch (Exception ex)
+            {
+                // Return detailed error for debugging
+                return BadRequest(new { 
+                    message = ex.Message,
+                    innerException = ex.InnerException?.Message,
+                    stackTrace = ex.StackTrace,
+                    targetSemester = targetSemester
+                });
+            }
+        }
+
+        /// <summary>
         /// Kích hoạt năm học (set active)
         /// </summary>
         [HttpPost("{id}/activate")]

@@ -1,4 +1,4 @@
-app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location', 'TimetableApi', 'AuthService', 'StudentService', 'LoggerService', function($scope, $rootScope, $location, TimetableApi, AuthService, StudentService, LoggerService) {
+app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location', 'TimetableApi', 'AuthService', 'StudentService', 'LoggerService', 'ExamScheduleService', function($scope, $rootScope, $location, TimetableApi, AuthService, StudentService, LoggerService, ExamScheduleService) {
   function getIsoWeek(d) {
     var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     var dayNum = date.getUTCDay() || 7;
@@ -56,20 +56,118 @@ app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location
     }
     $scope.error = null;
     $scope.loading = true;
-    TimetableApi.getStudentWeek($scope.studentId, $scope.year, $scope.week).then(function(res){
-      var data = (res.data && res.data.data) || [];
-      $scope.raw = data;
-      $scope.debug = { studentId: $scope.studentId, year: $scope.year, week: $scope.week, count: data.length };
-      // map theo weekday
+    
+    // ✅ Load cả sessions và exams
+    var promises = [];
+    
+    // 1. Load sessions (existing)
+    promises.push(TimetableApi.getStudentWeek($scope.studentId, $scope.year, $scope.week));
+    
+    // 2. Load exams của student trong tuần (để tích hợp vào timetable)
+    if (ExamScheduleService) {
+      promises.push(ExamScheduleService.getByStudent($scope.studentId, null, null).catch(function(err) {
+        LoggerService.error('Load exams error', err);
+        return {data: {data: []}}; // Return empty array on error
+      }));
+    } else {
+      promises.push(Promise.resolve({data: {data: []}}));
+    }
+    
+    Promise.all(promises).then(function(results) {
+      var sessions = (results[0].data && results[0].data.data) || [];
+      var allExams = (results[1].data && results[1].data.data) || [];
+      
+      // 3. Filter exams theo tuần hiện tại
+      var exams = allExams.filter(function(exam) {
+        if (!exam.examDate) return false;
+        var examDate = new Date(exam.examDate);
+        var isoWeek = getIsoWeek(examDate);
+        return isoWeek.year === $scope.year && isoWeek.week === $scope.week;
+      });
+      
+      // 4. Mark type cho sessions
+      sessions = sessions.map(function(s) {
+        s.type = 'session';
+        s.sessionId = s.sessionId || s.session_id;
+        s.classCode = s.classCode || s.class_code;
+        s.subjectName = s.subjectName || s.subject_name;
+        s.lecturerName = s.lecturerName || s.lecturer_name;
+        s.roomCode = s.roomCode || s.room_code;
+        s.startTime = s.startTime || s.start_time;
+        s.endTime = s.endTime || s.end_time;
+        return s;
+      });
+      
+      // 5. Process exams: Convert format và mark type
+      exams = exams.map(function(exam) {
+        var examDate = new Date(exam.examDate);
+        var weekday = examDate.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+        weekday = weekday === 0 ? 7 : weekday; // Convert Sunday to 7
+        
+        var item = {
+          type: 'exam',
+          sessionId: exam.examId,  // Dùng examId làm sessionId để tương thích
+          examId: exam.examId,
+          weekday: weekday,
+          startTime: $scope.formatTime(exam.examTime || exam.startTime),
+          endTime: $scope.formatTime(exam.endTime),
+          classCode: exam.classCode || '',
+          className: exam.className || '',
+          subjectName: exam.subjectName || '',
+          subjectCode: exam.subjectCode || '',
+          lecturerName: exam.proctorName || exam.lecturerName || '—',
+          roomCode: exam.roomCode || '—',
+          roomId: exam.roomId,
+          building: exam.building,
+          status: exam.status,
+          examType: exam.examType,
+          sessionNo: exam.sessionNo,
+          examDate: exam.examDate,
+          duration: exam.duration,
+          maxStudents: exam.maxStudents,
+          assignedStudents: exam.assignedStudents,
+          notes: exam.notes
+        };
+        return item;
+      });
+      
+      // 6. Merge sessions và exams
+      var allItems = sessions.concat(exams);
+      
+      // 7. Filter out sessions trùng ngày với exams (business rule: không có lịch học vào ngày thi)
+      if (exams.length > 0) {
+        var examDates = exams.map(function(exam) {
+          return exam.examDate ? exam.examDate.substring(0, 10) : null; // Extract YYYY-MM-DD
+        }).filter(function(date) { return date != null; });
+        
+        // Sessions không có examDate, nên cần tính từ weekday và week
+        // Tạm thời giữ lại tất cả, có thể filter sau nếu cần
+      }
+      
+      // 8. Sort theo weekday + startTime
+      allItems.sort(function(a, b) {
+        if (a.weekday !== b.weekday) {
+          return (a.weekday || 0) - (b.weekday || 0);
+        }
+        var timeA = (a.startTime || '').toString();
+        var timeB = (b.startTime || '').toString();
+        return timeA.localeCompare(timeB);
+      });
+      
+      $scope.raw = allItems;
+      $scope.debug = { studentId: $scope.studentId, year: $scope.year, week: $scope.week, sessions: sessions.length, exams: exams.length, total: allItems.length };
+      
+      // 9. Map theo weekday để hiển thị grid
       var map = {};
       $scope.days.forEach(function(d){ map[d] = []; });
-      data.forEach(function(s){
+      allItems.forEach(function(s){
         if(s.weekday >= 1 && s.weekday <= 7){
           map[s.weekday].push(s);
         }
       });
       $scope.grid = map;
-      if(data.length === 0){
+      
+      if(allItems.length === 0){
         $scope.error = 'Không có dữ liệu thời khóa biểu cho tuần này';
       }
     }).catch(function(err){
@@ -77,6 +175,18 @@ app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location
       $scope.error = 'Lỗi: ' + message;
       LoggerService.error('Student timetable load error', err);
     }).finally(function(){ $scope.loading = false; });
+  };
+
+  // ============================================================
+  // 🔹 HELPER: Format time (HH:mm:ss → HH:mm)
+  // ============================================================
+  $scope.formatTime = function(timeStr) {
+    if (!timeStr) return '—';
+    var str = String(timeStr);
+    if (str.length >= 5) {
+      return str.substring(0, 5); // "HH:mm"
+    }
+    return str;
   };
 
   $scope.prevWeek = function(){

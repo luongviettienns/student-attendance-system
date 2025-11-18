@@ -35,7 +35,13 @@
                                    class="form-control" 
                                    ng-model="attendanceDate" 
                                    ng-model-options="{ timezone: 'UTC', updateOn: 'blur' }"
-                                   date-input>
+                                   date-input
+                                   max="{{maxAttendanceDate}}"
+                                   readonly
+                                   title="Chỉ được điểm danh cho ngày hôm nay">
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i> Chỉ được điểm danh cho ngày hôm nay
+                            </small>
                         </div>
                         
                         <div class="form-group" style="flex: 1;">

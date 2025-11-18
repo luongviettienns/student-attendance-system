@@ -32,12 +32,12 @@ app.controller('LecturerGradeAppealController', [
             totalCount: 0
         };
         
-        // Response modal
+        // Response modal (Giảng viên chỉ ĐỀ XUẤT, không quyết định cuối cùng)
         $scope.showResponseModal = false;
         $scope.selectedAppeal = null;
         $scope.responseData = {
             lecturerResponse: '',
-            lecturerDecision: 'NEED_REVIEW' // APPROVE, REJECT, NEED_REVIEW
+            lecturerDecision: 'NEED_REVIEW' // APPROVE (đề xuất chấp nhận), REJECT (đề xuất từ chối), NEED_REVIEW (cần xem xét thêm)
         };
         $scope.saving = false;
         
@@ -127,10 +127,10 @@ app.controller('LecturerGradeAppealController', [
             $scope.selectedAppeal = null;
         };
         
-        // Submit response
+        // Submit response (Giảng viên chỉ ĐỀ XUẤT, advisor mới quyết định cuối cùng)
         $scope.submitResponse = function() {
             if (!$scope.responseData.lecturerDecision) {
-                ToastService.error('Vui lòng chọn quyết định');
+                ToastService.error('Vui lòng chọn đề xuất');
                 return;
             }
             
@@ -145,12 +145,12 @@ app.controller('LecturerGradeAppealController', [
             
             GradeAppealService.updateLecturerResponse($scope.selectedAppeal.appealId, responseData)
                 .then(function() {
-                    ToastService.success('Phản hồi phúc khảo thành công!');
+                    ToastService.success('Đề xuất phúc khảo đã được gửi! Đang chờ cố vấn học tập quyết định cuối cùng.');
                     $scope.closeResponseModal();
                     loadAppeals();
                 })
                 .catch(function(error) {
-                    ToastService.error('Lỗi: ' + (error.data?.message || error.message || 'Không thể cập nhật phản hồi'));
+                    ToastService.error('Lỗi: ' + (error.data?.message || error.message || 'Không thể gửi đề xuất'));
                     LoggerService.error('Error updating lecturer response', error);
                 })
                 .finally(function() {

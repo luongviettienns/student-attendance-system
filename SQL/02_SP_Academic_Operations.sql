@@ -275,18 +275,128 @@ IF OBJECT_ID('sp_CreateAttendance', 'P') IS NOT NULL DROP PROCEDURE sp_CreateAtt
 GO
 CREATE PROCEDURE sp_CreateAttendance
     @AttendanceId VARCHAR(50),
-    @EnrollmentId VARCHAR(50),
-    @ClassId VARCHAR(50),
+    @StudentId VARCHAR(50),           -- ✅ New: Student ID
+    @ScheduleId VARCHAR(50),          -- ✅ New: Schedule ID (timetable_session_id)
     @AttendanceDate DATETIME,
     @Status NVARCHAR(20),
     @Note NVARCHAR(500) = NULL,
-    @CreatedBy VARCHAR(50) = 'system'
+    @MarkedBy VARCHAR(50) = NULL,     -- ✅ New: Marked by (who marked attendance)
+    @CreatedBy VARCHAR(50) = 'system',
+    @EnrollmentId VARCHAR(50) = NULL, -- ✅ Optional: Can provide directly
+    @ClassId VARCHAR(50) = NULL        -- ✅ Optional: Can provide directly
 AS
 BEGIN
-    INSERT INTO dbo.attendances (attendance_id, enrollment_id, class_id, attendance_date,
-                                  status, note, created_at, created_by)
-    VALUES (@AttendanceId, @EnrollmentId, @ClassId, @AttendanceDate, @Status, @Note,
-            GETDATE(), @CreatedBy);
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        DECLARE @ActualEnrollmentId VARCHAR(50);
+        DECLARE @ActualClassId VARCHAR(50);
+        DECLARE @ErrorMsg NVARCHAR(500);
+        
+        -- ✅ 1. Get ClassId from ScheduleId (timetable_sessions)
+        IF @ClassId IS NULL OR @ClassId = ''
+        BEGIN
+            SELECT TOP 1 @ActualClassId = class_id
+            FROM dbo.timetable_sessions
+            WHERE session_id = @ScheduleId
+            AND deleted_at IS NULL;
+            
+            IF @ActualClassId IS NULL
+            BEGIN
+                THROW 50001, N'Không tìm thấy lớp học từ lịch học (schedule)', 1;
+            END
+        END
+        ELSE
+        BEGIN
+            SET @ActualClassId = @ClassId;
+        END
+        
+        -- ✅ 2. Get EnrollmentId from StudentId and ClassId
+        IF @EnrollmentId IS NULL OR @EnrollmentId = ''
+        BEGIN
+            SELECT TOP 1 @ActualEnrollmentId = enrollment_id
+            FROM dbo.enrollments
+            WHERE student_id = @StudentId
+            AND class_id = @ActualClassId
+            AND enrollment_status = 'APPROVED'  -- ✅ Chỉ lấy enrollment đã được duyệt
+            AND deleted_at IS NULL
+            ORDER BY enrollment_date DESC;  -- ✅ Lấy enrollment mới nhất (nếu có nhiều)
+            
+            IF @ActualEnrollmentId IS NULL
+            BEGIN
+                THROW 50001, N'Không tìm thấy đăng ký học phần cho sinh viên này trong lớp học. Sinh viên có thể chưa đăng ký hoặc đăng ký chưa được duyệt.', 1;
+            END
+        END
+        ELSE
+        BEGIN
+            -- ✅ Validate provided EnrollmentId
+            IF NOT EXISTS (
+                SELECT 1 FROM dbo.enrollments
+                WHERE enrollment_id = @EnrollmentId
+                AND student_id = @StudentId
+                AND class_id = @ActualClassId
+                AND enrollment_status = 'APPROVED'
+                AND deleted_at IS NULL
+            )
+            BEGIN
+                THROW 50001, N'Enrollment ID không hợp lệ hoặc không thuộc về sinh viên/lớp học này', 1;
+            END
+            
+            SET @ActualEnrollmentId = @EnrollmentId;
+        END
+        
+        -- ✅ 3. Validate: Chỉ được điểm danh cho ngày hôm nay
+        DECLARE @Today DATE = CAST(GETDATE() AS DATE);
+        DECLARE @AttendanceDateOnly DATE = CAST(@AttendanceDate AS DATE);
+        
+        IF @AttendanceDateOnly != @Today
+        BEGIN
+            SET @ErrorMsg = N'Chỉ được điểm danh cho ngày hôm nay. Ngày điểm danh phải là: ' + CONVERT(NVARCHAR(10), @Today, 120);
+            THROW 50001, @ErrorMsg, 1;
+        END
+        
+        -- ✅ 4. Validate Status
+        IF @Status NOT IN ('Present', 'Absent', 'Late', 'Excused')
+        BEGIN
+            THROW 50001, N'Trạng thái điểm danh không hợp lệ. Chỉ chấp nhận: Present, Absent, Late, Excused', 1;
+        END
+        
+        -- ✅ 5. Check for duplicate attendance (same student, same schedule, same date)
+        IF EXISTS (
+            SELECT 1 FROM dbo.attendances
+            WHERE enrollment_id = @ActualEnrollmentId
+            AND class_id = @ActualClassId
+            AND CAST(attendance_date AS DATE) = CAST(@AttendanceDate AS DATE)
+            AND deleted_at IS NULL
+        )
+        BEGIN
+            -- ✅ Nếu đã có attendance, cập nhật thay vì tạo mới
+            UPDATE dbo.attendances
+            SET status = @Status,
+                note = @Note,
+                updated_at = GETDATE(),
+                updated_by = @CreatedBy
+            WHERE enrollment_id = @ActualEnrollmentId
+            AND class_id = @ActualClassId
+            AND CAST(attendance_date AS DATE) = CAST(@AttendanceDate AS DATE)
+            AND deleted_at IS NULL;
+            
+            SELECT @AttendanceId as attendance_id;
+            RETURN;  -- ✅ Exit early after update
+        END
+        
+        -- ✅ 6. Insert new attendance record
+        INSERT INTO dbo.attendances (attendance_id, enrollment_id, class_id, attendance_date,
+                                      status, note, created_at, created_by)
+        VALUES (@AttendanceId, @ActualEnrollmentId, @ActualClassId, @AttendanceDate, @Status, @Note,
+                GETDATE(), @CreatedBy);
+        
+        SELECT @AttendanceId as attendance_id;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
 END
 GO
 
@@ -966,9 +1076,40 @@ CREATE PROCEDURE sp_UpdateAttendance
     @UpdatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
-    UPDATE dbo.attendances
-    SET status = @Status, note = @Note, updated_at = GETDATE(), updated_by = @UpdatedBy
-    WHERE attendance_id = @AttendanceId;
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        -- ✅ Validate attendance exists
+        IF NOT EXISTS (
+            SELECT 1 FROM dbo.attendances
+            WHERE attendance_id = @AttendanceId
+            AND deleted_at IS NULL
+        )
+        BEGIN
+            THROW 50001, N'Không tìm thấy bản ghi điểm danh', 1;
+        END
+        
+        -- ✅ Validate status
+        IF @Status NOT IN ('Present', 'Absent', 'Late', 'Excused')
+        BEGIN
+            THROW 50001, N'Trạng thái điểm danh không hợp lệ. Chỉ chấp nhận: Present, Absent, Late, Excused', 1;
+        END
+        
+        -- ✅ Update attendance
+        UPDATE dbo.attendances
+        SET status = @Status, 
+            note = @Note, 
+            updated_at = GETDATE(), 
+            updated_by = @UpdatedBy
+        WHERE attendance_id = @AttendanceId
+        AND deleted_at IS NULL;
+        
+        SELECT @AttendanceId as attendance_id;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
 END
 GO
 

@@ -43,6 +43,11 @@ namespace EducationManagement.Common.Models
         [MaxLength(20)]
         public string Status { get; set; } = "UPCOMING"; // UPCOMING, OPEN, CLOSED
 
+        [Required]
+        [Column("period_type")]
+        [MaxLength(20)]
+        public string PeriodType { get; set; } = "NORMAL"; // NORMAL: đăng ký học phần thường, RETAKE: đăng ký học lại
+
         [Column("description")]
         [MaxLength(500)]
         public string? Description { get; set; }

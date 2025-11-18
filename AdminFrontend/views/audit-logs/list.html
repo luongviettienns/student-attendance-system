@@ -194,11 +194,15 @@
                             <div class="timeline-content">
                                 <div class="timeline-header">
                                     <div class="timeline-title">
-                                        <span class="action-badge" ng-class="getActionClass(log.action)">
-                                            {{getActionLabel(log.action)}}
+                                        <span class="action-badge" ng-class="getActionClass(log.action)" title="Hành động: {{log.action}}">
+                                            <i class="fas" ng-class="getActionIcon(log.action)"></i>
+                                            {{log.actionLabel || getActionLabel(log.action)}}
                                         </span>
-                                        <span class="entity-type">{{getEntityLabel(log.entityType)}}</span>
-                                        <span class="entity-id" ng-if="log.entityId">
+                                        <span class="entity-type" title="Đối tượng: {{log.entityType}}">
+                                            <i class="fas fa-cube"></i>
+                                            {{log.entityTypeLabel || getEntityLabel(log.entityType)}}
+                                        </span>
+                                        <span class="entity-id" ng-if="log.entityId" title="Mã ID: {{log.entityId}}">
                                             <i class="fas fa-hashtag"></i>{{log.entityId}}
                                         </span>
                                     </div>
@@ -211,10 +215,11 @@
                                 </div>
                                 
                                 <div class="timeline-body">
-                                    <div class="user-info-inline">
-                                        <span class="user-label">Được thực hiện bởi:</span>
+                                    <div class="user-info-inline" title="Người thực hiện: {{log.userFullName || log.userName}} - ID: {{log.userId || 'System'}}">
+                                        <span class="user-label">Người thực hiện:</span>
                                         <i class="fas fa-user-circle"></i>
                                         <strong>{{log.userName}}</strong>
+                                        <small ng-if="log.userId" class="text-muted">(ID: {{log.userId}})</small>
                                     </div>
                                     <div class="log-details" ng-if="log.details">
                                         <!-- Readable format -->
@@ -299,20 +304,23 @@
                                             </div>
                                         </td>
                                         <td>
-                                            <div class="cell-user">
+                                            <div class="cell-user" title="{{log.userFullName ? log.userFullName : log.userName}} - ID: {{log.userId || 'System'}}">
                                                 <i class="fas fa-user-circle"></i>
-                                                {{log.userName}}
+                                                <strong>{{log.userName}}</strong>
+                                                <small ng-if="log.userId" class="text-muted" style="display: block; font-size: 11px;">ID: {{log.userId}}</small>
                                             </div>
                                         </td>
                                         <td>
-                                            <span class="badge" ng-class="getActionClass(log.action)">
+                                            <span class="badge" ng-class="getActionClass(log.action)" title="Hành động: {{log.action}}">
                                                 <i class="fas" ng-class="getActionIcon(log.action)"></i>
-                                                {{getActionLabel(log.action)}}
+                                                {{log.actionLabel || getActionLabel(log.action)}}
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="entity-badge">
-                                                {{getEntityLabel(log.entityType)}}
+                                            <span class="entity-badge" title="Đối tượng: {{log.entityType}}">
+                                                <i class="fas fa-cube"></i>
+                                                {{log.entityTypeLabel || getEntityLabel(log.entityType)}}
+                                                <small ng-if="log.entityId" class="text-muted">#{{log.entityId}}</small>
                                             </span>
                                         </td>
                                         <td>
@@ -366,18 +374,28 @@
                 <span>{{formatDate(selectedLog.createdAt)}}</span>
             </div>
             <div class="detail-row">
-                <label>Người dùng:</label>
-                <span>{{selectedLog.userName}}</span>
-            </div>
-            <div class="detail-row">
-                <label>Hành động:</label>
-                <span class="badge" ng-class="getActionClass(selectedLog.action)">
-                    {{getActionLabel(selectedLog.action)}}
+                <label>Người thực hiện:</label>
+                <span>
+                    <strong>{{selectedLog.userName || 'Hệ thống'}}</strong>
+                    <small ng-if="selectedLog.userId" class="text-muted">(ID: {{selectedLog.userId}})</small>
+                    <small ng-if="selectedLog.userFullName && selectedLog.userFullName !== selectedLog.userName" class="text-muted"> - {{selectedLog.userFullName}}</small>
                 </span>
             </div>
             <div class="detail-row">
+                <label>Hành động:</label>
+                <span class="badge" ng-class="getActionClass(selectedLog.action)" title="Mã: {{selectedLog.action}}">
+                    <i class="fas" ng-class="getActionIcon(selectedLog.action)"></i>
+                    {{selectedLog.actionLabel || getActionLabel(selectedLog.action)}}
+                </span>
+                <small class="text-muted" ng-if="selectedLog.action">({{selectedLog.action}})</small>
+            </div>
+            <div class="detail-row">
                 <label>Đối tượng:</label>
-                <span>{{getEntityLabel(selectedLog.entityType)}}</span>
+                <span title="Mã: {{selectedLog.entityType}}">
+                    <i class="fas fa-cube"></i>
+                    {{selectedLog.entityTypeLabel || getEntityLabel(selectedLog.entityType)}}
+                    <small class="text-muted" ng-if="selectedLog.entityType">({{selectedLog.entityType}})</small>
+                </span>
             </div>
             <div class="detail-row" ng-if="selectedLog.entityId">
                 <label>ID:</label>

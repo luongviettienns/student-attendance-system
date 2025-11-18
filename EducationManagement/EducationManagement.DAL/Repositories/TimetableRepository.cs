@@ -51,7 +51,9 @@ namespace EducationManagement.DAL.Repositories
             int? weekNo,
             int weekday,
             TimeSpan startTime,
-            TimeSpan endTime)
+            TimeSpan endTime,
+            int? periodFrom = null,  // ✅ THÊM
+            int? periodTo = null)    // ✅ THÊM
         {
             var parameters = new[]
             {
@@ -64,7 +66,9 @@ namespace EducationManagement.DAL.Repositories
                 new SqlParameter("@WeekNo", (object?)weekNo ?? DBNull.Value),
                 new SqlParameter("@Weekday", weekday),
                 new SqlParameter("@StartTime", startTime),
-                new SqlParameter("@EndTime", endTime)
+                new SqlParameter("@EndTime", endTime),
+                new SqlParameter("@PeriodFrom", (object?)periodFrom ?? DBNull.Value),  // ✅ THÊM
+                new SqlParameter("@PeriodTo", (object?)periodTo ?? DBNull.Value)      // ✅ THÊM
             };
             return await DatabaseHelper.ExecuteQueryMultipleAsync(_connectionString, "sp_CheckTimetableConflicts", parameters);
         }
@@ -182,7 +186,7 @@ namespace EducationManagement.DAL.Repositories
         public async Task<bool> ExistsRoomAsync(string roomId)
         {
             using var conn = new SqlConnection(_connectionString);
-            using var cmd = new SqlCommand("SELECT 1 FROM dbo.rooms WHERE room_id=@id", conn);
+            using var cmd = new SqlCommand("SELECT 1 FROM dbo.rooms WHERE room_id=@id AND deleted_at IS NULL", conn);
             cmd.Parameters.AddWithValue("@id", roomId);
             await conn.OpenAsync();
             var o = await cmd.ExecuteScalarAsync();
@@ -229,7 +233,8 @@ namespace EducationManagement.DAL.Repositories
             var cmd = conn.CreateCommand();
             cmd.CommandText = @"SELECT room_id, room_code, building, capacity, is_active
                                 FROM dbo.rooms
-                                WHERE (@act IS NULL OR is_active=@act)
+                                WHERE deleted_at IS NULL
+                                  AND (@act IS NULL OR is_active=@act)
                                   AND (@s IS NULL OR room_code LIKE '%'+@s+'%' OR building LIKE '%'+@s+'%')
                                 ORDER BY room_code";
             cmd.Parameters.AddWithValue("@act", (object?)isActive ?? DBNull.Value);
@@ -299,6 +304,42 @@ namespace EducationManagement.DAL.Repositories
             ORDER BY ts.weekday, ts.start_time";
             cmd.Parameters.AddWithValue("@classId", classId);
             cmd.Parameters.AddWithValue("@weekNo", weekNo);
+            var dt = new DataTable();
+            using var da = new SqlDataAdapter((SqlCommand)cmd);
+            da.Fill(dt);
+            return dt;
+        }
+
+        // ✅ THÊM: Get sessions by weekday and weekNo (for period conflict check)
+        public async Task<DataTable> GetSessionsByWeekdayAsync(int weekday, int? weekNo, string? schoolYearId = null)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"SELECT 
+                ts.session_id, ts.class_id, ts.subject_id, ts.lecturer_id, ts.room_id, ts.school_year_id,
+                ts.week_no, ts.weekday, ts.start_time, ts.end_time, ts.period_from, ts.period_to,
+                ts.recurrence, ts.status, ts.notes,
+                c.class_code, c.class_name,
+                s.subject_code, s.subject_name,
+                l.full_name AS lecturer_name,
+                r.room_code, r.building,
+                sy.year_code AS school_year_code
+            FROM dbo.timetable_sessions ts
+            INNER JOIN dbo.classes c ON ts.class_id = c.class_id
+            INNER JOIN dbo.subjects s ON ts.subject_id = s.subject_id
+            LEFT JOIN dbo.lecturers l ON ts.lecturer_id = l.lecturer_id
+            LEFT JOIN dbo.rooms r ON ts.room_id = r.room_id
+            LEFT JOIN dbo.school_years sy ON ts.school_year_id = sy.school_year_id
+            WHERE ts.weekday = @weekday
+              AND (ts.week_no = @weekNo OR ts.week_no IS NULL OR @weekNo IS NULL)
+              AND (@schoolYearId IS NULL OR ts.school_year_id = @schoolYearId)
+              AND ts.deleted_at IS NULL
+              AND c.deleted_at IS NULL
+            ORDER BY ts.start_time";
+            cmd.Parameters.AddWithValue("@weekday", weekday);
+            cmd.Parameters.AddWithValue("@weekNo", (object?)weekNo ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@schoolYearId", (object?)schoolYearId ?? DBNull.Value);
             var dt = new DataTable();
             using var da = new SqlDataAdapter((SqlCommand)cmd);
             da.Fill(dt);

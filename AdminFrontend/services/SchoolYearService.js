@@ -87,6 +87,12 @@ app.service('SchoolYearService', ['ApiService', function(ApiService) {
         return ApiService.post('/school-years/auto-transition-semester');
     };
     
+    // Force transition to specific semester (FOR TEST ONLY)
+    this.forceTransitionSemester = function(targetSemester) {
+        // Use route parameter instead of query parameter for POST
+        return ApiService.post('/school-years/force-transition-semester/' + targetSemester, {});
+    };
+    
     // Delete school year
     this.delete = function(id) {
         return ApiService.delete('/school-years/' + id);

@@ -309,6 +309,18 @@ END
 ELSE
     PRINT '   ⏭️  Skipped: IX_Grades_Enrollment (already exists)';
 
+-- ✅ THÊM: Index cho thống kê GPA theo sinh viên
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_GPAs_Student_AcademicYear_Semester')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_GPAs_Student_AcademicYear_Semester
+    ON dbo.gpas(student_id, academic_year_id, semester)
+    INCLUDE (gpa10, gpa4, total_credits)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_GPAs_Student_AcademicYear_Semester';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_GPAs_Student_AcademicYear_Semester (already exists)';
+
 -- =============================================
 -- 8. ATTENDANCE INDEXES
 -- =============================================
@@ -335,6 +347,42 @@ BEGIN
 END
 ELSE
     PRINT '   ⏭️  Skipped: IX_Attendance_Enrollment_Class (already exists)';
+
+-- ✅ THÊM: Index cho thống kê điểm danh theo lớp (class_id, status, date)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Attendances_Class_Status_Date')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Attendances_Class_Status_Date
+    ON dbo.attendances(class_id, status, attendance_date DESC)
+    INCLUDE (enrollment_id)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_Attendances_Class_Status_Date';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_Attendances_Class_Status_Date (already exists)';
+
+-- ✅ THÊM: Index cho thống kê điểm danh theo sinh viên (enrollment_id, date)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Attendances_Student_Class_Date')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Attendances_Student_Class_Date
+    ON dbo.attendances(enrollment_id, attendance_date DESC)
+    INCLUDE (status, class_id)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_Attendances_Student_Class_Date';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_Attendances_Student_Class_Date (already exists)';
+
+-- ✅ THÊM: Index cho thống kê điểm danh theo thời gian (date, status)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Attendances_Date_Status')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Attendances_Date_Status
+    ON dbo.attendances(attendance_date DESC, status)
+    INCLUDE (enrollment_id, class_id)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_Attendances_Date_Status';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_Attendances_Date_Status (already exists)';
 
 -- =============================================
 -- 9. ACADEMIC YEARS & ROLES INDEXES
@@ -445,6 +493,18 @@ BEGIN
 END
 ELSE
     PRINT '   ⏭️  Skipped: IX_Enrollments_Class_Status_Covering (already exists)';
+
+-- ✅ THÊM: Index cho thống kê enrollment theo lớp và status (với created_at)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Enrollments_Class_Status_CreatedAt')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Enrollments_Class_Status_CreatedAt
+    ON dbo.enrollments(class_id, enrollment_status, enrollment_date DESC)
+    INCLUDE (student_id, enrollment_id)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_Enrollments_Class_Status_CreatedAt';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_Enrollments_Class_Status_CreatedAt (already exists)';
 
 -- =============================================
 -- 12. ROLE_PERMISSIONS TABLE INDEXES
@@ -588,6 +648,65 @@ END
 ELSE
     PRINT '   ⏭️  Skipped: IX_TimetableSessions_ConflictCheck (already exists)';
 
+-- ✅ THÊM: Index cho conflict checking theo period (period_from, period_to)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_TimetableSessions_PeriodConflict')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_TimetableSessions_PeriodConflict
+    ON dbo.timetable_sessions(weekday, period_from, period_to, school_year_id, week_no)
+    INCLUDE (class_id, lecturer_id, room_id)
+    WHERE deleted_at IS NULL AND period_from IS NOT NULL AND period_to IS NOT NULL;
+    PRINT '   ✅ Created: IX_TimetableSessions_PeriodConflict';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_TimetableSessions_PeriodConflict (already exists)';
+
+-- =============================================
+-- 14. ROOMS TABLE INDEXES (NEW!)
+-- =============================================
+PRINT '';
+PRINT '📊 Creating Rooms indexes...';
+
+-- Index cho search Rooms (room_code, building)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Rooms_Code_Building')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Rooms_Code_Building
+    ON dbo.rooms(room_code, building)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_Rooms_Code_Building';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_Rooms_Code_Building (already exists)';
+
+-- Index cho filter Rooms by is_active
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Rooms_IsActive')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Rooms_IsActive
+    ON dbo.rooms(is_active, created_at DESC)
+    INCLUDE (room_id, room_code, building, capacity)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_Rooms_IsActive';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_Rooms_IsActive (already exists)';
+
+-- =============================================
+-- 15. CLASSES CURRENT_ENROLLMENT INDEX (NEW!)
+-- =============================================
+PRINT '';
+PRINT '📊 Creating Classes enrollment index...';
+
+-- Index cho filter Classes by current_enrollment (để tìm lớp còn chỗ)
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Classes_Enrollment')
+BEGIN
+    CREATE NONCLUSTERED INDEX IX_Classes_Enrollment
+    ON dbo.classes(current_enrollment, max_students)
+    INCLUDE (class_id, class_code, class_name, subject_id, lecturer_id)
+    WHERE deleted_at IS NULL;
+    PRINT '   ✅ Created: IX_Classes_Enrollment';
+END
+ELSE
+    PRINT '   ⏭️  Skipped: IX_Classes_Enrollment (already exists)';
+
 PRINT '';
 PRINT '========================================';
 PRINT '✅ HOÀN THÀNH TẠO INDEXES!';
@@ -605,6 +724,12 @@ PRINT '   - Foreign key indexes: 5+ indexes';
 PRINT '   - Covering indexes: 2+ indexes';
 PRINT '   - Audit & Role indexes: 6+ indexes';
 PRINT '   - Refresh Tokens indexes: 3+ indexes';
+PRINT '   - Timetable Sessions indexes: 6+ indexes ✅';
+PRINT '   - Rooms indexes: 2+ indexes ✅ MỚI';
+PRINT '   - Classes enrollment index: 1+ index ✅ MỚI';
+PRINT '   - Attendance statistics indexes: 3+ indexes ✅ MỚI';
+PRINT '   - GPA statistics index: 1+ index ✅ MỚI';
+PRINT '   - Enrollment statistics index: 1+ index ✅ MỚI';
 PRINT '========================================';
 GO
 

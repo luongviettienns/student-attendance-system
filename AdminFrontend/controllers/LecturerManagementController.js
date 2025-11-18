@@ -50,10 +50,15 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     };
     
     $scope.init = function() {
+        // Prevent multiple simultaneous initializations
+        if ($scope.initializing) {
+            return;
+        }
+        $scope.initializing = true;
+        
         // Load permissions first, then load data
         RoleService.loadPermissions().then(function() {
             $scope.canViewSubjectAssignment = RoleService.hasPermission('canManageLecturers');
-            LoggerService.debug('Permissions loaded for lecturer management', { canViewSubjectAssignment: $scope.canViewSubjectAssignment });
             
             // Now load data
             $scope.loadLecturers();
@@ -63,8 +68,11 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
             if ($scope.canViewSubjectAssignment) {
                 $scope.loadAllSubjects();
             }
+            
+            $scope.initializing = false;
         }).catch(function(error) {
             LoggerService.error('Error loading lecturer permissions', error);
+            
             // Use fallback permissions
             $scope.canViewSubjectAssignment = RoleService.hasPermission('canManageLecturers');
             
@@ -75,6 +83,8 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
             if ($scope.canViewSubjectAssignment) {
                 $scope.loadAllSubjects();
             }
+            
+            $scope.initializing = false;
         });
     };
 
@@ -222,20 +232,54 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     // SUBJECT ASSIGNMENT FUNCTIONS
     // =========================
     $scope.loadAllSubjects = function() {
-        $http.get(API_CONFIG.BASE_URL + '/subjects')
+        var url = API_CONFIG.BASE_URL + '/subjects';
+        
+        $http.get(url)
             .then(function(response) {
-                $scope.allSubjects = response.data;
+                // Handle different response formats
+                var subjects = [];
+                if (Array.isArray(response.data)) {
+                    subjects = response.data;
+                } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+                    subjects = response.data.data;
+                } else if (response.data && Array.isArray(response.data.items)) {
+                    subjects = response.data.items;
+                } else {
+                    subjects = [];
+                }
+                
+                $scope.allSubjects = subjects;
                 
                 // Load assigned lecturers for each subject
-                $scope.allSubjects.forEach(function(subject) {
-                    $scope.loadSubjectLecturers(subject);
-                });
+                if ($scope.allSubjects.length > 0) {
+                    $scope.allSubjects.forEach(function(subject) {
+                        $scope.loadSubjectLecturers(subject);
+                    });
+                }
                 
                 // Update pagination
                 $scope.updateSubjectsPagination();
             })
             .catch(function(error) {
-                ToastService.error('❌ Lỗi tải danh sách môn học');
+                // Try to extract error message
+                var errorMsg = '❌ Lỗi tải danh sách môn học';
+                if (error.data) {
+                    if (typeof error.data === 'string') {
+                        errorMsg = error.data;
+                    } else if (error.data.message) {
+                        errorMsg = error.data.message;
+                    } else if (error.data.error) {
+                        errorMsg = error.data.error;
+                    }
+                } else if (error.status === 404) {
+                    errorMsg = 'Không tìm thấy endpoint môn học';
+                } else if (error.status === 500) {
+                    errorMsg = 'Lỗi server khi tải danh sách môn học';
+                } else if (error.status === 0) {
+                    errorMsg = 'Không thể kết nối đến server';
+                }
+                
+                ToastService.error(errorMsg);
             });
     };
     
@@ -287,11 +331,27 @@ app.controller('LecturerManagementController', ['$scope', '$http', 'API_CONFIG',
     };
 
     $scope.loadSubjectLecturers = function(subject) {
-        $http.get(API_CONFIG.BASE_URL + '/lecturer-subjects/subject/' + subject.subjectId)
+        if (!subject || !subject.subjectId) {
+            return;
+        }
+        
+        var url = API_CONFIG.BASE_URL + '/lecturer-subjects/subject/' + subject.subjectId;
+        
+        $http.get(url)
             .then(function(response) {
-                subject.assignedLecturers = response.data.data || [];
+                // Handle different response formats
+                var lecturers = [];
+                if (Array.isArray(response.data)) {
+                    lecturers = response.data;
+                } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+                    lecturers = response.data.data;
+                } else if (response.data && Array.isArray(response.data.items)) {
+                    lecturers = response.data.items;
+                }
+                
+                subject.assignedLecturers = lecturers;
             })
-            .catch(function() {
+            .catch(function(error) {
                 subject.assignedLecturers = [];
             });
     };

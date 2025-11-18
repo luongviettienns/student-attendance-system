@@ -58,6 +58,67 @@
                     <h2><i class="fas fa-calendar-day"></i> Lịch giảng dạy hôm nay</h2>
                 </div>
                 <div class="card-body">
+                    <!-- ✅ Thông báo nhắc điểm danh -->
+                    <div ng-if="shouldShowAttendanceReminder() && getUnattendedCount() > 0 && !reminderDismissed" 
+                         class="alert alert-warning alert-dismissible fade show attendance-reminder" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Nhắc nhở:</strong> Bạn còn <strong>{{getUnattendedCount()}}</strong> tiết học chưa điểm danh hôm nay. 
+                        Vui lòng hoàn tất điểm danh trước khi kết thúc ngày.
+                        <button type="button" class="close-btn" ng-click="dismissReminder()" aria-label="Đóng">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <style>
+                        /* ✅ Làm đẹp thông báo nhắc điểm danh */
+                        .attendance-reminder {
+                            position: relative;
+                            padding: 16px 50px 16px 20px;
+                            border-left: 4px solid #f59e0b;
+                            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+                            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.15);
+                        }
+                        
+                        .attendance-reminder i.fa-exclamation-triangle {
+                            color: #f59e0b;
+                            margin-right: 8px;
+                            font-size: 18px;
+                        }
+                        
+                        .attendance-reminder .close-btn {
+                            position: absolute;
+                            top: 12px;
+                            right: 12px;
+                            background: transparent;
+                            border: none;
+                            padding: 6px 10px;
+                            cursor: pointer;
+                            color: #92400e;
+                            font-size: 18px;
+                            line-height: 1;
+                            transition: all 0.2s ease;
+                            border-radius: 4px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            width: 32px;
+                            height: 32px;
+                        }
+                        
+                        .attendance-reminder .close-btn:hover {
+                            background: rgba(146, 64, 14, 0.1);
+                            color: #78350f;
+                            transform: scale(1.1);
+                        }
+                        
+                        .attendance-reminder .close-btn:active {
+                            transform: scale(0.95);
+                        }
+                        
+                        .attendance-reminder .close-btn i {
+                            font-size: 16px;
+                        }
+                    </style>
                     <div ng-if="loading" class="text-center">
                         <i class="fas fa-spinner fa-spin fa-2x"></i>
                         <p>Đang tải...</p>
@@ -92,15 +153,19 @@
                                     <td>
                                         <span class="badge" ng-class="{
                                             'badge-success': schedule.status === 'completed',
-                                            'badge-warning': schedule.status === 'in_progress',
+                                            'badge-warning': schedule.status === 'in_progress' || schedule.status === 'in_progress_not_attended',
+                                            'badge-danger': schedule.status === 'not_completed',
                                             'badge-secondary': schedule.status === 'pending'
                                         }">
                                             {{schedule.status === 'completed' ? 'Đã hoàn thành' : 
-                                              schedule.status === 'in_progress' ? 'Đang diễn ra' : 'Chưa bắt đầu'}}
+                                              schedule.status === 'in_progress' ? 'Đang diễn ra' : 
+                                              schedule.status === 'in_progress_not_attended' ? 'Đang diễn ra (chưa điểm danh)' :
+                                              schedule.status === 'not_completed' ? 'Chưa hoàn thành' :
+                                              'Chưa bắt đầu'}}
                                         </span>
                                     </td>
                                     <td>
-                                        <a href="#!/lecturer/attendance/{{schedule.id}}" class="btn btn-sm btn-primary">
+                                        <a href="#!/lecturer/attendance?sessionId={{schedule.id}}&classId={{schedule.classId}}&period={{schedule.period}}" class="btn btn-sm btn-primary">
                                             <i class="fas fa-clipboard-check"></i> Điểm danh
                                         </a>
                                     </td>
@@ -116,11 +181,15 @@
                                 <span class="schedule-period">{{schedule.period}}</span>
                                 <span class="schedule-status-badge badge" ng-class="{
                                     'badge-success': schedule.status === 'completed',
-                                    'badge-warning': schedule.status === 'in_progress',
+                                    'badge-warning': schedule.status === 'in_progress' || schedule.status === 'in_progress_not_attended',
+                                    'badge-danger': schedule.status === 'not_completed',
                                     'badge-secondary': schedule.status === 'pending'
                                 }">
                                     {{schedule.status === 'completed' ? 'Đã hoàn thành' : 
-                                      schedule.status === 'in_progress' ? 'Đang diễn ra' : 'Chưa bắt đầu'}}
+                                      schedule.status === 'in_progress' ? 'Đang diễn ra' : 
+                                      schedule.status === 'in_progress_not_attended' ? 'Đang diễn ra (chưa điểm danh)' :
+                                      schedule.status === 'not_completed' ? 'Chưa hoàn thành' :
+                                      'Chưa bắt đầu'}}
                                 </span>
                             </div>
                             <div class="schedule-card-body">
@@ -146,7 +215,7 @@
                                 </div>
                             </div>
                             <div class="schedule-card-footer">
-                                <a href="#!/lecturer/attendance/{{schedule.id}}" class="btn btn-primary btn-block">
+                                <a href="#!/lecturer/attendance?sessionId={{schedule.id}}&classId={{schedule.classId}}&period={{schedule.period}}" class="btn btn-primary btn-block">
                                     <i class="fas fa-clipboard-check"></i> Điểm danh
                                 </a>
                             </div>

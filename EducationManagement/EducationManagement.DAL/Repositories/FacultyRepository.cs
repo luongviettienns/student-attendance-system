@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using EducationManagement.Common.Models;
+using EducationManagement.Common.DTOs.Organization;
 using EducationManagement.DAL;
 
 namespace EducationManagement.DAL.Repositories
@@ -173,7 +174,39 @@ namespace EducationManagement.DAL.Repositories
                 ? Convert.ToDateTime(row["deleted_at"])
                 : null;
 
+            // ✅ Map counts from stored procedure
+            faculty.DepartmentCount = row.Table.Columns.Contains("department_count") && row["department_count"] != DBNull.Value
+                ? Convert.ToInt32(row["department_count"])
+                : 0;
+
+            faculty.MajorCount = row.Table.Columns.Contains("major_count") && row["major_count"] != DBNull.Value
+                ? Convert.ToInt32(row["major_count"])
+                : 0;
+
             return faculty;
+        }
+
+        // ============================================================
+        // 🔹 KIỂM TRA RÀNG BUỘC TRƯỚC KHI XÓA
+        // ============================================================
+        public async Task<FacultyConstraintDto> CheckConstraintsAsync(string facultyId)
+        {
+            var param = new SqlParameter("@FacultyId", facultyId);
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_CheckFacultyConstraints", param);
+
+            if (dt.Rows.Count == 0)
+            {
+                return new FacultyConstraintDto();
+            }
+
+            var row = dt.Rows[0];
+            return new FacultyConstraintDto
+            {
+                DepartmentCount = Convert.ToInt32(row["department_count"]),
+                ActiveDepartmentCount = Convert.ToInt32(row["active_department_count"]),
+                MajorCount = Convert.ToInt32(row["major_count"]),
+                ActiveMajorCount = Convert.ToInt32(row["active_major_count"])
+            };
         }
 
     }

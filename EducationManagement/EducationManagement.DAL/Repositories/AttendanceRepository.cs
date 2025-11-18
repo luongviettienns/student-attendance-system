@@ -78,7 +78,7 @@ namespace EducationManagement.DAL.Repositories
                 new SqlParameter("@ScheduleId", scheduleId),
                 new SqlParameter("@AttendanceDate", attendanceDate),
                 new SqlParameter("@Status", status),
-                new SqlParameter("@Notes", (object?)notes ?? DBNull.Value),
+                new SqlParameter("@Note", (object?)notes ?? DBNull.Value),  // ✅ Fixed: @Note (singular) not @Notes
                 new SqlParameter("@MarkedBy", (object?)markedBy ?? DBNull.Value),
                 new SqlParameter("@CreatedBy", createdBy)
             };

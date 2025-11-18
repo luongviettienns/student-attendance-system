@@ -18,9 +18,17 @@ namespace EducationManagement.BLL.Services
         // ============================================================
         // 1️⃣ GET ALL
         // ============================================================
-        public async Task<List<PeriodDetailDto>> GetAllAsync()
+        public async Task<List<PeriodDetailDto>> GetAllAsync(string? periodType = null)
         {
-            return await _repository.GetAllAsync();
+            return await _repository.GetAllAsync(periodType);
+        }
+        
+        // ============================================================
+        // 1️⃣.1 GET RETAKE PERIODS
+        // ============================================================
+        public async Task<List<PeriodDetailDto>> GetRetakePeriodsAsync()
+        {
+            return await _repository.GetRetakePeriodsAsync();
         }
 
         // ============================================================

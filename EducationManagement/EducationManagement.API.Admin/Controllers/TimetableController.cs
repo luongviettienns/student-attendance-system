@@ -69,8 +69,9 @@ namespace EducationManagement.API.Admin.Controllers
             return Ok(new { sessionId = id, deleted = true });
         }
 
-        // GET: /api-edu/rooms?search=&isActive=true
-        [HttpGet("/api-edu/rooms")]
+        // GET: /api-edu/timetable/rooms?search=&isActive=true
+        // ✅ Đổi route để tránh conflict với RoomController
+        [HttpGet("rooms")]
         [Authorize]
         public async Task<IActionResult> GetRooms([FromQuery] string? search, [FromQuery] bool? isActive)
         {

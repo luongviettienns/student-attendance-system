@@ -28,7 +28,17 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         /// <summary>
+        /// Get current user full name from JWT token (if available)
+        /// </summary>
+        protected string? GetCurrentUserFullName()
+        {
+            return User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue("FullName");
+        }
+
+        /// <summary>
         /// Create audit log entry
+        /// Note: Action and EntityType are stored in English for consistency.
+        /// Frontend will format them to Vietnamese for display.
         /// </summary>
         protected async Task LogAuditAsync(
             string action,

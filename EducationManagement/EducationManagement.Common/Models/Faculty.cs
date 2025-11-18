@@ -50,5 +50,14 @@ namespace EducationManagement.Common.Models
 
         [Column("deleted_by")]
         public string? DeletedBy { get; set; }
+
+        // ==================================================
+        // 🔹 Count properties (not mapped to database, used for DTO)
+        // ==================================================
+        [NotMapped]
+        public int DepartmentCount { get; set; }
+
+        [NotMapped]
+        public int MajorCount { get; set; }
     }
 }

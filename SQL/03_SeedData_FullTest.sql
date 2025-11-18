@@ -658,10 +658,29 @@ GO
 
 MERGE dbo.timetable_sessions AS target
 USING (VALUES
-    ('TS_SE101_MON', 'CLS_SE101_2024', 'SUB_SE101', 'LEC_FT_01', 'ROOM_A101', 'SY2024', 1, 2, CAST('07:30' AS TIME), CAST('09:30' AS TIME), 1, 2, N'WEEKLY', N'ACTIVE', N'Buoi hoc lap trinh co ban'),
-    ('TS_SE201_WED', 'CLS_SE201_2024', 'SUB_SE201', 'LEC_FT_01', 'ROOM_B202', 'SY2024', 1, 4, CAST('09:45' AS TIME), CAST('11:45' AS TIME), 3, 4, N'WEEKLY', N'ACTIVE', N'Buoi phan tich he thong'),
-    ('TS_DS101_FRI', 'CLS_DS101_2024', 'SUB_DS101', 'LEC_FT_02', 'ROOM_C303', 'SY2024', 1, 5, CAST('13:00' AS TIME), CAST('15:00' AS TIME), 5, 6, N'WEEKLY', N'ACTIVE', N'Thuc hanh du lieu'),
-    ('TS_SE301_TUE', 'CLS_SE301_2024', 'SUB_SE301', 'LEC_FT_02', 'ROOM_C303', 'SY2024', 2, 3, CAST('15:15' AS TIME), CAST('17:15' AS TIME), 7, 8, N'WEEKLY', N'PLANNED', N'Huong dan do an')
+    -- ✅ CẬP NHẬT: Thời gian khớp với PeriodCalculator và phân bổ thực tế (tránh xung đột)
+    -- ✅ CẬP NHẬT: week_no = NULL cho các sessions WEEKLY để hiển thị cho tất cả các tuần
+    -- CLS_SE101_2024: 4 tiết/tuần, chia 2 buổi x 2 tiết (LEC_FT_01)
+    -- Buổi 1: Thứ 2, Tiết 1-2: 07:00-08:45
+    ('TS_SE101_MON', 'CLS_SE101_2024', 'SUB_SE101', 'LEC_FT_01', 'ROOM_A101', 'SY2024', NULL, 2, CAST('07:00' AS TIME), CAST('08:45' AS TIME), 1, 2, N'WEEKLY', N'ACTIVE', N'Buoi hoc lap trinh co ban - buoi 1'),
+    -- Buổi 2: Thứ 5, Tiết 3-4: 09:00-10:45 (tránh xung đột với SE201)
+    ('TS_SE101_THU', 'CLS_SE101_2024', 'SUB_SE101', 'LEC_FT_01', 'ROOM_A101', 'SY2024', NULL, 5, CAST('09:00' AS TIME), CAST('10:45' AS TIME), 3, 4, N'WEEKLY', N'ACTIVE', N'Buoi hoc lap trinh co ban - buoi 2'),
+    
+    -- CLS_SE201_2024: 4 tiết/tuần, chia 2 buổi x 2 tiết (LEC_FT_01)
+    -- Buổi 1: Thứ 4, Tiết 3-4: 09:00-10:45
+    ('TS_SE201_WED', 'CLS_SE201_2024', 'SUB_SE201', 'LEC_FT_01', 'ROOM_B202', 'SY2024', NULL, 4, CAST('09:00' AS TIME), CAST('10:45' AS TIME), 3, 4, N'WEEKLY', N'ACTIVE', N'Buoi phan tich he thong - buoi 1'),
+    -- Buổi 2: Thứ 6, Tiết 5-6: 10:50-12:35
+    ('TS_SE201_FRI', 'CLS_SE201_2024', 'SUB_SE201', 'LEC_FT_01', 'ROOM_B202', 'SY2024', NULL, 6, CAST('10:50' AS TIME), CAST('12:35' AS TIME), 5, 6, N'WEEKLY', N'ACTIVE', N'Buoi phan tich he thong - buoi 2'),
+    
+    -- CLS_DS101_2024: 2 tiết/tuần, 1 buổi (HK1)
+    -- Thứ 6, Tiết 5-6: 10:50-12:35
+    ('TS_DS101_FRI', 'CLS_DS101_2024', 'SUB_DS101', 'LEC_FT_02', 'ROOM_C303', 'SY2024', NULL, 6, CAST('10:50' AS TIME), CAST('12:35' AS TIME), 5, 6, N'WEEKLY', N'ACTIVE', N'Thuc hanh du lieu'),
+    
+    -- CLS_SE301_2024: 2 tiết/tuần, 1 buổi (HK2 - Đồ án tốt nghiệp)
+    -- ✅ NGHIỆP VỤ: Đồ án thường bắt đầu từ giữa HK2, nên week_no = NULL (tất cả các tuần) hoặc week_no = 8 (tuần 8)
+    -- Thứ 3, Tiết 7-8: 12:40-14:25
+    -- Lưu ý: week_no = NULL nghĩa là học tất cả các tuần trong học kỳ
+    ('TS_SE301_TUE', 'CLS_SE301_2024', 'SUB_SE301', 'LEC_FT_02', 'ROOM_C303', 'SY2024', NULL, 3, CAST('12:40' AS TIME), CAST('14:25' AS TIME), 7, 8, N'WEEKLY', N'PLANNED', N'Huong dan do an - bat dau tu giua HK2')
 ) AS src(session_id, class_id, subject_id, lecturer_id, room_id, school_year_id, week_no, weekday,
           start_time, end_time, period_from, period_to, recurrence, status, notes)
 ON target.session_id = src.session_id
@@ -793,12 +812,15 @@ WHEN NOT MATCHED THEN
     VALUES (src.attendance_id, src.enrollment_id, src.class_id, src.attendance_date, src.status, src.note, 'seed_full_test');
 GO
 
+-- ✅ CẬP NHẬT: Thêm grades để test đầy đủ tính năng phúc khảo
 MERGE dbo.grades AS target
 USING (VALUES
-    ('GRD_FT_001', 'ENR_FT_001', 8.5, 9.0, 8.8, 'A'),
-    ('GRD_FT_002', 'ENR_FT_002', 7.0, 7.5, 7.3, 'B'),
-    ('GRD_FT_003', 'ENR_FT_004', 8.0, 8.0, 8.0, 'A'),
-    ('GRD_FT_004', 'ENR_FT_005', 6.5, 6.0, 6.2, 'C')
+    ('GRD_FT_001', 'ENR_FT_001', 8.5, 9.0, 8.8, 'A'),  -- Dùng cho APL_FT_001 (PENDING)
+    ('GRD_FT_002', 'ENR_FT_002', 7.0, 7.5, 7.3, 'B'),  -- Dùng cho APL_FT_002 (REVIEWING - APPROVE)
+    ('GRD_FT_003', 'ENR_FT_004', 8.0, 8.0, 8.0, 'A'),  -- Dùng cho APL_FT_003 (REVIEWING - REJECT), APL_FT_006 (REJECTED)
+    ('GRD_FT_004', 'ENR_FT_005', 6.5, 6.0, 6.2, 'C'),  -- Dùng cho APL_FT_004 (REVIEWING - NEED_REVIEW), APL_FT_007 (APPROVED)
+    ('GRD_FT_005', 'ENR_FT_002', 7.0, 7.5, 7.3, 'B'),  -- Dùng cho APL_FT_005 (APPROVED - đã duplicate nhưng cần để test)
+    ('GRD_FT_006', 'ENR_FT_001', 8.5, 9.0, 8.8, 'A')   -- Thêm grade mới để test thêm
 ) AS src(grade_id, enrollment_id, midterm_score, final_score, total_score, letter_grade)
 ON target.grade_id = src.grade_id
 WHEN MATCHED THEN
@@ -814,18 +836,19 @@ WHEN NOT MATCHED THEN
     VALUES (src.grade_id, src.enrollment_id, src.midterm_score, src.final_score, src.total_score, src.letter_grade, 'seed_full_test');
 GO
 
+-- ✅ SỬA: MERGE theo (student_id, school_year_id, semester) để tránh vi phạm unique constraint
 MERGE dbo.gpas AS target
 USING (VALUES
     ('GPA_FT_K24_SY2024_S1', 'STU_K24_001', 'AY2024', 'SY2024', 1, 8.4, 3.4, 15, 15, N'Gioi',       1),
     ('GPA_FT_K23_SY2024_S1', 'STU_K23_001', 'AY2023', 'SY2024', 1, 8.0, 3.2, 14, 60, N'Kha',        1),
     ('GPA_FT_K21_SY2024_S2', 'STU_K21_001', 'AY2021', 'SY2024', 2, 7.2, 2.9, 12, 120, N'Trung binh',1)
 ) AS src(gpa_id, student_id, academic_year_id, school_year_id, semester, gpa10, gpa4, total_credits, accumulated_credits, rank_text, is_active)
-ON target.gpa_id = src.gpa_id
+ON target.student_id = src.student_id 
+   AND target.school_year_id = src.school_year_id 
+   AND target.semester = src.semester
 WHEN MATCHED THEN
-    UPDATE SET student_id = src.student_id,
+    UPDATE SET gpa_id = src.gpa_id,
                academic_year_id = src.academic_year_id,
-               school_year_id = src.school_year_id,
-               semester = src.semester,
                gpa10 = src.gpa10,
                gpa4 = src.gpa4,
                total_credits = src.total_credits,
@@ -877,18 +900,60 @@ WHEN NOT MATCHED THEN
             src.custom_formula, src.rounding_method, src.decimal_places, src.description, src.is_default, 'seed_full_test');
 GO
 
+-- ✅ CẬP NHẬT: Grade Appeals theo workflow mới (Best Practice)
+-- Workflow: Student tạo (PENDING) → Lecturer đề xuất (REVIEWING) → Advisor quyết định (APPROVED/REJECTED)
 MERGE dbo.grade_appeals AS target
 USING (VALUES
-    ('APL_FT_001', 'GRD_FT_004', 'ENR_FT_005', 'STU_K21_001', 'CLS_SE301_2024',
-        N'Khong dong y diem cuoi ky vi nghi ngo loi cham', 6.2, 7.0, N'files/appeal_k21_001.pdf',
-        'REVIEWING', 'HIGH', N'Giang vien dang xem xet', 'LEC_FT_02', 'NEED_REVIEW',
-        'LEC_FT_ADV', N'Co van da tiep nhan thong tin', NULL,
-        NULL, NULL, 'STU_K21_001', 'LEC_FT_02', NULL, NULL),
+    -- 1. PENDING: Student vừa tạo, chưa có lecturer response (test Student tạo phúc khảo)
+    ('APL_FT_001', 'GRD_FT_001', 'ENR_FT_001', 'STU_K24_001', 'CLS_SE101_2024',
+        N'Không đồng ý điểm cuối kỳ vì nghi ngờ lỗi chấm', 8.8, 9.5, N'files/appeal_k24_001.pdf',
+        'PENDING', 'HIGH', NULL, NULL, NULL,
+        NULL, NULL, NULL,
+        NULL, NULL, 'USR_STU_24A', NULL, NULL, NULL),
+    
+    -- 2. REVIEWING: Lecturer đã đề xuất APPROVE, chờ advisor quyết định
     ('APL_FT_002', 'GRD_FT_002', 'ENR_FT_002', 'STU_K24_001', 'CLS_DS101_2024',
-        N'Xin xem lai diem giua ky vi nhap sai', 7.3, 7.8, N'files/appeal_k24_001.pdf',
-        'APPROVED', 'NORMAL', N'Da xac minh bai thi', 'LEC_FT_02', 'APPROVE',
-        'LEC_FT_ADV', N'Dong y dieu chinh diem', 'APPROVE',
-        7.8, N'Cap nhat diem trong he thong', 'STU_K24_001', 'LEC_FT_02', DATEADD(DAY, -2, GETDATE()), 'LEC_FT_ADV')
+        N'Xin xem lại điểm giữa kỳ vì nhập sai', 7.3, 7.8, N'files/appeal_k24_002.pdf',
+        'REVIEWING', 'NORMAL', N'Đã xác minh bài thi, đề xuất chấp nhận', 'LEC_FT_02', 'APPROVE',
+        NULL, NULL, NULL,
+        NULL, NULL, 'USR_STU_24A', 'USR_LEC_02', NULL, NULL),
+    
+    -- 3. REVIEWING: Lecturer đã đề xuất REJECT, chờ advisor quyết định
+    ('APL_FT_003', 'GRD_FT_003', 'ENR_FT_004', 'STU_K23_001', 'CLS_SE201_2024',
+        N'Xin nâng điểm vì bài thi khó', 8.0, 9.0, NULL,
+        'REVIEWING', 'NORMAL', N'Điểm đã chấm đúng, đề xuất từ chối', 'LEC_FT_01', 'REJECT',
+        NULL, NULL, NULL,
+        NULL, NULL, 'USR_STU_23A', 'USR_LEC_01', NULL, NULL),
+    
+    -- 4. REVIEWING: Lecturer đã đề xuất NEED_REVIEW, chờ advisor quyết định
+    ('APL_FT_004', 'GRD_FT_004', 'ENR_FT_005', 'STU_K21_001', 'CLS_SE301_2024',
+        N'Không đồng ý điểm cuối kỳ vì nghi ngờ lỗi chấm', 6.2, 7.0, N'files/appeal_k21_001.pdf',
+        'REVIEWING', 'HIGH', N'Cần xem xét thêm tài liệu đính kèm', 'LEC_FT_02', 'NEED_REVIEW',
+        NULL, NULL, NULL,
+        NULL, NULL, 'USR_STU_21A', 'USR_LEC_02', NULL, NULL),
+    
+    -- 5. APPROVED: Advisor đã duyệt (sau khi lecturer đề xuất APPROVE) - dùng grade/enrollment khác
+    -- Note: APL_FT_002 và APL_FT_005 đều dùng ENR_FT_002 nhưng khác status (REVIEWING vs APPROVED)
+    -- Điều này đúng vì cùng một enrollment có thể có nhiều appeals ở các trạng thái khác nhau (test case)
+    ('APL_FT_005', 'GRD_FT_005', 'ENR_FT_002', 'STU_K24_001', 'CLS_DS101_2024',
+        N'Xin xem lại điểm giữa kỳ vì nhập sai (case đã duyệt)', 7.3, 7.8, N'files/appeal_k24_003.pdf',
+        'APPROVED', 'NORMAL', N'Đã xác minh bài thi, đề xuất chấp nhận', 'LEC_FT_02', 'APPROVE',
+        'LEC_FT_ADV', N'Đồng ý điều chỉnh điểm theo đề xuất của giảng viên', 'APPROVE',
+        7.8, N'Đã cập nhật điểm trong hệ thống', 'USR_STU_24A', 'LEC_FT_ADV', DATEADD(DAY, -2, GETDATE()), 'LEC_FT_ADV'),
+    
+    -- 6. REJECTED: Advisor đã từ chối (sau khi lecturer đề xuất REJECT)
+    ('APL_FT_006', 'GRD_FT_003', 'ENR_FT_004', 'STU_K23_001', 'CLS_SE201_2024',
+        N'Xin nâng điểm vì bài thi khó (case đã từ chối)', 8.0, 9.0, NULL,
+        'REJECTED', 'NORMAL', N'Điểm đã chấm đúng, đề xuất từ chối', 'LEC_FT_01', 'REJECT',
+        'LEC_FT_ADV', N'Không đồng ý điều chỉnh điểm, điểm hiện tại đã công bằng', 'REJECT',
+        NULL, N'Giữ nguyên điểm', 'USR_STU_23A', 'LEC_FT_ADV', DATEADD(DAY, -1, GETDATE()), 'LEC_FT_ADV'),
+    
+    -- 7. APPROVED: Advisor đã duyệt (sau khi lecturer đề xuất NEED_REVIEW)
+    ('APL_FT_007', 'GRD_FT_004', 'ENR_FT_005', 'STU_K21_001', 'CLS_SE301_2024',
+        N'Không đồng ý điểm cuối kỳ (case đã duyệt sau xem xét)', 6.2, 7.0, N'files/appeal_k21_002.pdf',
+        'APPROVED', 'HIGH', N'Sau khi xem xét kỹ, đề xuất chấp nhận', 'LEC_FT_02', 'NEED_REVIEW',
+        'LEC_FT_ADV', N'Đồng ý điều chỉnh điểm sau khi xem xét lại tài liệu', 'APPROVE',
+        7.0, N'Đã xác minh và cập nhật điểm', 'USR_STU_21A', 'LEC_FT_ADV', DATEADD(DAY, -3, GETDATE()), 'LEC_FT_ADV')
 ) AS src(appeal_id, grade_id, enrollment_id, student_id, class_id,
           appeal_reason, current_score, expected_score, supporting_docs,
           status, priority, lecturer_response, lecturer_id, lecturer_decision,
@@ -1064,16 +1129,29 @@ USING (VALUES
     ('PERM_ADM_CLASSES',  'ADMIN_CLASSES',            N'Lớp học phần',        'ADMIN_SECTION_ACADEMIC', 'fas fa-chalkboard',     8, N'Quản lý lớp học phần',                        1),
     -- Permission con cho ADMIN_SECTION_CLASSES
     ('PERM_ADM_ADMIN_CLASSES', 'ADMIN_ADMIN_CLASSES', N'Quản lý lớp hành chính', 'ADMIN_SECTION_CLASSES', 'fas fa-users-class', 1, N'Quản lý lớp hành chính (lớp sinh viên theo niên khóa)', 1),
-    ('PERM_ADM_REGISTRATION_PERIODS','ADMIN_REGISTRATION_PERIODS', N'Đợt đăng ký','ADMIN_SECTION_ENROLLMENT','fas fa-clock',1,N'Quản lý đợt đăng ký',                          1),
-    ('PERM_ADM_ENROLLMENTS','ADMIN_ENROLLMENTS',      N'Duyệt đăng ký',       'ADMIN_SECTION_ENROLLMENT','fas fa-clipboard-check',2,N'Xem và duyệt/từ chối đăng ký học phần của sinh viên', 1),
+    ('PERM_ADM_REGISTRATION_PERIODS','ADMIN_REGISTRATION_PERIODS', N'Đợt đăng ký học phần','ADMIN_SECTION_ENROLLMENT','fas fa-clock',1,N'Quản lý đợt đăng ký học phần thường',                          1),
+    -- ✅ Parent permission cho Retake Periods Management (tab phụ trong quản lý đợt đăng ký)
+    ('PERM_ADM_MANAGE_RET_PERIODS','MANAGE_REGISTRATION_PERIODS', N'Quản lý đợt đăng ký học lại','ADMIN_SECTION_ENROLLMENT','fas fa-redo',2,N'Quản lý đợt đăng ký học lại (tab phụ)',                          1),
+    ('PERM_ADM_ENROLLMENTS','ADMIN_ENROLLMENTS',      N'Duyệt đăng ký',       'ADMIN_SECTION_ENROLLMENT','fas fa-clipboard-check',3,N'Xem và duyệt/từ chối đăng ký học phần của sinh viên', 1),
     -- Gộp ADMIN_SECTION_TIMETABLE vào ADMIN_SECTION_ACADEMIC (vì chỉ có 1 con và liên quan đến đào tạo)
     ('PERM_ADM_TIMETABLE_ITEM','ADMIN_TIMETABLE',     N'Xếp lịch',            'ADMIN_SECTION_ACADEMIC','fas fa-calendar-alt',  9, N'Quản lý thời khóa biểu',                       1),
+    ('PERM_ADM_ROOMS',     'ADMIN_ROOMS',              N'Quản lý phòng học',  'ADMIN_SECTION_ACADEMIC', 'fas fa-door-open',    10, N'Quản lý phòng học',                          1),
     ('PERM_ADM_REPORTS',  'ADMIN_REPORTS',            N'Thống kê & Báo cáo',  'ADMIN_SECTION_SYSTEM',   'fas fa-chart-bar',      2, N'Thống kê và báo cáo hệ thống',                1),
     ('PERM_ADM_AUDIT_LOGS','ADMIN_AUDIT_LOGS',        N'Nhật ký hệ thống',    'ADMIN_SECTION_SYSTEM',   'fas fa-history',        3, N'Xem nhật ký',                                 1),
     -- Permissions cho ADVISOR để gộp vào ADVISOR_SECTION_SYSTEM
     ('PERM_ADV_SYSTEM_REPORTS', 'ADVISOR_SYSTEM_REPORTS', N'Thống kê & Báo cáo', 'ADVISOR_SECTION_SYSTEM', 'fas fa-chart-bar', 2, N'Thống kê và báo cáo hệ thống', 1),
     ('PERM_ADV_SYSTEM_AUDIT_LOGS', 'ADVISOR_SYSTEM_AUDIT_LOGS', N'Nhật ký hệ thống', 'ADVISOR_SECTION_SYSTEM', 'fas fa-history', 3, N'Xem nhật ký hệ thống', 1),
-    ('PERM_ADM_NOTIFICATIONS','ADMIN_NOTIFICATIONS',  N'Thông báo',           'ADMIN_SECTION_SYSTEM',   'fas fa-bell',           1, N'Quản lý thông báo',                           1)
+    ('PERM_ADM_NOTIFICATIONS','ADMIN_NOTIFICATIONS',  N'Thông báo',           'ADMIN_SECTION_SYSTEM',   'fas fa-bell',           1, N'Quản lý thông báo',                           1),
+    -- ✅ Retake Registration Permissions (under MANAGE_REGISTRATION_PERIODS)
+    ('PERM_RET_PER_VIEW',     'VIEW_RETAKE_PERIODS',     N'Xem đợt đăng ký học lại',      'MANAGE_REGISTRATION_PERIODS', 'fas fa-calendar-alt', 1, N'Xem danh sách đợt đăng ký học lại',                 1),
+    ('PERM_RET_PER_CREATE',   'CREATE_RETAKE_PERIODS',   N'Tạo đợt đăng ký học lại',      'MANAGE_REGISTRATION_PERIODS', 'fas fa-plus',         2, N'Tạo đợt đăng ký học lại mới',                     1),
+    ('PERM_RET_PER_EDIT',     'EDIT_RETAKE_PERIODS',     N'Sửa đợt đăng ký học lại',      'MANAGE_REGISTRATION_PERIODS', 'fas fa-edit',         3, N'Sửa thông tin đợt đăng ký học lại',                1),
+    ('PERM_RET_PER_DELETE',   'DELETE_RETAKE_PERIODS',   N'Xóa đợt đăng ký học lại',      'MANAGE_REGISTRATION_PERIODS', 'fas fa-trash',        4, N'Xóa đợt đăng ký học lại',                         1),
+    ('PERM_RET_PER_CLASSES',  'MANAGE_RETAKE_PERIOD_CLASSES', N'Quản lý lớp trong đợt đăng ký học lại', 'MANAGE_REGISTRATION_PERIODS', 'fas fa-list', 5, N'Thêm/xóa lớp học lại vào đợt đăng ký',          1),
+    -- ✅ Student Retake Registration Permissions (under STUDENT_SECTION_STUDY)
+    ('PERM_RET_REGISTER',     'REGISTER_RETAKE_CLASSES', N'Đăng ký lớp học lại',          'STUDENT_SECTION_STUDY',      'fas fa-redo',         1, N'Sinh viên đăng ký lớp học lại',                    1),
+    ('PERM_RET_VIEW_FAILED',  'VIEW_FAILED_SUBJECTS',    N'Xem môn trượt',                'STUDENT_SECTION_STUDY',      'fas fa-exclamation-triangle', 2, N'Xem danh sách môn học đã trượt',               1),
+    ('PERM_RET_VIEW_CLASSES', 'VIEW_RETAKE_CLASSES',     N'Xem lớp học lại',              'STUDENT_SECTION_STUDY',      'fas fa-list',         3, N'Xem danh sách lớp học lại của môn',                1)
 ) AS src(permission_id, permission_code, permission_name, parent_code, icon, sort_order, description, is_active)
 ON target.permission_id = src.permission_id
 WHEN MATCHED THEN
@@ -1101,6 +1179,9 @@ USING (VALUES
     ('ROLE_STUDENT','PERM_STU_GRADES'),
     ('ROLE_STUDENT','PERM_STU_ATTENDANCE'),
     ('ROLE_STUDENT','PERM_STU_ENROLLMENT'),
+    ('ROLE_STUDENT','PERM_RET_REGISTER'),  -- ✅ Đăng ký lớp học lại
+    ('ROLE_STUDENT','PERM_RET_VIEW_FAILED'),  -- ✅ Xem môn trượt
+    ('ROLE_STUDENT','PERM_RET_VIEW_CLASSES'),  -- ✅ Xem lớp học lại
     ('ROLE_STUDENT','PERM_STU_REPORTS'),
     ('ROLE_STUDENT','PERM_STU_PROFILE'),
     ('ROLE_STUDENT','PERM_STU_PROFILE_ITEM'),
@@ -1135,6 +1216,12 @@ USING (VALUES
     -- Thêm ADMIN_SECTION_ENROLLMENT để các permissions con có thể hiển thị
     ('ROLE_ADVISOR','PERM_ADM_ENROLLMENT'),  -- ADMIN_SECTION_ENROLLMENT: "Đăng ký học phần"
     ('ROLE_ADVISOR','PERM_ADM_REGISTRATION_PERIODS'),
+    ('ROLE_ADVISOR','PERM_ADM_MANAGE_RET_PERIODS'),  -- ✅ Quản lý đợt đăng ký học lại
+    ('ROLE_ADVISOR','PERM_RET_PER_VIEW'),  -- ✅ Retake period permissions
+    ('ROLE_ADVISOR','PERM_RET_PER_CREATE'),
+    ('ROLE_ADVISOR','PERM_RET_PER_EDIT'),
+    ('ROLE_ADVISOR','PERM_RET_PER_DELETE'),
+    ('ROLE_ADVISOR','PERM_RET_PER_CLASSES'),
     ('ROLE_ADVISOR','PERM_ADM_ENROLLMENTS'),
     -- Thêm permissions hệ thống vào ADVISOR_SECTION_SYSTEM để gộp chung menu
     ('ROLE_ADVISOR','PERM_ADV_SYSTEM_REPORTS'),  -- Thống kê & Báo cáo trong menu Hệ thống
@@ -1158,9 +1245,16 @@ USING (VALUES
     ('ROLE_ADMIN','PERM_ADM_ADMIN_CLASSES'), -- Permission con cho ADMIN_SECTION_CLASSES
     ('ROLE_ADMIN','PERM_ADM_ENROLLMENT'),
     ('ROLE_ADMIN','PERM_ADM_REGISTRATION_PERIODS'),
+    ('ROLE_ADMIN','PERM_ADM_MANAGE_RET_PERIODS'),  -- ✅ Quản lý đợt đăng ký học lại
+    ('ROLE_ADMIN','PERM_RET_PER_VIEW'),  -- ✅ Retake period permissions
+    ('ROLE_ADMIN','PERM_RET_PER_CREATE'),
+    ('ROLE_ADMIN','PERM_RET_PER_EDIT'),
+    ('ROLE_ADMIN','PERM_RET_PER_DELETE'),
+    ('ROLE_ADMIN','PERM_RET_PER_CLASSES'),
     ('ROLE_ADMIN','PERM_ADM_ENROLLMENTS'),
     -- Xóa PERM_ADM_TIMETABLE (đã gộp vào ADMIN_SECTION_ACADEMIC)
     ('ROLE_ADMIN','PERM_ADM_TIMETABLE_ITEM'),
+    ('ROLE_ADMIN','PERM_ADM_ROOMS'),
     ('ROLE_ADMIN','PERM_ADM_SYSTEM'),
     ('ROLE_ADMIN','PERM_ADM_REPORTS'),
     ('ROLE_ADMIN','PERM_ADM_AUDIT_LOGS'),
@@ -1210,8 +1304,146 @@ WHERE NOT EXISTS (SELECT 1 FROM dbo.refresh_tokens WHERE token = 'ft-lecturer-re
 GO
 
 -- ===========================================
--- PHAN 17: TONG KET
+-- PHAN 17: BO SUNG DU LIEU CHO BIỂU ĐỒ THỐNG KÊ
+-- ===========================================
+-- ✅ Mục đích: Bổ sung dữ liệu để test đầy đủ các biểu đồ thống kê:
+-- 1. Phân bố GPA: excellent (>= 3.5), good (3.0-3.49), average (2.0-2.99), weak (< 2.0)
+-- 2. Nợ tín chỉ: ranges 0-10, 11-20, 21-30, 31-40, 41-50, 50+
+-- 3. Cảnh báo học tập: lowGPA (< 2.0), poorAttendance (< 50%), both
+-- 4. Xu hướng GPA theo học kỳ (line chart)
+-- 5. Phân bố điểm số: A, B, C, D, F
+-- ===========================================
+
+-- Thêm students với GPA đa dạng (thêm 4 students: 2 average, 2 weak)
+-- Students đã có: 6 (2 excellent, 1 good, 3 chưa có GPA)
+-- Cần thêm: 4 students với GPA average và weak
+MERGE dbo.users AS target
+USING (VALUES
+    ('USR_STU_21C', 'student_k21_c', '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'st.k21.003@example.com', '0911000003', N'Nguyen Van Dung', 'ROLE_STUDENT', 1),
+    ('USR_STU_22B', 'student_k22_b', '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'st.k22.011@example.com', '0912000002', N'Tran Thi Hang', 'ROLE_STUDENT', 1),
+    ('USR_STU_23B', 'student_k23_b', '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'st.k23.006@example.com', '0913000002', N'Pham Van Khanh', 'ROLE_STUDENT', 1),
+    ('USR_STU_24C', 'student_k24_c', '$2a$10$Ya6MFL1CGpg2/y088u6t7.ACYkMJdmA1869rbBmAnyn6OQi0hTBue', 'st.k24.016@example.com', '0914000003', N'Le Thi Mai', 'ROLE_STUDENT', 1)
+) AS src(user_id, username, password_hash, email, phone, full_name, role_id, is_active)
+ON target.user_id = src.user_id
+WHEN NOT MATCHED THEN
+    INSERT (user_id, username, password_hash, email, phone, full_name, role_id, is_active, created_by)
+    VALUES (src.user_id, src.username, src.password_hash, src.email, src.phone, src.full_name, src.role_id, src.is_active, 'seed_full_test');
+GO
+
+MERGE dbo.students AS target
+USING (VALUES
+    -- Average GPA students (2.5-2.9)
+    ('STU_K21_003', 'K21SE003', N'Nguyen Van Dung', DATEFROMPARTS(2003,3,15), N'Nam', 'st.k21.003@example.com', '0911000003', N'Quan 2, TP HCM', 'MAJ_SE', 'AY2021', 'LEC_FT_ADV', 'USR_STU_21C', 'FAC_IT', 'ADM_K21_SE_A', 2021, 1),
+    ('STU_K22_002', 'K22SE011', N'Tran Thi Hang', DATEFROMPARTS(2004,6,20), N'Nu', 'st.k22.011@example.com', '0912000002', N'Quan 10, TP HCM', 'MAJ_SE', 'AY2022', 'LEC_FT_ADV', 'USR_STU_22B', 'FAC_IT', 'ADM_K22_SE_B', 2022, 1),
+    -- Weak GPA students (< 2.0)
+    ('STU_K23_002', 'K23DS006', N'Pham Van Khanh', DATEFROMPARTS(2005,5,10), N'Nam', 'st.k23.006@example.com', '0913000002', N'Quan 8, TP HCM', 'MAJ_DS', 'AY2023', 'LEC_FT_02', 'USR_STU_23B', 'FAC_IT', 'ADM_K23_DS_A', 2023, 1),
+    ('STU_K24_003', 'K24SE016', N'Le Thi Mai', DATEFROMPARTS(2006,11,25), N'Nu', 'st.k24.016@example.com', '0914000003', N'Quan Tan Binh, TP HCM', 'MAJ_SE', 'AY2024', 'LEC_FT_01', 'USR_STU_24C', 'FAC_IT', 'ADM_K24_SE_A', 2024, 1)
+) AS src(student_id, student_code, full_name, date_of_birth, gender, email, phone, address,
+          major_id, academic_year_id, advisor_id, user_id, faculty_id, admin_class_id, cohort_year, is_active)
+ON target.student_id = src.student_id
+WHEN NOT MATCHED THEN
+    INSERT (student_id, student_code, full_name, date_of_birth, gender, email, phone, address,
+            major_id, academic_year_id, advisor_id, user_id, faculty_id, admin_class_id, cohort_year, is_active, created_by)
+    VALUES (src.student_id, src.student_code, src.full_name, src.date_of_birth, src.gender, src.email, src.phone, src.address,
+            src.major_id, src.academic_year_id, src.advisor_id, src.user_id, src.faculty_id, src.admin_class_id, src.cohort_year, src.is_active, 'seed_full_test');
+GO
+
+-- Thêm enrollments và grades với letter grades đa dạng (D, F) và tín chỉ để tạo nợ tín chỉ
+-- Thêm enrollments mới
+MERGE dbo.enrollments AS target
+USING (VALUES
+    -- Enrollments cho students mới với grades D và F
+    ('ENR_FT_008', 'STU_K21_003', 'CLS_SE101_2024', DATEFROMPARTS(2024,8,25), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2024,9,9), N'Hoc lai', NULL),
+    ('ENR_FT_009', 'STU_K22_002', 'CLS_SE201_2024', DATEFROMPARTS(2024,7,30), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2024,8,15), N'Hoc binh thuong', NULL),
+    ('ENR_FT_010', 'STU_K23_002', 'CLS_DS101_2024', DATEFROMPARTS(2024,8,26), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2024,9,10), N'Hoc lai', NULL),
+    ('ENR_FT_011', 'STU_K24_003', 'CLS_SE101_2024', DATEFROMPARTS(2024,8,25), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2024,9,9), N'Hoc binh thuong', NULL),
+    -- Thêm enrollments cho students cũ để tạo nợ tín chỉ và xu hướng GPA
+    ('ENR_FT_012', 'STU_K24_001', 'CLS_SE201_2024', DATEFROMPARTS(2024,7,30), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2024,8,15), N'Hoc them', NULL),
+    ('ENR_FT_013', 'STU_K23_001', 'CLS_SE101_2024', DATEFROMPARTS(2023,8,25), N'Da hoan thanh', 'APPROVED', DATEFROMPARTS(2023,9,9), N'Hoc nam truoc', NULL)
+) AS src(enrollment_id, student_id, class_id, enrollment_date, status, enrollment_status, drop_deadline, notes, drop_reason)
+ON target.enrollment_id = src.enrollment_id
+WHEN NOT MATCHED THEN
+    INSERT (enrollment_id, student_id, class_id, enrollment_date, status, enrollment_status,
+            drop_deadline, notes, drop_reason, created_by)
+    VALUES (src.enrollment_id, src.student_id, src.class_id, src.enrollment_date, src.status, src.enrollment_status,
+            src.drop_deadline, src.notes, src.drop_reason, 'seed_full_test');
+GO
+
+-- Thêm grades với letter grades đa dạng (D, F) và total_score thấp
+MERGE dbo.grades AS target
+USING (VALUES
+    -- Grades D (4.0-5.4)
+    ('GRD_FT_007', 'ENR_FT_008', 4.5, 4.8, 4.7, 'D'),  -- Average GPA student
+    ('GRD_FT_008', 'ENR_FT_009', 4.0, 5.0, 4.6, 'D'),  -- Average GPA student
+    -- Grades F (< 4.0)
+    ('GRD_FT_009', 'ENR_FT_010', 3.5, 3.8, 3.7, 'F'),  -- Weak GPA student
+    ('GRD_FT_010', 'ENR_FT_011', 3.0, 3.5, 3.3, 'F'),  -- Weak GPA student
+    -- Grades cao cho students cũ để test xu hướng GPA
+    ('GRD_FT_011', 'ENR_FT_012', 8.0, 8.5, 8.3, 'A'),  -- Excellent GPA student
+    ('GRD_FT_012', 'ENR_FT_013', 7.5, 8.0, 7.8, 'B')   -- Good GPA student
+) AS src(grade_id, enrollment_id, midterm_score, final_score, total_score, letter_grade)
+ON target.grade_id = src.grade_id
+WHEN NOT MATCHED THEN
+    INSERT (grade_id, enrollment_id, midterm_score, final_score, total_score, letter_grade, created_by)
+    VALUES (src.grade_id, src.enrollment_id, src.midterm_score, src.final_score, src.total_score, src.letter_grade, 'seed_full_test');
+GO
+
+-- Thêm GPAs với phân bố đa dạng (average, weak) và theo nhiều học kỳ
+MERGE dbo.gpas AS target
+USING (VALUES
+    -- Average GPA students (GPA 2.5-2.9 - average category)
+    ('GPA_FT_K21_003_SY2024_S1', 'STU_K21_003', 'AY2021', 'SY2024', 1, 6.5, 2.5, 9, 105, N'Trung binh', 1),
+    ('GPA_FT_K22_002_SY2024_S1', 'STU_K22_002', 'AY2022', 'SY2024', 1, 6.8, 2.7, 12, 90, N'Trung binh', 1),
+    -- Weak GPA students (GPA < 2.0 - weak category)
+    ('GPA_FT_K23_002_SY2024_S1', 'STU_K23_002', 'AY2023', 'SY2024', 1, 5.5, 1.8, 6, 42, N'Yeu', 1),
+    ('GPA_FT_K24_003_SY2024_S1', 'STU_K24_003', 'AY2024', 'SY2024', 1, 5.8, 1.9, 9, 9, N'Yeu', 1),
+    -- GPAs theo nhiều học kỳ để test xu hướng GPA (line chart)
+    ('GPA_FT_K24_SY2023_S1', 'STU_K24_001', 'AY2024', 'SY2023', 1, 8.0, 3.2, 12, 12, N'Kha', 1),
+    ('GPA_FT_K24_SY2023_S2', 'STU_K24_001', 'AY2024', 'SY2023', 2, 8.2, 3.3, 15, 27, N'Kha', 1),
+    ('GPA_FT_K23_SY2023_S1', 'STU_K23_001', 'AY2023', 'SY2023', 1, 7.8, 3.1, 12, 48, N'Kha', 1),
+    ('GPA_FT_K23_SY2023_S2', 'STU_K23_001', 'AY2023', 'SY2023', 2, 8.1, 3.3, 15, 63, N'Kha', 1)
+) AS src(gpa_id, student_id, academic_year_id, school_year_id, semester, gpa10, gpa4, total_credits, accumulated_credits, rank_text, is_active)
+ON target.student_id = src.student_id 
+   AND target.school_year_id = src.school_year_id 
+   AND target.semester = src.semester
+WHEN NOT MATCHED THEN
+    INSERT (gpa_id, student_id, academic_year_id, school_year_id, semester,
+            gpa10, gpa4, total_credits, accumulated_credits, rank_text, is_active, created_by)
+    VALUES (src.gpa_id, src.student_id, src.academic_year_id, src.school_year_id, src.semester,
+            src.gpa10, src.gpa4, src.total_credits, src.accumulated_credits, src.rank_text, src.is_active, 'seed_full_test');
+GO
+
+-- Thêm attendance records để test cảnh báo chuyên cần (poorAttendance < 50%)
+MERGE dbo.attendances AS target
+USING (VALUES
+    -- Attendance records với tỷ lệ thấp cho weak GPA students
+    ('ATT_FT_007', 'ENR_FT_008', 'CLS_SE101_2024', DATEFROMPARTS(2024,9,5), N'Absent', N'Vang mat'),
+    ('ATT_FT_008', 'ENR_FT_008', 'CLS_SE101_2024', DATEFROMPARTS(2024,9,12), N'Absent', N'Vang mat'),
+    ('ATT_FT_009', 'ENR_FT_008', 'CLS_SE101_2024', DATEFROMPARTS(2024,9,19), N'Absent', N'Vang mat'),
+    ('ATT_FT_010', 'ENR_FT_010', 'CLS_DS101_2024', DATEFROMPARTS(2024,9,6), N'Absent', N'Vang mat'),
+    ('ATT_FT_011', 'ENR_FT_010', 'CLS_DS101_2024', DATEFROMPARTS(2024,9,13), N'Absent', N'Vang mat'),
+    ('ATT_FT_012', 'ENR_FT_010', 'CLS_DS101_2024', DATEFROMPARTS(2024,9,20), N'Absent', N'Vang mat'),
+    ('ATT_FT_013', 'ENR_FT_011', 'CLS_SE101_2024', DATEFROMPARTS(2024,9,5), N'Absent', N'Vang mat'),
+    ('ATT_FT_014', 'ENR_FT_011', 'CLS_SE101_2024', DATEFROMPARTS(2024,9,12), N'Absent', N'Vang mat'),
+    -- Attendance records tốt cho excellent GPA students
+    ('ATT_FT_015', 'ENR_FT_012', 'CLS_SE201_2024', DATEFROMPARTS(2024,9,11), N'Present', N'Co mat dung gio'),
+    ('ATT_FT_016', 'ENR_FT_012', 'CLS_SE201_2024', DATEFROMPARTS(2024,9,18), N'Present', N'Co mat dung gio')
+) AS src(attendance_id, enrollment_id, class_id, attendance_date, status, note)
+ON target.attendance_id = src.attendance_id
+WHEN NOT MATCHED THEN
+    INSERT (attendance_id, enrollment_id, class_id, attendance_date, status, note, created_by)
+    VALUES (src.attendance_id, src.enrollment_id, src.class_id, src.attendance_date, src.status, src.note, 'seed_full_test');
+GO
+
+-- ===========================================
+-- PHAN 18: TONG KET
 -- ===========================================
 PRINT 'Hoan tat seed full test dataset';
 PRINT 'Du lieu da phu kin cac bang chinh, san sang cho viec test';
+PRINT 'Da bo sung du lieu cho bieu do thong ke:';
+PRINT '  - Phan bo GPA: excellent (>= 3.5), good (3.0-3.49), average (2.0-2.99), weak (< 2.0)';
+PRINT '  - No tin chi: ranges 0-10, 11-20, 21-30, 31-40, 41-50, 50+';
+PRINT '  - Canh bao hoc tap: lowGPA (< 2.0), poorAttendance (< 50%), both';
+PRINT '  - Xu huong GPA theo hoc ky (line chart)';
+PRINT '  - Phan bo diem so: A, B, C, D, F';
 

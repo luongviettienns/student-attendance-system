@@ -14,6 +14,10 @@ app.service('LecturerService', ['ApiService', function(ApiService) {
         return ApiService.get('/lecturers/' + id);
     };
     
+    this.getByUserId = function(userId) {
+        return ApiService.get('/lecturers/user/' + userId);
+    };
+    
     this.create = function(lecturer) {
         return ApiService.post('/lecturers', lecturer);
     };

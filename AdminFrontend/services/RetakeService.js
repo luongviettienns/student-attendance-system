@@ -195,6 +195,79 @@ app.service('RetakeService', ['ApiService', function(ApiService) {
     };
 
     /**
+     * Get failed subjects by student ID
+     * @param {string} studentId
+     * @param {string} schoolYearId - Optional filter by school year
+     * @param {number} semester - Optional filter by semester
+     * @returns {Promise<Array>}
+     */
+    this.getFailedSubjects = function(studentId, schoolYearId, semester) {
+        if (!studentId) {
+            return Promise.reject(new Error('Student ID is required'));
+        }
+
+        var params = {};
+        if (schoolYearId) params.schoolYearId = schoolYearId;
+        if (semester) params.semester = semester;
+
+        var cacheKey = CACHE_PREFIX + 'failed-subjects:' + studentId + ':' + JSON.stringify(params);
+        return ApiService.get('/retakes/student/' + studentId + '/failed-subjects', params, {
+            cache: true,
+            cacheKey: cacheKey,
+            cacheTTL: DEFAULT_CACHE_TTL
+        }).then(function(response) {
+            var data = unwrap(response, { data: [], totalCount: 0 });
+            return Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+        });
+    };
+
+    /**
+     * Get retake classes for a subject
+     * @param {string} subjectId
+     * @param {string} studentId - Optional: to check if student already registered
+     * @param {string} periodId - Optional: specific period, otherwise uses active retake period
+     * @returns {Promise<Array>}
+     */
+    this.getRetakeClassesForSubject = function(subjectId, studentId, periodId) {
+        if (!subjectId) {
+            return Promise.reject(new Error('Subject ID is required'));
+        }
+
+        var params = {};
+        if (studentId) params.studentId = studentId;
+        if (periodId) params.periodId = periodId;
+
+        var cacheKey = CACHE_PREFIX + 'retake-classes:' + subjectId + ':' + JSON.stringify(params);
+        return ApiService.get('/retakes/subject/' + subjectId + '/retake-classes', params, {
+            cache: true,
+            cacheKey: cacheKey,
+            cacheTTL: DEFAULT_CACHE_TTL
+        }).then(function(response) {
+            var data = unwrap(response, { data: [], totalCount: 0 });
+            return Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+        });
+    };
+
+    /**
+     * Register for retake class
+     * @param {Object} registerData - {studentId, classId, notes}
+     * @returns {Promise<any>}
+     */
+    this.registerForRetakeClass = function(registerData) {
+        if (!registerData || !registerData.studentId || !registerData.classId) {
+            return Promise.reject(new Error('Student ID and Class ID are required'));
+        }
+
+        return ApiService.post('/retakes/register', registerData, {
+            cache: false
+        }).then(function(response) {
+            // Clear cache after registering
+            ApiService.clearCache(CACHE_PREFIX);
+            return unwrap(response, null);
+        });
+    };
+
+    /**
      * Clear all cache
      */
     this.clearCache = function() {

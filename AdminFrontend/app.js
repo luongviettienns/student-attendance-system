@@ -152,6 +152,12 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'ClassController'
         })
         
+        // Room Management (Quản lý Phòng học)
+        .when('/rooms', {
+            templateUrl: 'views/admin/rooms/list.html',
+            controller: 'RoomController'
+        })
+        
         // Grade Formula Management (Admin)
         .when('/grade-formula', {
             templateUrl: 'views/advisor/grade-formula.html',
@@ -164,6 +170,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'LecturerDashboardController'
         })
         .when('/lecturer/attendance', {
+            templateUrl: 'views/lecturer/attendance.html',
+            controller: 'LecturerAttendanceController'
+        })
+        .when('/lecturer/attendance/:sessionId', {
             templateUrl: 'views/lecturer/attendance.html',
             controller: 'LecturerAttendanceController'
         })
@@ -182,6 +192,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/lecturer/timetable', {
             templateUrl: 'views/lecturer/timetable.html',
             controller: 'LecturerTimetableController'
+        })
+        .when('/lecturer/classes', {
+            templateUrl: 'views/lecturer/classes.html',
+            controller: 'LecturerClassController'
         })
         
         // Advisor Portal
@@ -218,8 +232,8 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'AdvisorGradeFormulaConfigController'
         })
         .when('/advisor/enrollments', {
-            templateUrl: 'views/advisor/enrollments.html',
-            controller: 'AdvisorEnrollmentController'
+            templateUrl: 'views/advisor/enrollment-approval.html',
+            controller: 'AdvisorEnrollmentApprovalController'
         })
         
         // Student Portal
@@ -247,9 +261,17 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'views/student/retakes.html',
             controller: 'StudentRetakeController'
         })
+        .when('/student/retake-register', {
+            templateUrl: 'views/student/retake-register.html',
+            controller: 'StudentRetakeRegisterController'
+        })
         .when('/student/attendance', {
             templateUrl: 'views/student/attendance.html',
             controller: 'StudentAttendanceController'
+        })
+        .when('/student/exam-schedule', {
+            templateUrl: 'views/student/exam-schedule.html',
+            controller: 'StudentExamScheduleController'
         })
         .when('/student/profile', {
             templateUrl: 'views/student/profile.html',
@@ -315,6 +337,14 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'views/advisor/reports.html',
             controller: 'AdvisorReportController'
         })
+        .when('/advisor/exam-schedules', {
+            templateUrl: 'views/advisor/exam-schedules.html',
+            controller: 'AdvisorExamScheduleController'
+        })
+        .when('/advisor/exam-schedules/:examId/scores', {
+            templateUrl: 'views/advisor/exam-schedule-scores.html',
+            controller: 'AdvisorExamScoreController'
+        })
         .when('/lecturer/reports', {
             templateUrl: 'views/lecturer/reports.html',
             controller: 'LecturerReportController'
@@ -370,10 +400,19 @@ app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', 'Notificatio
     };
     
     // Load unread notification count on app start (if user is authenticated)
+    // Debounce route change to prevent spam requests
+    var routeChangeTimeout = null;
     $rootScope.$on('$routeChangeStart', function(event, next, current) {
         if (AuthService.isAuthenticated() && next && !next.publicAccess) {
-            // Load unread count when navigating to authenticated pages
-            NotificationService.loadUnreadCount();
+            // Clear existing timeout
+            if (routeChangeTimeout) {
+                clearTimeout(routeChangeTimeout);
+            }
+            // Debounce: only load after 500ms of no route changes
+            routeChangeTimeout = setTimeout(function() {
+                NotificationService.loadUnreadCount();
+                routeChangeTimeout = null;
+            }, 500);
         }
     });
     

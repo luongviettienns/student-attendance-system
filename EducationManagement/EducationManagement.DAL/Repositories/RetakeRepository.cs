@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using EducationManagement.Common.Models;
+using EducationManagement.Common.DTOs.Retake;
 
 namespace EducationManagement.DAL.Repositories
 {
@@ -232,6 +233,114 @@ namespace EducationManagement.DAL.Repositories
             }
 
             return (false, null, null, null, null, null, null);
+        }
+
+        /// <summary>
+        /// Get failed subjects by student
+        /// </summary>
+        public async Task<List<FailedSubjectDto>> GetFailedSubjectsByStudentAsync(
+            string studentId, string? schoolYearId = null, int? semester = null)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@StudentId", studentId),
+                new SqlParameter("@SchoolYearId", (object?)schoolYearId ?? DBNull.Value),
+                new SqlParameter("@Semester", (object?)semester ?? DBNull.Value)
+            };
+
+            var dt = await DatabaseHelper.ExecuteQueryAsync(
+                _connectionString, "sp_GetFailedSubjectsByStudent", parameters);
+
+            var subjects = new List<FailedSubjectDto>();
+            foreach (DataRow row in dt.Rows)
+            {
+                subjects.Add(MapToFailedSubjectDto(row));
+            }
+
+            return subjects;
+        }
+
+        /// <summary>
+        /// Get retake classes for a subject
+        /// </summary>
+        public async Task<List<RetakeClassDto>> GetRetakeClassesForSubjectAsync(
+            string subjectId, string? studentId = null, string? periodId = null)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@SubjectId", subjectId),
+                new SqlParameter("@StudentId", (object?)studentId ?? DBNull.Value),
+                new SqlParameter("@PeriodId", (object?)periodId ?? DBNull.Value)
+            };
+
+            var dt = await DatabaseHelper.ExecuteQueryAsync(
+                _connectionString, "sp_GetRetakeClassesForSubject", parameters);
+
+            var classes = new List<RetakeClassDto>();
+            foreach (DataRow row in dt.Rows)
+            {
+                classes.Add(MapToRetakeClassDto(row));
+            }
+
+            return classes;
+        }
+
+        /// <summary>
+        /// Map DataRow to FailedSubjectDto
+        /// </summary>
+        private static FailedSubjectDto MapToFailedSubjectDto(DataRow row)
+        {
+            return new FailedSubjectDto
+            {
+                RetakeId = row["retake_id"].ToString() ?? string.Empty,
+                SubjectId = row["subject_id"].ToString() ?? string.Empty,
+                SubjectCode = row["subject_code"].ToString() ?? string.Empty,
+                SubjectName = row["subject_name"].ToString() ?? string.Empty,
+                Credits = row["credits"] != DBNull.Value ? Convert.ToInt32(row["credits"]) : 0,
+                FailedClassId = row["failed_class_id"].ToString() ?? string.Empty,
+                FailedClassCode = row["failed_class_code"]?.ToString() ?? string.Empty,
+                FailedClassName = row["failed_class_name"]?.ToString() ?? string.Empty,
+                Reason = row["reason"].ToString() ?? string.Empty,
+                CurrentValue = row["current_value"] != DBNull.Value ? Convert.ToDecimal(row["current_value"]) : null,
+                ThresholdValue = row["threshold_value"] != DBNull.Value ? Convert.ToDecimal(row["threshold_value"]) : null,
+                RetakeStatus = row["retake_status"].ToString() ?? string.Empty,
+                SchoolYearId = row["school_year_id"].ToString() ?? string.Empty,
+                SchoolYearCode = row["school_year_code"]?.ToString() ?? string.Empty,
+                Semester = row["semester"] != DBNull.Value ? Convert.ToInt32(row["semester"]) : 0,
+                RetakeCreatedAt = row["retake_created_at"] != DBNull.Value ? Convert.ToDateTime(row["retake_created_at"]) : DateTime.Now
+            };
+        }
+
+        /// <summary>
+        /// Map DataRow to RetakeClassDto
+        /// </summary>
+        private static RetakeClassDto MapToRetakeClassDto(DataRow row)
+        {
+            var maxStudents = row["max_students"] != DBNull.Value ? Convert.ToInt32(row["max_students"]) : (int?)null;
+            var currentEnrollment = row["current_enrollment"] != DBNull.Value ? Convert.ToInt32(row["current_enrollment"]) : 0;
+            
+            return new RetakeClassDto
+            {
+                ClassId = row["class_id"].ToString() ?? string.Empty,
+                ClassCode = row["class_code"].ToString() ?? string.Empty,
+                ClassName = row["class_name"].ToString() ?? string.Empty,
+                SubjectId = row["subject_id"].ToString() ?? string.Empty,
+                SubjectCode = row["subject_code"].ToString() ?? string.Empty,
+                SubjectName = row["subject_name"].ToString() ?? string.Empty,
+                Credits = row["credits"] != DBNull.Value ? Convert.ToInt32(row["credits"]) : 0,
+                LecturerId = row["lecturer_id"]?.ToString(),
+                LecturerName = row["lecturer_name"]?.ToString(),
+                RoomId = row["room_id"]?.ToString(),
+                RoomCode = row["room_code"]?.ToString(),
+                Building = row["building"]?.ToString(),
+                MaxStudents = maxStudents,
+                CurrentEnrollment = currentEnrollment,
+                AvailableSeats = maxStudents.HasValue ? maxStudents.Value - currentEnrollment : 0,
+                IsRegistered = row["is_registered"] != DBNull.Value && Convert.ToBoolean(row["is_registered"]),
+                SchoolYearCode = row["school_year_code"]?.ToString() ?? string.Empty,
+                Semester = row["semester"] != DBNull.Value ? Convert.ToInt32(row["semester"]) : 0,
+                ScheduleInfo = row["schedule_info"]?.ToString()
+            };
         }
 
         /// <summary>

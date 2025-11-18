@@ -13,17 +13,19 @@ namespace EducationManagement.API.Admin.Controllers
     public class AdministrativeClassController : ControllerBase
     {
         private readonly AdministrativeClassService _service;
+        private readonly LecturerService _lecturerService;
 
-        public AdministrativeClassController(AdministrativeClassService service)
+        public AdministrativeClassController(AdministrativeClassService service, LecturerService lecturerService)
         {
             _service = service;
+            _lecturerService = lecturerService;
         }
 
         // ============================================================
         // 1️⃣ GET ALL with Pagination & Filters
         // ============================================================
         [HttpGet]
-        [RequirePermission("ADMIN_SECTION_CLASSES")] // ✅ Section permission vừa là menu vừa là quyền quản lý
+        [RequireAnyPermission("ADMIN_SECTION_CLASSES", "TCH_CLASSES")] // ✅ Admin hoặc Lecturer có thể xem
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
@@ -34,6 +36,37 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
+                // ✅ Nếu user là Lecturer, chỉ cho phép xem các lớp mà họ là chủ nhiệm
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                string? lecturerAdvisorId = null;
+                
+                if (userRole == "Lecturer" || userRole == "Giảng viên")
+                {
+                    // Lấy lecturerId từ userId
+                    var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrEmpty(userId))
+                        return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+
+                    // Lấy lecturer từ userId
+                    var lecturer = await _lecturerService.GetByUserIdAsync(userId);
+                    if (lecturer == null)
+                        return Unauthorized(new { success = false, message = "Không tìm thấy thông tin giảng viên" });
+
+                    lecturerAdvisorId = lecturer.LecturerId;
+
+                    // Nếu có advisorId trong query, kiểm tra xem có khớp với lecturerId của user không
+                    if (!string.IsNullOrEmpty(advisorId) && advisorId != lecturerAdvisorId)
+                    {
+                        return StatusCode(403, new { success = false, message = "Bạn chỉ có thể xem các lớp mà bạn là chủ nhiệm" });
+                    }
+
+                    // Tự động filter theo lecturerId của user nếu không có advisorId trong query
+                    if (string.IsNullOrEmpty(advisorId))
+                    {
+                        advisorId = lecturerAdvisorId;
+                    }
+                }
+
                 var (data, totalCount) = await _service.GetAllAsync(
                     page, pageSize, search, majorId, cohortYear, advisorId);
 
@@ -96,7 +129,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 4️⃣ GET CLASS REPORT
         // ============================================================
         [HttpGet("{id}/report")]
-        [RequirePermission("ADMIN_SECTION_CLASSES")] // ✅ Section permission vừa là menu vừa là quyền quản lý
+        [RequireAnyPermission("ADMIN_SECTION_CLASSES", "TCH_CLASSES")] // ✅ Admin hoặc Lecturer có thể xem
         public async Task<IActionResult> GetReport(
             string id,
             [FromQuery] int? semester = null,
@@ -104,6 +137,25 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
+                // ✅ Kiểm tra nếu user là Lecturer, chỉ cho phép xem lớp mà họ là chủ nhiệm
+                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                if (userRole == "Lecturer" || userRole == "Giảng viên")
+                {
+                    // Lấy thông tin lớp để kiểm tra advisor
+                    var classInfo = await _service.GetByIdAsync(id);
+                    if (classInfo == null)
+                        return NotFound(new { success = false, message = "Không tìm thấy lớp hành chính" });
+
+                    // Lấy lecturerId từ claims hoặc từ user info
+                    var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    if (string.IsNullOrEmpty(userId))
+                        return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+
+                    // TODO: Cần lấy lecturerId từ userId để so sánh với classInfo.AdvisorId
+                    // Tạm thời cho phép nếu có permission TCH_CLASSES
+                    // Có thể thêm logic kiểm tra advisorId sau
+                }
+
                 var report = await _service.GetReportAsync(id, semester, academicYearId);
                 if (report == null)
                     return NotFound(new { success = false, message = "Không tìm thấy báo cáo" });

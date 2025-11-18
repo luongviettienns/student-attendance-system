@@ -62,14 +62,35 @@
                             <div ng-if="grid[d] && grid[d].length > 0">
                                 <div ng-repeat="s in grid[d] | orderBy:'startTime'" 
                                      class="timetable-session-card"
-                                     ng-class="'session-' + ($index % 4)">
+                                     ng-class="{'exam-card': s.type === 'exam', 'session-card': s.type === 'session' || !s.type, 'session-' + ($index % 4): !s.type || s.type === 'session'}">
+                                    <!-- ✅ Label phân loại ở đầu card -->
+                                    <div class="session-type-label">
+                                        <span ng-if="s.type === 'exam'" class="badge badge-danger">
+                                            <i class="fas fa-clipboard-list"></i> LỊCH THI
+                                        </span>
+                                        <span ng-if="s.type === 'session' || !s.type" class="badge badge-primary">
+                                            <i class="fas fa-book"></i> LỊCH HỌC
+                                        </span>
+                                    </div>
                                     <div class="session-time">
                                         <i class="fas fa-clock"></i>
                                         <span>{{s.startTime || '—'}} - {{s.endTime || '—'}}</span>
+                                        <!-- Thêm thông tin ca thi nếu là exam -->
+                                        <span ng-if="s.type === 'exam' && s.sessionNo" class="text-muted">
+                                            <br><small>Ca thi {{s.sessionNo}}</small>
+                                        </span>
                                     </div>
                                     <div class="session-subject">
                                         <i class="fas fa-book"></i>
                                         {{s.subjectName || 'N/A'}}
+                                        <!-- Thêm loại thi nếu là exam -->
+                                        <span ng-if="s.type === 'exam'">
+                                            <br>
+                                            <small class="text-muted">
+                                                <span ng-if="s.examType === 'GIỮA_HỌC_PHẦN'">(Thi giữa)</span>
+                                                <span ng-if="s.examType === 'KẾT_THÚC_HỌC_PHẦN'">(Thi cuối)</span>
+                                            </small>
+                                        </span>
                                     </div>
                                     <div class="session-details">
                                         <div class="session-detail-item">

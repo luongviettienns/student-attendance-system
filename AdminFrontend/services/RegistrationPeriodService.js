@@ -4,8 +4,19 @@ app.service('RegistrationPeriodService', ['ApiService', function(ApiService) {
     // ============================================================
     // 1️⃣ GET ALL
     // ============================================================
-    this.getAll = function() {
-        return ApiService.get('/registration-periods');
+    this.getAll = function(periodType) {
+        var params = {};
+        if (periodType) {
+            params.periodType = periodType;
+        }
+        return ApiService.get('/registration-periods', params);
+    };
+    
+    // ============================================================
+    // 1️⃣.1 GET RETAKE PERIODS
+    // ============================================================
+    this.getRetakePeriods = function() {
+        return ApiService.get('/registration-periods/retake');
     };
     
     // ============================================================

@@ -263,7 +263,78 @@
     margin-top: 24px;
 }
 
-/* Tab panes - AngularJS sẽ handle hiển thị qua ng-show */
+/* Tab panes - Sequential animation: tab cũ ẩn xong rồi mới hiện tab mới */
+.card.tab-content {
+    position: relative;
+    /* Bỏ animation mặc định - sẽ control bằng ng-enter/ng-leave */
+}
+
+/* ✅ SEQUENTIAL ANIMATION: Tab cũ ẩn TRƯỚC, tab mới hiện SAU - CỰC NHANH (10ms mỗi phần) */
+
+/* Animation khi tab biến mất - CỰC NHANH (10ms) - chỉ opacity change */
+.card.tab-content.ng-leave {
+    animation: tabFadeOut 0.01s linear;
+    opacity: 1;
+}
+
+.card.tab-content.ng-leave-active {
+    opacity: 0;
+    /* Đảm bảo ẩn hoàn toàn sau animation */
+    pointer-events: none;
+}
+
+@keyframes tabFadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* Animation khi tab xuất hiện - CỰC NHANH (10ms) - chỉ opacity change */
+.card.tab-content.ng-enter {
+    animation: tabFadeIn 0.01s linear;
+    opacity: 0;
+}
+
+.card.tab-content.ng-enter-active {
+    opacity: 1;
+}
+
+@keyframes tabFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Đảm bảo tab không active bị ẩn hoàn toàn */
+.card.tab-content {
+    overflow: hidden;
+    /* ✅ TỐI ƯU: Bỏ transition để tránh delay khi switch tab */
+    transition: none !important;
+}
+
+/* ✅ TỐI ƯU: Card header và body trong tab-content không có transition */
+.card.tab-content .card-header,
+.card.tab-content .card-body {
+    transition: none !important;
+    /* Đảm bảo layout được render ngay lập tức */
+    will-change: auto;
+}
+
+/* Chỉ giữ transition khi hover (không phải khi render) */
+.card.tab-content:hover {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card.tab-content:hover .card-header,
+.card.tab-content:hover .card-body {
+    transition: none;
+}
 
 /* Table styles đã được định nghĩa trong components.css */
 /* Chỉ giữ modal-specific table styles nếu cần */

@@ -813,6 +813,47 @@
     overflow: hidden;
 }
 
+/* ✅ Exam Card - Phân biệt với Session Card */
+.timetable-session-card.exam-card {
+    background: #fff5f5;
+    border-left-color: #dc3545;
+}
+
+.timetable-session-card.exam-card::before {
+    background: #dc3545;
+}
+
+.timetable-session-card.exam-card:hover {
+    background: #ffe5e5;
+    transform: translateX(4px);
+    box-shadow: var(--box-shadow);
+}
+
+/* ✅ Session Card - Màu xanh */
+.timetable-session-card.session-card {
+    background: #f0f8ff;
+    border-left-color: #007bff;
+}
+
+.timetable-session-card.session-card::before {
+    background: #007bff;
+}
+
+.timetable-session-card.session-card:hover {
+    background: #e0f0ff;
+}
+
+/* ✅ Session Type Label */
+.session-type-label {
+    margin-bottom: 8px;
+}
+
+.session-type-label .badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    font-weight: 600;
+}
+
 .timetable-session-card::before {
     content: '';
     position: absolute;

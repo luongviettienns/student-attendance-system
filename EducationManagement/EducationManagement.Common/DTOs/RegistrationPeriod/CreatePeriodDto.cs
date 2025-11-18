@@ -23,6 +23,9 @@ namespace EducationManagement.Common.DTOs.RegistrationPeriod
         [Required(ErrorMessage = "Ngày kết thúc là bắt buộc")]
         public DateTime EndDate { get; set; }
 
+        [MaxLength(20)]
+        public string PeriodType { get; set; } = "NORMAL"; // NORMAL: đăng ký học phần thường, RETAKE: đăng ký học lại
+
         [MaxLength(500)]
         public string? Description { get; set; }
     }

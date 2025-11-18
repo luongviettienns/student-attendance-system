@@ -181,11 +181,11 @@
             </div>
 
             <div class="form-group">
-                <label class="form-label">Quyết định <span class="text-danger">*</span></label>
+                <label class="form-label">Đề xuất <span class="text-danger">*</span> <small class="text-muted">(Cố vấn học tập sẽ quyết định cuối cùng)</small></label>
                 <select class="form-control" ng-model="responseData.lecturerDecision" required>
-                    <option value="NEED_REVIEW">Cần xem xét thêm (chuyển cố vấn)</option>
-                    <option value="APPROVE">Đồng ý</option>
-                    <option value="REJECT">Từ chối</option>
+                    <option value="APPROVE">Đề xuất chấp nhận</option>
+                    <option value="REJECT">Đề xuất từ chối</option>
+                    <option value="NEED_REVIEW">Cần xem xét thêm</option>
                 </select>
             </div>
 
@@ -269,11 +269,11 @@
                         <div class="alert alert-info">
                             {{selectedAppeal.lecturerResponse}}
                         </div>
-                        <p><small>Quyết định: <span class="badge" ng-class="{
+                        <p><small>Đề xuất: <span class="badge" ng-class="{
                             'badge-success': selectedAppeal.lecturerDecision === 'APPROVE',
                             'badge-danger': selectedAppeal.lecturerDecision === 'REJECT',
                             'badge-warning': selectedAppeal.lecturerDecision === 'NEED_REVIEW'
-                        }">{{selectedAppeal.lecturerDecision}}</span></small></p>
+                        }">{{selectedAppeal.lecturerDecision === 'APPROVE' ? 'Đề xuất chấp nhận' : selectedAppeal.lecturerDecision === 'REJECT' ? 'Đề xuất từ chối' : 'Cần xem xét thêm'}}</span></small></p>
                     </div>
                     
                     <div ng-if="selectedAppeal.advisorResponse">

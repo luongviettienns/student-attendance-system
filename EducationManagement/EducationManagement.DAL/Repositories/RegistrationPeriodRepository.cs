@@ -22,10 +22,16 @@ namespace EducationManagement.DAL.Repositories
         // ============================================================
         // 1️⃣ GET ALL
         // ============================================================
-        public async Task<List<PeriodDetailDto>> GetAllAsync()
+        public async Task<List<PeriodDetailDto>> GetAllAsync(string? periodType = null)
         {
+            var parameters = new List<SqlParameter>();
+            if (!string.IsNullOrEmpty(periodType))
+            {
+                parameters.Add(new SqlParameter("@PeriodType", periodType));
+            }
+            
             var dt = await DatabaseHelper.ExecuteQueryAsync(
-                _connectionString, "sp_GetAllRegistrationPeriods", Array.Empty<SqlParameter>());
+                _connectionString, "sp_GetAllRegistrationPeriods", parameters.ToArray());
 
             var periods = new List<PeriodDetailDto>();
             foreach (DataRow row in dt.Rows)
@@ -34,6 +40,14 @@ namespace EducationManagement.DAL.Repositories
             }
 
             return periods;
+        }
+        
+        // ============================================================
+        // 1️⃣.1 GET RETAKE PERIODS
+        // ============================================================
+        public async Task<List<PeriodDetailDto>> GetRetakePeriodsAsync()
+        {
+            return await GetAllAsync("RETAKE");
         }
 
         // ============================================================
@@ -85,6 +99,7 @@ namespace EducationManagement.DAL.Repositories
                 new SqlParameter("@Semester", dto.Semester),
                 new SqlParameter("@StartDate", dto.StartDate),
                 new SqlParameter("@EndDate", dto.EndDate),
+                new SqlParameter("@PeriodType", dto.PeriodType ?? "NORMAL"),
                 new SqlParameter("@Description", (object?)dto.Description ?? DBNull.Value),
                 new SqlParameter("@CreatedBy", createdBy)
             };
@@ -108,6 +123,7 @@ namespace EducationManagement.DAL.Repositories
                 new SqlParameter("@Semester", dto.Semester),
                 new SqlParameter("@StartDate", dto.StartDate),
                 new SqlParameter("@EndDate", dto.EndDate),
+                new SqlParameter("@PeriodType", dto.PeriodType ?? "NORMAL"),
                 new SqlParameter("@Description", (object?)dto.Description ?? DBNull.Value),
                 new SqlParameter("@UpdatedBy", updatedBy)
             };
@@ -220,7 +236,12 @@ namespace EducationManagement.DAL.Repositories
             WHERE c.academic_year_id = rp.academic_year_id
               AND c.semester = CAST(rp.semester AS VARCHAR(20))
               AND c.deleted_at IS NULL
-              AND c.is_active = 1
+              -- Chỉ hiển thị lớp khi registration period đang mở và trong thời gian đăng ký
+              AND rp.status = 'OPEN'
+              AND GETDATE() BETWEEN rp.start_date AND rp.end_date
+              AND rp.is_active = 1
+              AND rp.deleted_at IS NULL
+              -- Lớp chưa được thêm vào period này
               AND NOT EXISTS (
                   SELECT 1 FROM period_classes pc
                   WHERE pc.class_id = c.class_id
@@ -283,6 +304,9 @@ namespace EducationManagement.DAL.Repositories
                 StartDate = Convert.ToDateTime(row["start_date"]),
                 EndDate = Convert.ToDateTime(row["end_date"]),
                 Status = row["status"].ToString()!,
+                PeriodType = row.Table.Columns.Contains("period_type") && row["period_type"] != DBNull.Value
+                    ? row["period_type"].ToString() ?? "NORMAL"
+                    : "NORMAL",
                 Description = row["description"]?.ToString(),
                 TotalEnrollments = row.Table.Columns.Contains("total_enrollments") && row["total_enrollments"] != DBNull.Value
                     ? Convert.ToInt32(row["total_enrollments"]) : null,
