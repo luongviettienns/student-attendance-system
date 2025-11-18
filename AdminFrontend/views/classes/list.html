@@ -74,10 +74,10 @@
                                     </td>
                                     <td>
                                         <div class="btn-group btn-group-sm">
-                                            <button class="btn btn-outline-primary" ng-click="openEditForm(classItem)" title="Chỉnh sửa">
+                                            <button type="button" class="btn btn-outline-primary" ng-click="openEditForm(classItem)" title="Chỉnh sửa">
                                                 <i class="fas fa-edit"></i>
                                             </button>
-                                            <button class="btn btn-outline-danger" ng-click="openDeleteModal(classItem)" title="Xóa">
+                                            <button type="button" class="btn btn-outline-danger" ng-click="openDeleteModal(classItem)" title="Xóa">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -104,10 +104,10 @@
 </div>
 
 <!-- Class Form Modal -->
-<div class="modal fade" id="classFormModal" tabindex="-1" ng-if="showFormModal" style="display: block;" role="dialog">
-    <div class="modal-backdrop fade show" ng-click="closeFormModal()"></div>
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+<div class="modal fade" id="classFormModal" tabindex="-1" ng-if="showFormModal" ng-class="{'show': showFormModal}" ng-animate="false" style="display: block !important; visibility: visible !important; opacity: 1 !important; z-index: 1050 !important;" role="dialog">
+    <div class="modal-backdrop fade show" ng-click="closeFormModal()" style="z-index: 1040 !important;"></div>
+    <div class="modal-dialog modal-lg" style="z-index: 1055 !important; position: relative;">
+        <div class="modal-content" style="z-index: 1055 !important; position: relative; overflow: visible !important; pointer-events: auto !important;">
             <div class="modal-header">
                 <h5 class="modal-title">
                     <i class="fas fa-chalkboard-teacher me-2"></i>
@@ -115,54 +115,85 @@
                 </h5>
                 <button type="button" class="btn-close" ng-click="closeFormModal()"></button>
             </div>
-            <div class="modal-body">
-                <form ng-submit="saveClass()">
-                    <div class="row g-3">
-                        <div class="col-md-6">
+            <div class="modal-body" style="overflow: visible !important; pointer-events: auto !important;">
+                <!-- Loading indicator -->
+                <div ng-if="loadingClassDetails" class="text-center p-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Đang tải thông tin lớp học...</p>
+                </div>
+                
+                <!-- Error message -->
+                <div ng-if="error" class="alert alert-danger" style="white-space: pre-line;">
+                    <i class="fas fa-exclamation-circle"></i> {{error}}
+                </div>
+                
+                <form ng-submit="saveClass(); $event.preventDefault();" style="pointer-events: auto !important;" ng-if="!loadingClassDetails">
+                    <div class="row g-3" style="pointer-events: auto !important;">
+                        <div class="col-md-6" style="pointer-events: auto !important;">
                                     <label class="form-label">Mã lớp học phần <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" ng-model="selectedClass.classCode" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" style="pointer-events: auto !important;">
                                     <label class="form-label">Tên lớp học phần <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" ng-model="selectedClass.className" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" style="pointer-events: auto !important;">
                             <label class="form-label">Môn học <span class="text-danger">*</span></label>
-                            <select class="form-select" ng-model="selectedClass.subjectId" required>
+                            <select class="form-select" 
+                                    ng-model="selectedClass.subjectId" 
+                                    ng-options="subject.subjectId as (subject.subjectCode + ' - ' + subject.subjectName) for subject in subjects | orderBy:'subjectCode'"
+                                    required
+                                    ng-disabled="formMode === 'edit' && hasRegisteredStudents"
+                                    style="z-index: 1060 !important; position: relative; pointer-events: auto !important;">
                                 <option value="">Chọn môn học</option>
-                                <option ng-repeat="subject in subjects" value="{{subject.subjectId}}">
-                                    {{subject.subjectName}}
-                                </option>
                             </select>
+                            <small class="form-text text-muted" ng-if="formMode === 'edit' && hasRegisteredStudents">
+                                <i class="fas fa-info-circle"></i> Không thể thay đổi môn học vì lớp đã có {{originalClassData.currentStudents || 0}} sinh viên đăng ký. Vui lòng tạo lớp mới thay vì chỉnh sửa.
+                            </small>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" style="pointer-events: auto !important;">
                             <label class="form-label">Giảng viên <span class="text-danger">*</span></label>
-                            <select class="form-select" ng-model="selectedClass.lecturerId" required>
+                            <select class="form-select" 
+                                    ng-model="selectedClass.lecturerId" 
+                                    ng-options="lecturer.lecturerId as lecturer.fullName for lecturer in lecturers | orderBy:'fullName'"
+                                    required
+                                    style="z-index: 1060 !important; position: relative; pointer-events: auto !important;">
                                 <option value="">Chọn giảng viên</option>
-                                <option ng-repeat="lecturer in lecturers" value="{{lecturer.lecturerId}}">
-                                    {{lecturer.fullName}}
-                                </option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" style="pointer-events: auto !important;">
                             <label class="form-label">Học kỳ <span class="text-danger">*</span></label>
-                            <select class="form-select" ng-model="selectedClass.semester" required>
+                            <select class="form-select" 
+                                    ng-model="selectedClass.semester" 
+                                    required
+                                    ng-disabled="formMode === 'edit' && hasRegisteredStudents"
+                                    style="z-index: 1060 !important; position: relative; pointer-events: auto !important;">
                                 <option value="">Chọn học kỳ</option>
                                 <option ng-repeat="semester in semesters" value="{{semester.value}}">
                                     {{semester.label}}
                                 </option>
                             </select>
+                            <small class="form-text text-muted" ng-if="formMode === 'edit' && hasRegisteredStudents">
+                                <i class="fas fa-info-circle"></i> Không thể thay đổi học kỳ khi lớp đã có sinh viên đăng ký.
+                            </small>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" style="pointer-events: auto !important;">
                             <label class="form-label">Niên khóa <span class="text-danger">*</span></label>
-                            <select class="form-select" ng-model="selectedClass.academicYearId" required>
+                            <select class="form-select" 
+                                    ng-model="selectedClass.academicYearId" 
+                                    ng-options="year.academicYearId as ((year.cohortCode || year.yearCode) + ' - ' + (year.yearName || year.description || year.cohortCode)) for year in academicYears | orderBy:'-cohortCode'"
+                                    required
+                                    ng-disabled="formMode === 'edit' && hasRegisteredStudents"
+                                    style="z-index: 1060 !important; position: relative; pointer-events: auto !important;">
                                 <option value="">Chọn niên khóa</option>
-                                <option ng-repeat="year in academicYears" value="{{year.academicYearId}}">
-                                    {{year.yearCode}}
-                                </option>
                             </select>
+                            <small class="form-text text-muted" ng-if="formMode === 'edit' && hasRegisteredStudents">
+                                <i class="fas fa-info-circle"></i> Không thể thay đổi niên khóa khi lớp đã có sinh viên đăng ký.
+                            </small>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-6" style="pointer-events: auto !important;">
                             <label class="form-label">Số sinh viên tối đa</label>
                             <input type="number" class="form-control" ng-model="selectedClass.maxStudents" min="1" max="200">
                         </div>
@@ -170,8 +201,8 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" ng-click="closeFormModal()">Hủy</button>
-                <button type="button" class="btn btn-primary" ng-click="saveClass()">
+                <button type="button" class="btn btn-secondary" ng-click="$event.stopPropagation(); closeFormModal();" style="z-index: 1060; position: relative;">Hủy</button>
+                <button type="button" class="btn btn-primary" ng-click="$event.stopPropagation(); saveClass();" style="z-index: 1060; position: relative;">
                     <i class="fas fa-save me-1"></i>
                     {{formMode === 'create' ? 'Tạo lớp học' : 'Cập nhật'}}
                 </button>
@@ -181,7 +212,7 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div class="modal fade" id="deleteClassModal" tabindex="-1" ng-if="showDeleteModal" style="display: block;" role="dialog">
+<div class="modal fade" id="deleteClassModal" tabindex="-1" ng-if="showDeleteModal" ng-class="{'show': showDeleteModal}" ng-animate="false" style="display: block !important; visibility: visible !important; opacity: 1 !important;" role="dialog">
     <div class="modal-backdrop fade show" ng-click="closeDeleteModal()"></div>
     <div class="modal-dialog">
         <div class="modal-content">

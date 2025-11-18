@@ -69,6 +69,12 @@ namespace EducationManagement.Common.Models
         [Column("max_students")]
         public int MaxStudents { get; set; } = 50;
 
+        /// <summary>
+        /// Số sinh viên hiện tại đã đăng ký (từ cột current_enrollment trong DB)
+        /// </summary>
+        [Column("current_enrollment")]
+        public int CurrentEnrollment { get; set; } = 0;
+
         // ==================================================
         // 🔹 Audit fields
         // ==================================================

@@ -79,6 +79,11 @@ namespace EducationManagement.API.Admin.Controllers
 
                 return Ok(new { message = "Thêm ngành học thành công!" });
             }
+            catch (ArgumentException ex)
+            {
+                // ✅ Format validation errors
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Exception ex)
             {
                 return BadRequest(new { message = ex.Message });
@@ -92,37 +97,68 @@ namespace EducationManagement.API.Admin.Controllers
             if (id != model.MajorId)
                 return BadRequest(new { message = "ID không khớp!" });
 
-            var oldMajor = await _service.GetByIdAsync(id);
-            await _service.UpdateAsync(model);
-
-            // ✅ Audit Log: Update Major
-            if (oldMajor != null)
+            try
             {
+                var oldMajor = await _service.GetByIdAsync(id);
+                if (oldMajor == null)
+                    return NotFound(new { message = "Không tìm thấy ngành học" });
+
+                await _service.UpdateAsync(model);
+
+                // ✅ Audit Log: Update Major
                 await LogUpdateAsync("Major", model.MajorId,
                     new { major_name = oldMajor.MajorName, faculty_id = oldMajor.FacultyId },
                     new { major_name = model.MajorName, faculty_id = model.FacultyId });
-            }
 
-            return Ok(new { message = "Cập nhật ngành học thành công!" });
+                return Ok(new { message = "Cập nhật ngành học thành công!" });
+            }
+            catch (ArgumentException ex)
+            {
+                // ✅ Format validation errors
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex) when (ex.Message.Contains("Khoa không tồn tại"))
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
         [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id)
         {
-            var major = await _service.GetByIdAsync(id);
-            await _service.DeleteAsync(id);
-
-            // ✅ Audit Log: Delete Major
-            if (major != null)
+            try
             {
+                var major = await _service.GetByIdAsync(id);
+                if (major == null)
+                    return NotFound(new { message = "Không tìm thấy ngành học" });
+
+                await _service.DeleteAsync(id);
+
+                // ✅ Audit Log: Delete Major
                 await LogDeleteAsync("Major", id, new {
                     major_code = major.MajorCode,
                     major_name = major.MajorName
                 });
-            }
 
-            return Ok(new { message = "Xóa ngành học thành công!" });
+                return Ok(new { message = "Xóa ngành học thành công!" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // ✅ Trả về thông báo lỗi rõ ràng với số lượng records
+                return BadRequest(new { 
+                    message = ex.Message,
+                    errorType = "CONSTRAINT_VIOLATION"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
         }
     }
 }

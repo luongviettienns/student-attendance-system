@@ -144,6 +144,43 @@ namespace EducationManagement.BLL.Services
         }
 
         /// <summary>
+        /// FORCE chuyển học kỳ (CHỈ DÙNG CHO TEST)
+        /// Cho phép force chuyển sang học kỳ cụ thể mà không cần kiểm tra ngày tháng
+        /// </summary>
+        public async Task<(string SchoolYearId, int? OldSemester, int NewSemester)> ForceTransitionSemesterAsync(int targetSemester, string executedBy = "system")
+        {
+            var active = await _repo.GetActiveAsync();
+            if (active == null)
+                throw new Exception("❌ Không có năm học nào đang active!");
+
+            var oldSemester = active.CurrentSemester;
+            var schoolYearId = active.SchoolYearId;
+
+            // Tính GPA cho học kỳ cũ (nếu có và khác với học kỳ mới)
+            if (oldSemester.HasValue && oldSemester.Value != targetSemester)
+            {
+                try
+                {
+                    // Dùng school_year_id để tính GPA (phù hợp hơn với cấu trúc dữ liệu)
+                    await _repo.CalculateGPAForSemesterBySchoolYearAsync(schoolYearId, oldSemester.Value, executedBy);
+                }
+                catch (Exception ex)
+                {
+                    // Log warning nhưng không throw - vẫn cho phép chuyển học kỳ
+                    // Exception có thể do stored procedure không tồn tại hoặc lỗi khác
+                    System.Diagnostics.Debug.WriteLine($"⚠️ Warning: Could not calculate GPA for semester {oldSemester}: {ex.Message}");
+                }
+            }
+
+            // Force update current_semester
+            active.CurrentSemester = targetSemester;
+            active.UpdatedBy = executedBy;
+            await _repo.UpdateAsync(active);
+
+            return (schoolYearId, oldSemester, targetSemester);
+        }
+
+        /// <summary>
         /// Kích hoạt năm học (set active)
         /// </summary>
         public async Task ActivateSchoolYearAsync(string schoolYearId, int initialSemester = 1, string updatedBy = "system")

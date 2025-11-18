@@ -243,6 +243,9 @@ namespace EducationManagement.DAL.Repositories
                     ? row["school_year_id"].ToString()
                     : null,
                 MaxStudents = row.Table.Columns.Contains("max_students") ? Convert.ToInt32(row["max_students"]) : 0,
+                CurrentEnrollment = row.Table.Columns.Contains("current_enrollment") && row["current_enrollment"] != DBNull.Value
+                    ? Convert.ToInt32(row["current_enrollment"])
+                    : 0,
                 SubjectName = row.Table.Columns.Contains("subject_name") ? row["subject_name"]?.ToString() : null,
                 LecturerName = row.Table.Columns.Contains("lecturer_name") ? row["lecturer_name"]?.ToString() : null,
                 AcademicYearName = row.Table.Columns.Contains("year_name") ? row["year_name"]?.ToString() : null,
@@ -262,6 +265,71 @@ namespace EducationManagement.DAL.Repositories
                     : null,
                 DeletedBy = row.Table.Columns.Contains("deleted_by") ? row["deleted_by"]?.ToString() : null
             };
+        }
+
+        /// <summary>
+        /// Kiểm tra số lượng enrollments của class
+        /// </summary>
+        public async Task<int> GetEnrollmentCountAsync(string classId)
+        {
+            var sql = @"
+                SELECT COUNT(*) 
+                FROM dbo.enrollments 
+                WHERE class_id = @ClassId 
+                AND deleted_at IS NULL";
+            
+            var param = new SqlParameter("@ClassId", classId);
+            var result = await DatabaseHelper.ExecuteRawScalarAsync(_connectionString, sql, param);
+            return result != null ? Convert.ToInt32(result) : 0;
+        }
+
+        /// <summary>
+        /// Kiểm tra số lượng grades của class
+        /// </summary>
+        public async Task<int> GetGradeCountAsync(string classId)
+        {
+            var sql = @"
+                SELECT COUNT(*) 
+                FROM dbo.grades g
+                INNER JOIN dbo.enrollments e ON g.enrollment_id = e.enrollment_id
+                WHERE e.class_id = @ClassId 
+                AND e.deleted_at IS NULL";
+            
+            var param = new SqlParameter("@ClassId", classId);
+            var result = await DatabaseHelper.ExecuteRawScalarAsync(_connectionString, sql, param);
+            return result != null ? Convert.ToInt32(result) : 0;
+        }
+
+        /// <summary>
+        /// Kiểm tra số lượng attendances của class
+        /// </summary>
+        public async Task<int> GetAttendanceCountAsync(string classId)
+        {
+            var sql = @"
+                SELECT COUNT(*) 
+                FROM dbo.attendances 
+                WHERE class_id = @ClassId 
+                AND deleted_at IS NULL";
+            
+            var param = new SqlParameter("@ClassId", classId);
+            var result = await DatabaseHelper.ExecuteRawScalarAsync(_connectionString, sql, param);
+            return result != null ? Convert.ToInt32(result) : 0;
+        }
+
+        /// <summary>
+        /// Lấy current_enrollment của class
+        /// </summary>
+        public async Task<int> GetCurrentEnrollmentAsync(string classId)
+        {
+            var sql = @"
+                SELECT current_enrollment 
+                FROM dbo.classes 
+                WHERE class_id = @ClassId 
+                AND deleted_at IS NULL";
+            
+            var param = new SqlParameter("@ClassId", classId);
+            var result = await DatabaseHelper.ExecuteRawScalarAsync(_connectionString, sql, param);
+            return result != null ? Convert.ToInt32(result) : 0;
         }
     }
 }

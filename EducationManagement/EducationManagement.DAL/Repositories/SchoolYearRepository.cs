@@ -177,7 +177,7 @@ namespace EducationManagement.DAL.Repositories
                     @IsActive, @CurrentSemester, GETDATE(), @CreatedBy
                 )";
 
-            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, query, parameters);
+            await DatabaseHelper.ExecuteRawNonQueryAsync(_connectionString, query, parameters);
         }
 
         // ============================================================
@@ -219,7 +219,7 @@ namespace EducationManagement.DAL.Repositories
                     updated_by = @UpdatedBy
                 WHERE school_year_id = @SchoolYearId";
 
-            return await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, query, parameters);
+            return await DatabaseHelper.ExecuteRawNonQueryAsync(_connectionString, query, parameters);
         }
 
         // ============================================================
@@ -239,7 +239,7 @@ namespace EducationManagement.DAL.Repositories
                     deleted_by = @DeletedBy
                 WHERE school_year_id = @SchoolYearId";
 
-            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, query, parameters);
+            await DatabaseHelper.ExecuteRawNonQueryAsync(_connectionString, query, parameters);
         }
 
         // ============================================================
@@ -263,6 +263,37 @@ namespace EducationManagement.DAL.Repositories
             };
 
             await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_AutoTransitionToNewSchoolYear", parameters);
+        }
+
+        // ============================================================
+        // 🔹 CALCULATE GPA FOR SEMESTER
+        // ============================================================
+        public async Task CalculateGPAForSemesterAsync(string academicYearId, int semester, string executedBy = "system")
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@AcademicYearId", academicYearId),
+                new SqlParameter("@Semester", semester),
+                new SqlParameter("@CreatedBy", executedBy)
+            };
+
+            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_CalculateAllStudentGPA", parameters);
+        }
+        
+        // ============================================================
+        // 🔹 CALCULATE GPA FOR SEMESTER BY SCHOOL YEAR
+        // ============================================================
+        public async Task CalculateGPAForSemesterBySchoolYearAsync(string schoolYearId, int semester, string executedBy = "system")
+        {
+            // Use stored procedure instead of raw SQL to avoid CommandText length limit
+            var parameters = new[]
+            {
+                new SqlParameter("@SchoolYearId", schoolYearId),
+                new SqlParameter("@Semester", semester),
+                new SqlParameter("@CreatedBy", executedBy)
+            };
+
+            await DatabaseHelper.ExecuteNonQueryAsync(_connectionString, "sp_CalculateAllStudentGPABySchoolYear", parameters);
         }
 
         // ============================================================

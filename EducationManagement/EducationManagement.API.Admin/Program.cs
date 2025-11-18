@@ -149,7 +149,12 @@ builder.Services.AddRateLimiter(options =>
 // ============================================================
 // 🔹 3️⃣ Cấu hình Controller, Swagger, CORS, SignalR
 // ============================================================
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        // ✅ Configure JSON serialization to use camelCase (JavaScript convention)
+        options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

@@ -77,6 +77,29 @@
                             <i class="fas fa-plus"></i> Thêm năm học thủ công
                         </button>
                     </div>
+                    <div class="mt-3" style="border-top: 1px solid #dee2e6; padding-top: 15px;">
+                        <div class="d-flex align-items-center mb-2">
+                            <strong class="text-warning mr-2">
+                                <i class="fas fa-flask"></i> TEST TOOLS:
+                            </strong>
+                            <button class="btn btn-sm btn-warning mr-2" 
+                                    ng-click="forceTransitionSemester(1)" 
+                                    ng-disabled="loading"
+                                    title="Force chuyển sang Học kỳ 1 (CHỈ DÙNG CHO TEST)">
+                                <i class="fas fa-arrow-left"></i> Force HK1
+                            </button>
+                            <button class="btn btn-sm btn-warning" 
+                                    ng-click="forceTransitionSemester(2)" 
+                                    ng-disabled="loading"
+                                    title="Force chuyển sang Học kỳ 2 (CHỈ DÙNG CHO TEST)">
+                                <i class="fas fa-arrow-right"></i> Force HK2
+                            </button>
+                        </div>
+                        <small class="text-muted">
+                            <i class="fas fa-exclamation-triangle"></i> 
+                            <strong>Lưu ý:</strong> Các nút "Force" chỉ dùng cho test. Chúng sẽ force chuyển học kỳ mà không kiểm tra ngày tháng.
+                        </small>
+                    </div>
                     <div class="mt-2">
                         <small class="text-muted">
                             <i class="fas fa-info-circle"></i> 

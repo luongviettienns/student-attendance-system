@@ -220,7 +220,12 @@ namespace EducationManagement.DAL.Repositories
             WHERE c.academic_year_id = rp.academic_year_id
               AND c.semester = CAST(rp.semester AS VARCHAR(20))
               AND c.deleted_at IS NULL
-              AND c.is_active = 1
+              -- Chỉ hiển thị lớp khi registration period đang mở và trong thời gian đăng ký
+              AND rp.status = 'OPEN'
+              AND GETDATE() BETWEEN rp.start_date AND rp.end_date
+              AND rp.is_active = 1
+              AND rp.deleted_at IS NULL
+              -- Lớp chưa được thêm vào period này
               AND NOT EXISTS (
                   SELECT 1 FROM period_classes pc
                   WHERE pc.class_id = c.class_id

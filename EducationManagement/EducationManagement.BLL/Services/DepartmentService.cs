@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,44 +9,41 @@ using EducationManagement.DAL.Repositories;
 
 namespace EducationManagement.BLL.Services
 {
-    public class MajorService
+    public class DepartmentService
     {
-        private readonly MajorRepository _repo;
+        private readonly DepartmentRepository _repo;
         private readonly FacultyRepository _facultyRepo;
 
-        public MajorService(MajorRepository repo, FacultyRepository facultyRepo)
+        public DepartmentService(DepartmentRepository repo, FacultyRepository facultyRepo)
         {
             _repo = repo;
             _facultyRepo = facultyRepo;
         }
 
-        public async Task<List<Major>> GetAllAsync() => await _repo.GetAllAsync();
+        public Task<List<Department>> GetAllAsync() => _repo.GetAllAsync();
         
-        public Task<(List<Major> items, int totalCount)> GetAllPagedAsync(
+        public Task<(List<Department> items, int totalCount)> GetAllPagedAsync(
             int page = 1, int pageSize = 10, string? search = null) 
             => _repo.GetAllPagedAsync(page, pageSize, search);
-
-        public async Task<Major?> GetByIdAsync(string id) => await _repo.GetByIdAsync(id);
-
-        public async Task<List<Major>> GetByFacultyAsync(string facultyId)
-        {
-            return await _repo.GetByFacultyAsync(facultyId);
-        }
-
+        
+        public Task<Department?> GetByIdAsync(string id) => _repo.GetByIdAsync(id);
+        
+        public Task<string> GenerateNextCodeAsync() => _repo.GenerateNextCodeAsync();
+        
         /// <summary>
         /// Validate format mã code: chỉ chữ in hoa và số, không khoảng trắng, không ký tự đặc biệt
         /// </summary>
         private void ValidateCodeFormat(string code, string fieldName)
         {
             if (string.IsNullOrWhiteSpace(code))
-                throw new ArgumentException($"{fieldName} không được để trống");
+                return; // Cho phép để trống vì có thể auto generate
             
             // Chỉ cho phép chữ in hoa và số, độ dài 2-20 ký tự
             if (!System.Text.RegularExpressions.Regex.IsMatch(code, @"^[A-Z0-9]{2,20}$"))
             {
                 throw new ArgumentException(
                     $"{fieldName} phải là chữ in hoa và số, từ 2-20 ký tự, không có khoảng trắng hoặc ký tự đặc biệt. " +
-                    $"Ví dụ: SE, IT, CS101");
+                    $"Ví dụ: DEPT001, CS101");
             }
         }
         
@@ -66,61 +63,63 @@ namespace EducationManagement.BLL.Services
                 throw new ArgumentException($"{fieldName} không được vượt quá 200 ký tự");
         }
         
-        public async Task AddAsync(Major major)
+        public async Task AddAsync(Department department)
         {
             // ✅ Format validation
-            ValidateCodeFormat(major.MajorCode, "Mã ngành");
-            ValidateNameFormat(major.MajorName, "Tên ngành");
+            ValidateCodeFormat(department.DepartmentCode, "Mã bộ môn");
+            ValidateNameFormat(department.DepartmentName, "Tên bộ môn");
             
-            // ✅ Ràng buộc nghiệp vụ: Faculty phải tồn tại
-            var faculty = await _facultyRepo.GetByIdAsync(major.FacultyId);
+            // ✅ Validate: Faculty phải tồn tại
+            var faculty = await _facultyRepo.GetByIdAsync(department.FacultyId);
             if (faculty == null)
                 throw new Exception("Khoa không tồn tại!");
 
-            // Auto uppercase mã code
-            major.MajorCode = major.MajorCode.ToUpper().Trim();
-            major.MajorName = major.MajorName.Trim();
-            
-            major.MajorId = Guid.NewGuid().ToString();
-            major.CreatedAt = DateTime.Now;
+            // Auto uppercase mã code nếu có
+            if (!string.IsNullOrWhiteSpace(department.DepartmentCode))
+                department.DepartmentCode = department.DepartmentCode.ToUpper().Trim();
+            department.DepartmentName = department.DepartmentName.Trim();
 
-            await _repo.AddAsync(major);
+            await _repo.AddAsync(department);
         }
 
-        public async Task UpdateAsync(Major major)
+        public async Task<int> UpdateAsync(Department department)
         {
             // ✅ Format validation
-            ValidateCodeFormat(major.MajorCode, "Mã ngành");
-            ValidateNameFormat(major.MajorName, "Tên ngành");
+            ValidateCodeFormat(department.DepartmentCode, "Mã bộ môn");
+            ValidateNameFormat(department.DepartmentName, "Tên bộ môn");
             
             // ✅ Validate: Faculty phải tồn tại khi update
-            var faculty = await _facultyRepo.GetByIdAsync(major.FacultyId);
+            var faculty = await _facultyRepo.GetByIdAsync(department.FacultyId);
             if (faculty == null)
                 throw new Exception("Khoa không tồn tại!");
             
-            // Auto uppercase mã code
-            major.MajorCode = major.MajorCode.ToUpper().Trim();
-            major.MajorName = major.MajorName.Trim();
+            // Auto uppercase mã code nếu có
+            if (!string.IsNullOrWhiteSpace(department.DepartmentCode))
+                department.DepartmentCode = department.DepartmentCode.ToUpper().Trim();
+            department.DepartmentName = department.DepartmentName.Trim();
             
-            major.UpdatedAt = DateTime.Now;
-            await _repo.UpdateAsync(major);
+            return await _repo.UpdateAsync(department);
         }
 
         /// <summary>
-        /// Kiểm tra ràng buộc trước khi xóa Major
+        /// Kiểm tra ràng buộc trước khi xóa Department
         /// </summary>
-        public Task<MajorConstraintDto> CheckConstraintsAsync(string id) => _repo.CheckConstraintsAsync(id);
+        public Task<DepartmentConstraintDto> CheckConstraintsAsync(string id) => _repo.CheckConstraintsAsync(id);
         
         /// <summary>
-        /// Xóa Major với validation
+        /// Xóa Department với validation
         /// </summary>
         public async Task DeleteAsync(string id)
         {
             var constraints = await CheckConstraintsAsync(id);
             if (constraints.HasActiveRelations)
             {
-                var message = $"Không thể xóa ngành này vì còn {constraints.ActiveStudentCount} sinh viên đang hoạt động.\n";
-                message += "Vui lòng chuyển sinh viên sang ngành khác trước khi xóa.";
+                var message = "Không thể xóa bộ môn này vì còn dữ liệu liên quan đang hoạt động:\n";
+                if (constraints.ActiveSubjectCount > 0)
+                    message += $"- {constraints.ActiveSubjectCount} môn học đang hoạt động\n";
+                if (constraints.ActiveLecturerCount > 0)
+                    message += $"- {constraints.ActiveLecturerCount} giảng viên đang hoạt động\n";
+                message += "\nVui lòng xóa hoặc vô hiệu hóa các dữ liệu liên quan trước.";
                 throw new InvalidOperationException(message);
             }
             
@@ -128,3 +127,4 @@ namespace EducationManagement.BLL.Services
         }
     }
 }
+

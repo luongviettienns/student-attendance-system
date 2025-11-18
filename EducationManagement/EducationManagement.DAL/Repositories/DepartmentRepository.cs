@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using EducationManagement.Common.Models;
+using EducationManagement.Common.DTOs.Organization;
 using EducationManagement.DAL;
 
 namespace EducationManagement.DAL.Repositories
@@ -190,6 +191,29 @@ namespace EducationManagement.DAL.Repositories
                     ? Convert.ToDateTime(row["updated_at"]) 
                     : (DateTime?)null,
                 UpdatedBy = row.Table.Columns.Contains("updated_by") ? row["updated_by"]?.ToString() : null
+            };
+        }
+
+        // ============================================================
+        // 🔹 KIỂM TRA RÀNG BUỘC TRƯỚC KHI XÓA
+        // ============================================================
+        public async Task<DepartmentConstraintDto> CheckConstraintsAsync(string departmentId)
+        {
+            var param = new SqlParameter("@DepartmentId", departmentId);
+            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_CheckDepartmentConstraints", param);
+
+            if (dt.Rows.Count == 0)
+            {
+                return new DepartmentConstraintDto();
+            }
+
+            var row = dt.Rows[0];
+            return new DepartmentConstraintDto
+            {
+                SubjectCount = Convert.ToInt32(row["subject_count"]),
+                ActiveSubjectCount = Convert.ToInt32(row["active_subject_count"]),
+                LecturerCount = Convert.ToInt32(row["lecturer_count"]),
+                ActiveLecturerCount = Convert.ToInt32(row["active_lecturer_count"])
             };
         }
     }

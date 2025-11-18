@@ -217,6 +217,129 @@
 	END
 	GO
 
+	-- ============================================================
+	-- ✅ VALIDATION STORED PROCEDURES - Kiểm tra ràng buộc trước khi xóa
+	-- ============================================================
+
+	-- Kiểm tra Faculty có Department/Major không
+	IF OBJECT_ID('sp_CheckFacultyConstraints', 'P') IS NOT NULL DROP PROCEDURE sp_CheckFacultyConstraints;
+	GO
+	CREATE PROCEDURE sp_CheckFacultyConstraints
+		@FacultyId VARCHAR(50)
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+		
+		DECLARE @DepartmentCount INT = 0;
+		DECLARE @MajorCount INT = 0;
+		DECLARE @ActiveDepartmentCount INT = 0;
+		DECLARE @ActiveMajorCount INT = 0;
+		
+		-- Đếm số Department (chỉ active)
+		SELECT @DepartmentCount = COUNT(*)
+		FROM dbo.departments
+		WHERE faculty_id = @FacultyId AND deleted_at IS NULL;
+		
+		SELECT @ActiveDepartmentCount = COUNT(*)
+		FROM dbo.departments
+		WHERE faculty_id = @FacultyId AND deleted_at IS NULL AND is_active = 1;
+		
+		-- Đếm số Major (chỉ active)
+		SELECT @MajorCount = COUNT(*)
+		FROM dbo.majors
+		WHERE faculty_id = @FacultyId AND deleted_at IS NULL;
+		
+		SELECT @ActiveMajorCount = COUNT(*)
+		FROM dbo.majors
+		WHERE faculty_id = @FacultyId AND deleted_at IS NULL AND is_active = 1;
+		
+		SELECT 
+			@DepartmentCount AS department_count,
+			@ActiveDepartmentCount AS active_department_count,
+			@MajorCount AS major_count,
+			@ActiveMajorCount AS active_major_count,
+			CASE 
+				WHEN @ActiveDepartmentCount > 0 OR @ActiveMajorCount > 0 THEN 1
+				ELSE 0
+			END AS has_active_relations
+	END
+	GO
+
+	-- Kiểm tra Department có Subject/Lecturer không
+	IF OBJECT_ID('sp_CheckDepartmentConstraints', 'P') IS NOT NULL DROP PROCEDURE sp_CheckDepartmentConstraints;
+	GO
+	CREATE PROCEDURE sp_CheckDepartmentConstraints
+		@DepartmentId VARCHAR(50)
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+		
+		DECLARE @SubjectCount INT = 0;
+		DECLARE @LecturerCount INT = 0;
+		DECLARE @ActiveSubjectCount INT = 0;
+		DECLARE @ActiveLecturerCount INT = 0;
+		
+		-- Đếm số Subject (chỉ active)
+		SELECT @SubjectCount = COUNT(*)
+		FROM dbo.subjects
+		WHERE department_id = @DepartmentId AND deleted_at IS NULL;
+		
+		SELECT @ActiveSubjectCount = COUNT(*)
+		FROM dbo.subjects
+		WHERE department_id = @DepartmentId AND deleted_at IS NULL AND is_active = 1;
+		
+		-- Đếm số Lecturer (chỉ active)
+		SELECT @LecturerCount = COUNT(*)
+		FROM dbo.lecturers
+		WHERE department_id = @DepartmentId AND deleted_at IS NULL;
+		
+		SELECT @ActiveLecturerCount = COUNT(*)
+		FROM dbo.lecturers
+		WHERE department_id = @DepartmentId AND deleted_at IS NULL AND is_active = 1;
+		
+		SELECT 
+			@SubjectCount AS subject_count,
+			@ActiveSubjectCount AS active_subject_count,
+			@LecturerCount AS lecturer_count,
+			@ActiveLecturerCount AS active_lecturer_count,
+			CASE 
+				WHEN @ActiveSubjectCount > 0 OR @ActiveLecturerCount > 0 THEN 1
+				ELSE 0
+			END AS has_active_relations
+	END
+	GO
+
+	-- Kiểm tra Major có Student không
+	IF OBJECT_ID('sp_CheckMajorConstraints', 'P') IS NOT NULL DROP PROCEDURE sp_CheckMajorConstraints;
+	GO
+	CREATE PROCEDURE sp_CheckMajorConstraints
+		@MajorId VARCHAR(50)
+	AS
+	BEGIN
+		SET NOCOUNT ON;
+		
+		DECLARE @StudentCount INT = 0;
+		DECLARE @ActiveStudentCount INT = 0;
+		
+		-- Đếm số Student (chỉ active)
+		SELECT @StudentCount = COUNT(*)
+		FROM dbo.students
+		WHERE major_id = @MajorId AND deleted_at IS NULL;
+		
+		SELECT @ActiveStudentCount = COUNT(*)
+		FROM dbo.students
+		WHERE major_id = @MajorId AND deleted_at IS NULL AND is_active = 1;
+		
+		SELECT 
+			@StudentCount AS student_count,
+			@ActiveStudentCount AS active_student_count,
+			CASE 
+				WHEN @ActiveStudentCount > 0 THEN 1
+				ELSE 0
+			END AS has_active_relations
+	END
+	GO
+
 	IF OBJECT_ID('sp_GetAcademicYearById', 'P') IS NOT NULL DROP PROCEDURE sp_GetAcademicYearById;
 	GO
 	CREATE PROCEDURE sp_GetAcademicYearById
@@ -318,18 +441,32 @@
 				 faculty_name LIKE '%' + @Search + '%' OR
 				 description LIKE '%' + @Search + '%');
     
-		-- Data with pagination
-		SELECT faculty_id, faculty_code, faculty_name, description, 
-			   is_active, created_at, created_by, updated_at, updated_by
-		FROM dbo.faculties
+	-- Data with pagination and counts
+	SELECT f.faculty_id, f.faculty_code, f.faculty_name, f.description, 
+		   f.is_active, f.created_at, f.created_by, f.updated_at, f.updated_by,
+		   ISNULL(dept_counts.department_count, 0) AS department_count,
+		   ISNULL(major_counts.major_count, 0) AS major_count
+	FROM dbo.faculties f
+	LEFT JOIN (
+		SELECT faculty_id, COUNT(*) AS department_count
+		FROM dbo.departments
 		WHERE deleted_at IS NULL
-			AND (@Search IS NULL OR 
-				 faculty_code LIKE '%' + @Search + '%' OR 
-				 faculty_name LIKE '%' + @Search + '%' OR
-				 description LIKE '%' + @Search + '%')
-		ORDER BY faculty_name
-		OFFSET @Offset ROWS
-		FETCH NEXT @PageSize ROWS ONLY;
+		GROUP BY faculty_id
+	) dept_counts ON f.faculty_id = dept_counts.faculty_id
+	LEFT JOIN (
+		SELECT faculty_id, COUNT(*) AS major_count
+		FROM dbo.majors
+		WHERE deleted_at IS NULL
+		GROUP BY faculty_id
+	) major_counts ON f.faculty_id = major_counts.faculty_id
+	WHERE f.deleted_at IS NULL
+		AND (@Search IS NULL OR 
+			 f.faculty_code LIKE '%' + @Search + '%' OR 
+			 f.faculty_name LIKE '%' + @Search + '%' OR
+			 f.description LIKE '%' + @Search + '%')
+	ORDER BY f.faculty_name
+	OFFSET @Offset ROWS
+	FETCH NEXT @PageSize ROWS ONLY;
 	END
 	GO
 

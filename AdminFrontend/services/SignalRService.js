@@ -64,7 +64,7 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
                     return null; // Stop reconnecting
                 }
             })
-            .configureLogging(signalR.LogLevel.Warning)
+            .configureLogging(signalR.LogLevel.Error) // Only show errors, suppress warnings
             .build();
         
         // Connection event handlers
@@ -72,8 +72,16 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
             isConnected = false;
             reconnectAttempts++;
             
-            if (reconnectAttempts >= maxReconnectAttempts && error) {
-                // Only log critical errors
+            // Suppress common non-critical errors (1006 = connection closed without reason)
+            // This is normal when server restarts, network issues, or idle timeout
+            var isNonCriticalError = error && (
+                error.message && error.message.includes('1006') ||
+                error.message && error.message.includes('no reason given')
+            );
+            
+            if (!isNonCriticalError && reconnectAttempts >= maxReconnectAttempts && error) {
+                // Only log critical errors after max reconnection attempts
+                console.warn('SignalR: Connection failed after multiple attempts', error);
             }
             
             $rootScope.$broadcast('signalr:disconnected', error);

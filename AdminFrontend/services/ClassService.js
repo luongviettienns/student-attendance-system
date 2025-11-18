@@ -1,8 +1,19 @@
 // Class Service
 app.service('ClassService', ['ApiService', function(ApiService) {
     
-    this.getAll = function(params) {
-        return ApiService.get('/classes', { params: params }).then(function(response) {
+    this.getAll = function(params, options) {
+        options = options || {};
+        // If forceRefresh is true, disable cache and clear existing cache
+        var cacheOptions = {
+            cache: !options.forceRefresh,
+            cacheKey: '/classes?' + JSON.stringify(params || {})
+        };
+        
+        if (options.forceRefresh) {
+            ApiService.clearCache(cacheOptions.cacheKey);
+        }
+        
+        return ApiService.get('/classes', { params: params }, cacheOptions).then(function(response) {
             // Response structure: { success: true, data: [...], totalCount, page, pageSize, totalPages }
             return response;
         });

@@ -1,7 +1,7 @@
 // ============================================================
 // ORGANIZATION CONTROLLER - Quản lý Khoa, Bộ môn, Ngành (Gom chung)
 // ============================================================
-app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'AuthService', 'AvatarService', 'ToastService', 'FacultyService', 'PaginationService', function($scope, $http, API_CONFIG, AuthService, AvatarService, ToastService, FacultyService, PaginationService) {
+app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'AuthService', 'AvatarService', 'ToastService', 'FacultyService', 'PaginationService', 'ApiService', function($scope, $http, API_CONFIG, AuthService, AvatarService, ToastService, FacultyService, PaginationService, ApiService) {
     
     // =========================
     // INITIALIZATION
@@ -59,51 +59,23 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
     // =========================
     // FACULTY FUNCTIONS
     // =========================
-    $scope.loadFaculties = function() {
+    $scope.loadFaculties = function(forceRefresh) {
         var params = PaginationService.buildQueryParams($scope.facultyPagination);
         
-        FacultyService.getAll(params.page, params.pageSize, params.search)
+        // ✅ Pass forceRefresh option to FacultyService
+        FacultyService.getAll(params.page, params.pageSize, params.search, { forceRefresh: forceRefresh })
             .then(function(response) {
                 if (response.data.success) {
                     $scope.faculties = response.data.data;
                     $scope.facultyPagination.totalItems = response.data.totalCount;
                     $scope.facultyPagination = PaginationService.calculate($scope.facultyPagination);
                     
-                    // Load stats for each faculty
-                    $scope.faculties.forEach(function(faculty) {
-                        $scope.loadFacultyStats(faculty);
-                    });
+                    // ✅ Counts are now included directly from the API response
+                    // No need to make separate API calls for stats
                 }
             })
             .catch(function(error) {
                 ToastService.error('Lỗi khi tải danh sách khoa');
-            });
-    };
-
-    $scope.loadFacultyStats = function(faculty) {
-        // Count departments
-        $http.get(API_CONFIG.BASE_URL + '/departments/faculty/' + faculty.facultyId)
-            .then(function(response) {
-                var departments = Array.isArray(response.data) ? response.data : 
-                                 (response.data.data ? response.data.data : []);
-                faculty.departmentCount = departments.length;
-            })
-            .catch(function(error) {
-                faculty.departmentCount = 0;
-            });
-        
-        // Count majors
-        $http.get(API_CONFIG.BASE_URL + '/majors')
-            .then(function(response) {
-                var majors = Array.isArray(response.data) ? response.data : 
-                            (response.data.data ? response.data.data : []);
-                // Filter by faculty
-                faculty.majorCount = majors.filter(function(m) {
-                    return m.facultyId === faculty.facultyId;
-                }).length;
-            })
-            .catch(function(error) {
-                faculty.majorCount = 0;
             });
     };
 
@@ -117,10 +89,67 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
         window.ModalUtils.open('facultyModal');
     };
 
+    // ✅ Format validation helper
+    $scope.validateCodeFormat = function(code, fieldName) {
+        if (!code || !code.trim()) {
+            return fieldName + ' không được để trống';
+        }
+        // Chỉ cho phép chữ in hoa và số, độ dài 2-20 ký tự
+        if (!/^[A-Z0-9]{2,20}$/.test(code.toUpperCase())) {
+            return fieldName + ' phải là chữ in hoa và số, từ 2-20 ký tự, không có khoảng trắng hoặc ký tự đặc biệt';
+        }
+        return null;
+    };
+
+    $scope.validateNameFormat = function(name, fieldName) {
+        if (!name || !name.trim()) {
+            return fieldName + ' không được để trống';
+        }
+        var trimmed = name.trim();
+        if (trimmed.length < 3) {
+            return fieldName + ' phải có ít nhất 3 ký tự';
+        }
+        if (trimmed.length > 200) {
+            return fieldName + ' không được vượt quá 200 ký tự';
+        }
+        return null;
+    };
+
     $scope.saveFaculty = function() {
         if (!$scope.facultyForm.facultyCode || !$scope.facultyForm.facultyName) {
             ToastService.error('Vui lòng điền đầy đủ thông tin!');
             return;
+        }
+
+        // ✅ Format validation
+        var codeError = $scope.validateCodeFormat($scope.facultyForm.facultyCode, 'Mã khoa');
+        if (codeError) {
+            ToastService.error(codeError);
+            return;
+        }
+        var nameError = $scope.validateNameFormat($scope.facultyForm.facultyName, 'Tên khoa');
+        if (nameError) {
+            ToastService.error(nameError);
+            return;
+        }
+
+        // ✅ Auto uppercase mã code
+        $scope.facultyForm.facultyCode = $scope.facultyForm.facultyCode.toUpperCase().trim();
+        $scope.facultyForm.facultyName = $scope.facultyForm.facultyName.trim();
+
+        // ✅ Cảnh báo khi deactivate Faculty có Department/Major active
+        if ($scope.facultyForm.facultyId && !$scope.facultyForm.isActive) {
+            var faculty = $scope.faculties.find(function(f) { return f.facultyId === $scope.facultyForm.facultyId; });
+            if (faculty && (faculty.departmentCount > 0 || faculty.majorCount > 0)) {
+                var warningMsg = 'Cảnh báo: Khoa này đang có:\n';
+                if (faculty.departmentCount > 0) warningMsg += '- ' + faculty.departmentCount + ' bộ môn\n';
+                if (faculty.majorCount > 0) warningMsg += '- ' + faculty.majorCount + ' ngành\n';
+                warningMsg += '\nBạn có chắc muốn vô hiệu hóa khoa này?';
+                if (!confirm(warningMsg)) {
+                    $scope.facultyForm.isActive = true; // Revert
+                    return;
+                }
+            }
         }
 
         var method = $scope.facultyForm.facultyId ? 'PUT' : 'POST';
@@ -137,8 +166,11 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
         .then(function(response) {
             ToastService.success(response.data?.message || 'Lưu thông tin Khoa thành công!');
             window.ModalUtils.close('facultyModal');
-            $scope.loadFaculties();
             $scope.facultyForm = {};
+            // Reload faculties with a small delay to ensure DB commit
+            setTimeout(function() {
+                $scope.loadFaculties();
+            }, 200);
         })
         .catch(function(error) {
             var errorMessage = 'Không thể lưu thông tin Khoa';
@@ -171,13 +203,26 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
         }
 
         $http.delete(API_CONFIG.BASE_URL + '/faculties/' + facultyId)
-            .then(function(response) {
-                ToastService.success(response.data?.message || 'Đã xóa Khoa thành công!');
+        .then(function(response) {
+            ToastService.success(response.data?.message || 'Đã xóa Khoa thành công!');
+            // Reload faculties with a small delay
+            setTimeout(function() {
                 $scope.loadFaculties();
-            })
-            .catch(function(error) {
-                ToastService.error(error.data?.message || 'Không thể xóa Khoa');
-            });
+            }, 200);
+        })
+        .catch(function(error) {
+            // ✅ Hiển thị thông báo lỗi rõ ràng với số lượng records
+            var errorMessage = 'Không thể xóa Khoa';
+            if (error.data) {
+                if (error.data.errorType === 'CONSTRAINT_VIOLATION' && error.data.message) {
+                    // Hiển thị thông báo lỗi chi tiết với số lượng records
+                    errorMessage = error.data.message;
+                } else if (error.data.message) {
+                    errorMessage = error.data.message;
+                }
+            }
+            ToastService.error(errorMessage);
+        });
     };
 
     // =========================
@@ -265,11 +310,14 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
 
     $scope.openDepartmentModal = function() {
         $scope.departmentForm = { isActive: true };
+        $scope.originalDepartmentFacultyId = null; // Reset original faculty ID
         window.ModalUtils.open('departmentModal');
     };
 
     $scope.editDepartment = function(dept) {
         $scope.departmentForm = angular.copy(dept);
+        // ✅ Lưu lại facultyId cũ để so sánh khi save
+        $scope.originalDepartmentFacultyId = dept.facultyId;
         window.ModalUtils.open('departmentModal');
     };
 
@@ -278,6 +326,22 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
             ToastService.error('Vui lòng điền đầy đủ thông tin!');
             return;
         }
+
+        // ✅ Format validation (mã code có thể để trống vì auto generate)
+        if ($scope.departmentForm.departmentCode) {
+            var codeError = $scope.validateCodeFormat($scope.departmentForm.departmentCode, 'Mã bộ môn');
+            if (codeError) {
+                ToastService.error(codeError);
+                return;
+            }
+            $scope.departmentForm.departmentCode = $scope.departmentForm.departmentCode.toUpperCase().trim();
+        }
+        var nameError = $scope.validateNameFormat($scope.departmentForm.departmentName, 'Tên bộ môn');
+        if (nameError) {
+            ToastService.error(nameError);
+            return;
+        }
+        $scope.departmentForm.departmentName = $scope.departmentForm.departmentName.trim();
 
         var method = $scope.departmentForm.departmentId ? 'PUT' : 'POST';
         var url = API_CONFIG.BASE_URL + '/departments';
@@ -293,8 +357,22 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
         .then(function(response) {
             ToastService.success(response.data?.message || 'Lưu thông tin Bộ môn thành công!');
             window.ModalUtils.close('departmentModal');
-            $scope.loadDepartments();
+            
+            // ✅ Reset form trước
             $scope.departmentForm = {};
+            $scope.originalDepartmentFacultyId = null;
+            
+            // ✅ Clear cache trước khi reload để đảm bảo lấy dữ liệu mới nhất
+            ApiService.clearCache('/faculties*');
+            
+            // ✅ Reload sau một delay để đảm bảo database commit xong
+            $scope.loadDepartments();
+            
+            // ✅ Reload faculties để cập nhật counts cho cả khoa cũ và khoa mới
+            // Sử dụng setTimeout với delay để đảm bảo database transaction commit xong
+            setTimeout(function() {
+                $scope.loadFaculties(true); // Force refresh with cache-busting
+            }, 300);
         })
         .catch(function(error) {
             ToastService.error(error.data?.message || 'Không thể lưu thông tin Bộ môn');
@@ -307,13 +385,31 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
         }
 
         $http.delete(API_CONFIG.BASE_URL + '/departments/' + departmentId)
-            .then(function(response) {
-                ToastService.success(response.data?.message || 'Đã xóa Bộ môn thành công!');
+        .then(function(response) {
+            ToastService.success(response.data?.message || 'Đã xóa Bộ môn thành công!');
+            
+            // ✅ Clear cache trước khi reload để đảm bảo lấy dữ liệu mới nhất
+            ApiService.clearCache('/faculties*');
+            
+            // Reload departments and also reload faculties to update stats
+            setTimeout(function() {
                 $scope.loadDepartments();
-            })
-            .catch(function(error) {
-                ToastService.error(error.data?.message || 'Không thể xóa Bộ môn');
-            });
+                $scope.loadFaculties(true); // Force refresh with cache-busting
+            }, 300);
+        })
+        .catch(function(error) {
+            // ✅ Hiển thị thông báo lỗi rõ ràng với số lượng records
+            var errorMessage = 'Không thể xóa Bộ môn';
+            if (error.data) {
+                if (error.data.errorType === 'CONSTRAINT_VIOLATION' && error.data.message) {
+                    // Hiển thị thông báo lỗi chi tiết với số lượng records
+                    errorMessage = error.data.message;
+                } else if (error.data.message) {
+                    errorMessage = error.data.message;
+                }
+            }
+            ToastService.error(errorMessage);
+        });
     };
 
     // =========================
@@ -367,11 +463,14 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
 
     $scope.openMajorModal = function() {
         $scope.majorForm = { isActive: true };
+        $scope.originalFacultyId = null; // Reset original faculty ID
         window.ModalUtils.open('majorModal');
     };
 
     $scope.editMajor = function(major) {
         $scope.majorForm = angular.copy(major);
+        // ✅ Lưu lại facultyId cũ để so sánh khi save
+        $scope.originalFacultyId = major.facultyId;
         window.ModalUtils.open('majorModal');
     };
 
@@ -381,6 +480,22 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
             ToastService.error('Vui lòng điền đầy đủ thông tin!');
             return;
         }
+
+        // ✅ Format validation
+        var codeError = $scope.validateCodeFormat($scope.majorForm.majorCode, 'Mã ngành');
+        if (codeError) {
+            ToastService.error(codeError);
+            return;
+        }
+        var nameError = $scope.validateNameFormat($scope.majorForm.majorName, 'Tên ngành');
+        if (nameError) {
+            ToastService.error(nameError);
+            return;
+        }
+
+        // ✅ Auto uppercase mã code
+        $scope.majorForm.majorCode = $scope.majorForm.majorCode.toUpperCase().trim();
+        $scope.majorForm.majorName = $scope.majorForm.majorName.trim();
 
         var method = $scope.majorForm.majorId ? 'PUT' : 'POST';
         var url = API_CONFIG.BASE_URL + '/majors';
@@ -396,8 +511,23 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
         .then(function(response) {
             ToastService.success(response.data?.message || 'Lưu thông tin Ngành thành công!');
             window.ModalUtils.close('majorModal');
-            $scope.loadMajors();
+            
+            // ✅ Reset form trước
             $scope.majorForm = {};
+            $scope.originalFacultyId = null;
+            
+            // ✅ Clear cache trước khi reload để đảm bảo lấy dữ liệu mới nhất
+            ApiService.clearCache('/faculties*');
+            
+            // ✅ Reload sau một delay để đảm bảo database commit xong
+            // Reload majors trước
+            $scope.loadMajors();
+            
+            // ✅ Reload faculties để cập nhật counts cho cả khoa cũ và khoa mới
+            // Sử dụng setTimeout với delay để đảm bảo database transaction commit xong
+            setTimeout(function() {
+                $scope.loadFaculties(true); // Force refresh with cache-busting
+            }, 300);
         })
         .catch(function(error) {
             ToastService.error(error.data?.message || 'Không thể lưu thông tin Ngành');
@@ -410,13 +540,31 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
         }
 
         $http.delete(API_CONFIG.BASE_URL + '/majors/' + majorId)
-            .then(function(response) {
-                ToastService.success(response.data?.message || 'Đã xóa Ngành thành công!');
+        .then(function(response) {
+            ToastService.success(response.data?.message || 'Đã xóa Ngành thành công!');
+            
+            // ✅ Clear cache trước khi reload để đảm bảo lấy dữ liệu mới nhất
+            ApiService.clearCache('/faculties*');
+            
+            // Reload majors and also reload faculties to update stats
+            setTimeout(function() {
                 $scope.loadMajors();
-            })
-            .catch(function(error) {
-                ToastService.error(error.data?.message || 'Không thể xóa Ngành');
-            });
+                $scope.loadFaculties(true); // Force refresh with cache-busting
+            }, 300);
+        })
+        .catch(function(error) {
+            // ✅ Hiển thị thông báo lỗi rõ ràng với số lượng records
+            var errorMessage = 'Không thể xóa Ngành';
+            if (error.data) {
+                if (error.data.errorType === 'CONSTRAINT_VIOLATION' && error.data.message) {
+                    // Hiển thị thông báo lỗi chi tiết với số lượng records
+                    errorMessage = error.data.message;
+                } else if (error.data.message) {
+                    errorMessage = error.data.message;
+                }
+            }
+            ToastService.error(errorMessage);
+        });
     };
 
     // =========================
@@ -497,8 +645,12 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
         .then(function(response) {
             ToastService.success(response.data?.message || 'Lưu thông tin Môn học thành công!');
             window.ModalUtils.close('subjectModal');
-            $scope.loadSubjects();
             $scope.subjectForm = {};
+            // Reload subjects and also reload departments to update stats
+            setTimeout(function() {
+                $scope.loadSubjects();
+                $scope.loadDepartments(); // Reload departments to update subject counts
+            }, 200);
         })
         .catch(function(error) {
             ToastService.error(error.data?.message || 'Không thể lưu thông tin Môn học');
@@ -511,10 +663,14 @@ app.controller('OrganizationController', ['$scope', '$http', 'API_CONFIG', 'Auth
         }
 
         $http.delete(API_CONFIG.BASE_URL + '/subjects/' + subjectId)
-            .then(function(response) {
-                ToastService.success(response.data?.message || 'Đã xóa Môn học thành công!');
+        .then(function(response) {
+            ToastService.success(response.data?.message || 'Đã xóa Môn học thành công!');
+            // Reload subjects and also reload departments to update stats
+            setTimeout(function() {
                 $scope.loadSubjects();
-            })
+                $scope.loadDepartments(); // Reload departments to update subject counts
+            }, 200);
+        })
             .catch(function(error) {
                 ToastService.error(error.data?.message || 'Không thể xóa Môn học');
             });

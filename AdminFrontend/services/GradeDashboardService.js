@@ -155,7 +155,11 @@ app.service('GradeDashboardService', [
             };
 
             $scope.refreshGrades = function () {
-                return loadGrades(true);
+                // Refresh cả school years để cập nhật currentSemester
+                return loadSchoolYears(true)
+                    .then(function () {
+                        return loadGrades(true);
+                    });
             };
 
             if (config.allowRecalculate) {
@@ -252,18 +256,40 @@ app.service('GradeDashboardService', [
                             $scope.schoolYears = schoolYears;
 
                             if (!$scope.selectedSchoolYear && schoolYears.length > 0) {
+                                // Lần đầu load: Chọn năm học active và học kỳ hiện tại
                                 var active = schoolYears.find(function (sy) { return sy.isActive; }) || schoolYears[0];
                                 $scope.selectedSchoolYear = active.schoolYearId;
                                 if (active.currentSemester) {
                                     $scope.selectedSemester = String(active.currentSemester);
                                 }
                             } else if ($scope.selectedSchoolYear) {
-                                var exists = schoolYears.some(function (sy) {
+                                // Đã có năm học được chọn: Kiểm tra và cập nhật
+                                var selectedSchoolYearObj = schoolYears.find(function (sy) {
                                     return sy.schoolYearId === $scope.selectedSchoolYear;
                                 });
 
-                                if (!exists && schoolYears.length > 0) {
-                                    $scope.selectedSchoolYear = schoolYears[0].schoolYearId;
+                                if (!selectedSchoolYearObj) {
+                                    // Năm học đã chọn không còn tồn tại, chọn năm học khác
+                                    if (schoolYears.length > 0) {
+                                        var active = schoolYears.find(function (sy) { return sy.isActive; }) || schoolYears[0];
+                                        $scope.selectedSchoolYear = active.schoolYearId;
+                                        if (active.currentSemester) {
+                                            $scope.selectedSemester = String(active.currentSemester);
+                                        }
+                                    }
+                                } else {
+                                    // Cập nhật selectedSemester theo currentSemester mới (nếu đang xem năm học hiện tại)
+                                    // Chỉ tự động cập nhật nếu đang xem năm học active và currentSemester đã thay đổi
+                                    var isActiveYear = selectedSchoolYearObj.isActive;
+                                    if (isActiveYear && selectedSchoolYearObj.currentSemester) {
+                                        var newSemester = String(selectedSchoolYearObj.currentSemester);
+                                        // Chỉ cập nhật nếu học kỳ thực sự thay đổi (tránh cập nhật không cần thiết)
+                                        if ($scope.selectedSemester !== newSemester) {
+                                            $scope.selectedSemester = newSemester;
+                                            // Tự động reload điểm với học kỳ mới
+                                            loadGrades(true);
+                                        }
+                                    }
                                 }
                             }
                         });
@@ -332,6 +358,21 @@ app.service('GradeDashboardService', [
                         .finally(function () {
                             setLoading(false);
                         });
+                },
+                /**
+                 * Refresh toàn bộ dữ liệu (năm học và điểm).
+                 * Hữu ích khi chuyển học kỳ hoặc cần cập nhật dữ liệu mới nhất.
+                 * @returns {Promise<void>}
+                 */
+                refresh: function () {
+                    return $scope.refreshGrades();
+                },
+                /**
+                 * Chỉ refresh điểm (không refresh năm học).
+                 * @returns {Promise<void>}
+                 */
+                refreshGradesOnly: function () {
+                    return loadGrades(true);
                 }
             };
         };

@@ -13,11 +13,11 @@ namespace EducationManagement.API.Admin.Controllers
     [Route("api-edu/departments")]
     public class DepartmentController : BaseController
     {
-        private readonly DepartmentRepository _repository;
+        private readonly DepartmentService _service;
 
-        public DepartmentController(DepartmentRepository repository, AuditLogService auditLogService) : base(auditLogService)
+        public DepartmentController(DepartmentService service, AuditLogService auditLogService) : base(auditLogService)
         {
-            _repository = repository;
+            _service = service;
         }
 
         // ============================================================
@@ -32,7 +32,7 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                var (items, totalCount) = await _repository.GetAllPagedAsync(page, pageSize, search);
+                var (items, totalCount) = await _service.GetAllPagedAsync(page, pageSize, search);
                 
                 return Ok(new
                 {
@@ -59,7 +59,7 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                var department = await _repository.GetByIdAsync(id);
+                var department = await _service.GetByIdAsync(id);
                 if (department == null)
                     return NotFound(new { message = "Không tìm thấy bộ môn" });
 
@@ -79,7 +79,7 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                var allDepartments = await _repository.GetAllAsync();
+                var allDepartments = await _service.GetAllAsync();
                 var departments = allDepartments.FindAll(d => d.FacultyId == facultyId);
                 return Ok(new { data = departments });
             }
@@ -108,13 +108,13 @@ namespace EducationManagement.API.Admin.Controllers
                 // ✅ Tự động sinh mã bộ môn (DEPT001, DEPT002...)
                 if (string.IsNullOrWhiteSpace(model.DepartmentCode))
                 {
-                    model.DepartmentCode = await _repository.GenerateNextCodeAsync();
+                    model.DepartmentCode = await _service.GenerateNextCodeAsync();
                 }
 
                 model.CreatedBy = User.Identity?.Name ?? "system";
                 model.CreatedAt = DateTime.Now;
 
-                await _repository.AddAsync(model);
+                await _service.AddAsync(model);
 
                 // ✅ Audit Log: Create Department (Tiếng Việt)
                 await LogCreateAsync("Department", model.DepartmentId, new {
@@ -124,6 +124,15 @@ namespace EducationManagement.API.Admin.Controllers
                 });
 
                 return Ok(new { message = "Thêm bộ môn thành công!", data = model });
+            }
+            catch (ArgumentException ex)
+            {
+                // ✅ Format validation errors
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex) when (ex.Message.Contains("Khoa không tồn tại"))
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -143,12 +152,14 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
-                var oldDept = await _repository.GetByIdAsync(id);
+                var oldDept = await _service.GetByIdAsync(id);
+                if (oldDept == null)
+                    return NotFound(new { message = "Không tìm thấy bộ môn" });
                 
                 model.UpdatedBy = User.Identity?.Name ?? "system";
                 model.UpdatedAt = DateTime.Now;
 
-                var rowsAffected = await _repository.UpdateAsync(model);
+                var rowsAffected = await _service.UpdateAsync(model);
                 if (rowsAffected == 0)
                     return NotFound(new { message = "Không tìm thấy bộ môn" });
 
@@ -161,6 +172,15 @@ namespace EducationManagement.API.Admin.Controllers
                 }
 
                 return Ok(new { message = "Cập nhật bộ môn thành công!" });
+            }
+            catch (ArgumentException ex)
+            {
+                // ✅ Format validation errors
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex) when (ex.Message.Contains("Khoa không tồn tại"))
+            {
+                return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
@@ -177,19 +197,27 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                var dept = await _repository.GetByIdAsync(id);
-                await _repository.DeleteAsync(id);
+                var dept = await _service.GetByIdAsync(id);
+                if (dept == null)
+                    return NotFound(new { message = "Không tìm thấy bộ môn" });
+
+                await _service.DeleteAsync(id);
 
                 // ✅ Audit Log: Delete Department (Tiếng Việt)
-                if (dept != null)
-                {
-                    await LogDeleteAsync("Department", id, new {
-                        ma_bo_mon = dept.DepartmentCode,
-                        ten_bo_mon = dept.DepartmentName
-                    });
-                }
+                await LogDeleteAsync("Department", id, new {
+                    ma_bo_mon = dept.DepartmentCode,
+                    ten_bo_mon = dept.DepartmentName
+                });
 
                 return Ok(new { message = "Xóa bộ môn thành công!" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // ✅ Trả về thông báo lỗi rõ ràng với số lượng records
+                return BadRequest(new { 
+                    message = ex.Message,
+                    errorType = "CONSTRAINT_VIOLATION"
+                });
             }
             catch (Exception ex)
             {

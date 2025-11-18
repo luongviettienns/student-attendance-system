@@ -86,6 +86,11 @@ namespace EducationManagement.API.Admin.Controllers
 
                 return Ok(new { message = "Tạo khoa thành công!" });
             }
+            catch (ArgumentException ex)
+            {
+                // ✅ Format validation errors
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Microsoft.Data.SqlClient.SqlException ex)
             {
                 // Check for unique constraint violation (error number 2627 or 2601)
@@ -148,6 +153,11 @@ namespace EducationManagement.API.Admin.Controllers
 
                 return Ok(new { message = "Cập nhật khoa thành công!" });
             }
+            catch (ArgumentException ex)
+            {
+                // ✅ Format validation errors
+                return BadRequest(new { message = ex.Message });
+            }
             catch (Microsoft.Data.SqlClient.SqlException ex)
             {
                 // Check for unique constraint violation
@@ -175,19 +185,34 @@ namespace EducationManagement.API.Admin.Controllers
         [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
         public async Task<IActionResult> Delete(string id)
         {
-            var faculty = await _service.GetByIdAsync(id);
-            await _service.DeleteAsync(id);
-
-            // ✅ Audit Log: Delete Faculty
-            if (faculty != null)
+            try
             {
+                var faculty = await _service.GetByIdAsync(id);
+                if (faculty == null)
+                    return NotFound(new { message = "Không tìm thấy khoa" });
+
+                await _service.DeleteAsync(id);
+
+                // ✅ Audit Log: Delete Faculty
                 await LogDeleteAsync("Faculty", id, new {
                     faculty_code = faculty.FacultyCode,
                     faculty_name = faculty.FacultyName
                 });
-            }
 
-            return Ok(new { message = "Xóa khoa thành công!" });
+                return Ok(new { message = "Xóa khoa thành công!" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // ✅ Trả về thông báo lỗi rõ ràng với số lượng records
+                return BadRequest(new { 
+                    message = ex.Message,
+                    errorType = "CONSTRAINT_VIOLATION"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
         }
     }
 }
