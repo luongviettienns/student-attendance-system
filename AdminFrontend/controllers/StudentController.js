@@ -549,69 +549,102 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
             $scope.loadingStates.majors = false;
         }
     };
-    
-    // Load student by ID for editing
-    // Format date for date input (YYYY-MM-DD format)
-    function formatDateForInput(dateString) {
-        if (!dateString) return null;
-        try {
-            var date = new Date(dateString);
-            if (isNaN(date.getTime())) return null;
-            // Format as YYYY-MM-DD for date input
-            var year = date.getFullYear();
-            var month = String(date.getMonth() + 1).padStart(2, '0');
-            var day = String(date.getDate()).padStart(2, '0');
-            return year + '-' + month + '-' + day;
-        } catch (e) {
-            return null;
-        }
+    $scope.$watch('student.facultyId', function(newVal) {
+    if (newVal) {
+        MajorService.getByFaculty(newVal).then(function(res) {
+            $scope.majors = res.data?.data || res.data || [];
+        });
+    } else {
+        $scope.majors = [];
     }
+    });
+
     
-    $scope.loadStudent = function(id) {
-        $scope.loadingStates.students = true;
-        StudentService.getById(id)
-            .then(function(response) {
-                $scope.student = response.data;
-                // Format dates for date inputs to avoid AngularJS datefmt error
-                if ($scope.student.dob) {
-                    $scope.student.dob = formatDateForInput($scope.student.dob);
-                }
-                $scope.isEditMode = true;
-                $scope.loadingStates.students = false;
-            })
-            .catch(function(error) {
-                $scope.error = 'Không thể tải thông tin sinh viên';
-                $scope.loadingStates.students = false;
-                LoggerService.error('Error loading student by ID', error);
+
+$scope.loadStudent = function(id) {
+    StudentService.getById(id).then(function(response) {
+
+        $scope.student = response.data.data || response.data;
+
+        //  Convert DOB từ ISO → yyyy-MM-dd
+        if ($scope.student.dob) {
+            $scope.student.dob = $scope.student.dob.split("T")[0];
+        }
+
+        $scope.isEditMode = true;
+
+        // Load danh sách ngành theo khoa
+        if ($scope.student.facultyId) {
+            MajorService.getByFaculty($scope.student.facultyId).then(function(res) {
+                $scope.majors = res.data?.data || res.data || [];
             });
-    };
+        }
+    });
+};
+
+
+
     
     // Create or update student
-    $scope.saveStudent = function() {
-        $scope.error = null;
-        $scope.loadingStates.save = true;
-        
-        var savePromise;
-        if ($scope.isEditMode) {
-            savePromise = StudentService.update($scope.student.studentId, $scope.student);
-        } else {
-            savePromise = StudentService.create($scope.student);
-        }
-        
-        savePromise
-            .then(function(response) {
-                $scope.success = 'Lưu sinh viên thành công';
-                $scope.loadingStates.save = false;
-                $timeout(function() {
-                    $location.path('/students');
-                }, 1500);
-            })
-            .catch(function(error) {
-                $scope.error = error.data?.message || 'Không thể lưu sinh viên';
-                $scope.loadingStates.save = false;
-                LoggerService.error('Error saving student', error);
-            });
-    };
+$scope.saveStudent = function () {
+    $scope.error = null;
+    $scope.loadingStates.save = true;
+
+    var savePromise;
+    if ($scope.isEditMode) {
+        savePromise = StudentService.update($scope.student.studentId, $scope.student);
+    } else {
+        savePromise = StudentService.create($scope.student);
+    }
+    if (!$scope.student.createdBy) {
+    const user = AuthService.getCurrentUser();
+    $scope.student.createdBy = user ? user.userId || user.username || "admin" : "admin";
+    }
+
+    savePromise
+        .then(function (response) {
+            $scope.success = "Lưu sinh viên thành công";
+            $scope.loadingStates.save = false;
+
+            $timeout(function () {
+                $location.path("/students");
+            }, 1500);
+        })
+        .catch(function (error) {
+            console.error("💥 Lỗi khi lưu sinh viên:", error);
+
+            let msg = "";
+
+            // Nếu backend trả errors theo ModelState
+            if (error.data?.errors) {
+                msg += "📌 Chi tiết lỗi:\n";
+                for (let field in error.data.errors) {
+                    msg += `• ${field}: ${error.data.errors[field].join(", ")}\n`;
+                }
+            }
+
+            // Nếu backend có message
+            if (!msg && error.data?.message) {
+                msg = error.data.message;
+            }
+
+            // Fallback
+            if (!msg) {
+                msg = "Không xác định";
+            }
+
+            $scope.error =
+                "❌ Không thể lưu sinh viên\n" +
+                "HTTP Status: " +
+                (error.status || "N/A") +
+                "\n" +
+                msg;
+
+            $scope.loadingStates.save = false;
+        });
+
+};
+
     
     // Delete student
     $scope.deleteStudent = function(studentId) {

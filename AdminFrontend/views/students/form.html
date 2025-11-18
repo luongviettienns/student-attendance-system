@@ -15,6 +15,12 @@
                 <div class="card-body">
                     <form ng-submit="saveStudent()">
                         <div class="form-row">
+
+                             <div class="form-group">
+                                <label class="form-label required">User ID</label>
+                                <input type="text" class="form-control" ng-model="student.userId" ng-disabled="isEditMode" required>
+                            </div>
+
                             <div class="form-group">
                                 <label class="form-label required">Mã sinh viên</label>
                                 <input type="text" class="form-control" ng-model="student.studentCode" ng-disabled="isEditMode" required>
