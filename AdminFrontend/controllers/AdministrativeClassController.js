@@ -33,7 +33,7 @@ app.controller('AdministrativeClassController', [
     // Check authorization
     $scope.isAdmin = function() {
         const user = AuthService.getCurrentUser();
-        return user && (user.roleName === 'Admin' || user.roleName === 'SuperAdmin');
+        return user && (user.roleName === 'Admin' || user.roleName === 'SuperAdmin' || user.role === 'Admin' || user.role === 'SuperAdmin');
     };
     
     // ============================================================
@@ -42,7 +42,7 @@ app.controller('AdministrativeClassController', [
     $scope.loadClasses = function() {
         $scope.loading = true;
         
-        AdministrativeClassService.getAll(
+        return AdministrativeClassService.getAll(
             $scope.pagination.page,
             $scope.pagination.pageSize,
             $scope.filters.search,
@@ -58,14 +58,35 @@ app.controller('AdministrativeClassController', [
                     classesData = [];
                 }
                 
-                $scope.classes = classesData;
+                // Update scope with new data - create completely new array with deep copy
+                var newClasses = [];
+                angular.forEach(classesData, function(item) {
+                    newClasses.push(angular.copy(item)); // Deep copy to ensure new reference
+                });
+                
+                // Assign new array to trigger change detection
+                $scope.classes.length = 0; // Clear existing array
+                Array.prototype.push.apply($scope.classes, newClasses); // Add new items
                 $scope.pagination.totalCount = response.data.totalCount || 0;
                 $scope.pagination.totalPages = response.data.totalPages || 0;
+                $scope.loading = false;
+                
+                // Force Angular to detect changes - use $timeout to ensure digest cycle
+                $timeout(function() {
+                    if (!$scope.$$phase && !$scope.$root.$$phase) {
+                        $scope.$apply();
+                    }
+                }, 0);
+                
+                return $scope.classes;
+            } else {
+                $scope.loading = false;
+                return $scope.classes || [];
             }
-            $scope.loading = false;
         }).catch(function(error) {
             ToastService.error('Không thể tải danh sách lớp hành chính');
             $scope.loading = false;
+            return [];
         });
     };
     
@@ -92,11 +113,17 @@ app.controller('AdministrativeClassController', [
     // ============================================================
     $scope.viewDetail = function(classId) {
         $scope.loading = true;
+        $scope.students = []; // Reset students list
+        
         AdministrativeClassService.getById(classId).then(function(response) {
-            if (response.data.success) {
+            if (response.data && response.data.success) {
                 $scope.currentClass = response.data.data;
-                $scope.loadStudents(classId).then(function() {
+                
+                // Load students using the helper function
+                $scope.loadStudents(classId).then(function(students) {
+                    console.log('Students loaded in viewDetail:', students.length);
                     $scope.loading = false;
+                    
                     // Use ModalUtils to open modal
                     $timeout(function() {
                         if (window.ModalUtils && typeof window.ModalUtils.open === 'function') {
@@ -108,12 +135,18 @@ app.controller('AdministrativeClassController', [
                             $('body').css('overflow', 'hidden');
                         }
                     }, 100);
+                }).catch(function(error) {
+                    console.error('Error loading students:', error);
+                    $scope.students = [];
+                    $scope.loading = false;
+                    ToastService.error('Không thể tải danh sách sinh viên');
                 });
             } else {
                 $scope.loading = false;
                 ToastService.error('Không thể tải thông tin lớp hành chính');
             }
         }).catch(function(error) {
+            console.error('Error loading class detail:', error);
             $scope.loading = false;
             ToastService.error('Không thể tải thông tin lớp hành chính');
         });
@@ -121,13 +154,25 @@ app.controller('AdministrativeClassController', [
     
     $scope.loadStudents = function(classId) {
         return AdministrativeClassService.getStudents(classId).then(function(response) {
-            if (response.data.success) {
-                $scope.students = response.data.data || [];
-            } else {
-                $scope.students = [];
+            // Handle different response structures
+            var studentsData = [];
+            if (response && response.data) {
+                if (response.data.success && response.data.data) {
+                    studentsData = response.data.data;
+                } else if (Array.isArray(response.data)) {
+                    studentsData = response.data;
+                } else if (response.data.data && Array.isArray(response.data.data)) {
+                    studentsData = response.data.data;
+                }
             }
+            
+            $scope.students = studentsData;
+            console.log('Loaded students:', $scope.students.length, 'for class:', classId);
+            return $scope.students;
         }).catch(function(error) {
+            console.error('Error loading students:', error);
             $scope.students = [];
+            return [];
         });
     };
     
@@ -158,12 +203,42 @@ app.controller('AdministrativeClassController', [
             maxStudents: 50,
             description: ''
         };
-        $('#classModal').modal('show');
+        
+        $timeout(function() {
+            if (window.ModalUtils && typeof window.ModalUtils.open === 'function') {
+                window.ModalUtils.open('classModal');
+            } else {
+                $('#classModal').addClass('active');
+                $('#modal-overlay').addClass('active');
+                $('body').css('overflow', 'hidden');
+            }
+        }, 100);
     };
     
     $scope.showEditModal = function(adminClass) {
         $scope.currentClass = angular.copy(adminClass);
-        $('#classModal').modal('show');
+        
+        $timeout(function() {
+            if (window.ModalUtils && typeof window.ModalUtils.open === 'function') {
+                window.ModalUtils.open('classModal');
+            } else {
+                $('#classModal').addClass('active');
+                $('#modal-overlay').addClass('active');
+                $('body').css('overflow', 'hidden');
+            }
+        }, 100);
+    };
+    
+    $scope.closeClassModal = function() {
+        if (window.ModalUtils && typeof window.ModalUtils.close === 'function') {
+            window.ModalUtils.close('classModal');
+        } else if (window.ModalUtils && typeof window.ModalUtils.closeAll === 'function') {
+            window.ModalUtils.closeAll();
+        } else {
+            $('#classModal').removeClass('active');
+            $('#modal-overlay').removeClass('active');
+            $('body').css('overflow', '');
+        }
     };
     
     $scope.saveClass = function() {
@@ -177,7 +252,7 @@ app.controller('AdministrativeClassController', [
         promise.then(function(response) {
             if (response.data.success) {
                 ToastService.success(isNew ? 'Tạo lớp hành chính thành công' : 'Cập nhật lớp hành chính thành công');
-                $('#classModal').modal('hide');
+                $scope.closeClassModal();
                 $scope.loadClasses();
             }
         }).catch(function(error) {
@@ -207,7 +282,28 @@ app.controller('AdministrativeClassController', [
     $scope.showAssignModal = function(adminClass) {
         $scope.currentClass = adminClass;
         // TODO: Load available students
-        $('#assignModal').modal('show');
+        
+        $timeout(function() {
+            if (window.ModalUtils && typeof window.ModalUtils.open === 'function') {
+                window.ModalUtils.open('assignModal');
+            } else {
+                $('#assignModal').addClass('active');
+                $('#modal-overlay').addClass('active');
+                $('body').css('overflow', 'hidden');
+            }
+        }, 100);
+    };
+    
+    $scope.closeAssignModal = function() {
+        if (window.ModalUtils && typeof window.ModalUtils.close === 'function') {
+            window.ModalUtils.close('assignModal');
+        } else if (window.ModalUtils && typeof window.ModalUtils.closeAll === 'function') {
+            window.ModalUtils.closeAll();
+        } else {
+            $('#assignModal').removeClass('active');
+            $('#modal-overlay').removeClass('active');
+            $('body').css('overflow', '');
+        }
     };
     
     $scope.assignStudents = function(studentIds) {
@@ -215,7 +311,7 @@ app.controller('AdministrativeClassController', [
             .then(function(response) {
                 if (response.data.success) {
                     ToastService.success('Phân bổ sinh viên thành công');
-                    $('#assignModal').modal('hide');
+                    $scope.closeAssignModal();
                     $scope.loadStudents($scope.currentClass.adminClassId);
                 }
             }).catch(function(error) {
@@ -238,6 +334,94 @@ app.controller('AdministrativeClassController', [
             }).catch(function(error) {
                 ToastService.error(error.data?.message || 'Có lỗi xảy ra');
             });
+    };
+    
+    // ============================================================
+    // TRANSFER STUDENT TO ANOTHER CLASS
+    // ============================================================
+    $scope.showTransferModal = function(student) {
+        $scope.transferStudent = angular.copy(student);
+        $scope.transferData = {
+            studentId: student.studentId,
+            toClassId: '',
+            transferReason: ''
+        };
+        $scope.loadClasses(); // Load all classes for selection
+        
+        // Use ModalUtils or class-based approach
+        $timeout(function() {
+            if (window.ModalUtils && typeof window.ModalUtils.open === 'function') {
+                window.ModalUtils.open('transferModal');
+            } else {
+                // Fallback: use class-based approach
+                $('#transferModal').addClass('active');
+                $('#modal-overlay').addClass('active');
+                $('body').css('overflow', 'hidden');
+            }
+        }, 100);
+    };
+    
+    $scope.closeTransferModal = function() {
+        if (window.ModalUtils && typeof window.ModalUtils.close === 'function') {
+            window.ModalUtils.close('transferModal');
+        } else if (window.ModalUtils && typeof window.ModalUtils.closeAll === 'function') {
+            window.ModalUtils.closeAll();
+        } else {
+            // Fallback: use class-based approach
+            $('#transferModal').removeClass('active');
+            $('#modal-overlay').removeClass('active');
+            $('body').css('overflow', '');
+        }
+    };
+    
+    $scope.transferStudentClass = function() {
+        if (!$scope.transferData.toClassId) {
+            ToastService.error('Vui lòng chọn lớp đích');
+            return;
+        }
+        
+        if (!confirm('Bạn có chắc chắn muốn chuyển sinh viên sang lớp mới?')) return;
+        
+        var currentClassId = $scope.currentClass ? $scope.currentClass.adminClassId : null;
+        var studentId = $scope.transferData.studentId;
+        
+        AdministrativeClassService.transferStudent(
+            studentId,
+            $scope.transferData.toClassId,
+            $scope.transferData.transferReason
+        ).then(function(response) {
+            if (response.data.success) {
+                ToastService.success('Chuyển lớp thành công');
+                $scope.closeTransferModal();
+                
+                // Reload cả 2 đồng thời: danh sách lớp trên trang chính và modal chi tiết
+                // 1. Reload danh sách lớp trên trang chính để cập nhật sĩ số
+                $scope.loadClasses();
+                
+                // 2. Reload lại modal chi tiết lớp hiện tại nếu đang mở (chạy song song)
+                if (currentClassId) {
+                    $timeout(function() {
+                        AdministrativeClassService.getById(currentClassId).then(function(classResponse) {
+                            if (classResponse.data.success) {
+                                $scope.currentClass = classResponse.data.data;
+                                
+                                // Reload lại danh sách sinh viên (sinh viên đã chuyển sẽ không còn trong danh sách)
+                                $scope.loadStudents(currentClassId).then(function() {
+                                    // Remove the transferred student from the list if still present
+                                    $scope.students = $scope.students.filter(function(s) {
+                                        return s.studentId !== studentId;
+                                    });
+                                });
+                            }
+                        }).catch(function(error) {
+                            console.error('Error reloading class:', error);
+                        });
+                    }, 200);
+                }
+            }
+        }).catch(function(error) {
+            ToastService.error(error.data?.message || 'Có lỗi xảy ra khi chuyển lớp');
+        });
     };
     
     // ============================================================

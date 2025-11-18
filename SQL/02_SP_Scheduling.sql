@@ -1711,6 +1711,22 @@ AS
 BEGIN
     SET NOCOUNT ON;
 
+    -- Calculate actual student count
+    DECLARE @ActualStudentCount INT;
+    SELECT @ActualStudentCount = COUNT(*) 
+    FROM dbo.students 
+    WHERE admin_class_id = @AdminClassId 
+    AND deleted_at IS NULL;
+    
+    -- Update current_students if different
+    IF EXISTS (SELECT 1 FROM dbo.administrative_classes WHERE admin_class_id = @AdminClassId AND current_students != @ActualStudentCount)
+    BEGIN
+        UPDATE dbo.administrative_classes
+        SET current_students = @ActualStudentCount,
+            updated_at = GETDATE()
+        WHERE admin_class_id = @AdminClassId;
+    END
+
     SELECT 
         ac.admin_class_id,
         ac.class_code,
@@ -1720,7 +1736,7 @@ BEGIN
         ac.academic_year_id,
         ac.cohort_year,
         ac.max_students,
-        ac.current_students,
+        @ActualStudentCount AS current_students,  -- Use calculated count
         ac.description,
         ac.is_active,
         ac.created_at,
@@ -1797,7 +1813,12 @@ BEGIN
             ac.academic_year_id,
             ay.year_name AS academic_year_name,
             ac.max_students,
-            ac.current_students,
+            ISNULL((
+                SELECT COUNT(*) 
+                FROM students s 
+                WHERE s.admin_class_id = ac.admin_class_id 
+                AND s.deleted_at IS NULL
+            ), 0) AS current_students,  -- Calculate actual count
             ac.description,
             ac.is_active,
             ac.created_at,
@@ -2762,6 +2783,240 @@ BEGIN
         THROW 50001, @ErrorMessage, 1;
     END CATCH
 END
+GO
+
+-- ===========================================
+-- SP_TRANSFERSTUDENTCLASS - Chuyển sinh viên từ lớp này sang lớp khác
+-- ===========================================
+IF OBJECT_ID('sp_TransferStudentClass', 'P') IS NOT NULL
+    DROP PROCEDURE sp_TransferStudentClass;
+GO
+CREATE PROCEDURE sp_TransferStudentClass
+    @StudentId VARCHAR(50),
+    @ToClassId VARCHAR(50),
+    @TransferReason NVARCHAR(500) = NULL,
+    @TransferredBy VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Check if student exists
+        IF NOT EXISTS (SELECT 1 FROM students WHERE student_id = @StudentId AND deleted_at IS NULL)
+        BEGIN
+            THROW 50009, N'Không tìm thấy sinh viên', 1;
+        END
+        
+        -- Check if target class exists
+        IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @ToClassId AND deleted_at IS NULL)
+        BEGIN
+            THROW 50002, N'Không tìm thấy lớp đích', 1;
+        END
+        
+        -- Get student's current class
+        DECLARE @FromClassId VARCHAR(50);
+        DECLARE @FromClassCode VARCHAR(20);
+        DECLARE @FromClassName NVARCHAR(150);
+        
+        SELECT @FromClassId = ac.admin_class_id,
+               @FromClassCode = ac.class_code,
+               @FromClassName = ac.class_name
+        FROM students s
+        LEFT JOIN administrative_classes ac ON s.admin_class_id = ac.admin_class_id
+        WHERE s.student_id = @StudentId;
+        
+        -- Check if student is already in the target class
+        IF @FromClassId = @ToClassId
+        BEGIN
+            THROW 50012, N'Sinh viên đã ở trong lớp này', 1;
+        END
+        
+        -- Get target class info
+        DECLARE @ToClassCode VARCHAR(20);
+        DECLARE @ToClassName NVARCHAR(150);
+        DECLARE @MaxStudents INT;
+        DECLARE @CurrentStudents INT;
+        
+        SELECT @ToClassCode = class_code,
+               @ToClassName = class_name,
+               @MaxStudents = max_students,
+               @CurrentStudents = current_students
+        FROM administrative_classes
+        WHERE admin_class_id = @ToClassId;
+        
+        -- Check if target class is full
+        IF @CurrentStudents >= @MaxStudents
+        BEGIN
+            THROW 50010, N'Lớp đích đã đầy', 1;
+        END
+        
+        -- Get transferred by name
+        DECLARE @TransferredByName NVARCHAR(150);
+        SELECT @TransferredByName = full_name 
+        FROM users 
+        WHERE user_id = @TransferredBy;
+        
+        IF @TransferredByName IS NULL
+        BEGIN
+            SET @TransferredByName = @TransferredBy;
+        END
+        
+        -- Generate transfer ID
+        DECLARE @TransferId VARCHAR(50) = CONCAT('TRF-', FORMAT(GETDATE(), 'yyyyMMdd'), '-', SUBSTRING(REPLACE(NEWID(), '-', ''), 1, 10));
+        
+        -- Insert transfer history
+        INSERT INTO class_transfer_history (
+            transfer_id,
+            student_id,
+            from_class_id,
+            from_class_code,
+            from_class_name,
+            to_class_id,
+            to_class_code,
+            to_class_name,
+            transfer_reason,
+            transfer_date,
+            transferred_by,
+            transferred_by_name,
+            created_at,
+            created_by
+        )
+        VALUES (
+            @TransferId,
+            @StudentId,
+            @FromClassId,
+            @FromClassCode,
+            @FromClassName,
+            @ToClassId,
+            @ToClassCode,
+            @ToClassName,
+            @TransferReason,
+            GETDATE(),
+            @TransferredBy,
+            @TransferredByName,
+            GETDATE(),
+            @TransferredBy
+        );
+        
+        -- Decrease old class count (if exists)
+        IF @FromClassId IS NOT NULL
+        BEGIN
+            UPDATE administrative_classes
+            SET current_students = current_students - 1,
+                updated_at = GETDATE(),
+                updated_by = @TransferredBy
+            WHERE admin_class_id = @FromClassId;
+        END
+        
+        -- Update student's class
+        UPDATE students
+        SET admin_class_id = @ToClassId,
+            updated_at = GETDATE(),
+            updated_by = @TransferredBy
+        WHERE student_id = @StudentId;
+        
+        -- Increase new class count
+        UPDATE administrative_classes
+        SET current_students = current_students + 1,
+            updated_at = GETDATE(),
+            updated_by = @TransferredBy
+        WHERE admin_class_id = @ToClassId;
+        
+        COMMIT TRANSACTION;
+        
+        -- Return transfer info
+        SELECT 
+            @TransferId AS TransferId,
+            1 AS Success,
+            N'Chuyển lớp thành công' AS Message,
+            @FromClassCode AS FromClassCode,
+            @FromClassName AS FromClassName,
+            @ToClassCode AS ToClassCode,
+            @ToClassName AS ToClassName;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+            
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_TransferStudentClass';
+GO
+
+-- ===========================================
+-- SP_SYNCADMINCLASSSTUDENTCOUNT - Đồng bộ lại số lượng sinh viên
+-- ===========================================
+IF OBJECT_ID('sp_SyncAdminClassStudentCount', 'P') IS NOT NULL
+    DROP PROCEDURE sp_SyncAdminClassStudentCount;
+GO
+CREATE PROCEDURE sp_SyncAdminClassStudentCount
+    @AdminClassId VARCHAR(50) = NULL  -- NULL = sync all classes
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        IF @AdminClassId IS NULL
+        BEGIN
+            -- Sync all classes
+            UPDATE ac
+            SET ac.current_students = (
+                SELECT COUNT(*) 
+                FROM students s 
+                WHERE s.admin_class_id = ac.admin_class_id 
+                AND s.deleted_at IS NULL
+            ),
+            ac.updated_at = GETDATE()
+            FROM administrative_classes ac
+            WHERE ac.deleted_at IS NULL;
+            
+            SELECT COUNT(*) AS ClassesUpdated, N'Đã đồng bộ số lượng sinh viên cho tất cả các lớp' AS Message;
+        END
+        ELSE
+        BEGIN
+            -- Sync specific class
+            IF NOT EXISTS (SELECT 1 FROM administrative_classes WHERE admin_class_id = @AdminClassId AND deleted_at IS NULL)
+            BEGIN
+                THROW 50002, N'Không tìm thấy lớp hành chính', 1;
+            END
+            
+            DECLARE @ActualCount INT;
+            SELECT @ActualCount = COUNT(*) 
+            FROM students 
+            WHERE admin_class_id = @AdminClassId 
+            AND deleted_at IS NULL;
+            
+            UPDATE administrative_classes
+            SET current_students = @ActualCount,
+                updated_at = GETDATE()
+            WHERE admin_class_id = @AdminClassId;
+            
+            SELECT @AdminClassId AS AdminClassId, @ActualCount AS StudentCount, N'Đã đồng bộ số lượng sinh viên' AS Message;
+        END
+        
+        COMMIT TRANSACTION;
+        
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+            
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_SyncAdminClassStudentCount';
 GO
 
 IF OBJECT_ID('sp_UpdateAdministrativeClass', 'P') IS NOT NULL

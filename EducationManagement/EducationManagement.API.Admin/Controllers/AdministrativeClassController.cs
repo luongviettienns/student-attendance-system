@@ -305,6 +305,66 @@ namespace EducationManagement.API.Admin.Controllers
                 return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }
+
+        // ============================================================
+        // 🔟 TRANSFER STUDENT TO ANOTHER CLASS (Admin Only)
+        // ============================================================
+        [HttpPost("transfer-student")]
+        [RequirePermission("ADMIN_SECTION_CLASSES")] // ✅ Section permission vừa là menu vừa là quyền quản lý
+        public async Task<IActionResult> TransferStudent([FromBody] TransferStudentClassDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var transferredBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+                var result = await _service.TransferStudentAsync(
+                    dto.StudentId, 
+                    dto.ToClassId, 
+                    dto.TransferReason, 
+                    transferredBy);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Chuyển lớp thành công",
+                    data = result
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        // ============================================================
+        // 1️⃣1️⃣ SYNC STUDENT COUNT (Admin Only)
+        // ============================================================
+        [HttpPost("sync-student-count")]
+        [RequirePermission("ADMIN_SECTION_CLASSES")]
+        public async Task<IActionResult> SyncStudentCount([FromQuery] string? classId = null)
+        {
+            try
+            {
+                await _service.SyncStudentCountAsync(classId);
+                return Ok(new
+                {
+                    success = true,
+                    message = string.IsNullOrEmpty(classId) 
+                        ? "Đã đồng bộ số lượng sinh viên cho tất cả các lớp" 
+                        : "Đã đồng bộ số lượng sinh viên cho lớp"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
     }
 }
 

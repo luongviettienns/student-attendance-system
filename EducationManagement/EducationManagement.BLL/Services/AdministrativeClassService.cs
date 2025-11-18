@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using EducationManagement.Common.DTOs.AdministrativeClass;
 using EducationManagement.DAL.Repositories;
+using ClassTransferHistoryDto = EducationManagement.Common.DTOs.AdministrativeClass.ClassTransferHistoryDto;
 
 namespace EducationManagement.BLL.Services
 {
@@ -161,6 +162,40 @@ namespace EducationManagement.BLL.Services
         }
 
         // ============================================================
+        // 9️⃣ TRANSFER STUDENT TO ANOTHER CLASS
+        // ============================================================
+        public async Task<ClassTransferHistoryDto> TransferStudentAsync(
+            string studentId, 
+            string toClassId, 
+            string? transferReason, 
+            string transferredBy)
+        {
+            if (string.IsNullOrWhiteSpace(studentId))
+                throw new ArgumentException("Student ID không được để trống");
+
+            if (string.IsNullOrWhiteSpace(toClassId))
+                throw new ArgumentException("To Class ID không được để trống");
+
+            if (string.IsNullOrWhiteSpace(transferredBy))
+                throw new ArgumentException("TransferredBy không được để trống");
+
+            // Check if student exists
+            var students = await _repository.GetStudentsByClassAsync(toClassId);
+            // Note: We can't check student existence directly, but the SP will handle it
+
+            // Check if target class exists and has available slots
+            var targetClass = await _repository.GetByIdAsync(toClassId);
+            if (targetClass == null)
+                throw new Exception($"Không tìm thấy lớp đích với ID: {toClassId}");
+
+            if (targetClass.AvailableSlots < 1)
+                throw new Exception($"Lớp đích đã đầy, không thể chuyển sinh viên vào");
+
+            // Perform transfer
+            return await _repository.TransferStudentAsync(studentId, toClassId, transferReason, transferredBy);
+        }
+
+        // ============================================================
         // 9️⃣ GET CLASS REPORT
         // ============================================================
         public async Task<AdminClassReportDto?> GetReportAsync(
@@ -183,6 +218,14 @@ namespace EducationManagement.BLL.Services
                 throw new ArgumentException("Admin Class ID không được để trống");
 
             return await _repository.GetClassStatisticsAsync(adminClassId);
+        }
+
+        // ============================================================
+        // 1️⃣1️⃣ SYNC STUDENT COUNT
+        // ============================================================
+        public async Task SyncStudentCountAsync(string? adminClassId = null)
+        {
+            await _repository.SyncStudentCountAsync(adminClassId);
         }
 
         // ============================================================

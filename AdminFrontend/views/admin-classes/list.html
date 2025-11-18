@@ -153,55 +153,62 @@
             
             <!-- Detail Modal -->
             <div class="modal" id="detailModal">
-                <div class="modal-content" style="max-width: 900px;">
+                <div class="modal-content" style="max-width: 100%; width: 100%; max-height: 90vh; overflow-y: auto;">
                     <div class="modal-header">
                         <h5 class="modal-title">Chi tiết lớp: {{currentClass && currentClass.className || 'Đang tải...'}}</h5>
                         <button type="button" class="modal-close" ng-click="closeDetailModal()" aria-label="Close">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
-                    <div class="modal-body" ng-if="currentClass">
+                    <div class="modal-body" ng-if="currentClass" style="padding: 20px;">
                         <div ng-if="loading" class="text-center p-3">
                             <i class="fas fa-spinner fa-spin"></i> Đang tải...
                         </div>
                         <div ng-if="!loading">
-                            <div class="row">
+                            <div class="row" style="margin-bottom: 20px;">
                                 <div class="col-md-6">
-                                    <p><strong>Mã lớp:</strong> {{currentClass.classCode}}</p>
-                                    <p><strong>Tên lớp:</strong> {{currentClass.className}}</p>
-                                    <p><strong>Chuyên ngành:</strong> {{currentClass.majorName || 'Chưa có'}}</p>
-                                    <p><strong>Năm tuyển sinh:</strong> {{currentClass.cohortYear}}</p>
+                                    <p style="font-size: 16px; margin-bottom: 10px;"><strong>Mã lớp:</strong> {{currentClass.classCode}}</p>
+                                    <p style="font-size: 16px; margin-bottom: 10px;"><strong>Tên lớp:</strong> {{currentClass.className}}</p>
+                                    <p style="font-size: 16px; margin-bottom: 10px;"><strong>Chuyên ngành:</strong> {{currentClass.majorName || 'Chưa có'}}</p>
+                                    <p style="font-size: 16px; margin-bottom: 10px;"><strong>Năm tuyển sinh:</strong> {{currentClass.cohortYear}}</p>
                                 </div>
                                 <div class="col-md-6">
-                                    <p><strong>Cố vấn:</strong> {{currentClass.advisorName || 'Chưa có'}}</p>
-                                    <p><strong>Sĩ số:</strong> {{currentClass.currentStudents || 0}}/{{currentClass.maxStudents || 0}}</p>
-                                    <p><strong>Năm học:</strong> {{currentClass.academicYearName || 'Chưa có'}}</p>
-                                    <p><strong>Mô tả:</strong> {{currentClass.description || 'Không có'}}</p>
+                                    <p style="font-size: 16px; margin-bottom: 10px;"><strong>Cố vấn:</strong> {{currentClass.advisorName || 'Chưa có'}}</p>
+                                    <p style="font-size: 16px; margin-bottom: 10px;"><strong>Sĩ số:</strong> {{currentClass.currentStudents || 0}}/{{currentClass.maxStudents || 0}}</p>
+                                    <p style="font-size: 16px; margin-bottom: 10px;"><strong>Năm học:</strong> {{currentClass.academicYearName || 'Chưa có'}}</p>
+                                    <p style="font-size: 16px; margin-bottom: 10px;"><strong>Mô tả:</strong> {{currentClass.description || 'Không có'}}</p>
                                 </div>
                             </div>
-                            <hr>
-                            <h6>Danh sách sinh viên ({{students.length || 0}})</h6>
-                            <div class="table-responsive">
-                                <table class="table table-sm table-hover">
+                            <hr style="margin: 20px 0;">
+                            <h5 style="margin-bottom: 15px; font-size: 18px; font-weight: bold;">Danh sách sinh viên ({{students.length || 0}})</h5>
+                            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                                <table class="table table-hover" style="font-size: 14px;">
                                     <thead>
                                         <tr>
-                                            <th>Mã SV</th>
-                                            <th>Họ tên</th>
-                                            <th>Email</th>
-                                            <th>Điện thoại</th>
-                                            <th ng-if="isAdmin()">Thao tác</th>
+                                            <th style="padding: 12px; font-size: 15px; font-weight: bold;">Mã SV</th>
+                                            <th style="padding: 12px; font-size: 15px; font-weight: bold;">Họ tên</th>
+                                            <th style="padding: 12px; font-size: 15px; font-weight: bold;">Email</th>
+                                            <th style="padding: 12px; font-size: 15px; font-weight: bold;">Điện thoại</th>
+                                            <th style="padding: 12px; font-size: 15px; font-weight: bold;">Thao tác</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <tr ng-repeat="student in students">
-                                            <td>{{student.studentCode}}</td>
-                                            <td>{{student.fullName}}</td>
-                                            <td>{{student.email || 'Chưa có'}}</td>
-                                            <td>{{student.phone || 'Chưa có'}}</td>
-                                            <td ng-if="isAdmin()">
-                                                <button class="btn btn-sm btn-danger" 
+                                            <td style="padding: 10px; font-size: 14px;">{{student.studentCode}}</td>
+                                            <td style="padding: 10px; font-size: 14px;">{{student.fullName}}</td>
+                                            <td style="padding: 10px; font-size: 14px;">{{student.email || 'Chưa có'}}</td>
+                                            <td style="padding: 10px; font-size: 14px;">{{student.phone || 'Chưa có'}}</td>
+                                            <td style="white-space: nowrap; padding: 10px;">
+                                                <button class="btn btn-primary" 
+                                                        ng-click="showTransferModal(student)"
+                                                        title="Chuyển lớp"
+                                                        style="margin-right: 5px; display: inline-block; padding: 6px 12px; font-size: 13px;">
+                                                    <i class="fas fa-arrow-right"></i> Chuyển
+                                                </button>
+                                                <button class="btn btn-danger" 
                                                         ng-click="removeStudent(student.studentId)"
-                                                        title="Xóa khỏi lớp">
+                                                        title="Xóa khỏi lớp"
+                                                        style="display: inline-block; padding: 6px 12px; font-size: 13px;">
                                                     <i class="fas fa-times"></i>
                                                 </button>
                                             </td>
@@ -209,6 +216,11 @@
                                         <tr ng-if="students.length === 0">
                                             <td colspan="5" class="text-center text-muted">
                                                 Chưa có sinh viên nào trong lớp này
+                                            </td>
+                                        </tr>
+                                        <tr ng-if="students.length > 0 && !isAdmin()">
+                                            <td colspan="5" class="text-center text-muted">
+                                                <small>Chỉ Admin mới có thể thực hiện thao tác</small>
                                             </td>
                                         </tr>
                                     </tbody>
@@ -222,16 +234,69 @@
                 </div>
             </div>
             
+            <!-- Transfer Student Modal -->
+            <div class="modal" id="transferModal">
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-arrow-right"></i> Chuyển lớp cho sinh viên
+                        </h5>
+                        <button type="button" class="modal-close" ng-click="closeTransferModal()" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                        <div class="modal-body" ng-if="transferStudent">
+                            <div class="alert alert-info">
+                                <strong>Sinh viên:</strong> {{transferStudent.studentCode}} - {{transferStudent.fullName}}<br>
+                                <strong>Lớp hiện tại:</strong> {{transferStudent.adminClassCode || 'Chưa có lớp'}}
+                            </div>
+                            <form name="transferForm">
+                                <div class="form-group">
+                                    <label>Chọn lớp đích <span class="text-danger">*</span></label>
+                                    <select class="form-control" 
+                                            ng-model="transferData.toClassId" 
+                                            required
+                                            ng-options="c.adminClassId as (c.classCode + ' - ' + c.className + ' (' + c.currentStudents + '/' + c.maxStudents + ')') for c in classes">
+                                        <option value="">-- Chọn lớp --</option>
+                                    </select>
+                                    <small class="form-text text-muted">
+                                        Chọn lớp mới để chuyển sinh viên vào
+                                    </small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Lý do chuyển lớp</label>
+                                    <textarea class="form-control" 
+                                              ng-model="transferData.transferReason" 
+                                              rows="3"
+                                              placeholder="Nhập lý do chuyển lớp (tùy chọn)"></textarea>
+                                    <small class="form-text text-muted">
+                                        Lý do chuyển lớp sẽ được lưu vào lịch sử
+                                    </small>
+                                </div>
+                            </form>
+                        </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" ng-click="closeTransferModal()">Hủy</button>
+                        <button type="button" class="btn btn-primary" 
+                                ng-click="transferStudentClass()" 
+                                ng-disabled="transferForm.$invalid || !transferData.toClassId">
+                            <i class="fas fa-arrow-right"></i> Chuyển lớp
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
             <!-- Create/Edit Modal -->
             <div class="modal" id="classModal">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">
-                                {{currentClass.adminClassId ? 'Sửa' : 'Thêm'}} lớp hành chính
-                            </h5>
-                            <button type="button" class="close" data-dismiss="modal">&times;</button>
-                        </div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            {{currentClass.adminClassId ? 'Sửa' : 'Thêm'}} lớp hành chính
+                        </h5>
+                        <button type="button" class="modal-close" ng-click="closeClassModal()" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                         <div class="modal-body">
                             <form name="classForm">
                                 <div class="form-group">
@@ -293,12 +358,35 @@
                                 </div>
                             </form>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
-                            <button type="button" class="btn btn-primary" 
-                                    ng-click="saveClass()" 
-                                    ng-disabled="classForm.$invalid">Lưu</button>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" ng-click="closeClassModal()">Hủy</button>
+                        <button type="button" class="btn btn-primary" 
+                                ng-click="saveClass()" 
+                                ng-disabled="classForm.$invalid">Lưu</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Assign Students Modal -->
+            <div class="modal" id="assignModal">
+                <div class="modal-content" style="max-width: 800px;">
+                    <div class="modal-header">
+                        <h5 class="modal-title">
+                            <i class="fas fa-user-plus"></i> Phân bổ sinh viên vào lớp
+                        </h5>
+                        <button type="button" class="modal-close" ng-click="closeAssignModal()" aria-label="Close">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body" ng-if="currentClass">
+                        <div class="alert alert-info">
+                            <strong>Lớp:</strong> {{currentClass.classCode}} - {{currentClass.className}}<br>
+                            <strong>Sĩ số hiện tại:</strong> {{currentClass.currentStudents || 0}}/{{currentClass.maxStudents || 0}}
                         </div>
+                        <p class="text-muted">Chức năng phân bổ sinh viên đang được phát triển. Vui lòng sử dụng chức năng chuyển lớp từ modal chi tiết.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" ng-click="closeAssignModal()">Đóng</button>
                     </div>
                 </div>
             </div>

@@ -51,6 +51,18 @@
     pointer-events: none;
 }
 
+/* Large Modal for Detail Views */
+#detailModal {
+    max-width: 1400px !important;
+    width: 95% !important;
+    max-height: 90vh !important;
+}
+
+#detailModal .modal-content {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
 .modal.active {
     display: block !important;
     opacity: 1;

@@ -6,6 +6,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Configuration;
 using EducationManagement.Common.Models;
 using EducationManagement.Common.DTOs.AdministrativeClass;
+using System.Data.Common;
 
 namespace EducationManagement.DAL.Repositories
 {
@@ -77,6 +78,7 @@ namespace EducationManagement.DAL.Repositories
             if (dt.Rows.Count == 0)
                 return null;
 
+            // Stored procedure automatically syncs and calculates current_students
             return MapToDetailDto(dt.Rows[0]);
         }
 
@@ -196,6 +198,177 @@ namespace EducationManagement.DAL.Repositories
 
             await DatabaseHelper.ExecuteNonQueryAsync(
                 _connectionString, "sp_RemoveStudentFromAdminClass", parameters);
+        }
+
+        // ============================================================
+        // 9️⃣ TRANSFER STUDENT TO ANOTHER CLASS
+        // ============================================================
+        public async Task<ClassTransferHistoryDto> TransferStudentAsync(
+            string studentId, 
+            string toClassId, 
+            string? transferReason, 
+            string transferredBy)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@StudentId", studentId),
+                new SqlParameter("@ToClassId", toClassId),
+                new SqlParameter("@TransferReason", (object?)transferReason ?? DBNull.Value),
+                new SqlParameter("@TransferredBy", transferredBy)
+            };
+
+            try
+            {
+                var dt = await DatabaseHelper.ExecuteQueryAsync(
+                    _connectionString, "sp_TransferStudentClass", parameters);
+
+                if (dt.Rows.Count == 0)
+                    throw new Exception("Không thể lấy thông tin chuyển lớp");
+
+                var row = dt.Rows[0];
+                
+                // Get student info from database
+                var studentInfo = await GetStudentInfoAsync(studentId);
+                
+                // Get from class ID if exists
+                string? fromClassId = null;
+                string? fromClassCode = null;
+                string? fromClassName = null;
+                
+                if (row.Table.Columns.Contains("FromClassCode") && 
+                    row["FromClassCode"] != DBNull.Value && 
+                    !string.IsNullOrEmpty(row["FromClassCode"]?.ToString()))
+                {
+                    fromClassCode = row["FromClassCode"].ToString();
+                    fromClassId = await GetClassIdByCodeAsync(fromClassCode);
+                }
+                
+                if (row.Table.Columns.Contains("FromClassName") && 
+                    row["FromClassName"] != DBNull.Value)
+                {
+                    fromClassName = row["FromClassName"].ToString();
+                }
+                
+                return new ClassTransferHistoryDto
+                {
+                    TransferId = row.Table.Columns.Contains("TransferId") && row["TransferId"] != DBNull.Value 
+                        ? row["TransferId"].ToString()! 
+                        : $"TRF-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString().Substring(0, 10)}",
+                    StudentId = studentId,
+                    StudentCode = studentInfo.StudentCode,
+                    StudentName = studentInfo.StudentName,
+                    FromClassId = fromClassId,
+                    FromClassCode = fromClassCode,
+                    FromClassName = fromClassName,
+                    ToClassId = toClassId,
+                    ToClassCode = row.Table.Columns.Contains("ToClassCode") && row["ToClassCode"] != DBNull.Value 
+                        ? row["ToClassCode"].ToString()! 
+                        : string.Empty,
+                    ToClassName = row.Table.Columns.Contains("ToClassName") && row["ToClassName"] != DBNull.Value 
+                        ? row["ToClassName"].ToString()! 
+                        : string.Empty,
+                    TransferReason = transferReason,
+                    TransferDate = DateTime.Now,
+                    TransferredBy = transferredBy,
+                    CreatedAt = DateTime.Now
+                };
+                
+                // Sync student count for both classes after transfer to ensure accuracy
+                try
+                {
+                    if (fromClassId != null)
+                    {
+                        await SyncStudentCountAsync(fromClassId);
+                    }
+                    await SyncStudentCountAsync(toClassId);
+                }
+                catch
+                {
+                    // Ignore sync errors - not critical
+                }
+            }
+            catch (SqlException sqlEx)
+            {
+                // Check if stored procedure doesn't exist
+                if (sqlEx.Message.Contains("Could not find stored procedure") || 
+                    sqlEx.Message.Contains("sp_TransferStudentClass"))
+                {
+                    throw new Exception("Stored procedure sp_TransferStudentClass chưa được tạo trong database. Vui lòng chạy SQL script.", sqlEx);
+                }
+                throw new Exception($"Lỗi database: {sqlEx.Message}", sqlEx);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Lỗi khi chuyển lớp: {ex.Message}", ex);
+            }
+        }
+
+        // Helper method to get student info
+        private async Task<(string StudentCode, string StudentName)> GetStudentInfoAsync(string studentId)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                await connection.OpenAsync();
+                
+                var command = new SqlCommand(
+                    "SELECT student_code, full_name FROM students WHERE student_id = @StudentId",
+                    connection);
+                command.Parameters.AddWithValue("@StudentId", studentId);
+                
+                using var reader = await command.ExecuteReaderAsync();
+                if (await reader.ReadAsync())
+                {
+                    return (
+                        reader["student_code"].ToString() ?? string.Empty,
+                        reader["full_name"].ToString() ?? string.Empty
+                    );
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't throw - return empty values
+                System.Diagnostics.Debug.WriteLine($"Error getting student info: {ex.Message}");
+            }
+            
+            return (string.Empty, string.Empty);
+        }
+
+        // Helper method to get class ID by code
+        private async Task<string?> GetClassIdByCodeAsync(string classCode)
+        {
+            try
+            {
+                using var connection = new SqlConnection(_connectionString);
+                await connection.OpenAsync();
+                
+                var command = new SqlCommand(
+                    "SELECT admin_class_id FROM administrative_classes WHERE class_code = @ClassCode AND deleted_at IS NULL",
+                    connection);
+                command.Parameters.AddWithValue("@ClassCode", classCode);
+                
+                var result = await command.ExecuteScalarAsync();
+                return result?.ToString();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error getting class ID by code: {ex.Message}");
+                return null;
+            }
+        }
+
+        // ============================================================
+        // 🔟 SYNC STUDENT COUNT
+        // ============================================================
+        public async Task SyncStudentCountAsync(string? adminClassId = null)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@AdminClassId", (object?)adminClassId ?? DBNull.Value)
+            };
+
+            await DatabaseHelper.ExecuteNonQueryAsync(
+                _connectionString, "sp_SyncAdminClassStudentCount", parameters);
         }
 
         // ============================================================

@@ -1547,6 +1547,53 @@ CREATE INDEX IX_Retake_Student ON retake_records(student_id, status);
 CREATE INDEX IX_Retake_Enrollment ON retake_records(enrollment_id);
 CREATE INDEX IX_Retake_Class ON retake_records(class_id, status);
 CREATE INDEX IX_Retake_Status ON retake_records(status, created_at);
+GO
+
+-- ===========================================
+-- 24. BẢNG CLASS_TRANSFER_HISTORY (Lịch sử chuyển lớp)
+-- ===========================================
+IF OBJECT_ID('dbo.class_transfer_history', 'U') IS NOT NULL DROP TABLE dbo.class_transfer_history;
+GO
+
+CREATE TABLE dbo.class_transfer_history (
+    transfer_id          VARCHAR(50) PRIMARY KEY,
+    student_id           VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.students(student_id),
+    
+    -- Thông tin lớp cũ và lớp mới
+    from_class_id        VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.administrative_classes(admin_class_id),
+    from_class_code      VARCHAR(20) NULL,
+    from_class_name      NVARCHAR(150) NULL,
+    to_class_id          VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.administrative_classes(admin_class_id),
+    to_class_code        VARCHAR(20) NOT NULL,
+    to_class_name        NVARCHAR(150) NOT NULL,
+    
+    -- Thông tin chuyển lớp
+    transfer_reason      NVARCHAR(500) NULL,        -- Lý do chuyển lớp
+    transfer_date        DATETIME NOT NULL DEFAULT(GETDATE()),
+    
+    -- Thông tin người thực hiện
+    transferred_by       VARCHAR(50) NOT NULL,      -- User ID của người thực hiện chuyển lớp
+    transferred_by_name  NVARCHAR(150) NULL,        -- Tên người thực hiện
+    
+    -- Audit fields
+    created_at           DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by           VARCHAR(50) NULL,
+    updated_at           DATETIME NULL,
+    updated_by           VARCHAR(50) NULL,
+    deleted_at           DATETIME NULL,
+    deleted_by           VARCHAR(50) NULL
+);
+GO
+
+-- Indexes for class_transfer_history
+CREATE INDEX IX_Transfer_Student ON class_transfer_history(student_id, transfer_date DESC);
+CREATE INDEX IX_Transfer_FromClass ON class_transfer_history(from_class_id, transfer_date DESC);
+CREATE INDEX IX_Transfer_ToClass ON class_transfer_history(to_class_id, transfer_date DESC);
+CREATE INDEX IX_Transfer_Date ON class_transfer_history(transfer_date DESC);
+GO
+
+PRINT '✓ Table created: class_transfer_history';
+GO
 CREATE INDEX IX_Retake_Subject ON retake_records(subject_id);
 GO
 
