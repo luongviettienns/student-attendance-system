@@ -32,6 +32,14 @@ namespace EducationManagement.API.Admin.Controllers
             return Ok(lecturer);
         }
 
+        [HttpGet("user/{userId}")]
+        public async Task<IActionResult> GetByUserId(string userId)
+        {
+            var lecturer = await _service.GetByUserIdAsync(userId);
+            if (lecturer == null) return NotFound();
+            return Ok(lecturer);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] Lecturer model)
         {

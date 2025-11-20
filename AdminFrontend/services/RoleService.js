@@ -77,6 +77,12 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'MANAGE_SCHEDULES': 'canManageSchedules',
         'EXPORT_SCHEDULES': 'canExportSchedules',
         
+        // Room Management (Quản lý phòng học) ✅ THÊM
+        'VIEW_ROOMS': 'canManageRooms',
+        'CREATE_ROOMS': 'canManageRooms',
+        'EDIT_ROOMS': 'canManageRooms',
+        'DELETE_ROOMS': 'canManageRooms',
+        
         // Attendance Management (Điểm danh)
         'TAKE_ATTENDANCE': 'canTakeAttendance',
         'VIEW_ALL_ATTENDANCE': 'canViewAllAttendance',
@@ -134,6 +140,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             canManageOrganization: true,
             canManageSubjects: true,
             canManageClasses: true,
+            canManageRooms: true,  // ✅ THÊM: Quản lý phòng học
             canManageSchedules: true,
             canManageAcademicYears: true,
             canTakeAttendance: true,
@@ -353,6 +360,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/users', '/roles',
                 '/faculties', '/departments', '/majors', '/subjects',
                 '/students', '/lecturers', '/classes', '/admin-classes',
+                '/rooms',  // ✅ THÊM: Quản lý phòng học
                 '/grade-formula',
                 '/academic-years', '/school-years',
                 '/subject-prerequisites',
@@ -375,6 +383,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/lecturer/dashboard',
                 '/lecturer/timetable',
                 '/lecturer/reports',
+                '/lecturer/classes', // ✅ Quản lý lớp học phần của giảng viên
                 '/notifications'
             ],
             'Student': [
@@ -474,6 +483,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'TEACHER_GRADES': '/lecturer/grades',
         'TEACHER_GRADE_FORMULA': '/lecturer/grade-formula', // ✅ Công thức điểm cho giảng viên
         'TEACHER_TIMETABLE': '/lecturer/timetable',
+        'TEACHER_CLASSES': '/lecturer/classes', // ✅ Quản lý lớp học phần (Giảng viên)
         'TEACHER_REPORTS': '/lecturer/reports',
         'TEACHER_APPEALS': '/lecturer/appeals', // ✅ Phúc khảo cho giảng viên
         'TEACHER_NOTIFICATIONS': '/notifications',
@@ -503,6 +513,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'ADMIN_SCHOOL_YEARS': '/school-years',
         'ADMIN_SUBJECT_PREREQUISITES': '/subject-prerequisites',
         'ADMIN_CLASSES': '/classes',
+        'ADMIN_ROOMS': '/rooms',  // ✅ THÊM: Quản lý phòng học
         'ADMIN_ADMIN_CLASSES': '/admin-classes', // Quản lý lớp hành chính
         'ADMIN_SECTION_CLASSES': '/admin-classes', // Section permission cho menu lớp hành chính
         'ADMIN_REGISTRATION_PERIODS': '/registration-periods',
@@ -551,13 +562,28 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                         if (path) pathSource = 'reverseEngineer';
                     }
                     
-                    // ✅ Step 2: Extract path from state (e.g., "main.student.dashboard" -> "/student/dashboard")
+                    // ✅ Step 2: Check label first for lecturer class management (before extractPath)
+                    // This handles cases like "main.admin.tchClasses" with label "Quản lý lớp học phần (Giảng viên)"
+                    if (!path || path === '/dashboard') {
+                        var labelLower = (subItem.label || '').toLowerCase();
+                        var currentUser = AuthService.getCurrentUser();
+                        var role = currentUser ? (currentUser.Role || currentUser.role) : null;
+                        
+                        // If label contains "lớp học phần" and user is Lecturer, map to /lecturer/classes
+                        if ((labelLower.includes('lớp') && labelLower.includes('học') && labelLower.includes('phần')) &&
+                            (role === 'Lecturer' || role === 'Giảng viên')) {
+                            path = '/lecturer/classes';
+                            pathSource = 'inferFromLabelAndRole';
+                        }
+                    }
+                    
+                    // ✅ Step 3: Extract path from state (e.g., "main.student.dashboard" -> "/student/dashboard")
                     if (!path) {
                         path = extractPathFromState(subItem.state);
                         if (path) pathSource = 'extractPath';
                     }
                     
-                    // ✅ Step 3: Infer path from state and label
+                    // ✅ Step 4: Infer path from state and label
                     if (!path || path === '/dashboard') {
                         var inferredPath = inferPathFromState(subItem.state, subItem.label);
                         if (inferredPath && inferredPath !== '/dashboard') {
@@ -566,7 +592,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                         }
                     }
                     
-                    // ✅ Step 4: Final fallback - use label to infer path
+                    // ✅ Step 5: Final fallback - use label to infer path
                     if (!path || path === '/dashboard') {
                         var labelPath = inferPathFromLabel(subItem.label);
                         if (labelPath && labelPath !== '/dashboard') {
@@ -613,10 +639,15 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                         });
                     }
                     
+                    // ✅ Clean label: Remove "(giảng viên)" or "(Giảng viên)" from label
+                    var originalLabel = subItem.label || '';
+                    var cleanLabel = originalLabel.replace(/\s*\([^)]*giảng\s*viên[^)]*\)/gi, '').trim();
+                    
+                    
                     return {
                         path: path || '/dashboard',
                         icon: normalizeIcon(subItem.icon),
-                        label: subItem.label || ''
+                        label: cleanLabel
                     };
                 });
             } else {
@@ -666,6 +697,11 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         // Lecturer routes
         if (stateLower.includes('teacher') || stateLower.includes('lecturer')) {
             if (labelLower.includes('dashboard')) return '/lecturer/dashboard';
+            // ✅ Map "Quản lý lớp học phần" cho giảng viên
+            if ((labelLower.includes('lớp') && labelLower.includes('học') && labelLower.includes('phần')) || 
+                (labelLower.includes('class') && labelLower.includes('management'))) {
+                return '/lecturer/classes';
+            }
             if (labelLower.includes('attendance') || labelLower.includes('điểm danh')) return '/lecturer/attendance';
             if ((labelLower.includes('công thức') || labelLower.includes('formula')) && (labelLower.includes('điểm') || labelLower.includes('grade'))) return '/lecturer/grade-formula';
             if (labelLower.includes('grade') || labelLower.includes('điểm')) return '/lecturer/grades';
@@ -797,6 +833,10 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         if (permissionCode.includes('REGISTRATION_PERIOD')) {
             if (PERMISSION_CODE_TO_PATH['ADMIN_REGISTRATION_PERIODS']) return PERMISSION_CODE_TO_PATH['ADMIN_REGISTRATION_PERIODS'];
         }
+        // ✅ Map TEACHER_CLASSES hoặc VIEW_OWN_CLASSES cho giảng viên (check before GRADE_FORMULA)
+        if (permissionCode === 'TEACHER_CLASSES' || permissionCode === 'VIEW_OWN_CLASSES') {
+            if (PERMISSION_CODE_TO_PATH['TEACHER_CLASSES']) return PERMISSION_CODE_TO_PATH['TEACHER_CLASSES'];
+        }
         if (permissionCode.includes('GRADE_FORMULA')) {
             // Handle different role prefixes
             if (permissionCode.startsWith('TEACHER_')) {
@@ -842,6 +882,23 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             return '/dashboard';
         }
         
+        // ✅ Special handling: Check if routeParts contains "tchClasses" (teacher classes)
+        // This handles cases like "main.admin.tchClasses" which should map to /lecturer/classes
+        if (routeParts.length > 0) {
+            var firstPart = routeParts[0].toLowerCase();
+            if (firstPart.includes('tchclass') || firstPart.includes('tch-class')) {
+                return '/lecturer/classes';
+            }
+        }
+        
+        // ✅ Special handling for lecturer class management
+        if ((role === 'teacher' || role === 'lecturer') && routeParts.length > 0) {
+            var firstPart = routeParts[0].toLowerCase();
+            if (firstPart.includes('class') || firstPart.includes('lớp')) {
+                return '/lecturer/classes';
+            }
+        }
+        
         // Process each part to handle camelCase and convert to kebab-case
         var pathParts = routeParts.map(function(part) {
             // Convert camelCase to kebab-case: "academicYears" -> "academic-years"
@@ -885,7 +942,15 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             'niên khóa': '/academic-years',
             'năm học': '/school-years',
             'tiên quyết': '/subject-prerequisites',
-            'lớp học phần': '/classes',
+            'lớp học phần': function() {
+                // Check role to determine correct route
+                var currentUser = AuthService.getCurrentUser();
+                var role = currentUser ? (currentUser.Role || currentUser.role) : null;
+                if (role === 'Lecturer' || role === 'Giảng viên') {
+                    return '/lecturer/classes';
+                }
+                return '/classes';
+            },
             'lớp chính khóa': '/admin-classes',
             'công thức điểm': '/grade-formula',
             'đợt đăng ký': '/registration-periods',
@@ -902,7 +967,12 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         // Check exact matches first
         for (var key in labelMappings) {
             if (labelLower.includes(key)) {
-                return labelMappings[key];
+                var mapping = labelMappings[key];
+                // If mapping is a function, call it
+                if (typeof mapping === 'function') {
+                    return mapping();
+                }
+                return mapping;
             }
         }
         

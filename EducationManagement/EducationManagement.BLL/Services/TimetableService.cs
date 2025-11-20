@@ -4,6 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using EducationManagement.DAL.Repositories;
+using EducationManagement.Common.Helpers;
 
 namespace EducationManagement.BLL.Services
 {
@@ -86,26 +87,83 @@ namespace EducationManagement.BLL.Services
                 input.WeekNo,
                 input.Weekday,
                 input.StartTime,
-                input.EndTime);
+                input.EndTime,
+                input.PeriodFrom,  // ✅ THÊM
+                input.PeriodTo);   // ✅ THÊM
 
             var result = new TimetableConflicts();
-            if (ds.Tables.Count > 0) result.LecturerConflicts = MapConflictRows(ds.Tables[0]);
-            if (ds.Tables.Count > 1) result.RoomConflicts = MapConflictRows(ds.Tables[1]);
-            if (ds.Tables.Count > 2) result.StudentConflicts = MapStudentConflictRows(ds.Tables[2]);
-            if (ds.Tables.Count > 3 && ds.Tables[3].Rows.Count > 0)
+            int tableIndex = 0;
+            
+            // Table 0: LECTURER conflicts (time-based)
+            if (ds.Tables.Count > tableIndex) result.LecturerConflicts = MapConflictRows(ds.Tables[tableIndex]);
+            tableIndex++;
+            
+            // Table 1: ROOM conflicts (time-based)
+            if (ds.Tables.Count > tableIndex) result.RoomConflicts = MapConflictRows(ds.Tables[tableIndex]);
+            tableIndex++;
+            
+            // Table 2: STUDENT conflicts
+            if (ds.Tables.Count > tableIndex) result.StudentConflicts = MapStudentConflictRows(ds.Tables[tableIndex]);
+            tableIndex++;
+            
+            // Table 3: Room capacity info
+            if (ds.Tables.Count > tableIndex && ds.Tables[tableIndex].Rows.Count > 0)
             {
-                var r = ds.Tables[3].Rows[0];
+                var r = ds.Tables[tableIndex].Rows[0];
                 result.RoomCapacity = r["room_capacity"] == DBNull.Value ? null : Convert.ToInt32(r["room_capacity"]);
                 result.Enrolled = r["enrolled"] == DBNull.Value ? 0 : Convert.ToInt32(r["enrolled"]);
                 result.IsOverCapacity = r["is_over_capacity"] != DBNull.Value && Convert.ToInt32(r["is_over_capacity"]) == 1;
             }
+            tableIndex++;
+            
+            // ✅ THÊM: Map period conflicts từ stored procedure
+            // Stored procedure trả về period conflicts trong các table tiếp theo (nếu có period)
+            // Table 4: LECTURER_PERIOD conflicts (nếu có period và lecturer)
+            if (ds.Tables.Count > tableIndex && ds.Tables[tableIndex].Rows.Count > 0)
+            {
+                var lecturerPeriodConflicts = MapPeriodConflictRows(ds.Tables[tableIndex]);
+                result.PeriodConflicts.AddRange(lecturerPeriodConflicts);
+            }
+            tableIndex++;
+            
+            // Table 5: ROOM_PERIOD conflicts (nếu có period và room)
+            if (ds.Tables.Count > tableIndex && ds.Tables[tableIndex].Rows.Count > 0)
+            {
+                var roomPeriodConflicts = MapPeriodConflictRows(ds.Tables[tableIndex]);
+                result.PeriodConflicts.AddRange(roomPeriodConflicts);
+            }
+            
             return result;
         }
 
         public async Task<(bool HasConflict, TimetableConflicts Conflicts)> ValidateBeforeSaveAsync(TimetableConflictCheckInput input)
         {
             var conflicts = await CheckConflictsAsync(input);
-            var has = (conflicts.LecturerConflicts.Any() || conflicts.RoomConflicts.Any() || conflicts.StudentConflicts.Any() || conflicts.IsOverCapacity);
+            
+            // ✅ THÊM: Kiểm tra xung đột period nếu có periodFrom/periodTo
+            if (input is TimetableCreateInput createInput && 
+                createInput.PeriodFrom.HasValue && createInput.PeriodTo.HasValue)
+            {
+                // Validate consecutive periods
+                if (!PeriodCalculator.ValidateConsecutivePeriods(
+                    createInput.PeriodFrom.Value, 
+                    createInput.PeriodTo.Value))
+                {
+                    conflicts.Errors.Add("Các tiết học phải liên tiếp nhau (VD: Tiết 1-3, không được 1,3,5)");
+                }
+
+                // Kiểm tra xung đột period với các session khác
+                // Period conflicts đã được xử lý trong CheckConflictsAsync và map vào conflicts.PeriodConflicts
+                // Không cần gọi CheckPeriodConflictsAsync riêng
+            }
+            
+            var has = (conflicts.LecturerConflicts.Any() || 
+                       conflicts.RoomConflicts.Any() || 
+                       conflicts.StudentConflicts.Any() || 
+                       conflicts.IsOverCapacity ||
+                       conflicts.PeriodConflicts.Any() ||
+                       conflicts.Errors.Any());
+            
             return (has, conflicts);
         }
 
@@ -135,9 +193,30 @@ namespace EducationManagement.BLL.Services
                 throw new InvalidOperationException("Không thể tạo phiên học cho lớp đã bị vô hiệu hóa");
             }
 
+            // ✅ THÊM: Nếu có periodFrom/periodTo, tự động tính startTime và endTime
+            TimeSpan startTime = input.StartTime;
+            TimeSpan endTime = input.EndTime;
+
+            if (input.PeriodFrom.HasValue && input.PeriodTo.HasValue)
+            {
+                var (calculatedStart, calculatedEnd) = PeriodCalculator.CalculateSessionTime(
+                    input.PeriodFrom.Value, 
+                    input.PeriodTo.Value);
+                
+                startTime = calculatedStart;
+                endTime = calculatedEnd;
+                
+                // Override nếu user nhập thủ công (nhưng cảnh báo nếu khác)
+                if (input.StartTime != TimeSpan.Zero && input.StartTime != calculatedStart)
+                {
+                    // Log warning nhưng vẫn dùng period time
+                    // Có thể log vào LoggerService nếu cần
+                }
+            }
+
             var id = Guid.NewGuid().ToString("N");
             await _repo.InsertSessionAsync(id, input.ClassId, input.SubjectId, input.LecturerId, input.RoomId,
-                input.SchoolYearId, input.WeekNo, input.Weekday, input.StartTime, input.EndTime,
+                input.SchoolYearId, input.WeekNo, input.Weekday, startTime, endTime,
                 input.PeriodFrom, input.PeriodTo, input.Recurrence, input.Status, input.Actor);
             return id;
         }
@@ -152,8 +231,22 @@ namespace EducationManagement.BLL.Services
             if (fkErrors.Any())
                 throw new InvalidOperationException(string.Join("; ", fkErrors));
 
+            // ✅ THÊM: Nếu có periodFrom/periodTo, tự động tính startTime và endTime
+            TimeSpan startTime = input.StartTime;
+            TimeSpan endTime = input.EndTime;
+
+            if (input.PeriodFrom.HasValue && input.PeriodTo.HasValue)
+            {
+                var (calculatedStart, calculatedEnd) = PeriodCalculator.CalculateSessionTime(
+                    input.PeriodFrom.Value, 
+                    input.PeriodTo.Value);
+                
+                startTime = calculatedStart;
+                endTime = calculatedEnd;
+            }
+
             await _repo.UpdateSessionAsync(sessionId, input.LecturerId, input.RoomId, input.WeekNo, input.Weekday,
-                input.StartTime, input.EndTime, input.PeriodFrom, input.PeriodTo, input.Recurrence, input.Status, input.Actor);
+                startTime, endTime, input.PeriodFrom, input.PeriodTo, input.Recurrence, input.Status, input.Actor);
         }
 
         // NEW: Soft delete session (validate existence)
@@ -178,6 +271,26 @@ namespace EducationManagement.BLL.Services
                     EndTime = TimeSpan.Parse(r["end_time"].ToString()!),
                     ClassCode = r.Table.Columns.Contains("class_code") ? r["class_code"]?.ToString() : null,
                     RoomCode = r.Table.Columns.Contains("room_code") ? r["room_code"]?.ToString() : null
+                });
+            }
+            return list;
+        }
+
+        // ✅ THÊM: Map period conflict rows
+        private static List<TimetablePeriodConflictItem> MapPeriodConflictRows(DataTable dt)
+        {
+            var list = new List<TimetablePeriodConflictItem>();
+            foreach (DataRow r in dt.Rows)
+            {
+                list.Add(new TimetablePeriodConflictItem
+                {
+                    Type = r["conflict_type"]?.ToString() ?? "",
+                    ExistingSessionId = r["existing_session_id"].ToString()!,
+                    PeriodFrom = r["period_from"] != DBNull.Value ? Convert.ToInt32(r["period_from"]) : 0,
+                    PeriodTo = r["period_to"] != DBNull.Value ? Convert.ToInt32(r["period_to"]) : 0,
+                    LecturerId = null, // Stored procedure không trả về lecturer_id cho period conflicts
+                    RoomId = null, // Stored procedure không trả về room_id cho period conflicts
+                    ClassCode = r.Table.Columns.Contains("class_code") ? r["class_code"]?.ToString() : null
                 });
             }
             return list;
@@ -781,6 +894,8 @@ new { Start = TimeSpan.FromHours(15), End = TimeSpan.FromHours(17) },  // 15:00-
         public int Weekday { get; set; }
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }
+        public int? PeriodFrom { get; set; }  // ✅ THÊM
+        public int? PeriodTo { get; set; }    // ✅ THÊM
     }
 
     public class TimetableCreateInput : TimetableConflictCheckInput
@@ -812,9 +927,23 @@ new { Start = TimeSpan.FromHours(15), End = TimeSpan.FromHours(17) },  // 15:00-
         public List<TimetableConflictItem> LecturerConflicts { get; set; } = new();
         public List<TimetableConflictItem> RoomConflicts { get; set; } = new();
         public List<TimetableStudentConflictItem> StudentConflicts { get; set; } = new();
+        public List<TimetablePeriodConflictItem> PeriodConflicts { get; set; } = new(); // ✅ THÊM
+        public List<string> Errors { get; set; } = new(); // ✅ THÊM
         public int? RoomCapacity { get; set; }
         public int Enrolled { get; set; }
         public bool IsOverCapacity { get; set; }
+    }
+    
+    // ✅ THÊM: Period Conflict Item
+    public class TimetablePeriodConflictItem
+    {
+        public string Type { get; set; } = string.Empty; // "LECTURER_PERIOD", "ROOM_PERIOD", "STUDENT_PERIOD"
+        public string ExistingSessionId { get; set; } = string.Empty;
+        public int PeriodFrom { get; set; }
+        public int PeriodTo { get; set; }
+        public string? LecturerId { get; set; }
+        public string? RoomId { get; set; }
+        public string? ClassCode { get; set; }
     }
 
     public class TimetableConflictItem

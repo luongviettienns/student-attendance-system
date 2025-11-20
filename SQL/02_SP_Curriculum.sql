@@ -293,8 +293,39 @@ BEGIN
         c.semester,
         c.max_students,
         c.current_enrollment,
-        c.schedule,
-        c.room,
+        -- ✅ CẬP NHẬT: Lấy lịch học từ timetable_sessions thay vì c.schedule (DEPRECATED)
+        (SELECT STRING_AGG(schedule_info, ', ')
+         FROM (
+             SELECT DISTINCT 
+                 CASE 
+                     WHEN ts.weekday = 1 THEN N'CN'
+                     WHEN ts.weekday = 2 THEN N'T2'
+                     WHEN ts.weekday = 3 THEN N'T3'
+                     WHEN ts.weekday = 4 THEN N'T4'
+                     WHEN ts.weekday = 5 THEN N'T5'
+                     WHEN ts.weekday = 6 THEN N'T6'
+                     WHEN ts.weekday = 7 THEN N'T7'
+                     ELSE N'?'
+                 END + 
+                 CASE 
+                     WHEN ts.period_from IS NOT NULL AND ts.period_to IS NOT NULL 
+                     THEN N' Tiết ' + CAST(ts.period_from AS NVARCHAR(2)) + N'-' + CAST(ts.period_to AS NVARCHAR(2))
+                     ELSE N' ' + CAST(ts.start_time AS NVARCHAR(5)) + N'-' + CAST(ts.end_time AS NVARCHAR(5))
+                 END as schedule_info
+             FROM dbo.timetable_sessions ts
+             WHERE ts.class_id = c.class_id AND ts.deleted_at IS NULL
+         ) AS schedule_list
+        ) as schedule,
+        -- ✅ CẬP NHẬT: Lấy thông tin phòng từ timetable_sessions thay vì c.room (DEPRECATED)
+        (SELECT STRING_AGG(room_info, ', ')
+         FROM (
+             SELECT DISTINCT 
+                 r.room_code + CASE WHEN r.building IS NOT NULL THEN ' (' + r.building + ')' ELSE '' END as room_info
+             FROM dbo.timetable_sessions ts
+             INNER JOIN dbo.rooms r ON ts.room_id = r.room_id AND r.deleted_at IS NULL
+             WHERE ts.class_id = c.class_id AND ts.deleted_at IS NULL
+         ) AS room_list
+        ) as room,
         c.created_at,
         c.created_by,
         s.subject_code,
@@ -329,8 +360,39 @@ BEGIN
         c.semester,
         c.max_students,
         c.current_enrollment,
-        c.schedule,
-        c.room,
+        -- ✅ CẬP NHẬT: Lấy lịch học từ timetable_sessions thay vì c.schedule (DEPRECATED)
+        (SELECT STRING_AGG(schedule_info, ', ')
+         FROM (
+             SELECT DISTINCT 
+                 CASE 
+                     WHEN ts.weekday = 1 THEN N'CN'
+                     WHEN ts.weekday = 2 THEN N'T2'
+                     WHEN ts.weekday = 3 THEN N'T3'
+                     WHEN ts.weekday = 4 THEN N'T4'
+                     WHEN ts.weekday = 5 THEN N'T5'
+                     WHEN ts.weekday = 6 THEN N'T6'
+                     WHEN ts.weekday = 7 THEN N'T7'
+                     ELSE N'?'
+                 END + 
+                 CASE 
+                     WHEN ts.period_from IS NOT NULL AND ts.period_to IS NOT NULL 
+                     THEN N' Tiết ' + CAST(ts.period_from AS NVARCHAR(2)) + N'-' + CAST(ts.period_to AS NVARCHAR(2))
+                     ELSE N' ' + CAST(ts.start_time AS NVARCHAR(5)) + N'-' + CAST(ts.end_time AS NVARCHAR(5))
+                 END as schedule_info
+             FROM dbo.timetable_sessions ts
+             WHERE ts.class_id = c.class_id AND ts.deleted_at IS NULL
+         ) AS schedule_list
+        ) as schedule,
+        -- ✅ CẬP NHẬT: Lấy thông tin phòng từ timetable_sessions thay vì c.room (DEPRECATED)
+        (SELECT STRING_AGG(room_info, ', ')
+         FROM (
+             SELECT DISTINCT 
+                 r.room_code + CASE WHEN r.building IS NOT NULL THEN ' (' + r.building + ')' ELSE '' END as room_info
+             FROM dbo.timetable_sessions ts
+             INNER JOIN dbo.rooms r ON ts.room_id = r.room_id AND r.deleted_at IS NULL
+             WHERE ts.class_id = c.class_id AND ts.deleted_at IS NULL
+         ) AS room_list
+        ) as room,
         c.created_at,
         e.enrollment_id,
         e.enrollment_date,

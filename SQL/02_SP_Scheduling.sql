@@ -369,7 +369,7 @@ BEGIN
         BEGIN
             DECLARE @MaxStudents INT, @CurrentEnrollment INT;
             SELECT @MaxStudents = max_students, @CurrentEnrollment = current_enrollment
-            FROM classes WHERE class_id = @ClassId;
+            FROM classes WHERE class_id = @ClassId AND deleted_at IS NULL;
             
             IF @CurrentEnrollment >= @MaxStudents
             BEGIN
@@ -394,20 +394,52 @@ BEGIN
             END
         END
         
-        -- Check 6: No schedule conflict (basic check on schedule string)
+        -- Check 6: No schedule conflict (check using timetable_sessions)
         IF @IsEligible = 1
         BEGIN
-            DECLARE @NewSchedule NVARCHAR(500);
-            SELECT @NewSchedule = schedule FROM classes WHERE class_id = @ClassId;
-            
+            -- Check for timetable conflicts between new class and existing enrollments
             IF EXISTS (
-                SELECT 1 FROM enrollments e
-                INNER JOIN classes c ON e.class_id = c.class_id
-                WHERE e.student_id = @StudentId
-                AND e.enrollment_status = 'APPROVED'
-                AND e.deleted_at IS NULL
-                AND c.schedule = @NewSchedule -- Simple string comparison
-                AND c.class_id != @ClassId
+                -- Check period-based conflicts
+                SELECT 1 
+                FROM dbo.timetable_sessions ts_new
+                INNER JOIN dbo.timetable_sessions ts_existing ON 
+                    ts_existing.weekday = ts_new.weekday
+                    AND (ts_existing.week_no = ts_new.week_no OR ts_existing.week_no IS NULL OR ts_new.week_no IS NULL)
+                    AND ts_new.period_from IS NOT NULL 
+                    AND ts_new.period_to IS NOT NULL
+                    AND ts_existing.period_from IS NOT NULL 
+                    AND ts_existing.period_to IS NOT NULL
+                    AND NOT (ts_existing.period_to < ts_new.period_from OR ts_new.period_to < ts_existing.period_from) -- Period overlap
+                INNER JOIN dbo.enrollments e ON ts_existing.class_id = e.class_id
+                INNER JOIN dbo.classes c_existing ON e.class_id = c_existing.class_id
+                WHERE ts_new.class_id = @ClassId
+                    AND ts_new.deleted_at IS NULL
+                    AND e.student_id = @StudentId
+                    AND e.enrollment_status = 'APPROVED'
+                    AND e.deleted_at IS NULL
+                    AND c_existing.class_id != @ClassId
+                    AND ts_existing.deleted_at IS NULL
+                
+                UNION ALL
+                
+                -- Check time-based conflicts (when period is not available)
+                SELECT 1 
+                FROM dbo.timetable_sessions ts_new
+                INNER JOIN dbo.timetable_sessions ts_existing ON 
+                    ts_existing.weekday = ts_new.weekday
+                    AND (ts_existing.week_no = ts_new.week_no OR ts_existing.week_no IS NULL OR ts_new.week_no IS NULL)
+                    AND (ts_new.period_from IS NULL OR ts_new.period_to IS NULL OR ts_existing.period_from IS NULL OR ts_existing.period_to IS NULL)
+                    AND ts_new.start_time < ts_existing.end_time 
+                    AND ts_new.end_time > ts_existing.start_time -- Time overlap
+                INNER JOIN dbo.enrollments e ON ts_existing.class_id = e.class_id
+                INNER JOIN dbo.classes c_existing ON e.class_id = c_existing.class_id
+                WHERE ts_new.class_id = @ClassId
+                    AND ts_new.deleted_at IS NULL
+                    AND e.student_id = @StudentId
+                    AND e.enrollment_status = 'APPROVED'
+                    AND e.deleted_at IS NULL
+                    AND c_existing.class_id != @ClassId
+                    AND ts_existing.deleted_at IS NULL
             )
             BEGIN
                 SET @IsEligible = 0;
@@ -506,10 +538,10 @@ BEGIN
             @CreatedBy
         );
         
-        -- Update class enrollment count
+        -- Update class enrollment count (only if class exists and not deleted)
         UPDATE classes
         SET current_enrollment = current_enrollment + 1
-        WHERE class_id = @ClassId;
+        WHERE class_id = @ClassId AND deleted_at IS NULL;
         
         COMMIT TRANSACTION;
         
@@ -631,36 +663,131 @@ BEGIN
     SET NOCOUNT ON;
     
     BEGIN TRY
-        DECLARE @NewSchedule NVARCHAR(500);
         DECLARE @HasConflict BIT = 0;
         DECLARE @ConflictDetails NVARCHAR(MAX) = NULL;
         
-        -- Get new class schedule
-        SELECT @NewSchedule = schedule
-        FROM classes
-        WHERE class_id = @NewClassId;
-        
-        -- Check for conflicts (simple string comparison)
+        -- Check for conflicts using timetable_sessions
         IF EXISTS (
+            -- Check period-based conflicts
             SELECT 1 
-            FROM enrollments e
-            INNER JOIN classes c ON e.class_id = c.class_id
-            WHERE e.student_id = @StudentId
-            AND e.enrollment_status = 'APPROVED'
-            AND e.deleted_at IS NULL
-            AND c.schedule = @NewSchedule
+            FROM dbo.timetable_sessions ts_new
+            INNER JOIN dbo.timetable_sessions ts_existing ON 
+                ts_existing.weekday = ts_new.weekday
+                AND (ts_existing.week_no = ts_new.week_no OR ts_existing.week_no IS NULL OR ts_new.week_no IS NULL)
+                AND ts_new.period_from IS NOT NULL 
+                AND ts_new.period_to IS NOT NULL
+                AND ts_existing.period_from IS NOT NULL 
+                AND ts_existing.period_to IS NOT NULL
+                AND NOT (ts_existing.period_to < ts_new.period_from OR ts_new.period_to < ts_existing.period_from) -- Period overlap
+            INNER JOIN dbo.enrollments e ON ts_existing.class_id = e.class_id
+            INNER JOIN dbo.classes c_existing ON e.class_id = c_existing.class_id
+            WHERE ts_new.class_id = @NewClassId
+                AND ts_new.deleted_at IS NULL
+                AND e.student_id = @StudentId
+                AND e.enrollment_status = 'APPROVED'
+                AND e.deleted_at IS NULL
+                AND ts_existing.deleted_at IS NULL
+            
+            UNION ALL
+            
+            -- Check time-based conflicts (when period is not available)
+            SELECT 1 
+            FROM dbo.timetable_sessions ts_new
+            INNER JOIN dbo.timetable_sessions ts_existing ON 
+                ts_existing.weekday = ts_new.weekday
+                AND (ts_existing.week_no = ts_new.week_no OR ts_existing.week_no IS NULL OR ts_new.week_no IS NULL)
+                AND (ts_new.period_from IS NULL OR ts_new.period_to IS NULL OR ts_existing.period_from IS NULL OR ts_existing.period_to IS NULL)
+                AND ts_new.start_time < ts_existing.end_time 
+                AND ts_new.end_time > ts_existing.start_time -- Time overlap
+            INNER JOIN dbo.enrollments e ON ts_existing.class_id = e.class_id
+            INNER JOIN dbo.classes c_existing ON e.class_id = c_existing.class_id
+            WHERE ts_new.class_id = @NewClassId
+                AND ts_new.deleted_at IS NULL
+                AND e.student_id = @StudentId
+                AND e.enrollment_status = 'APPROVED'
+                AND e.deleted_at IS NULL
+                AND ts_existing.deleted_at IS NULL
         )
         BEGIN
             SET @HasConflict = 1;
             
-            SELECT @ConflictDetails = STRING_AGG(CONCAT(c.class_code, ' (', c.schedule, ')'), ', ')
-            FROM enrollments e
-            INNER JOIN classes c ON e.class_id = c.class_id
+            -- Get conflict details from timetable_sessions
+            SELECT @ConflictDetails = STRING_AGG(
+                CONCAT(
+                    c.class_code, 
+                    ' (',
+                    CASE 
+                        WHEN ts.weekday = 1 THEN N'CN'
+                        WHEN ts.weekday = 2 THEN N'T2'
+                        WHEN ts.weekday = 3 THEN N'T3'
+                        WHEN ts.weekday = 4 THEN N'T4'
+                        WHEN ts.weekday = 5 THEN N'T5'
+                        WHEN ts.weekday = 6 THEN N'T6'
+                        WHEN ts.weekday = 7 THEN N'T7'
+                        ELSE N'?'
+                    END,
+                    CASE 
+                        WHEN ts.period_from IS NOT NULL AND ts.period_to IS NOT NULL 
+                        THEN N' Tiết ' + CAST(ts.period_from AS NVARCHAR(2)) + N'-' + CAST(ts.period_to AS NVARCHAR(2))
+                        ELSE N' ' + CAST(ts.start_time AS NVARCHAR(5)) + N'-' + CAST(ts.end_time AS NVARCHAR(5))
+                    END,
+                    ')'
+                ), 
+                ', '
+            )
+            FROM dbo.timetable_sessions ts
+            INNER JOIN dbo.enrollments e ON ts.class_id = e.class_id
+            INNER JOIN dbo.classes c ON e.class_id = c.class_id
             WHERE e.student_id = @StudentId
-            AND e.enrollment_status = 'APPROVED'
-            AND e.deleted_at IS NULL
-            AND c.schedule = @NewSchedule;
+                AND e.enrollment_status = 'APPROVED'
+                AND e.deleted_at IS NULL
+                AND ts.deleted_at IS NULL
+                AND EXISTS (
+                    SELECT 1 
+                    FROM dbo.timetable_sessions ts_new
+                    WHERE ts_new.class_id = @NewClassId
+                        AND ts_new.deleted_at IS NULL
+                        AND (
+                            -- Period overlap
+                            (ts_new.period_from IS NOT NULL AND ts_new.period_to IS NOT NULL
+                             AND ts.period_from IS NOT NULL AND ts.period_to IS NOT NULL
+                             AND ts_new.weekday = ts.weekday
+                             AND (ts_new.week_no = ts.week_no OR ts_new.week_no IS NULL OR ts.week_no IS NULL)
+                             AND NOT (ts.period_to < ts_new.period_from OR ts_new.period_to < ts.period_from))
+                            OR
+                            -- Time overlap
+                            ((ts_new.period_from IS NULL OR ts_new.period_to IS NULL OR ts.period_from IS NULL OR ts.period_to IS NULL)
+                             AND ts_new.weekday = ts.weekday
+                             AND (ts_new.week_no = ts.week_no OR ts_new.week_no IS NULL OR ts.week_no IS NULL)
+                             AND ts_new.start_time < ts.end_time 
+                             AND ts_new.end_time > ts.start_time)
+                        )
+                );
         END
+        
+        -- Get new class schedule from timetable_sessions
+        DECLARE @NewSchedule NVARCHAR(500) = (
+            SELECT STRING_AGG(
+                CASE 
+                    WHEN ts.weekday = 1 THEN N'CN'
+                    WHEN ts.weekday = 2 THEN N'T2'
+                    WHEN ts.weekday = 3 THEN N'T3'
+                    WHEN ts.weekday = 4 THEN N'T4'
+                    WHEN ts.weekday = 5 THEN N'T5'
+                    WHEN ts.weekday = 6 THEN N'T6'
+                    WHEN ts.weekday = 7 THEN N'T7'
+                    ELSE N'?'
+                END + 
+                CASE 
+                    WHEN ts.period_from IS NOT NULL AND ts.period_to IS NOT NULL 
+                    THEN N' Tiết ' + CAST(ts.period_from AS NVARCHAR(2)) + N'-' + CAST(ts.period_to AS NVARCHAR(2))
+                    ELSE N' ' + CAST(ts.start_time AS NVARCHAR(5)) + N'-' + CAST(ts.end_time AS NVARCHAR(5))
+                END,
+                ', '
+            )
+            FROM dbo.timetable_sessions ts
+            WHERE ts.class_id = @NewClassId AND ts.deleted_at IS NULL
+        );
         
         SELECT 
             @HasConflict AS has_conflict,
@@ -720,12 +847,14 @@ CREATE PROCEDURE dbo.sp_CheckTimetableConflicts
     @WeekNo         INT = NULL,
     @Weekday        INT,
     @StartTime      TIME,
-    @EndTime        TIME
+    @EndTime        TIME,
+    @PeriodFrom     INT = NULL,  -- ✅ THÊM: Tiết bắt đầu
+    @PeriodTo       INT = NULL    -- ✅ THÊM: Tiết kết thúc
 AS
 BEGIN
     SET NOCOUNT ON;
 
-    -- 1) Lecturer conflicts
+    -- 1) Lecturer conflicts (time-based)
     SELECT TOP 100
         'LECTURER' AS conflict_type,
         ts.session_id AS existing_session_id,
@@ -743,7 +872,7 @@ BEGIN
       AND (ts.deleted_at IS NULL)
       AND (@SessionId IS NULL OR ts.session_id <> @SessionId);
 
-    -- 2) Room conflicts
+    -- 2) Room conflicts (time-based)
     SELECT TOP 100
         'ROOM' AS conflict_type,
         ts.session_id AS existing_session_id,
@@ -760,6 +889,52 @@ BEGIN
       AND (ts.end_time > @StartTime AND @EndTime > ts.start_time)
       AND (ts.deleted_at IS NULL)
       AND (@SessionId IS NULL OR ts.session_id <> @SessionId);
+
+    -- ✅ THÊM: 1b) Lecturer conflicts (period-based)
+    IF @PeriodFrom IS NOT NULL AND @PeriodTo IS NOT NULL AND @LecturerId IS NOT NULL
+    BEGIN
+        SELECT TOP 100
+            'LECTURER_PERIOD' AS conflict_type,
+            ts.session_id AS existing_session_id,
+            ts.week_no, ts.weekday,
+            ts.period_from, ts.period_to,
+            c.class_code, c.class_name,
+            r.room_code
+        FROM dbo.timetable_sessions ts
+        INNER JOIN dbo.classes c ON c.class_id = ts.class_id
+        LEFT JOIN dbo.rooms r ON r.room_id = ts.room_id
+        WHERE ts.lecturer_id = @LecturerId
+          AND ts.weekday = @Weekday
+          AND (ts.week_no = @WeekNo OR ts.week_no IS NULL OR @WeekNo IS NULL)
+          AND ts.period_from IS NOT NULL
+          AND ts.period_to IS NOT NULL
+          AND NOT (ts.period_to < @PeriodFrom OR @PeriodTo < ts.period_from) -- Period overlap
+          AND (ts.deleted_at IS NULL)
+          AND (@SessionId IS NULL OR ts.session_id <> @SessionId);
+    END
+
+    -- ✅ THÊM: 2b) Room conflicts (period-based)
+    IF @PeriodFrom IS NOT NULL AND @PeriodTo IS NOT NULL AND @RoomId IS NOT NULL
+    BEGIN
+        SELECT TOP 100
+            'ROOM_PERIOD' AS conflict_type,
+            ts.session_id AS existing_session_id,
+            ts.week_no, ts.weekday,
+            ts.period_from, ts.period_to,
+            c.class_code, c.class_name,
+            r.room_code
+        FROM dbo.timetable_sessions ts
+        INNER JOIN dbo.classes c ON c.class_id = ts.class_id
+        LEFT JOIN dbo.rooms r ON r.room_id = ts.room_id
+        WHERE ts.room_id = @RoomId
+          AND ts.weekday = @Weekday
+          AND (ts.week_no = @WeekNo OR ts.week_no IS NULL OR @WeekNo IS NULL)
+          AND ts.period_from IS NOT NULL
+          AND ts.period_to IS NOT NULL
+          AND NOT (ts.period_to < @PeriodFrom OR @PeriodTo < ts.period_from) -- Period overlap
+          AND (ts.deleted_at IS NULL)
+          AND (@SessionId IS NULL OR ts.session_id <> @SessionId);
+    END
 
     -- 3) Student conflicts (students of target class colliding other sessions)
     SELECT TOP 200
@@ -785,7 +960,7 @@ BEGIN
     -- 4) Capacity check
     DECLARE @capacity INT = NULL, @enrolled INT = NULL;
     IF @RoomId IS NOT NULL
-        SELECT @capacity = capacity FROM dbo.rooms WHERE room_id = @RoomId;
+        SELECT @capacity = capacity FROM dbo.rooms WHERE room_id = @RoomId AND deleted_at IS NULL;
     SELECT @enrolled = COUNT(1) FROM dbo.enrollments WHERE class_id = @ClassId AND deleted_at IS NULL;
     SELECT @capacity AS room_capacity, @enrolled AS enrolled, CASE WHEN @capacity IS NOT NULL AND @enrolled > @capacity THEN 1 ELSE 0 END AS is_over_capacity;
 END
@@ -1361,10 +1536,10 @@ BEGIN
             updated_by = @DeletedBy
         WHERE enrollment_id = @EnrollmentId;
         
-        -- Decrease class enrollment count
+        -- Decrease class enrollment count (only if class exists and not deleted)
         UPDATE classes
         SET current_enrollment = current_enrollment - 1
-        WHERE class_id = @ClassId;
+        WHERE class_id = @ClassId AND deleted_at IS NULL;
         
         COMMIT TRANSACTION;
         
@@ -1762,8 +1937,39 @@ BEGIN
             s.credits,
             c.lecturer_id,
             l.full_name AS lecturer_name,
-            c.schedule,
-            c.room,
+            -- ✅ CẬP NHẬT: Lấy lịch học từ timetable_sessions thay vì c.schedule (DEPRECATED)
+            (SELECT STRING_AGG(schedule_info, ', ')
+             FROM (
+                 SELECT DISTINCT 
+                     CASE 
+                         WHEN ts.weekday = 1 THEN N'CN'
+                         WHEN ts.weekday = 2 THEN N'T2'
+                         WHEN ts.weekday = 3 THEN N'T3'
+                         WHEN ts.weekday = 4 THEN N'T4'
+                         WHEN ts.weekday = 5 THEN N'T5'
+                         WHEN ts.weekday = 6 THEN N'T6'
+                         WHEN ts.weekday = 7 THEN N'T7'
+                         ELSE N'?'
+                     END + 
+                     CASE 
+                         WHEN ts.period_from IS NOT NULL AND ts.period_to IS NOT NULL 
+                         THEN N' Tiết ' + CAST(ts.period_from AS NVARCHAR(2)) + N'-' + CAST(ts.period_to AS NVARCHAR(2))
+                         ELSE N' ' + CAST(ts.start_time AS NVARCHAR(5)) + N'-' + CAST(ts.end_time AS NVARCHAR(5))
+                     END as schedule_info
+                 FROM dbo.timetable_sessions ts
+                 WHERE ts.class_id = c.class_id AND ts.deleted_at IS NULL
+             ) AS schedule_list
+            ) as schedule,
+            -- ✅ CẬP NHẬT: Lấy thông tin phòng từ timetable_sessions thay vì c.room (DEPRECATED)
+            (SELECT STRING_AGG(room_info, ', ')
+             FROM (
+                 SELECT DISTINCT 
+                     r.room_code + CASE WHEN r.building IS NOT NULL THEN ' (' + r.building + ')' ELSE '' END as room_info
+                 FROM dbo.timetable_sessions ts
+                 INNER JOIN dbo.rooms r ON ts.room_id = r.room_id AND r.deleted_at IS NULL
+                 WHERE ts.class_id = c.class_id AND ts.deleted_at IS NULL
+             ) AS room_list
+            ) as room,
             c.max_students,
             c.current_enrollment,
             (c.max_students - c.current_enrollment) AS available_slots,
@@ -1827,8 +2033,39 @@ BEGIN
             c.class_name,
             s.subject_name,
             l.full_name AS lecturer_name,
-            c.schedule,
-            c.room,
+            -- ✅ CẬP NHẬT: Lấy lịch học từ timetable_sessions thay vì c.schedule (DEPRECATED)
+            (SELECT STRING_AGG(schedule_info, ', ')
+             FROM (
+                 SELECT DISTINCT 
+                     CASE 
+                         WHEN ts.weekday = 1 THEN N'CN'
+                         WHEN ts.weekday = 2 THEN N'T2'
+                         WHEN ts.weekday = 3 THEN N'T3'
+                         WHEN ts.weekday = 4 THEN N'T4'
+                         WHEN ts.weekday = 5 THEN N'T5'
+                         WHEN ts.weekday = 6 THEN N'T6'
+                         WHEN ts.weekday = 7 THEN N'T7'
+                         ELSE N'?'
+                     END + 
+                     CASE 
+                         WHEN ts.period_from IS NOT NULL AND ts.period_to IS NOT NULL 
+                         THEN N' Tiết ' + CAST(ts.period_from AS NVARCHAR(2)) + N'-' + CAST(ts.period_to AS NVARCHAR(2))
+                         ELSE N' ' + CAST(ts.start_time AS NVARCHAR(5)) + N'-' + CAST(ts.end_time AS NVARCHAR(5))
+                     END as schedule_info
+                 FROM dbo.timetable_sessions ts
+                 WHERE ts.class_id = c.class_id AND ts.deleted_at IS NULL
+             ) AS schedule_list
+            ) as schedule,
+            -- ✅ CẬP NHẬT: Lấy thông tin phòng từ timetable_sessions thay vì c.room (DEPRECATED)
+            (SELECT STRING_AGG(room_info, ', ')
+             FROM (
+                 SELECT DISTINCT 
+                     r.room_code + CASE WHEN r.building IS NOT NULL THEN ' (' + r.building + ')' ELSE '' END as room_info
+                 FROM dbo.timetable_sessions ts
+                 INNER JOIN dbo.rooms r ON ts.room_id = r.room_id AND r.deleted_at IS NULL
+                 WHERE ts.class_id = c.class_id AND ts.deleted_at IS NULL
+             ) AS room_list
+            ) as room,
             c.max_students,
             c.current_enrollment
         FROM classes c
@@ -2028,8 +2265,39 @@ BEGIN
             s.credits,
             c.lecturer_id,
             l.full_name AS lecturer_name,
-            c.schedule,
-            c.room,
+            -- ✅ CẬP NHẬT: Lấy lịch học từ timetable_sessions thay vì c.schedule (DEPRECATED)
+            (SELECT STRING_AGG(schedule_info, ', ')
+             FROM (
+                 SELECT DISTINCT 
+                     CASE 
+                         WHEN ts.weekday = 1 THEN N'CN'
+                         WHEN ts.weekday = 2 THEN N'T2'
+                         WHEN ts.weekday = 3 THEN N'T3'
+                         WHEN ts.weekday = 4 THEN N'T4'
+                         WHEN ts.weekday = 5 THEN N'T5'
+                         WHEN ts.weekday = 6 THEN N'T6'
+                         WHEN ts.weekday = 7 THEN N'T7'
+                         ELSE N'?'
+                     END + 
+                     CASE 
+                         WHEN ts.period_from IS NOT NULL AND ts.period_to IS NOT NULL 
+                         THEN N' Tiết ' + CAST(ts.period_from AS NVARCHAR(2)) + N'-' + CAST(ts.period_to AS NVARCHAR(2))
+                         ELSE N' ' + CAST(ts.start_time AS NVARCHAR(5)) + N'-' + CAST(ts.end_time AS NVARCHAR(5))
+                     END as schedule_info
+                 FROM dbo.timetable_sessions ts
+                 WHERE ts.class_id = c.class_id AND ts.deleted_at IS NULL
+             ) AS schedule_list
+            ) as schedule,
+            -- ✅ CẬP NHẬT: Lấy thông tin phòng từ timetable_sessions thay vì c.room (DEPRECATED)
+            (SELECT STRING_AGG(room_info, ', ')
+             FROM (
+                 SELECT DISTINCT 
+                     r.room_code + CASE WHEN r.building IS NOT NULL THEN ' (' + r.building + ')' ELSE '' END as room_info
+                 FROM dbo.timetable_sessions ts
+                 INNER JOIN dbo.rooms r ON ts.room_id = r.room_id AND r.deleted_at IS NULL
+                 WHERE ts.class_id = c.class_id AND ts.deleted_at IS NULL
+             ) AS room_list
+            ) as room,
             c.semester,
             c.academic_year_id,
             ay.year_name,

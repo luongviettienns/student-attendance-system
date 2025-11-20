@@ -152,6 +152,12 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'ClassController'
         })
         
+        // Room Management (Quản lý Phòng học)
+        .when('/rooms', {
+            templateUrl: 'views/admin/rooms/list.html',
+            controller: 'RoomController'
+        })
+        
         // Grade Formula Management (Admin)
         .when('/grade-formula', {
             templateUrl: 'views/advisor/grade-formula.html',
@@ -164,6 +170,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'LecturerDashboardController'
         })
         .when('/lecturer/attendance', {
+            templateUrl: 'views/lecturer/attendance.html',
+            controller: 'LecturerAttendanceController'
+        })
+        .when('/lecturer/attendance/:sessionId', {
             templateUrl: 'views/lecturer/attendance.html',
             controller: 'LecturerAttendanceController'
         })
@@ -182,6 +192,10 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/lecturer/timetable', {
             templateUrl: 'views/lecturer/timetable.html',
             controller: 'LecturerTimetableController'
+        })
+        .when('/lecturer/classes', {
+            templateUrl: 'views/lecturer/classes.html',
+            controller: 'LecturerClassController'
         })
         
         // Advisor Portal

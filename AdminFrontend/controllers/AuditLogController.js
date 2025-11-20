@@ -51,10 +51,18 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
         { value: 'Student', label: 'Sinh viên' },
         { value: 'Lecturer', label: 'Giảng viên' },
         { value: 'Faculty', label: 'Khoa' },
+        { value: 'Department', label: 'Bộ môn' },
         { value: 'Major', label: 'Ngành' },
         { value: 'Subject', label: 'Môn học' },
         { value: 'Grade', label: 'Điểm' },
-        { value: 'Attendance', label: 'Điểm danh' }
+        { value: 'Attendance', label: 'Điểm danh' },
+        { value: 'Class', label: 'Lớp học' },
+        { value: 'AcademicYear', label: 'Niên khóa' },
+        { value: 'SchoolYear', label: 'Năm học' },
+        { value: 'Enrollment', label: 'Đăng ký học phần' },
+        { value: 'RegistrationPeriod', label: 'Kỳ đăng ký' },
+        { value: 'Notification', label: 'Thông báo' },
+        { value: 'Auth', label: 'Xác thực' }
     ];
     
     // Load audit logs
@@ -301,7 +309,12 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
             'Grade': 'Điểm',
             'Attendance': 'Điểm danh',
             'AcademicYear': 'Niên khóa',
+            'SchoolYear': 'Năm học',
             'Class': 'Lớp học',
+            'Enrollment': 'Đăng ký học phần',
+            'RegistrationPeriod': 'Kỳ đăng ký',
+            'Notification': 'Thông báo',
+            'Auth': 'Xác thực',
             'users': 'Người dùng',
             'students': 'Sinh viên',
             'lecturers': 'Giảng viên',
@@ -312,7 +325,11 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
             'grades': 'Điểm',
             'attendances': 'Điểm danh',
             'academic_years': 'Niên khóa',
-            'classes': 'Lớp học'
+            'school_years': 'Năm học',
+            'classes': 'Lớp học',
+            'enrollments': 'Đăng ký học phần',
+            'registration_periods': 'Kỳ đăng ký',
+            'notifications': 'Thông báo'
         };
         return labels[entityType] || entityType;
     };
@@ -377,10 +394,12 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
                 'lecturer_code': 'Mã giảng viên',
                 'department_id': 'Mã bộ môn',
                 'title': 'Học hàm/học vị',
+                'academic_title': 'Học hàm/học vị',
                 
                 // Departments
                 'department_code': 'Mã bộ môn',
                 'department_name': 'Tên bộ môn',
+                'department_id': 'Mã ID bộ môn',
                 'ma_bo_mon': 'Mã bộ môn',
                 'ten_bo_mon': 'Tên bộ môn',
                 'ma_khoa': 'Mã khoa',
@@ -388,11 +407,13 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
                 // Faculties
                 'faculty_name': 'Tên khoa',
                 'faculty_code': 'Mã khoa',
+                'faculty_id': 'Mã ID khoa',
                 'dean': 'Trưởng khoa',
                 
                 // Majors
                 'major_name': 'Tên ngành',
                 'major_code': 'Mã ngành',
+                'major_id': 'Mã ID ngành',
                 
                 // Subjects
                 'subject_id': 'Mã môn học',
@@ -400,12 +421,51 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
                 'subject_code': 'Mã môn học',
                 'credits': 'Số tín chỉ',
                 
+                // Classes
+                'class_id': 'Mã lớp học',
+                'class_code': 'Mã lớp',
+                'class_name': 'Tên lớp',
+                
+                // Academic Years
+                'academic_year_id': 'Mã niên khóa',
+                'academic_year_name': 'Tên niên khóa',
+                'start_year': 'Năm bắt đầu',
+                'end_year': 'Năm kết thúc',
+                
+                // School Years
+                'school_year_id': 'Mã năm học',
+                'school_year_name': 'Tên năm học',
+                'start_date': 'Ngày bắt đầu',
+                'end_date': 'Ngày kết thúc',
+                
                 // Grades
                 'grade_id': 'Mã điểm',
-                'midterm_score': 'Điểm giữa kỳ',
-                'final_score': 'Điểm cuối kỳ',
+                'gradeType': 'Loại điểm',
+                'grade_type': 'Loại điểm',
+                'score': 'Điểm số',
+                'maxScore': 'Điểm tối đa',
+                'max_score': 'Điểm tối đa',
+                'weight': 'Trọng số',
+                'totalScore': 'Tổng điểm',
                 'total_score': 'Tổng điểm',
+                'midterm_score': 'Điểm giữa kỳ',
+                'midtermScore': 'Điểm giữa kỳ', // camelCase
+                'final_score': 'Điểm cuối kỳ',
+                'finalScore': 'Điểm cuối kỳ', // camelCase
                 'letter_grade': 'Điểm chữ',
+                'student_id': 'Mã sinh viên',
+                'studentId': 'Mã sinh viên', // camelCase
+                'class_id': 'Mã lớp học',
+                'classId': 'Mã lớp học', // camelCase
+                'subject_id': 'Mã môn học',
+                'subjectId': 'Mã môn học', // camelCase
+                'school_year_id': 'Mã năm học',
+                'schoolYearId': 'Mã năm học', // camelCase
+                'semester': 'Học kỳ',
+                'note': 'Ghi chú',
+                'notes': 'Ghi chú',
+                'gradedBy': 'Người chấm điểm',
+                'graded_by': 'Người chấm điểm',
                 
                 // Common fields
                 'created_at': 'Thời gian tạo',
@@ -464,6 +524,39 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
         // Handle is_active specifically
         if (key === 'is_active') {
             return value == 1 || value === true ? '✅ Đang hoạt động' : '❌ Không hoạt động';
+        }
+        
+        // Handle gradeType
+        if (key === 'gradeType' || key === 'grade_type') {
+            var gradeTypes = {
+                'midterm': 'Điểm giữa kỳ',
+                'final': 'Điểm cuối kỳ',
+                'quiz': 'Điểm kiểm tra',
+                'assignment': 'Điểm bài tập',
+                'project': 'Điểm dự án',
+                'attendance': 'Điểm chuyên cần',
+                'participation': 'Điểm tham gia',
+                'other': 'Điểm khác'
+            };
+            return gradeTypes[value] || value;
+        }
+        
+        // Handle weight (trọng số) - format as percentage
+        if (key === 'weight') {
+            if (typeof value === 'number') {
+                return (value * 100).toFixed(0) + '%';
+            }
+            return String(value);
+        }
+        
+        // Handle score fields - format with 1 decimal place if number
+        if (key === 'score' || key === 'maxScore' || key === 'max_score' || 
+            key === 'totalScore' || key === 'total_score' || 
+            key === 'midterm_score' || key === 'final_score') {
+            if (typeof value === 'number') {
+                return value.toFixed(1);
+            }
+            return String(value);
         }
         
         // Handle date/time fields

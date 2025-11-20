@@ -49,6 +49,9 @@ builder.Services.AddScoped<EducationManagement.Common.Interfaces.INotificationHu
 // ✅ Register OTPService (no interface, needs explicit registration)
 builder.Services.AddScoped<EducationManagement.BLL.Services.OTPService>();
 
+// ✅ Register RoomService (explicit registration to ensure it's available)
+builder.Services.AddScoped<EducationManagement.BLL.Services.RoomService>();
+
 // ============================================================
 // 🔹 2.5️⃣ REDIS CACHING (OPTIONAL - Fallback to Memory Cache if Redis unavailable)
 // ============================================================
@@ -156,7 +159,26 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Education Management API - Admin",
+        Version = "v1",
+        Description = "API for Education Management System - Admin Module"
+    });
+    
+    // ✅ Include XML comments if available
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath);
+    }
+    
+    // ✅ Ignore circular references
+    options.CustomSchemaIds(type => type.FullName);
+});
 
 // ✅ SignalR for real-time notifications
 builder.Services.AddSignalR();

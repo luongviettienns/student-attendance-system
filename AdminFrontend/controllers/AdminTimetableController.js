@@ -42,6 +42,77 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
     return null; // Invalid format
   }
 
+  // ✅ THÊM: Helper - Tính thời gian từ period
+  $scope.calculateTimeFromPeriod = function(periodFrom, periodTo) {
+    if (!periodFrom || !periodTo) return null;
+    
+    // Mapping thời gian tiết học theo chuẩn đại học Việt Nam
+    const periodTimes = {
+      1: { start: '07:00', end: '07:50' },
+      2: { start: '07:55', end: '08:45' },
+      3: { start: '09:00', end: '09:50' },
+      4: { start: '09:55', end: '10:45' },
+      5: { start: '10:50', end: '11:40' },
+      6: { start: '11:45', end: '12:35' },
+      7: { start: '12:40', end: '13:30' },
+      8: { start: '13:35', end: '14:25' },
+      9: { start: '14:30', end: '15:20' },
+      10: { start: '15:25', end: '16:15' },
+      11: { start: '16:20', end: '17:10' },
+      12: { start: '17:15', end: '18:05' }
+    };
+    
+    if (periodTimes[periodFrom] && periodTimes[periodTo]) {
+      return {
+        startTime: periodTimes[periodFrom].start,
+        endTime: periodTimes[periodTo].end
+      };
+    }
+    return null;
+  };
+
+  // ✅ THÊM: Validate period range
+  $scope.validatePeriodRange = function() {
+    if ($scope.form.periodFrom && $scope.form.periodTo) {
+      if ($scope.form.periodFrom < 1 || $scope.form.periodFrom > 12) {
+        ToastService.error('Tiết bắt đầu phải từ 1 đến 12');
+        return false;
+      }
+      if ($scope.form.periodTo < $scope.form.periodFrom || $scope.form.periodTo > 12) {
+        ToastService.error('Tiết kết thúc phải >= tiết bắt đầu và <= 12');
+        return false;
+      }
+      // Validate consecutive periods
+      var numberOfPeriods = $scope.form.periodTo - $scope.form.periodFrom + 1;
+      if (numberOfPeriods <= 0 || numberOfPeriods > 12) {
+        ToastService.error('Số tiết học không hợp lệ');
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // ✅ THÊM: Watch period changes để tự động cập nhật thời gian
+  $scope.$watch('form.periodFrom', function(newVal) {
+    if (newVal && $scope.form.periodTo) {
+      var times = $scope.calculateTimeFromPeriod(newVal, $scope.form.periodTo);
+      if (times) {
+        $scope.form.startTime = times.startTime;
+        $scope.form.endTime = times.endTime;
+      }
+    }
+  });
+
+  $scope.$watch('form.periodTo', function(newVal) {
+    if ($scope.form.periodFrom && newVal) {
+      var times = $scope.calculateTimeFromPeriod($scope.form.periodFrom, newVal);
+      if (times) {
+        $scope.form.startTime = times.startTime;
+        $scope.form.endTime = times.endTime;
+      }
+    }
+  });
+
   // Form data - Initialize with null for time fields to avoid Angular parsing issues
   $scope.form = {
     sessionId: null,
@@ -306,6 +377,13 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       return;
     }
     
+    // ✅ THÊM: Validate period nếu có
+    if ($scope.form.periodFrom && $scope.form.periodTo) {
+      if (!$scope.validatePeriodRange()) {
+        return;
+      }
+    }
+    
     // Validate time format
     var startTimeStr = timeToApi($scope.form.startTime);
     var endTimeStr = timeToApi($scope.form.endTime);
@@ -327,7 +405,9 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
       weekNo: parseInt($scope.form.weekNo) || null,
       weekday: parseInt($scope.form.weekday) || 1,
       startTime: startTimeStr, // "HH:mm:ss" format
-      endTime: endTimeStr       // "HH:mm:ss" format
+      endTime: endTimeStr,      // "HH:mm:ss" format
+      periodFrom: $scope.form.periodFrom ? parseInt($scope.form.periodFrom) : null,  // ✅ THÊM
+      periodTo: $scope.form.periodTo ? parseInt($scope.form.periodTo) : null        // ✅ THÊM
     };
     
     LoggerService.debug('Check conflicts input', input);
@@ -335,10 +415,17 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
     TimetableApi.checkConflicts(input).then(function(res) {
       $scope.conflictResult = res.data.data || res.data;
       $scope.checkingConflicts = false;
+      
+      // ✅ THÊM: Kiểm tra period conflicts
+      var hasPeriodConflicts = $scope.conflictResult.periodConflicts && $scope.conflictResult.periodConflicts.length > 0;
+      var hasErrors = $scope.conflictResult.errors && $scope.conflictResult.errors.length > 0;
+      
       if ($scope.conflictResult.lecturerConflicts.length === 0 && 
           $scope.conflictResult.roomConflicts.length === 0 && 
           $scope.conflictResult.studentConflicts.length === 0 &&
-          !$scope.conflictResult.isOverCapacity) {
+          !$scope.conflictResult.isOverCapacity &&
+          !hasPeriodConflicts &&
+          !hasErrors) {
         ToastService.success('Không có xung đột, có thể tạo phiên học');
       } else {
         ToastService.warning('Phát hiện xung đột, xem chi tiết bên dưới');

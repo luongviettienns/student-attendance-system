@@ -235,23 +235,21 @@
 		DECLARE @ActiveDepartmentCount INT = 0;
 		DECLARE @ActiveMajorCount INT = 0;
 		
-		-- Đếm số Department (chỉ active)
+		-- Đếm số Department (chỉ active - departments không có is_active, chỉ dùng deleted_at)
 		SELECT @DepartmentCount = COUNT(*)
 		FROM dbo.departments
 		WHERE faculty_id = @FacultyId AND deleted_at IS NULL;
 		
-		SELECT @ActiveDepartmentCount = COUNT(*)
-		FROM dbo.departments
-		WHERE faculty_id = @FacultyId AND deleted_at IS NULL AND is_active = 1;
+		-- ✅ SỬA: departments không có cột is_active, chỉ dùng deleted_at
+		SET @ActiveDepartmentCount = @DepartmentCount;
 		
-		-- Đếm số Major (chỉ active)
+		-- Đếm số Major (chỉ active - majors không có is_active, chỉ dùng deleted_at)
 		SELECT @MajorCount = COUNT(*)
 		FROM dbo.majors
 		WHERE faculty_id = @FacultyId AND deleted_at IS NULL;
 		
-		SELECT @ActiveMajorCount = COUNT(*)
-		FROM dbo.majors
-		WHERE faculty_id = @FacultyId AND deleted_at IS NULL AND is_active = 1;
+		-- ✅ SỬA: majors không có cột is_active, chỉ dùng deleted_at
+		SET @ActiveMajorCount = @MajorCount;
 		
 		SELECT 
 			@DepartmentCount AS department_count,
@@ -279,14 +277,13 @@
 		DECLARE @ActiveSubjectCount INT = 0;
 		DECLARE @ActiveLecturerCount INT = 0;
 		
-		-- Đếm số Subject (chỉ active)
+		-- Đếm số Subject (chỉ active - subjects không có is_active, chỉ dùng deleted_at)
 		SELECT @SubjectCount = COUNT(*)
 		FROM dbo.subjects
 		WHERE department_id = @DepartmentId AND deleted_at IS NULL;
 		
-		SELECT @ActiveSubjectCount = COUNT(*)
-		FROM dbo.subjects
-		WHERE department_id = @DepartmentId AND deleted_at IS NULL AND is_active = 1;
+		-- ✅ SỬA: subjects không có cột is_active, chỉ dùng deleted_at
+		SET @ActiveSubjectCount = @SubjectCount;
 		
 		-- Đếm số Lecturer (chỉ active)
 		SELECT @LecturerCount = COUNT(*)

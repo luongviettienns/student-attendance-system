@@ -1,10 +1,11 @@
 // Lecturer Report Controller
-app.controller('LecturerReportController', ['$scope', 'ReportService', 'SchoolYearService', 'ClassService', 'CurrentSemesterHelper', 'ToastService', 'LoggerService', 'AuthService',
-    function($scope, ReportService, SchoolYearService, ClassService, CurrentSemesterHelper, ToastService, LoggerService, AuthService) {
+app.controller('LecturerReportController', ['$scope', 'ReportService', 'SchoolYearService', 'AdministrativeClassService', 'LecturerService', 'CurrentSemesterHelper', 'ToastService', 'LoggerService', 'AuthService', 'ApiService',
+    function($scope, ReportService, SchoolYearService, AdministrativeClassService, LecturerService, CurrentSemesterHelper, ToastService, LoggerService, AuthService, ApiService) {
     
     $scope.loading = false;
     $scope.error = null;
     $scope.currentUser = AuthService.getCurrentUser() || {};
+    $scope.lecturerId = null;
     
     // Filter data
     $scope.filters = {
@@ -50,8 +51,64 @@ app.controller('LecturerReportController', ['$scope', 'ReportService', 'SchoolYe
         lowAttendanceStudents: []
     };
     
+    // Load lecturerId từ currentUser
+    function loadLecturerId() {
+        if (!$scope.currentUser || !$scope.currentUser.userId) {
+            $scope.error = 'Không tìm thấy thông tin người dùng.';
+            $scope.loading = false;
+            return;
+        }
+        
+        // Try multiple ways to get lecturerId
+        $scope.lecturerId = $scope.currentUser.lecturerId || 
+                           $scope.currentUser.lecturer_id ||
+                           $scope.currentUser.relatedId;
+        
+        // If found, use it directly
+        if ($scope.lecturerId) {
+            $scope.loadDropdowns();
+            return;
+        }
+        
+        // If not found and we have userId, try to get from API
+        LecturerService.getByUserId($scope.currentUser.userId)
+            .then(function(response) {
+                var lecturer = null;
+                if (response.data) {
+                    if (response.data.data) {
+                        lecturer = response.data.data;
+                    } else if (response.data.lecturerId || response.data.lecturer_id) {
+                        lecturer = response.data;
+                    }
+                }
+                
+                if (lecturer) {
+                    $scope.lecturerId = lecturer.lecturerId || lecturer.lecturer_id;
+                    if ($scope.lecturerId) {
+                        $scope.loadDropdowns();
+                    } else {
+                        $scope.error = 'Không tìm thấy thông tin giảng viên.';
+                        $scope.loading = false;
+                    }
+                } else {
+                    $scope.error = 'Không tìm thấy thông tin giảng viên.';
+                    $scope.loading = false;
+                }
+            })
+            .catch(function(error) {
+                LoggerService.error('Error loading lecturer info', error);
+                $scope.error = 'Không thể tải thông tin giảng viên: ' + (error.data?.message || error.message || 'Lỗi không xác định');
+                $scope.loading = false;
+            });
+    }
+    
     // Load dropdowns
     $scope.loadDropdowns = function() {
+        if (!$scope.lecturerId) {
+            LoggerService.warn('LecturerId not available, skipping loadDropdowns');
+            return;
+        }
+        
         // Load school years và tự động chọn năm học hiện tại
         SchoolYearService.getAll().then(function(res) {
             $scope.schoolYears = (res.data && res.data.data) || res.data || [];
@@ -70,27 +127,27 @@ app.controller('LecturerReportController', ['$scope', 'ReportService', 'SchoolYe
             LoggerService.error('Load school years error', err);
         });
         
-        // Load administrative classes mà lecturer là chủ nhiệm
-        // Note: Cần API để lấy lớp chủ nhiệm của lecturer
-        ClassService.getAll().then(function(res) {
-            var allClasses = (res.data && res.data.data) || res.data || [];
-            
-            // Filter theo học kỳ hiện tại (ưu tiên hiển thị học kỳ hiện tại)
-            CurrentSemesterHelper.getCurrentSemesterInfo()
-                .then(function(currentSemesterInfo) {
-                    if (currentSemesterInfo && currentSemesterInfo.semester) {
-                        $scope.classes = CurrentSemesterHelper.filterClassesByCurrentSemester(
-                            allClasses,
-                            currentSemesterInfo,
-                            { filterOnly: false, sortByCurrent: true }
-                        );
-                    } else {
-                        $scope.classes = allClasses;
-                    }
+        // ✅ Load administrative classes mà lecturer là chủ nhiệm (filter by advisorId)
+        AdministrativeClassService.getAll(1, 1000, null, null, null, $scope.lecturerId)
+            .then(function(res) {
+                var result = res.data;
+                if (result && result.data && Array.isArray(result.data)) {
+                    $scope.classes = result.data;
+                } else if (result && Array.isArray(result)) {
+                    $scope.classes = result;
+                } else {
+                    $scope.classes = [];
+                }
+                
+                LoggerService.debug('Loaded administrative classes for lecturer', {
+                    lecturerId: $scope.lecturerId,
+                    totalClasses: $scope.classes.length
                 });
-        }).catch(function(err) {
-            LoggerService.error('Load classes error', err);
-        });
+            })
+            .catch(function(err) {
+                LoggerService.error('Load administrative classes error', err);
+                $scope.classes = [];
+            });
     };
     
     // Load reports
@@ -103,21 +160,56 @@ app.controller('LecturerReportController', ['$scope', 'ReportService', 'SchoolYe
         $scope.loading = true;
         $scope.error = null;
         
-        ReportService.getLecturerReports($scope.filters).then(function(res) {
-            var data = (res.data && res.data.data) || res.data || {};
-            
-            // Map data to scope
-            $scope.reports.attendanceStats = data.attendanceStats || { totalStudents: 0, averageAttendanceRate: 0, goodAttendance: 0, poorAttendance: 0, byStatus: {} };
-            $scope.reports.gpaDistribution = data.gpaDistribution || { excellent: 0, good: 0, average: 0, weak: 0 };
-            $scope.reports.creditDebtStats = data.creditDebtStats || { total: 0, averageDebt: 0, byRange: [] };
-            $scope.reports.lowAttendanceStudents = data.lowAttendanceStudents || [];
-            
-        }).catch(function(err) {
-            $scope.error = 'Lỗi tải thống kê: ' + (err.data && err.data.message) || err.statusText;
-            LoggerService.error('Load reports error', err);
-        }).finally(function() {
-            $scope.loading = false;
-        });
+        // ✅ Gọi API để lấy thống kê lớp chủ nhiệm
+        var semester = $scope.filters.semester || null;
+        var academicYearId = $scope.filters.schoolYearId || null;
+        
+        AdministrativeClassService.getReport($scope.filters.classId, semester, academicYearId)
+            .then(function(res) {
+                var reportData = (res.data && res.data.data) || res.data || {};
+                
+                // Map từ AdminClassReportDto sang format hiện tại
+                $scope.reports.attendanceStats = {
+                    totalStudents: reportData.totalStudents || 0,
+                    averageAttendanceRate: Math.round((reportData.attendanceRate || 0) * 100) / 100,
+                    goodAttendance: reportData.studentsWithGoodAttendance || 0,
+                    poorAttendance: reportData.studentsWithPoorAttendance || 0,
+                    byStatus: {
+                        present: 0, // Sẽ tính từ attendance data nếu có
+                        absent: 0,
+                        late: 0,
+                        excused: 0
+                    }
+                };
+                
+                // Map GPA distribution
+                $scope.reports.gpaDistribution = {
+                    excellent: reportData.studentsAbove3_5 || 0, // >= 3.5
+                    good: reportData.studentsAbove3_0 || 0,      // 3.0 - 3.49
+                    average: reportData.studentsAbove2_0 || 0,   // 2.0 - 2.99
+                    weak: reportData.studentsBelow2_0 || 0       // < 2.0
+                };
+                
+                // Credit debt stats - cần tính từ enrollment data
+                $scope.reports.creditDebtStats = {
+                    total: 0,
+                    averageDebt: 0,
+                    byRange: []
+                };
+                
+                // Low attendance students - cần lấy từ API hoặc tính từ report data
+                $scope.reports.lowAttendanceStudents = [];
+                
+                LoggerService.debug('Loaded class report', reportData);
+            })
+            .catch(function(err) {
+                $scope.error = 'Lỗi tải thống kê: ' + (err.data && err.data.message || err.statusText || 'Lỗi không xác định');
+                LoggerService.error('Load reports error', err);
+                ToastService.error('Không thể tải thống kê lớp chủ nhiệm');
+            })
+            .finally(function() {
+                $scope.loading = false;
+            });
     };
     
     // Export to Excel
@@ -142,6 +234,6 @@ app.controller('LecturerReportController', ['$scope', 'ReportService', 'SchoolYe
     };
     
     // Initialize
-    $scope.loadDropdowns();
+    loadLecturerId();
 }]);
 

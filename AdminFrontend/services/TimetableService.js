@@ -8,7 +8,8 @@ app.factory('TimetableApi', ['$http', 'API_CONFIG', function($http, API_CONFIG) 
       return $http.get(base + '/timetable/lecturer', { params: { lecturerId: lecturerId, year: year, week: week } });
     },
     getRooms: function(search, isActive) {
-      return $http.get(base + '/rooms', { params: { search: search, isActive: isActive } });
+      // ✅ Đổi route từ /rooms sang /timetable/rooms để tránh conflict với RoomController
+      return $http.get(base + '/timetable/rooms', { params: { search: search, isActive: isActive } });
     },
     getAllSessionsByWeek: function(year, week) {
       return $http.get(base + '/timetable/sessions', { params: { year: year, week: week } });

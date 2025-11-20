@@ -658,10 +658,29 @@ GO
 
 MERGE dbo.timetable_sessions AS target
 USING (VALUES
-    ('TS_SE101_MON', 'CLS_SE101_2024', 'SUB_SE101', 'LEC_FT_01', 'ROOM_A101', 'SY2024', 1, 2, CAST('07:30' AS TIME), CAST('09:30' AS TIME), 1, 2, N'WEEKLY', N'ACTIVE', N'Buoi hoc lap trinh co ban'),
-    ('TS_SE201_WED', 'CLS_SE201_2024', 'SUB_SE201', 'LEC_FT_01', 'ROOM_B202', 'SY2024', 1, 4, CAST('09:45' AS TIME), CAST('11:45' AS TIME), 3, 4, N'WEEKLY', N'ACTIVE', N'Buoi phan tich he thong'),
-    ('TS_DS101_FRI', 'CLS_DS101_2024', 'SUB_DS101', 'LEC_FT_02', 'ROOM_C303', 'SY2024', 1, 5, CAST('13:00' AS TIME), CAST('15:00' AS TIME), 5, 6, N'WEEKLY', N'ACTIVE', N'Thuc hanh du lieu'),
-    ('TS_SE301_TUE', 'CLS_SE301_2024', 'SUB_SE301', 'LEC_FT_02', 'ROOM_C303', 'SY2024', 2, 3, CAST('15:15' AS TIME), CAST('17:15' AS TIME), 7, 8, N'WEEKLY', N'PLANNED', N'Huong dan do an')
+    -- ✅ CẬP NHẬT: Thời gian khớp với PeriodCalculator và phân bổ thực tế (tránh xung đột)
+    -- ✅ CẬP NHẬT: week_no = NULL cho các sessions WEEKLY để hiển thị cho tất cả các tuần
+    -- CLS_SE101_2024: 4 tiết/tuần, chia 2 buổi x 2 tiết (LEC_FT_01)
+    -- Buổi 1: Thứ 2, Tiết 1-2: 07:00-08:45
+    ('TS_SE101_MON', 'CLS_SE101_2024', 'SUB_SE101', 'LEC_FT_01', 'ROOM_A101', 'SY2024', NULL, 2, CAST('07:00' AS TIME), CAST('08:45' AS TIME), 1, 2, N'WEEKLY', N'ACTIVE', N'Buoi hoc lap trinh co ban - buoi 1'),
+    -- Buổi 2: Thứ 5, Tiết 3-4: 09:00-10:45 (tránh xung đột với SE201)
+    ('TS_SE101_THU', 'CLS_SE101_2024', 'SUB_SE101', 'LEC_FT_01', 'ROOM_A101', 'SY2024', NULL, 5, CAST('09:00' AS TIME), CAST('10:45' AS TIME), 3, 4, N'WEEKLY', N'ACTIVE', N'Buoi hoc lap trinh co ban - buoi 2'),
+    
+    -- CLS_SE201_2024: 4 tiết/tuần, chia 2 buổi x 2 tiết (LEC_FT_01)
+    -- Buổi 1: Thứ 4, Tiết 3-4: 09:00-10:45
+    ('TS_SE201_WED', 'CLS_SE201_2024', 'SUB_SE201', 'LEC_FT_01', 'ROOM_B202', 'SY2024', NULL, 4, CAST('09:00' AS TIME), CAST('10:45' AS TIME), 3, 4, N'WEEKLY', N'ACTIVE', N'Buoi phan tich he thong - buoi 1'),
+    -- Buổi 2: Thứ 6, Tiết 5-6: 10:50-12:35
+    ('TS_SE201_FRI', 'CLS_SE201_2024', 'SUB_SE201', 'LEC_FT_01', 'ROOM_B202', 'SY2024', NULL, 6, CAST('10:50' AS TIME), CAST('12:35' AS TIME), 5, 6, N'WEEKLY', N'ACTIVE', N'Buoi phan tich he thong - buoi 2'),
+    
+    -- CLS_DS101_2024: 2 tiết/tuần, 1 buổi (HK1)
+    -- Thứ 6, Tiết 5-6: 10:50-12:35
+    ('TS_DS101_FRI', 'CLS_DS101_2024', 'SUB_DS101', 'LEC_FT_02', 'ROOM_C303', 'SY2024', NULL, 6, CAST('10:50' AS TIME), CAST('12:35' AS TIME), 5, 6, N'WEEKLY', N'ACTIVE', N'Thuc hanh du lieu'),
+    
+    -- CLS_SE301_2024: 2 tiết/tuần, 1 buổi (HK2 - Đồ án tốt nghiệp)
+    -- ✅ NGHIỆP VỤ: Đồ án thường bắt đầu từ giữa HK2, nên week_no = NULL (tất cả các tuần) hoặc week_no = 8 (tuần 8)
+    -- Thứ 3, Tiết 7-8: 12:40-14:25
+    -- Lưu ý: week_no = NULL nghĩa là học tất cả các tuần trong học kỳ
+    ('TS_SE301_TUE', 'CLS_SE301_2024', 'SUB_SE301', 'LEC_FT_02', 'ROOM_C303', 'SY2024', NULL, 3, CAST('12:40' AS TIME), CAST('14:25' AS TIME), 7, 8, N'WEEKLY', N'PLANNED', N'Huong dan do an - bat dau tu giua HK2')
 ) AS src(session_id, class_id, subject_id, lecturer_id, room_id, school_year_id, week_no, weekday,
           start_time, end_time, period_from, period_to, recurrence, status, notes)
 ON target.session_id = src.session_id
@@ -814,18 +833,19 @@ WHEN NOT MATCHED THEN
     VALUES (src.grade_id, src.enrollment_id, src.midterm_score, src.final_score, src.total_score, src.letter_grade, 'seed_full_test');
 GO
 
+-- ✅ SỬA: MERGE theo (student_id, school_year_id, semester) để tránh vi phạm unique constraint
 MERGE dbo.gpas AS target
 USING (VALUES
     ('GPA_FT_K24_SY2024_S1', 'STU_K24_001', 'AY2024', 'SY2024', 1, 8.4, 3.4, 15, 15, N'Gioi',       1),
     ('GPA_FT_K23_SY2024_S1', 'STU_K23_001', 'AY2023', 'SY2024', 1, 8.0, 3.2, 14, 60, N'Kha',        1),
     ('GPA_FT_K21_SY2024_S2', 'STU_K21_001', 'AY2021', 'SY2024', 2, 7.2, 2.9, 12, 120, N'Trung binh',1)
 ) AS src(gpa_id, student_id, academic_year_id, school_year_id, semester, gpa10, gpa4, total_credits, accumulated_credits, rank_text, is_active)
-ON target.gpa_id = src.gpa_id
+ON target.student_id = src.student_id 
+   AND target.school_year_id = src.school_year_id 
+   AND target.semester = src.semester
 WHEN MATCHED THEN
-    UPDATE SET student_id = src.student_id,
+    UPDATE SET gpa_id = src.gpa_id,
                academic_year_id = src.academic_year_id,
-               school_year_id = src.school_year_id,
-               semester = src.semester,
                gpa10 = src.gpa10,
                gpa4 = src.gpa4,
                total_credits = src.total_credits,

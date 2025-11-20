@@ -335,8 +335,9 @@ CREATE TABLE dbo.classes (
     school_year_id   VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.school_years(school_year_id),
     semester         INT NULL,
     max_students     INT NULL,
-    schedule         NVARCHAR(500) NULL,
-    room             NVARCHAR(100) NULL,
+    current_enrollment INT NULL DEFAULT 0 CHECK (current_enrollment >= 0), -- ✅ NGHIỆP VỤ: Số lượng đăng ký không được âm
+    schedule         NVARCHAR(500) NULL, -- ⚠️ DEPRECATED: Dùng timetable_sessions thay thế, giữ lại để backward compatibility
+    room             NVARCHAR(100) NULL, -- ⚠️ DEPRECATED: Dùng timetable_sessions.room_id thay thế, giữ lại để backward compatibility
     created_at       DATETIME NOT NULL DEFAULT(GETDATE()),
     created_by       VARCHAR(50) NULL,
     updated_at       DATETIME NULL,
@@ -344,6 +345,19 @@ CREATE TABLE dbo.classes (
     deleted_at       DATETIME NULL,
     deleted_by       VARCHAR(50) NULL
 );
+GO
+
+-- ✅ NGHIỆP VỤ: Thêm table-level constraint sau khi bảng đã được tạo (tham chiếu đến max_students)
+-- Đảm bảo current_enrollment <= max_students (nếu max_students không NULL)
+IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CHK_Class_Enrollment_Max')
+BEGIN
+    ALTER TABLE dbo.classes
+    ADD CONSTRAINT CHK_Class_Enrollment_Max 
+        CHECK (max_students IS NULL OR current_enrollment <= max_students);
+    PRINT '✓ Added constraint: CHK_Class_Enrollment_Max';
+END
+ELSE
+    PRINT '✓ Constraint already exists: CHK_Class_Enrollment_Max';
 GO
 
 -- ===========================================
@@ -895,37 +909,40 @@ PRINT '✓ Indexes created for registration_periods';
 GO
 
 -- =============================================
--- 3. UPDATE TABLE: classes (add current_enrollment)
+-- 3. UPDATE TABLE: classes (add current_enrollment) - ✅ ĐÃ DI CHUYỂN VÀO CREATE TABLE
 -- =============================================
+-- ✅ LƯU Ý: current_enrollment đã được tạo trong CREATE TABLE dbo.classes (dòng 338)
+-- ✅ Constraints đã được thêm sau CREATE TABLE (dòng 352-360)
+-- Phần này chỉ giữ lại để backward compatibility nếu bảng đã tồn tại từ trước
 
-PRINT 'Updating classes table...';
+PRINT 'Checking classes table constraints...';
 
-IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('classes') AND name = 'current_enrollment')
+-- ✅ Đảm bảo constraint CHK_Class_Enrollment_Max tồn tại (nếu bảng đã có từ trước)
+IF EXISTS (SELECT * FROM sys.tables WHERE name = 'classes')
 BEGIN
-    ALTER TABLE classes ADD current_enrollment INT DEFAULT 0 NOT NULL;
-    PRINT '✓ Added column: classes.current_enrollment';
-END
-ELSE
-BEGIN
-    PRINT '✓ Column already exists: classes.current_enrollment';
-END
-GO
-
--- Add constraints
-IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CHK_Class_EnrollmentNotExceedMax')
-BEGIN
-    ALTER TABLE classes 
-    ADD CONSTRAINT CHK_Class_EnrollmentNotExceedMax 
-    CHECK (current_enrollment <= max_students);
-    PRINT '✓ Added constraint: CHK_Class_EnrollmentNotExceedMax';
-END
-
-IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CHK_Class_EnrollmentNonNegative')
-BEGIN
-    ALTER TABLE classes 
-    ADD CONSTRAINT CHK_Class_EnrollmentNonNegative 
-    CHECK (current_enrollment >= 0);
-    PRINT '✓ Added constraint: CHK_Class_EnrollmentNonNegative';
+    IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CHK_Class_Enrollment_Max' AND parent_object_id = OBJECT_ID('classes'))
+    BEGIN
+        ALTER TABLE dbo.classes
+        ADD CONSTRAINT CHK_Class_Enrollment_Max 
+            CHECK (max_students IS NULL OR current_enrollment <= max_students);
+        PRINT '✓ Added constraint: CHK_Class_Enrollment_Max (backward compatibility)';
+    END
+    
+    -- ✅ Đảm bảo column-level constraint cho current_enrollment >= 0
+    -- (Nếu column đã tồn tại nhưng chưa có constraint)
+    IF EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('classes') AND name = 'current_enrollment')
+       AND NOT EXISTS (SELECT * FROM sys.check_constraints WHERE parent_object_id = OBJECT_ID('classes') 
+                       AND definition LIKE '%current_enrollment >= 0%')
+    BEGIN
+        -- Note: Không thể thêm column-level CHECK sau khi tạo, phải dùng ALTER với table-level
+        IF NOT EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'CHK_Class_EnrollmentNonNegative' AND parent_object_id = OBJECT_ID('classes'))
+        BEGIN
+            ALTER TABLE dbo.classes
+            ADD CONSTRAINT CHK_Class_EnrollmentNonNegative 
+                CHECK (current_enrollment >= 0);
+            PRINT '✓ Added constraint: CHK_Class_EnrollmentNonNegative (backward compatibility)';
+        END
+    END
 END
 GO
 
@@ -1190,7 +1207,9 @@ BEGIN
         created_at  DATETIME NOT NULL DEFAULT(GETDATE()),
         created_by  VARCHAR(50) NULL,
         updated_at  DATETIME NULL,
-        updated_by  VARCHAR(50) NULL
+        updated_by  VARCHAR(50) NULL,
+        deleted_at  DATETIME NULL,
+        deleted_by  VARCHAR(50) NULL
     );
     PRINT '✓ Table created: rooms';
 END
@@ -1208,21 +1227,31 @@ BEGIN
         lecturer_id     VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.lecturers(lecturer_id),
         room_id         VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.rooms(room_id),
         school_year_id  VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.school_years(school_year_id),
-        week_no         INT NULL,
-        weekday         INT NOT NULL CHECK (weekday BETWEEN 1 AND 7),
+        week_no         INT NULL, -- NULL = tất cả các tuần, số cụ thể = tuần đó
+        weekday         INT NOT NULL CHECK (weekday BETWEEN 1 AND 7), -- 1=CN, 2=T2, ..., 7=T7
         start_time      TIME NOT NULL,
         end_time        TIME NOT NULL,
-        period_from     INT NULL,
-        period_to       INT NULL,
-        recurrence      NVARCHAR(20) NULL, -- once/weekly
-        status          NVARCHAR(20) NULL, -- planned/active/cancelled
+        period_from     INT NULL CHECK (period_from IS NULL OR (period_from BETWEEN 1 AND 12)),
+        period_to       INT NULL CHECK (period_to IS NULL OR (period_to BETWEEN 1 AND 12)),
+        recurrence      NVARCHAR(20) NULL CHECK (recurrence IS NULL OR recurrence IN ('ONCE', 'WEEKLY', 'BIWEEKLY')),
+        status          NVARCHAR(20) NULL CHECK (status IS NULL OR status IN ('PLANNED', 'ACTIVE', 'CANCELLED', 'COMPLETED')),
         notes           NVARCHAR(500) NULL,
         created_at      DATETIME NOT NULL DEFAULT(GETDATE()),
         created_by      VARCHAR(50) NULL,
         updated_at      DATETIME NULL,
         updated_by      VARCHAR(50) NULL,
         deleted_at      DATETIME NULL,
-        deleted_by      VARCHAR(50) NULL
+        deleted_by      VARCHAR(50) NULL,
+        -- ✅ NGHIỆP VỤ: Constraints cho period và time
+        CONSTRAINT CHK_Period_Range CHECK (
+            (period_from IS NULL AND period_to IS NULL) OR
+            (period_from IS NOT NULL AND period_to IS NOT NULL 
+             AND period_from BETWEEN 1 AND 12 
+             AND period_to BETWEEN 1 AND 12
+             AND period_from <= period_to
+             AND (period_to - period_from + 1) <= 12)
+        ),
+        CONSTRAINT CHK_Time_Range CHECK (end_time > start_time)
     );
     PRINT '✓ Table created: timetable_sessions';
 END

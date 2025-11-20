@@ -3,15 +3,21 @@
     <div class="main-content">
         <app-topbar page-title="Thời khóa biểu Giảng viên"></app-topbar>
         <div class="content-body">
-            <div class="card" style="margin-bottom: 20px;">
+            <!-- Chỉ hiển thị form nhập cho Admin -->
+            <div ng-if="isAdmin" class="card" style="margin-bottom: 20px;">
                 <div class="card-header"><h3>Nhập Lecturer ID</h3></div>
                 <div class="card-body">
                     <div style="display:flex;gap:10px;align-items:center;">
                         <input type="text" ng-model="lecturerId" placeholder="Nhập Lecturer ID (ví dụ: LEC001)" style="flex:1;padding:8px;border:1px solid #ddd;border-radius:4px;">
                         <button ng-click="load()" class="btn btn-primary" ng-disabled="loading"><i class="fas fa-search"></i> Xem TKB</button>
                     </div>
-                    <small style="color:#666;margin-top:5px;display:block;">Nếu đã đăng nhập bằng tài khoản giảng viên, Lecturer ID sẽ tự động lấy từ tài khoản.</small>
+                    <small style="color:#666;margin-top:5px;display:block;">Nhập Lecturer ID để xem thời khóa biểu của giảng viên.</small>
                 </div>
+            </div>
+            
+            <!-- Thông báo cho giảng viên -->
+            <div ng-if="isLecturer && loadingLecturer" class="alert alert-info" style="margin-bottom: 20px;">
+                <i class="fas fa-spinner fa-spin"></i> Đang tải thông tin giảng viên...
             </div>
 
             <div ng-if="error" class="alert alert-danger"><i class="fas fa-exclamation-circle"></i> {{error}}</div>
@@ -29,28 +35,130 @@
                     <div style="margin-top:8px;color:#666;font-size:12px;">Debug: lecturerId={{debug.lecturerId}} | week={{debug.week}} | year={{debug.year}} | count={{debug.count}}</div>
                 </div>
                 <div class="card-body">
-                    <table class="table" style="width:100%;">
-                        <thead>
-                            <tr><th style="width:100px;">Thứ</th><th>Phiên dạy</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr ng-repeat="d in days">
-                                <td><strong>Thứ {{d}}</strong></td>
-                                <td>
-                                    <div ng-if="grid[d] && grid[d].length > 0">
-                                        <div ng-repeat="s in grid[d] | orderBy:'startTime'" class="session-card" style="margin-bottom:10px;padding:12px;border:1px solid #ddd;border-radius:6px;background:#f9f9f9;">
-                                            <div style="font-weight:bold;color:#2c3e50;margin-bottom:5px;"><i class="fas fa-book"></i> {{s.subjectName || 'N/A'}}</div>
-                                            <div style="color:#555;margin-bottom:3px;"><i class="fas fa-users"></i> Lớp: {{s.classCode || '—'}}</div>
-                                            <div style="color:#555;margin-bottom:3px;"><i class="fas fa-clock"></i> {{s.startTime || '—'}} - {{s.endTime || '—'}}</div>
-                                            <div style="color:#666;font-size:0.9em;"><i class="fas fa-door-open"></i> Phòng: {{s.roomCode || '—'}}</div>
+                    <style>
+                        .timetable-grid-table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            font-size: 13px;
+                        }
+                        .timetable-grid-table th {
+                            background: #f8f9fa;
+                            padding: 10px 8px;
+                            text-align: center;
+                            border: 1px solid #dee2e6;
+                            font-weight: 600;
+                            position: sticky;
+                            top: 0;
+                            z-index: 10;
+                        }
+                        .timetable-grid-table td {
+                            padding: 8px;
+                            border: 1px solid #dee2e6;
+                            vertical-align: top;
+                            min-height: 60px;
+                            position: relative;
+                        }
+                        .timetable-period-label {
+                            background: #e9ecef;
+                            font-weight: 600;
+                            text-align: center;
+                            width: 60px;
+                            padding: 8px 4px;
+                        }
+                        .timetable-cell {
+                            min-height: 50px;
+                            position: relative;
+                        }
+                        .timetable-session {
+                            background: #4a90e2;
+                            color: white;
+                            padding: 6px 8px;
+                            border-radius: 4px;
+                            margin-bottom: 4px;
+                            font-size: 11px;
+                            cursor: pointer;
+                            transition: opacity 0.2s;
+                        }
+                        .timetable-session:hover {
+                            opacity: 0.9;
+                        }
+                        .timetable-session.multiple {
+                            background: #e74c3c;
+                        }
+                        .timetable-session-title {
+                            font-weight: 600;
+                            margin-bottom: 2px;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                        }
+                        .timetable-session-details {
+                            font-size: 10px;
+                            opacity: 0.9;
+                            margin-top: 2px;
+                        }
+                        .timetable-empty {
+                            color: #ccc;
+                            font-size: 11px;
+                            text-align: center;
+                            padding: 4px;
+                        }
+                    </style>
+                    <div style="overflow-x: auto;">
+                        <table class="timetable-grid-table">
+                            <thead>
+                                <tr>
+                                    <th class="timetable-period-label">Tiết</th>
+                                    <th ng-repeat="d in days">
+                                        <div style="font-weight: 600; margin-bottom: 4px;">{{getDayName(d)}}</div>
+                                        <div style="font-size: 11px; color: #666; font-weight: normal;">{{formatDate(getDayDate(d))}}</div>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="period in periods">
+                                    <td class="timetable-period-label">
+                                        <div style="font-weight: 600; margin-bottom: 2px;">Tiết {{period}}</div>
+                                        <div style="font-size: 10px; color: #666; font-weight: normal;">{{getPeriodTime(period)}}</div>
+                                    </td>
+                                    <td ng-repeat="day in days" class="timetable-cell">
+                                        <div ng-if="grid[day] && grid[day][period]">
+                                            <div ng-if="!Array.isArray(grid[day][period])" class="timetable-session" title="{{grid[day][period].subjectName}} - {{grid[day][period].classCode}}">
+                                                <div class="timetable-session-title">
+                                                    <i class="fas fa-book"></i> {{grid[day][period].subjectName || 'N/A'}}
+                                                </div>
+                                                <div class="timetable-session-details">
+                                                    <div><i class="fas fa-users"></i> {{grid[day][period].classCode || '—'}}</div>
+                                                    <div><i class="fas fa-door-open"></i> {{grid[day][period].roomCode || '—'}}</div>
+                                                    <div ng-if="grid[day][period].periodFrom && grid[day][period].periodTo">
+                                                        Tiết {{grid[day][period].periodFrom}}-{{grid[day][period].periodTo}}
+                                                    </div>
+                                                    <div ng-if="!grid[day][period].periodFrom || !grid[day][period].periodTo">
+                                                        {{grid[day][period].startTime || '—'}} - {{grid[day][period].endTime || '—'}}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div ng-if="Array.isArray(grid[day][period])">
+                                                <div ng-repeat="s in grid[day][period]" class="timetable-session multiple" title="{{s.subjectName}} - {{s.classCode}}">
+                                                    <div class="timetable-session-title">
+                                                        <i class="fas fa-book"></i> {{s.subjectName || 'N/A'}}
+                                                    </div>
+                                                    <div class="timetable-session-details">
+                                                        <div><i class="fas fa-users"></i> {{s.classCode || '—'}}</div>
+                                                        <div><i class="fas fa-door-open"></i> {{s.roomCode || '—'}}</div>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div ng-if="!grid[d] || grid[d].length === 0" style="color:#999;font-style:italic;">Không có lịch dạy</div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                    <div ng-if="raw && raw.length > 0" style="margin-top:10px;font-size:12px;color:#888;">Tải {{raw.length}} phiên dạy.</div>
+                                        <div ng-if="!grid[day] || !grid[day][period]" class="timetable-empty">—</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div ng-if="raw && raw.length > 0" style="margin-top:15px;font-size:12px;color:#888;text-align:center;">
+                        <i class="fas fa-info-circle"></i> Tải {{raw.length}} phiên dạy cho tuần này
+                    </div>
                 </div>
             </div>
         </div>

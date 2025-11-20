@@ -1,0 +1,219 @@
+<div class="admin-layout">
+    <app-sidebar></app-sidebar>
+    <div class="main-content">
+        <app-topbar page-title="Quản lý Phòng học"></app-topbar>
+        <div class="content-body">
+            <!-- Success/Error Messages -->
+            <div ng-if="success" class="alert alert-success">
+                <i class="fas fa-check-circle"></i> {{success}}
+            </div>
+            <div ng-if="error" class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i> {{error}}
+            </div>
+            
+            <!-- Main Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Danh sách Phòng học</h3>
+                    <div class="card-actions">
+                        <!-- ✅ THÊM: Chỉ hiển thị nút thêm nếu có quyền -->
+                        <button ng-if="canCreateRooms" 
+                                class="btn btn-primary" 
+                                ng-click="openCreateModal()" 
+                                ng-disabled="loading">
+                            <i class="fas fa-plus"></i> Thêm phòng mới
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Filter Section -->
+                <div class="card-body" style="border-bottom: 1px solid #eee; padding-bottom: 15px;">
+                    <div style="display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label>Tìm kiếm</label>
+                            <input type="text" 
+                                   ng-model="filters.search" 
+                                   placeholder="Mã phòng, tòa nhà..." 
+                                   class="form-control"
+                                   ng-keyup="$event.keyCode === 13 && searchRooms()">
+                        </div>
+                        <div style="width: 180px;">
+                            <label>Trạng thái</label>
+                            <select ng-model="filters.isActive" class="form-control">
+                                <option value="">Tất cả</option>
+                                <option value="true">Đang hoạt động</option>
+                                <option value="false">Đã tắt</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button class="btn btn-primary" ng-click="searchRooms()" ng-disabled="loading">
+                                <i class="fas fa-search"></i> Tìm kiếm
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Table Section -->
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">STT</th>
+                                    <th>Mã phòng</th>
+                                    <th>Tòa nhà</th>
+                                    <th style="width: 120px;">Sức chứa</th>
+                                    <th style="width: 120px;">Trạng thái</th>
+                                    <th style="width: 200px;">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-if="loading">
+                                    <td colspan="6" class="text-center" style="padding: 40px;">
+                                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                        <p>Đang tải...</p>
+                                    </td>
+                                </tr>
+                                <tr ng-if="!loading && rooms.length === 0">
+                                    <td colspan="6" class="text-center" style="padding: 40px; color: #999;">
+                                        <i class="fas fa-inbox fa-2x" style="margin-bottom: 10px;"></i>
+                                        <p>Không có dữ liệu</p>
+                                    </td>
+                                </tr>
+                                <tr ng-repeat="room in rooms" ng-if="!loading">
+                                    <td>{{(pagination.currentPage - 1) * pagination.pageSize + $index + 1}}</td>
+                                    <td><strong>{{room.roomCode}}</strong></td>
+                                    <td>{{room.building || '—'}}</td>
+                                    <td>{{room.capacity || '—'}}</td>
+                                    <td>
+                                        <span class="badge" ng-class="room.isActive ? 'badge-success' : 'badge-secondary'">
+                                            {{room.isActive ? 'Đang hoạt động' : 'Đã tắt'}}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div style="display: flex; gap: 5px;">
+                                            <!-- ✅ THÊM: Chỉ hiển thị nút sửa nếu có quyền -->
+                                            <button ng-if="canEditRooms" 
+                                                    class="btn btn-sm btn-primary" 
+                                                    ng-click="openEditModal(room)" 
+                                                    title="Sửa">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <!-- ✅ THÊM: Chỉ hiển thị nút toggle nếu có quyền -->
+                                            <button ng-if="canEditRooms" 
+                                                    class="btn btn-sm" 
+                                                    ng-class="room.isActive ? 'btn-warning' : 'btn-success'" 
+                                                    ng-click="toggleActive(room)" 
+                                                    title="{{room.isActive ? 'Tắt' : 'Bật'}}">
+                                                <i class="fas" ng-class="room.isActive ? 'fa-toggle-off' : 'fa-toggle-on'"></i>
+                                            </button>
+                                            <!-- ✅ THÊM: Chỉ hiển thị nút xóa nếu có quyền -->
+                                            <button ng-if="canDeleteRooms" 
+                                                    class="btn btn-sm btn-danger" 
+                                                    ng-click="deleteRoom(room)" 
+                                                    title="Xóa">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div ng-if="!loading && pagination.totalPages > 1" style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <span>Hiển thị {{(pagination.currentPage - 1) * pagination.pageSize + 1}} - {{Math.min(pagination.currentPage * pagination.pageSize, pagination.totalCount)}} / {{pagination.totalCount}}</span>
+                            <select ng-model="pagination.pageSize" ng-change="changePageSize()" style="margin-left: 10px; padding: 4px;">
+                                <option value="10">10</option>
+                                <option value="20">20</option>
+                                <option value="50">50</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button class="btn btn-sm" ng-click="prevPage()" ng-disabled="pagination.currentPage === 1">
+                                <i class="fas fa-chevron-left"></i> Trước
+                            </button>
+                            <span style="margin: 0 10px;">
+                                Trang {{pagination.currentPage}} / {{pagination.totalPages}}
+                            </span>
+                            <button class="btn btn-sm" ng-click="nextPage()" ng-disabled="pagination.currentPage === pagination.totalPages">
+                                Sau <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal" ng-class="{'show': showModal}" ng-if="showModal" style="display: block; background: rgba(0,0,0,0.5);">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    {{formMode === 'create' ? 'Thêm phòng học mới' : 'Chỉnh sửa phòng học'}}
+                </h4>
+                <button type="button" class="close" ng-click="closeModal()" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div ng-if="error" class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i> {{error}}
+                </div>
+                
+                <form>
+                    <div class="form-group">
+                        <label>Mã phòng học <span style="color: red;">*</span></label>
+                        <input type="text" 
+                               ng-model="roomForm.roomCode" 
+                               class="form-control" 
+                               placeholder="VD: A101, B202"
+                               required
+                               ng-disabled="loading">
+                        <small class="form-text text-muted">Mã phòng học phải duy nhất trong hệ thống</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Tòa nhà</label>
+                        <input type="text" 
+                               ng-model="roomForm.building" 
+                               class="form-control" 
+                               placeholder="VD: Tòa A, Tòa B"
+                               ng-disabled="loading">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Sức chứa</label>
+                        <input type="number" 
+                               ng-model="roomForm.capacity" 
+                               class="form-control" 
+                               placeholder="VD: 50"
+                               min="1"
+                               ng-disabled="loading">
+                        <small class="form-text text-muted">Số lượng sinh viên tối đa (nếu có)</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" ng-model="roomForm.isActive" ng-disabled="loading">
+                            Đang hoạt động
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" ng-click="closeModal()" ng-disabled="loading">Hủy</button>
+                <button type="button" class="btn btn-primary" ng-click="saveRoom()" ng-disabled="loading">
+                    <i class="fas fa-spinner fa-spin" ng-if="loading"></i>
+                    <span ng-if="!loading">{{formMode === 'create' ? 'Thêm' : 'Cập nhật'}}</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+

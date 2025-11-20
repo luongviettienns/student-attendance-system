@@ -17,7 +17,11 @@
                     </button>
                     <ul class="submenu" ng-class="{'open': isSectionOpen($index)}">
                         <li ng-repeat="item in section.items">
-                            <a ng-href="{{buildHref(item.path)}}" ng-click="navigateTo(item.path, $event)" ng-class="{'active': isActive(item.path)}">
+                            <a ng-href="{{buildHref(item.path)}}" 
+                               ng-click="navigateTo(item.path, $event)" 
+                               ng-class="{'active': isActive(item.path)}"
+                               ng-attr-data-label="{{item.label}}"
+                               ng-attr-data-path="{{item.path}}">
                                 <i class="{{item.icon}}"></i>
                                 <span>{{item.label}}</span>
                             </a>
