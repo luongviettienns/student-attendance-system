@@ -77,11 +77,45 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'MANAGE_SCHEDULES': 'canManageSchedules',
         'EXPORT_SCHEDULES': 'canExportSchedules',
         
-        // Room Management (Quản lý phòng học) ✅ THÊM
+        // Room Management (Quản lý phòng học)
+        // ✅ APPROACH: Section-level permission = Full access (view, create, edit, delete)
+        // ADMIN_ROOMS từ database → canManageRooms → full access to all room operations
+        'ADMIN_ROOMS': 'canManageRooms',
+        // Support for future action-level permissions (if needed)
         'VIEW_ROOMS': 'canManageRooms',
         'CREATE_ROOMS': 'canManageRooms',
         'EDIT_ROOMS': 'canManageRooms',
         'DELETE_ROOMS': 'canManageRooms',
+        
+        // ============================================================
+        // Section-level Admin Permissions (Quyền quản lý theo section)
+        // ✅ APPROACH: Section-level permission = Full access
+        // Mỗi ADMIN_* permission code từ database = full access to that section
+        // ============================================================
+        'ADMIN_DASHBOARD': 'canViewDashboard',
+        'ADMIN_USERS': 'canManageUsers',
+        'ADMIN_ROLES': 'canManageRoles',
+        'ADMIN_STUDENTS': 'canManageStudents',
+        'ADMIN_LECTURERS': 'canManageLecturers',
+        'ADMIN_ORGANIZATION': 'canManageOrganization',
+        'ADMIN_CLASSES': 'canManageClasses',
+        'ADMIN_ADMIN_CLASSES': 'canManageClasses',  // Administrative classes
+        'ADMIN_SECTION_CLASSES': 'canManageClasses',
+        'ADMIN_NOTIFICATIONS': 'canManageNotifications',
+        'ADMIN_REPORTS': 'canViewReports',
+        'ADMIN_AUDIT_LOGS': 'canViewAuditLogs',
+        'ADMIN_SECTION_OVERVIEW': 'canViewDashboard',
+        'ADMIN_SECTION_USERS': 'canManageUsers',
+        'ADMIN_SECTION_ACADEMIC': 'canManageAcademicYears',
+        'ADMIN_ACADEMIC_YEARS': 'canManageAcademicYears',
+        'ADMIN_SCHOOL_YEARS': 'canManageAcademicYears',
+        'ADMIN_SECTION_ENROLLMENT': 'canManageClasses',
+        'ADMIN_ENROLLMENTS': 'canManageClasses',
+        'ADMIN_REGISTRATION_PERIODS': 'canManageClasses',
+        'ADMIN_GRADE_FORMULA': 'canEnterGrades',
+        'ADMIN_SUBJECT_PREREQUISITES': 'canManageSubjects',
+        'ADMIN_SECTION_SYSTEM': 'canManageSystem',
+        'ADMIN_TIMETABLE': 'canManageSchedules',
         
         // Attendance Management (Điểm danh)
         'TAKE_ATTENDANCE': 'canTakeAttendance',
@@ -259,6 +293,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 permissionCodesCache = response.data.permissions || [];
                 
                 // Build permissions object from permission codes
+                // ✅ APPROACH: Section-level permissions (ADMIN_*) = Full access
                 var permissions = {};
                 permissionCodesCache.forEach(function(code) {
                     var frontendPermission = PERMISSION_MAP[code];
@@ -308,6 +343,13 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
      */
     this.hasRole = function(role) {
         return this.getCurrentRole() === role;
+    };
+    
+    /**
+     * Get permission codes from cache (for debugging)
+     */
+    this.getPermissionCodes = function() {
+        return permissionCodesCache || [];
     };
     
     /**
@@ -739,6 +781,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('đợt đăng ký') || labelLower.includes('registration period')) return '/registration-periods';
             if (labelLower.includes('quản lý đăng ký') || (labelLower.includes('đăng ký') && labelLower.includes('quản lý'))) return '/enrollments';
             if (labelLower.includes('thời khóa biểu') || labelLower.includes('timetable') || labelLower.includes('xếp lịch')) return '/admin/timetable';
+            if (labelLower.includes('phòng học') || labelLower.includes('room')) return '/rooms';
             if (labelLower.includes('nhật ký') || labelLower.includes('audit log')) return '/audit-logs';
             if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/admin/reports';
             if (labelLower.includes('chương trình đào tạo') || labelLower.includes('training program')) return '/subject-prerequisites'; // Default for section
@@ -956,6 +999,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             'đợt đăng ký': '/registration-periods',
             'quản lý đăng ký': '/enrollments',
             'thời khóa biểu': '/admin/timetable',
+            'phòng học': '/rooms',
             'nhật ký': '/audit-logs',
             'thông báo': '/notifications',
             'dashboard': '/dashboard',

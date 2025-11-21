@@ -66,15 +66,35 @@ app.service('NotificationService', ['ApiService', '$rootScope', '$q', function(A
         $rootScope.$broadcast('notificationCountChanged', count);
     };
     
+    // Track pending request to prevent duplicate calls
+    var pendingCountRequest = null;
+    var lastFetchTime = 0;
+    var FETCH_THROTTLE_MS = 2000; // Minimum 2 seconds between requests
+    
     /**
-     * Fetch unread count from API
+     * Fetch unread count from API (with throttling to prevent spam)
      */
     this.fetchUnreadCount = function() {
         var self = this;
-        return ApiService.get('/notifications/unread/count', {}, { cache: false })
+        var now = Date.now();
+        
+        // If there's a pending request, return it
+        if (pendingCountRequest) {
+            return pendingCountRequest;
+        }
+        
+        // Throttle: don't fetch if last fetch was less than FETCH_THROTTLE_MS ago
+        if (now - lastFetchTime < FETCH_THROTTLE_MS) {
+            // Return cached count immediately
+            return $q.resolve(unreadCount);
+        }
+        
+        // Create new request
+        pendingCountRequest = ApiService.get('/notifications/unread/count', {}, { cache: false })
             .then(function(response) {
                 var count = response.data.count || 0;
                 self.setUnreadCount(count);
+                lastFetchTime = Date.now();
                 return count;
             })
             .catch(function(error) {
@@ -82,9 +102,18 @@ app.service('NotificationService', ['ApiService', '$rootScope', '$q', function(A
                 return self.getUnread(1).then(function(result) {
                     // Estimate from unread list if count endpoint not available
                     self.setUnreadCount(0);
+                    lastFetchTime = Date.now();
                     return 0;
                 });
+            })
+            .finally(function() {
+                // Clear pending request after a short delay to allow concurrent calls to reuse it
+                setTimeout(function() {
+                    pendingCountRequest = null;
+                }, 100);
             });
+        
+        return pendingCountRequest;
     };
     
     /**

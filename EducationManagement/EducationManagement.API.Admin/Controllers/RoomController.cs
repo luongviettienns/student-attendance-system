@@ -104,14 +104,22 @@ namespace EducationManagement.API.Admin.Controllers
                 var actor = GetCurrentUserId() ?? "System";
                 await _service.AddAsync(model, actor);
 
-                // ✅ Audit Log: Create Room
-                await LogCreateAsync("Room", model.RoomId, new
+                // ✅ Audit Log: Create Room (wrap in try-catch to not fail room creation if audit log fails)
+                try
                 {
-                    room_code = model.RoomCode,
-                    building = model.Building,
-                    capacity = model.Capacity,
-                    is_active = model.IsActive
-                });
+                    await LogCreateAsync("Room", model.RoomId, new
+                    {
+                        room_code = model.RoomCode,
+                        building = model.Building,
+                        capacity = model.Capacity,
+                        is_active = model.IsActive
+                    });
+                }
+                catch (Exception auditEx)
+                {
+                    // Log audit error but don't fail the request
+                    // Could use ILogger here if available
+                }
 
                 return Ok(new { success = true, message = "✅ Thêm phòng học thành công!", data = new { roomId = model.RoomId } });
             }
@@ -181,22 +189,78 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                // Lấy room trước khi xóa
-                var room = await _service.GetByIdAsync(id);
+                // Lấy room trước khi xóa (có thể throw InvalidOperationException nếu không tìm thấy)
+                Room? room = null;
+                try
+                {
+                    room = await _service.GetByIdAsync(id);
+                }
+                catch (InvalidOperationException)
+                {
+                    // Phòng không tồn tại hoặc đã bị xóa
+                    // Tiếp tục thử xóa (idempotent operation - nếu đã xóa rồi thì cũng coi như thành công)
+                }
 
                 var actor = GetCurrentUserId() ?? "System";
-                var result = await _service.DeleteAsync(id, actor);
-
-                if (!result)
-                    return BadRequest(new { success = false, message = "Không thể xóa phòng học" });
-
-                // ✅ Audit Log: Delete Room
-                await LogDeleteAsync("Room", id, new
+                
+                try
                 {
-                    room_code = room.RoomCode,
-                    building = room.Building,
-                    capacity = room.Capacity
-                });
+                    var result = await _service.DeleteAsync(id, actor);
+
+                    // Kiểm tra xem phòng đã bị xóa chưa
+                    Room? roomAfterDelete = null;
+                    try
+                    {
+                        roomAfterDelete = await _service.GetByIdAsync(id);
+                    }
+                    catch
+                    {
+                        // Phòng đã bị xóa (GetByIdAsync throw exception)
+                        roomAfterDelete = null;
+                    }
+                    
+                    var isDeleted = roomAfterDelete == null;
+
+                    // Nếu phòng đã bị xóa (không tìm thấy) → thành công
+                    if (isDeleted)
+                    {
+                        // ✅ Audit Log: Delete Room (chỉ log nếu có room info)
+                        if (room != null)
+                        {
+                            try
+                            {
+                                await LogDeleteAsync("Room", id, new
+                                {
+                                    room_code = room.RoomCode,
+                                    building = room.Building,
+                                    capacity = room.Capacity
+                                });
+                            }
+                            catch
+                            {
+                                // Ignore audit log errors
+                            }
+                        }
+
+                        return Ok(new { success = true, message = "🗑 Xóa phòng học thành công!" });
+                    }
+
+                    // Nếu result = false và phòng chưa bị xóa → thực sự có lỗi
+                    if (!result)
+                    {
+                        return BadRequest(new { success = false, message = "Không thể xóa phòng học" });
+                    }
+                }
+                catch (InvalidOperationException deleteEx)
+                {
+                    // Nếu exception là "Không tìm thấy phòng học" → có thể đã bị xóa trước đó
+                    if (deleteEx.Message.Contains("Không tìm thấy phòng học"))
+                    {
+                        return Ok(new { success = true, message = "🗑 Phòng học đã được xóa trước đó" });
+                    }
+                    // Nếu là lỗi khác (ví dụ: đang được sử dụng) → throw lại
+                    throw;
+                }
 
                 return Ok(new { success = true, message = "🗑 Xóa phòng học thành công!" });
             }

@@ -384,10 +384,19 @@ app.run(['$rootScope', '$location', 'AuthService', 'LoggerService', 'Notificatio
     };
     
     // Load unread notification count on app start (if user is authenticated)
+    // Debounce route change to prevent spam requests
+    var routeChangeTimeout = null;
     $rootScope.$on('$routeChangeStart', function(event, next, current) {
         if (AuthService.isAuthenticated() && next && !next.publicAccess) {
-            // Load unread count when navigating to authenticated pages
-            NotificationService.loadUnreadCount();
+            // Clear existing timeout
+            if (routeChangeTimeout) {
+                clearTimeout(routeChangeTimeout);
+            }
+            // Debounce: only load after 500ms of no route changes
+            routeChangeTimeout = setTimeout(function() {
+                NotificationService.loadUnreadCount();
+                routeChangeTimeout = null;
+            }, 500);
         }
     });
     

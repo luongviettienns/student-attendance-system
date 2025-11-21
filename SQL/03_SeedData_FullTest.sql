@@ -1088,6 +1088,7 @@ USING (VALUES
     ('PERM_ADM_ENROLLMENTS','ADMIN_ENROLLMENTS',      N'Duyệt đăng ký',       'ADMIN_SECTION_ENROLLMENT','fas fa-clipboard-check',2,N'Xem và duyệt/từ chối đăng ký học phần của sinh viên', 1),
     -- Gộp ADMIN_SECTION_TIMETABLE vào ADMIN_SECTION_ACADEMIC (vì chỉ có 1 con và liên quan đến đào tạo)
     ('PERM_ADM_TIMETABLE_ITEM','ADMIN_TIMETABLE',     N'Xếp lịch',            'ADMIN_SECTION_ACADEMIC','fas fa-calendar-alt',  9, N'Quản lý thời khóa biểu',                       1),
+    ('PERM_ADM_ROOMS',     'ADMIN_ROOMS',              N'Quản lý phòng học',  'ADMIN_SECTION_ACADEMIC', 'fas fa-door-open',    10, N'Quản lý phòng học',                          1),
     ('PERM_ADM_REPORTS',  'ADMIN_REPORTS',            N'Thống kê & Báo cáo',  'ADMIN_SECTION_SYSTEM',   'fas fa-chart-bar',      2, N'Thống kê và báo cáo hệ thống',                1),
     ('PERM_ADM_AUDIT_LOGS','ADMIN_AUDIT_LOGS',        N'Nhật ký hệ thống',    'ADMIN_SECTION_SYSTEM',   'fas fa-history',        3, N'Xem nhật ký',                                 1),
     -- Permissions cho ADVISOR để gộp vào ADVISOR_SECTION_SYSTEM
@@ -1181,6 +1182,7 @@ USING (VALUES
     ('ROLE_ADMIN','PERM_ADM_ENROLLMENTS'),
     -- Xóa PERM_ADM_TIMETABLE (đã gộp vào ADMIN_SECTION_ACADEMIC)
     ('ROLE_ADMIN','PERM_ADM_TIMETABLE_ITEM'),
+    ('ROLE_ADMIN','PERM_ADM_ROOMS'),
     ('ROLE_ADMIN','PERM_ADM_SYSTEM'),
     ('ROLE_ADMIN','PERM_ADM_REPORTS'),
     ('ROLE_ADMIN','PERM_ADM_AUDIT_LOGS'),
