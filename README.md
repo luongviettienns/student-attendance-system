@@ -3,7 +3,6 @@
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![AngularJS](https://img.shields.io/badge/AngularJS-1.x-E23237?logo=angular)](https://angularjs.org/)
 [![SQL Server](https://img.shields.io/badge/SQL%20Server-2019+-CC2927?logo=microsoft-sql-server)](https://www.microsoft.com/sql-server)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 > Hệ thống quản lý toàn diện cho việc quản lý đào tạo, điểm danh, điểm số và cảnh báo chuyên cần cho sinh viên trong môi trường giáo dục đại học.
 
@@ -21,7 +20,6 @@
 - [API Documentation](#-api-documentation)
 - [Database Schema](#-database-schema)
 - [Đóng Góp](#-đóng-góp)
-- [License](#-license)
 
 ---
 
@@ -481,21 +479,6 @@ Chúng tôi hoan nghênh mọi đóng góp! Vui lòng:
 - Viết unit tests cho code mới
 - Cập nhật documentation
 - Đảm bảo không có lỗi build
-
----
-
-## 📄 License
-
-Dự án này được phân phối dưới giấy phép MIT. Xem file `LICENSE` để biết thêm chi tiết.
-
----
-
-## 📞 Liên Hệ
-
-Nếu có câu hỏi hoặc góp ý, vui lòng:
-
-- Tạo Issue trên GitHub
-- Liên hệ qua email: [your-email@example.com]
 
 ---
 
