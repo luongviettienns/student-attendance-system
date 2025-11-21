@@ -45,24 +45,34 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
         { value: 'IMPORT', label: 'Nhập dữ liệu' }
     ];
     
-    // Entity types
+    // Entity types (tiếng Việt)
     $scope.entityTypes = [
         { value: 'User', label: 'Người dùng' },
         { value: 'Student', label: 'Sinh viên' },
         { value: 'Lecturer', label: 'Giảng viên' },
         { value: 'Faculty', label: 'Khoa' },
         { value: 'Department', label: 'Bộ môn' },
-        { value: 'Major', label: 'Ngành' },
+        { value: 'Major', label: 'Ngành học' },
         { value: 'Subject', label: 'Môn học' },
         { value: 'Grade', label: 'Điểm' },
         { value: 'Attendance', label: 'Điểm danh' },
-        { value: 'Class', label: 'Lớp học' },
+        { value: 'Class', label: 'Lớp học phần' },
         { value: 'AcademicYear', label: 'Niên khóa' },
         { value: 'SchoolYear', label: 'Năm học' },
         { value: 'Enrollment', label: 'Đăng ký học phần' },
-        { value: 'RegistrationPeriod', label: 'Kỳ đăng ký' },
+        { value: 'RegistrationPeriod', label: 'Đợt đăng ký học phần' },
         { value: 'Notification', label: 'Thông báo' },
-        { value: 'Auth', label: 'Xác thực' }
+        { value: 'Auth', label: 'Xác thực' },
+        { value: 'Room', label: 'Phòng học' },
+        { value: 'ExamSchedule', label: 'Lịch thi' },
+        { value: 'ExamAssignment', label: 'Phân công thi' },
+        { value: 'ExamScores', label: 'Điểm thi' },
+        { value: 'RetakeRecord', label: 'Hồ sơ học lại' },
+        { value: 'RetakeRegistration', label: 'Đăng ký học lại' },
+        { value: 'GradeAppeal', label: 'Phúc khảo' },
+        { value: 'Role', label: 'Vai trò' },
+        { value: 'Permission', label: 'Quyền' },
+        { value: 'AuditLog', label: 'Nhật ký hệ thống' }
     ];
     
     // Load audit logs
@@ -84,15 +94,32 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
             .then(function(response) {
                 if (response.data && response.data.data) {
                     $scope.logs = response.data.data.map(function(log) {
+                        // ✅ Format hiển thị: Đảm bảo hiển thị đầy đủ thông tin người thực hiện
+                        var userName = 'Hệ thống';
+                        if (log.userFullName) {
+                            userName = log.userFullName;
+                            if (log.userName && log.userName !== log.userFullName) {
+                                userName += ' (' + log.userName + ')';
+                            }
+                        } else if (log.userName) {
+                            userName = log.userName;
+                        }
+                        
                         return {
                             logId: log.logId,
                             userId: log.userId,
-                            userName: log.userFullName || log.userName || 'System',
+                            userName: userName,
+                            userFullName: log.userFullName || 'Hệ thống',
+                            username: log.userName || '',
                             action: log.action,
+                            actionLabel: $scope.getActionLabel(log.action), // Tiếng Việt
                             entityType: log.entityType,
+                            entityTypeLabel: $scope.getEntityLabel(log.entityType), // Tiếng Việt
                             entityId: log.entityId,
                             entityName: log.entityId, // You can enhance this later
                             details: log.newValues || log.oldValues || '',
+                            oldValues: log.oldValues,
+                            newValues: log.newValues,
                             ipAddress: log.ipAddress,
                             userAgent: log.userAgent,
                             createdAt: log.createdAt
@@ -282,21 +309,36 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
         return icons[action] || 'fa-circle';
     };
     
-    // Get action label
+    // Get action label (tiếng Việt)
     $scope.getActionLabel = function(action) {
         var labels = {
-            'CREATE': 'Thêm mới',
+            'CREATE': 'Tạo mới',
             'UPDATE': 'Cập nhật',
             'DELETE': 'Xóa',
             'LOGIN': 'Đăng nhập',
             'LOGOUT': 'Đăng xuất',
             'EXPORT': 'Xuất dữ liệu',
-            'IMPORT': 'Nhập dữ liệu'
+            'IMPORT': 'Nhập dữ liệu',
+            'APPROVE': 'Phê duyệt',
+            'REJECT': 'Từ chối',
+            'FORGOT_PASSWORD_REQUEST': 'Yêu cầu quên mật khẩu',
+            'OTP_VERIFIED': 'Xác thực OTP',
+            'PASSWORD_RESET': 'Đặt lại mật khẩu',
+            'REGISTER': 'Đăng ký',
+            'ENROLL': 'Ghi danh',
+            'DROP': 'Hủy đăng ký',
+            'WITHDRAWN': 'Rút khỏi lớp',
+            'CANCEL': 'Hủy',
+            'ACTIVATE': 'Kích hoạt',
+            'DEACTIVATE': 'Vô hiệu hóa',
+            'LOCK': 'Khóa',
+            'UNLOCK': 'Mở khóa',
+            'RESET_PASSWORD': 'Đặt lại mật khẩu'
         };
         return labels[action] || action;
     };
     
-    // Get entity label
+    // Get entity label (tiếng Việt)
     $scope.getEntityLabel = function(entityType) {
         var labels = {
             'User': 'Người dùng',
@@ -304,32 +346,53 @@ app.controller('AuditLogController', ['$scope', '$location', 'AuditLogService', 
             'Lecturer': 'Giảng viên',
             'Faculty': 'Khoa',
             'Department': 'Bộ môn',
-            'Major': 'Ngành',
+            'Major': 'Ngành học',
             'Subject': 'Môn học',
             'Grade': 'Điểm',
             'Attendance': 'Điểm danh',
             'AcademicYear': 'Niên khóa',
             'SchoolYear': 'Năm học',
-            'Class': 'Lớp học',
+            'Class': 'Lớp học phần',
             'Enrollment': 'Đăng ký học phần',
-            'RegistrationPeriod': 'Kỳ đăng ký',
+            'RegistrationPeriod': 'Đợt đăng ký học phần',
             'Notification': 'Thông báo',
             'Auth': 'Xác thực',
+            'Room': 'Phòng học',
+            'ExamSchedule': 'Lịch thi',
+            'ExamAssignment': 'Phân công thi',
+            'ExamScores': 'Điểm thi',
+            'RetakeRecord': 'Hồ sơ học lại',
+            'RetakeRegistration': 'Đăng ký học lại',
+            'GradeAppeal': 'Phúc khảo',
+            'Role': 'Vai trò',
+            'Permission': 'Quyền',
+            'AuditLog': 'Nhật ký hệ thống',
+            // Lowercase versions
             'users': 'Người dùng',
             'students': 'Sinh viên',
             'lecturers': 'Giảng viên',
             'faculties': 'Khoa',
             'departments': 'Bộ môn',
-            'majors': 'Ngành',
+            'majors': 'Ngành học',
             'subjects': 'Môn học',
             'grades': 'Điểm',
             'attendances': 'Điểm danh',
             'academic_years': 'Niên khóa',
             'school_years': 'Năm học',
-            'classes': 'Lớp học',
+            'classes': 'Lớp học phần',
             'enrollments': 'Đăng ký học phần',
-            'registration_periods': 'Kỳ đăng ký',
-            'notifications': 'Thông báo'
+            'registration_periods': 'Đợt đăng ký học phần',
+            'notifications': 'Thông báo',
+            'rooms': 'Phòng học',
+            'exam_schedules': 'Lịch thi',
+            'exam_assignments': 'Phân công thi',
+            'exam_scores': 'Điểm thi',
+            'retake_records': 'Hồ sơ học lại',
+            'retake_registrations': 'Đăng ký học lại',
+            'grade_appeals': 'Phúc khảo',
+            'roles': 'Vai trò',
+            'permissions': 'Quyền',
+            'audit_logs': 'Nhật ký hệ thống'
         };
         return labels[entityType] || entityType;
     };

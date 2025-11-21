@@ -1248,6 +1248,7 @@ CREATE PROCEDURE sp_CreateRegistrationPeriod
     @Semester INT,
     @StartDate DATETIME,
     @EndDate DATETIME,
+    @PeriodType NVARCHAR(20) = 'NORMAL',  -- ✅ Thêm period_type parameter
     @Description NVARCHAR(500) = NULL,
     @CreatedBy VARCHAR(50)
 AS
@@ -1267,6 +1268,12 @@ BEGIN
         IF @Semester NOT IN (1, 2, 3)
         BEGIN
             THROW 50014, N'Học kỳ không hợp lệ (phải là  1, 2, hoặc 3)', 1;
+        END
+        
+        -- ✅ Validate: PeriodType is NORMAL or RETAKE
+        IF @PeriodType NOT IN ('NORMAL', 'RETAKE')
+        BEGIN
+            SET @PeriodType = 'NORMAL';  -- Default to NORMAL if invalid
         END
         
         -- Validate: Academic year exists
@@ -1823,7 +1830,8 @@ GO
 CREATE PROCEDURE sp_GetAllRegistrationPeriods
     @AcademicYearId VARCHAR(50) = NULL,
     @Semester INT = NULL,
-    @Status NVARCHAR(20) = NULL
+    @Status NVARCHAR(20) = NULL,
+    @PeriodType NVARCHAR(20) = NULL  -- NORMAL hoặc RETAKE
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -1840,6 +1848,7 @@ BEGIN
             rp.start_date,
             rp.end_date,
             rp.status,
+            rp.period_type,  -- ✅ Thêm period_type
             rp.description,
             rp.is_active,
             rp.created_at,
@@ -1859,9 +1868,11 @@ BEGIN
         FROM registration_periods rp
         LEFT JOIN academic_years ay ON rp.academic_year_id = ay.academic_year_id
         WHERE rp.deleted_at IS NULL
-        AND (@AcademicYearId IS NULL OR rp.academic_year_id = @AcademicYearId)
-        AND (@Semester IS NULL OR rp.semester = @Semester)
-        AND (@Status IS NULL OR rp.status = @Status)
+            AND rp.is_active = 1
+            AND (@AcademicYearId IS NULL OR rp.academic_year_id = @AcademicYearId)
+            AND (@Semester IS NULL OR rp.semester = @Semester)
+            AND (@Status IS NULL OR rp.status = @Status)
+            AND (@PeriodType IS NULL OR rp.period_type = @PeriodType)  -- ✅ Filter theo period_type
         ORDER BY sort_order, rp.start_date DESC;
         
     END TRY

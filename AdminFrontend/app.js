@@ -232,8 +232,8 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             controller: 'AdvisorGradeFormulaConfigController'
         })
         .when('/advisor/enrollments', {
-            templateUrl: 'views/advisor/enrollments.html',
-            controller: 'AdvisorEnrollmentController'
+            templateUrl: 'views/advisor/enrollment-approval.html',
+            controller: 'AdvisorEnrollmentApprovalController'
         })
         
         // Student Portal
@@ -261,9 +261,17 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'views/student/retakes.html',
             controller: 'StudentRetakeController'
         })
+        .when('/student/retake-register', {
+            templateUrl: 'views/student/retake-register.html',
+            controller: 'StudentRetakeRegisterController'
+        })
         .when('/student/attendance', {
             templateUrl: 'views/student/attendance.html',
             controller: 'StudentAttendanceController'
+        })
+        .when('/student/exam-schedule', {
+            templateUrl: 'views/student/exam-schedule.html',
+            controller: 'StudentExamScheduleController'
         })
         .when('/student/profile', {
             templateUrl: 'views/student/profile.html',
@@ -328,6 +336,14 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         .when('/advisor/reports', {
             templateUrl: 'views/advisor/reports.html',
             controller: 'AdvisorReportController'
+        })
+        .when('/advisor/exam-schedules', {
+            templateUrl: 'views/advisor/exam-schedules.html',
+            controller: 'AdvisorExamScheduleController'
+        })
+        .when('/advisor/exam-schedules/:examId/scores', {
+            templateUrl: 'views/advisor/exam-schedule-scores.html',
+            controller: 'AdvisorExamScoreController'
         })
         .when('/lecturer/reports', {
             templateUrl: 'views/lecturer/reports.html',

@@ -300,6 +300,7 @@
                         <table class="table timetable-admin-table">
                             <thead>
                                 <tr>
+                                    <th>Loại</th>
                                     <th>Thứ</th>
                                     <th>Giờ</th>
                                     <th>Lớp</th>
@@ -311,7 +312,17 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr ng-repeat="s in allSessions | orderBy:['weekday', 'startTime']">
+                                <tr ng-repeat="s in allSessions | orderBy:['weekday', 'startTime']" 
+                                    ng-class="{'exam-row': s.type === 'exam', 'session-row': s.type === 'session'}">
+                                    <!-- ✅ Label phân loại ở đầu dòng -->
+                                    <td>
+                                        <span ng-if="s.type === 'exam'" class="badge badge-danger">
+                                            <i class="fas fa-clipboard-list"></i> LỊCH THI
+                                        </span>
+                                        <span ng-if="s.type === 'session' || !s.type" class="badge badge-primary">
+                                            <i class="fas fa-book"></i> LỊCH HỌC
+                                        </span>
+                                    </td>
                                     <td>Thứ {{s.weekday}}</td>
                                     <td>
                                         <span ng-if="s.periodFrom && s.periodTo">
@@ -321,24 +332,60 @@
                                         <span ng-if="!s.periodFrom || !s.periodTo">
                                             {{s.startTime}} - {{s.endTime}}
                                         </span>
+                                        <!-- Thêm thông tin ca thi nếu là exam -->
+                                        <span ng-if="s.type === 'exam' && s.sessionNo" class="text-muted">
+                                            <br><small>Ca thi {{s.sessionNo}}</small>
+                                        </span>
                                     </td>
                                     <td>{{s.classCode}}</td>
-                                    <td>{{s.subjectName}}</td>
+                                    <td>
+                                        {{s.subjectName}}
+                                        <!-- Thêm loại thi nếu là exam -->
+                                        <span ng-if="s.type === 'exam'">
+                                            <br>
+                                            <small class="text-muted">
+                                                <span ng-if="s.examType === 'GIỮA_HỌC_PHẦN'">(Thi giữa)</span>
+                                                <span ng-if="s.examType === 'KẾT_THÚC_HỌC_PHẦN'">(Thi cuối)</span>
+                                            </small>
+                                        </span>
+                                    </td>
                                     <td>{{s.lecturerName || '—'}}</td>
                                     <td>{{s.roomCode || '—'}}</td>
                                     <td>
-                                        <span ng-if="s.status === 'active'" class="badge badge-success">Hoạt động</span>
-                                        <span ng-if="s.status === 'cancelled'" class="badge badge-danger">Đã hủy</span>
-                                        <span ng-if="s.status === 'postponed'" class="badge badge-warning">Hoãn</span>
+                                        <!-- Status cho sessions -->
+                                        <span ng-if="s.type === 'session' || !s.type">
+                                            <span ng-if="s.status === 'active'" class="badge badge-success">Hoạt động</span>
+                                            <span ng-if="s.status === 'cancelled'" class="badge badge-danger">Đã hủy</span>
+                                            <span ng-if="s.status === 'postponed'" class="badge badge-warning">Hoãn</span>
+                                        </span>
+                                        <!-- Status cho exams -->
+                                        <span ng-if="s.type === 'exam'">
+                                            <span ng-if="s.status === 'PLANNED'" class="badge badge-info">Đã lên kế hoạch</span>
+                                            <span ng-if="s.status === 'CONFIRMED'" class="badge badge-success">Đã xác nhận</span>
+                                            <span ng-if="s.status === 'COMPLETED'" class="badge badge-secondary">Đã hoàn thành</span>
+                                            <span ng-if="s.status === 'CANCELLED'" class="badge badge-danger">Đã hủy</span>
+                                        </span>
                                     </td>
                                     <td>
                                         <div class="timetable-admin-actions">
-                                            <button ng-click="openEditForm(s)" class="btn btn-sm btn-outline timetable-admin-btn-edit">
+                                            <!-- Chỉ show edit/delete cho sessions -->
+                                            <button ng-if="s.type === 'session' || !s.type" 
+                                                    ng-click="openEditForm(s)" 
+                                                    class="btn btn-sm btn-outline timetable-admin-btn-edit">
                                                 <i class="fas fa-edit"></i> Sửa
                                             </button>
-                                            <button ng-click="deleteSession(s.sessionId)" class="btn btn-sm btn-danger timetable-admin-btn-delete">
+                                            <button ng-if="s.type === 'session' || !s.type" 
+                                                    ng-click="deleteSession(s.sessionId)" 
+                                                    class="btn btn-sm btn-danger timetable-admin-btn-delete">
                                                 <i class="fas fa-trash"></i> Xóa
                                             </button>
+                                            <!-- Link đến quản lý exam schedule nếu là exam -->
+                                            <a ng-if="s.type === 'exam'" 
+                                               href="#/advisor/exam-schedules" 
+                                               class="btn btn-sm btn-info"
+                                               title="Xem chi tiết lịch thi">
+                                                <i class="fas fa-calendar-alt"></i> Chi tiết
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>

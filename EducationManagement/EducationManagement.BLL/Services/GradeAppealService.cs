@@ -163,8 +163,8 @@ namespace EducationManagement.BLL.Services
                 {
                     var decisionText = dto.LecturerDecision switch
                     {
-                        "APPROVE" => "đồng ý",
-                        "REJECT" => "từ chối",
+                        "APPROVE" => "đề xuất chấp nhận",
+                        "REJECT" => "đề xuất từ chối",
                         "NEED_REVIEW" => "yêu cầu xem xét thêm",
                         _ => dto.LecturerDecision
                     };
@@ -175,7 +175,7 @@ namespace EducationManagement.BLL.Services
                         await _notificationService.CreateNotificationAsync(
                             appeal.StudentUserId,
                             "Phản hồi từ giảng viên",
-                            $"Giảng viên {appeal.LecturerName} đã {decisionText} yêu cầu phúc khảo của bạn cho môn {appeal.SubjectName}.{(string.IsNullOrEmpty(dto.LecturerResponse) ? "" : $" Phản hồi: {dto.LecturerResponse}")}",
+                            $"Giảng viên {appeal.LecturerName} đã {decisionText} yêu cầu phúc khảo của bạn cho môn {appeal.SubjectName}. Đang chờ cố vấn học tập quyết định cuối cùng.{(string.IsNullOrEmpty(dto.LecturerResponse) ? "" : $" Phản hồi: {dto.LecturerResponse}")}",
                             "GradeAppeal",
                             dto.UpdatedBy
                         );
@@ -204,25 +204,31 @@ namespace EducationManagement.BLL.Services
                 {
                 }
 
-                // If NEED_REVIEW, send notification to advisors
-                if (dto.LecturerDecision == "NEED_REVIEW")
+                // ✅ GỬI NOTIFICATION CHO ADVISORS CHO TẤT CẢ CÁC LECTURER DECISIONS
+                // Lecturer chỉ đề xuất, advisor mới quyết định cuối cùng
+                var advisorUserIds = await _userRepository.GetUserIdsByRoleNameAsync("Advisor");
+                var decisionTextForAdvisor = dto.LecturerDecision switch
                 {
-                    var advisorUserIds = await _userRepository.GetUserIdsByRoleNameAsync("Advisor");
-                    foreach (var advisorUserId in advisorUserIds)
+                    "APPROVE" => "đề xuất chấp nhận",
+                    "REJECT" => "đề xuất từ chối",
+                    "NEED_REVIEW" => "yêu cầu xem xét thêm",
+                    _ => dto.LecturerDecision
+                };
+                
+                foreach (var advisorUserId in advisorUserIds)
+                {
+                    try
                     {
-                        try
-                        {
-                            await _notificationService.CreateNotificationAsync(
-                                advisorUserId,
-                                "Giảng viên yêu cầu xem xét phúc khảo",
-                                $"Giảng viên {appeal.LecturerName} đã yêu cầu xem xét phúc khảo của sinh viên {appeal.StudentName} cho môn {appeal.SubjectName}.",
-                                "GradeAppeal",
-                                dto.UpdatedBy
-                            );
-                        }
-                        catch (Exception ex)
-                        {
-                        }
+                        await _notificationService.CreateNotificationAsync(
+                            advisorUserId,
+                            "Giảng viên đã đề xuất quyết định phúc khảo",
+                            $"Giảng viên {appeal.LecturerName} đã {decisionTextForAdvisor} phúc khảo của sinh viên {appeal.StudentName} cho môn {appeal.SubjectName}. Vui lòng xem xét và quyết định cuối cùng.{(string.IsNullOrEmpty(dto.LecturerResponse) ? "" : $" Phản hồi: {dto.LecturerResponse}")}",
+                            "GradeAppeal",
+                            dto.UpdatedBy
+                        );
+                    }
+                    catch (Exception ex)
+                    {
                     }
                 }
             }
@@ -243,6 +249,17 @@ namespace EducationManagement.BLL.Services
             if (!Array.Exists(validDecisions, d => d == dto.AdvisorDecision))
                 throw new ArgumentException("Decision phải là APPROVE hoặc REJECT");
 
+            // ✅ VALIDATION: Chỉ cho phép advisor quyết định khi status = REVIEWING hoặc PENDING
+            var appeal = await _appealRepository.GetByIdAsync(appealId);
+            if (appeal == null)
+                throw new ArgumentException("Không tìm thấy yêu cầu phúc khảo");
+
+            if (appeal.Status != "REVIEWING" && appeal.Status != "PENDING")
+                throw new InvalidOperationException($"Không thể quyết định phúc khảo ở trạng thái '{appeal.Status}'. Chỉ có thể quyết định khi status là 'REVIEWING' hoặc 'PENDING'.");
+
+            if (dto.AdvisorDecision == "APPROVE" && !dto.FinalScore.HasValue)
+                throw new ArgumentException("Vui lòng nhập điểm sau phúc khảo khi duyệt");
+
             if (dto.AdvisorDecision == "APPROVE" && dto.FinalScore.HasValue)
             {
                 if (dto.FinalScore < 0 || dto.FinalScore > 10)
@@ -254,8 +271,8 @@ namespace EducationManagement.BLL.Services
                 dto.FinalScore, dto.ResolutionNotes, dto.UpdatedBy
             );
 
-            // Get appeal details for notification
-            var appeal = await _appealRepository.GetByIdAsync(appealId);
+            // Get updated appeal details for notification
+            appeal = await _appealRepository.GetByIdAsync(appealId);
             if (appeal != null)
             {
                 // Send notification to student

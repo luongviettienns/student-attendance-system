@@ -291,6 +291,7 @@ BEGIN
     BEGIN TRY
         DECLARE @ActualEnrollmentId VARCHAR(50);
         DECLARE @ActualClassId VARCHAR(50);
+        DECLARE @ErrorMsg NVARCHAR(500);
         
         -- ✅ 1. Get ClassId from ScheduleId (timetable_sessions)
         IF @ClassId IS NULL OR @ClassId = ''
@@ -350,7 +351,8 @@ BEGIN
         
         IF @AttendanceDateOnly != @Today
         BEGIN
-            THROW 50001, N'Chỉ được điểm danh cho ngày hôm nay. Ngày điểm danh phải là: ' + CONVERT(NVARCHAR(10), @Today, 120), 1;
+            SET @ErrorMsg = N'Chỉ được điểm danh cho ngày hôm nay. Ngày điểm danh phải là: ' + CONVERT(NVARCHAR(10), @Today, 120);
+            THROW 50001, @ErrorMsg, 1;
         END
         
         -- ✅ 4. Validate Status

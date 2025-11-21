@@ -10,10 +10,15 @@ app.controller('RegistrationPeriodController', [
     // VARIABLES INITIALIZATION
     // ============================================================
     $scope.periods = [];
+    $scope.retakePeriods = [];
     $scope.activePeriod = null;
+    $scope.activeRetakePeriod = null;
     $scope.currentPeriod = null;
     $scope.academicYears = [];
     $scope.loading = false;
+    
+    // Tabs
+    $scope.activeTab = 'NORMAL'; // 'NORMAL' hoặc 'RETAKE'
     
     // Period Classes Management
     $scope.periodClasses = [];
@@ -78,22 +83,63 @@ app.controller('RegistrationPeriodController', [
     // ============================================================
     // LOAD DATA
     // ============================================================
-    $scope.loadPeriods = function() {
-        $scope.loading = true;
-        RegistrationPeriodService.getAll()
+    $scope.loadPeriods = function(showLoading) {
+        // ✅ TỐI ƯU: Chỉ show loading nếu đang ở tab NORMAL (user đang xem)
+        if (showLoading !== false && $scope.activeTab === 'NORMAL') {
+            $scope.loading = true;
+        }
+        
+        RegistrationPeriodService.getAll('NORMAL')
             .then(function(response) {
                 if (response.data && response.data.success) {
                     $scope.periods = response.data.data || [];
                 } else {
                     $scope.periods = [];
                 }
-                $scope.loading = false;
+                
+                // Chỉ set loading = false nếu đang ở tab NORMAL
+                if ($scope.activeTab === 'NORMAL') {
+                    $scope.loading = false;
+                }
             })
             .catch(function(error) {
                 console.error('Error loading periods:', error);
-                ToastService.error('Không thể tải danh sách đợt đăng ký');
+                // Chỉ show error nếu đang ở tab NORMAL
+                if ($scope.activeTab === 'NORMAL') {
+                    ToastService.error('Không thể tải danh sách đợt đăng ký học phần');
+                    $scope.loading = false;
+                }
                 $scope.periods = [];
-                $scope.loading = false;
+            });
+    };
+    
+    $scope.loadRetakePeriods = function(showLoading) {
+        // ✅ TỐI ƯU: Chỉ show loading nếu đang ở tab RETAKE (user đang xem)
+        if (showLoading !== false && $scope.activeTab === 'RETAKE') {
+            $scope.loading = true;
+        }
+        
+        RegistrationPeriodService.getRetakePeriods()
+            .then(function(response) {
+                if (response.data && response.data.success) {
+                    $scope.retakePeriods = response.data.data || [];
+                } else {
+                    $scope.retakePeriods = [];
+                }
+                
+                // Chỉ set loading = false nếu đang ở tab RETAKE
+                if ($scope.activeTab === 'RETAKE') {
+                    $scope.loading = false;
+                }
+            })
+            .catch(function(error) {
+                console.error('Error loading retake periods:', error);
+                // Chỉ show error nếu đang ở tab RETAKE
+                if ($scope.activeTab === 'RETAKE') {
+                    ToastService.error('Không thể tải danh sách đợt đăng ký học lại');
+                    $scope.loading = false;
+                }
+                $scope.retakePeriods = [];
             });
     };
     
@@ -101,15 +147,64 @@ app.controller('RegistrationPeriodController', [
         RegistrationPeriodService.getActive()
             .then(function(response) {
                 if (response.data && response.data.success) {
-                    $scope.activePeriod = response.data.data;
+                    var period = response.data.data;
+                    if (period && period.periodType === 'RETAKE') {
+                        $scope.activeRetakePeriod = period;
+                        $scope.activePeriod = null; // Clear NORMAL period
+                    } else {
+                        $scope.activePeriod = period;
+                        $scope.activeRetakePeriod = null; // Clear RETAKE period
+                    }
                 } else {
                     $scope.activePeriod = null;
+                    $scope.activeRetakePeriod = null;
                 }
             })
             .catch(function(error) {
                 // No active period is not an error
                 $scope.activePeriod = null;
+                $scope.activeRetakePeriod = null;
             });
+    };
+    
+    // Switch tabs - Sequential: đợi tab cũ ẩn xong rồi mới hiện tab mới - TỐI ƯU TỐC ĐỘ
+    $scope.switchTab = function(tab) {
+        if ($scope.activeTab === tab) {
+            return; // Đã ở tab này rồi, không cần switch
+        }
+        
+        // Đo thời gian animation
+        var animationStartTime = performance.now();
+        var oldTab = $scope.activeTab;
+        
+        // ✅ SEQUENTIAL: Đợi tab cũ ẩn xong (ng-leave: 10ms) rồi mới hiện tab mới (ng-enter: 10ms)
+        // Bước 1: Ẩn tab cũ trước
+        $scope.activeTab = null; // Trigger ng-leave cho tab cũ
+        
+        // Đợi tab cũ fade out xong (10ms - cực nhanh)
+        $timeout(function() {
+            var hideEndTime = performance.now();
+            var hideDuration = hideEndTime - animationStartTime;
+            
+            // Bước 2: Hiện tab mới NGAY SAU KHI tab cũ đã ẩn xong
+            $scope.activeTab = tab; // Trigger ng-enter cho tab mới
+            
+            // Đợi tab mới fade in xong (10ms - cực nhanh)
+            $timeout(function() {
+                var animationEndTime = performance.now();
+                var totalDuration = animationEndTime - animationStartTime;
+                var showDuration = animationEndTime - hideEndTime;
+                
+                console.log('⏱️ Animation Performance:', {
+                    from: oldTab,
+                    to: tab,
+                    hideDuration: hideDuration.toFixed(2) + 'ms',
+                    showDuration: showDuration.toFixed(2) + 'ms',
+                    totalDuration: totalDuration.toFixed(2) + 'ms',
+                    status: 'sequential (ultra fast - 10ms each)'
+                });
+            }, 10); // Đợi ng-enter animation hoàn tất (10ms)
+        }, 10); // Đợi ng-leave animation hoàn tất (10ms)
     };
     
     $scope.loadAcademicYears = function() {
@@ -145,6 +240,7 @@ app.controller('RegistrationPeriodController', [
                 semester: 1,
                 startDate: dateStr,
                 endDate: dateStr,
+                periodType: $scope.activeTab, // Set periodType based on active tab
                 status: 'UPCOMING',
                 description: ''
             };
@@ -228,7 +324,12 @@ app.controller('RegistrationPeriodController', [
                     ToastService.success(isNew ? 'Tạo đợt đăng ký thành công' : 'Cập nhật đợt đăng ký thành công');
                     closeModal();
                     $scope.currentPeriod = null;
-                    $scope.loadPeriods();
+                    // Reload data based on active tab
+                    if ($scope.activeTab === 'NORMAL') {
+                        $scope.loadPeriods();
+                    } else {
+                        $scope.loadRetakePeriods();
+                    }
                     $scope.loadActivePeriod();
                 } else {
                     ToastService.error(response.data?.message || 'Có lỗi xảy ra');
@@ -255,7 +356,11 @@ app.controller('RegistrationPeriodController', [
             .then(function(response) {
                 if (response.data && response.data.success) {
                     ToastService.success('Xóa đợt đăng ký thành công');
-                    $scope.loadPeriods();
+                    if ($scope.activeTab === 'NORMAL') {
+                        $scope.loadPeriods();
+                    } else {
+                        $scope.loadRetakePeriods();
+                    }
                     $scope.loadActivePeriod();
                 } else {
                     ToastService.error(response.data?.message || 'Không thể xóa đợt đăng ký');
@@ -283,6 +388,7 @@ app.controller('RegistrationPeriodController', [
                 if (response.data && response.data.success) {
                     ToastService.success('Đã mở đợt đăng ký thành công');
                     $scope.loadPeriods();
+                    $scope.loadRetakePeriods();
                     $scope.loadActivePeriod();
                 } else {
                     ToastService.error(response.data?.message || 'Không thể mở đợt đăng ký');
@@ -307,6 +413,7 @@ app.controller('RegistrationPeriodController', [
                 if (response.data && response.data.success) {
                     ToastService.success('Đã đóng đợt đăng ký thành công');
                     $scope.loadPeriods();
+                    $scope.loadRetakePeriods();
                     $scope.loadActivePeriod();
                 } else {
                     ToastService.error(response.data?.message || 'Không thể đóng đợt đăng ký');
@@ -432,10 +539,20 @@ app.controller('RegistrationPeriodController', [
             closeModal();
         }, 200);
         
-        // Load data
-        $scope.loadPeriods();
-        $scope.loadActivePeriod();
+        // Load academic years (cần cho cả 2 tab)
         $scope.loadAcademicYears();
+        
+        // ✅ TỐI ƯU: Preload data cho CẢ 2 tab song song ngay từ đầu
+        // Điều này cho phép switch tab instant (không cần load lại)
+        
+        // Show loading cho tab hiện tại
+        $scope.loading = true;
+        
+        // Preload cả 2 tab song song (background loading)
+        // Tab hiện tại sẽ show loading, tab khác load im lặng
+        $scope.loadPeriods(true); // Load và show loading nếu đang ở tab NORMAL
+        $scope.loadRetakePeriods(true); // Load và show loading nếu đang ở tab RETAKE
+        $scope.loadActivePeriod(); // Load active period (chung cho cả 2 tab)
     };
     
     // Initialize when controller loads

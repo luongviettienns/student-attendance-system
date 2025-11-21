@@ -757,7 +757,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('dashboard')) return '/advisor/dashboard';
             if (labelLower.includes('student') || labelLower.includes('sinh viên')) return '/advisor/students';
             if (labelLower.includes('warning') || labelLower.includes('cảnh báo')) return '/advisor/warnings';
-            if (labelLower.includes('enrollment') || labelLower.includes('đăng ký học phần') || labelLower.includes('duyệt đăng ký')) return '/advisor/enrollments';
+            if (labelLower.includes('enrollment') || labelLower.includes('đăng ký học phần') || labelLower.includes('duyệt đăng ký') || labelLower.includes('đăng ký học lại')) return '/advisor/enrollments';
             if (labelLower.includes('appeal') || labelLower.includes('phúc khảo')) return '/advisor/appeals';
             if (labelLower.includes('retake') || labelLower.includes('học lại')) return '/advisor/retake';
             if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/advisor/reports';

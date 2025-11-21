@@ -860,6 +860,7 @@ BEGIN
         start_date          DATETIME NOT NULL,
         end_date            DATETIME NOT NULL,
         status              NVARCHAR(20) DEFAULT 'UPCOMING' CHECK (status IN ('UPCOMING', 'OPEN', 'CLOSED')),
+        period_type         NVARCHAR(20) DEFAULT 'NORMAL' CHECK (period_type IN ('NORMAL', 'RETAKE')), -- NORMAL: đăng ký học phần thường, RETAKE: đăng ký học lại
         
         -- Description
         description         NVARCHAR(500) NULL,
@@ -899,11 +900,24 @@ IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Period_DateRange' AND 
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Period_Active' AND object_id = OBJECT_ID('registration_periods'))
     CREATE INDEX IX_Period_Active ON registration_periods(is_active, deleted_at, status);
 
--- Unique constraint: prevent multiple OPEN periods
+-- Unique constraint: prevent multiple OPEN periods (cho phép nhiều OPEN nếu khác period_type)
 IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'UQ_Period_AcademicYearSemester' AND object_id = OBJECT_ID('registration_periods'))
-    CREATE UNIQUE INDEX UQ_Period_AcademicYearSemester 
-    ON registration_periods(academic_year_id, semester, is_active) 
+BEGIN
+    -- Drop old unique index if exists (vì cần thêm period_type vào constraint)
+    IF EXISTS (SELECT * FROM sys.indexes WHERE name = 'UQ_Period_AcademicYearSemester' AND object_id = OBJECT_ID('registration_periods'))
+    BEGIN
+        DROP INDEX UQ_Period_AcademicYearSemester ON registration_periods;
+    END
+    
+    -- Tạo unique constraint mới bao gồm period_type
+    CREATE UNIQUE INDEX UQ_Period_AcademicYearSemesterType 
+    ON registration_periods(academic_year_id, semester, period_type, is_active) 
     WHERE is_active = 1 AND deleted_at IS NULL AND status = 'OPEN';
+END
+
+-- Index cho period_type
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_Period_Type' AND object_id = OBJECT_ID('registration_periods'))
+    CREATE INDEX IX_Period_Type ON registration_periods(period_type, status);
 
 PRINT '✓ Indexes created for registration_periods';
 GO

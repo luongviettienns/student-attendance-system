@@ -111,15 +111,26 @@ app.controller('AdvisorGradeAppealController', [
             $scope.selectedAppeal = null;
         };
         
-        // Submit decision
+        // Submit decision (Advisor quyết định cuối cùng)
         $scope.submitDecision = function() {
+            if (!$scope.selectedAppeal) {
+                ToastService.error('Không tìm thấy yêu cầu phúc khảo');
+                return;
+            }
+            
+            // ✅ VALIDATION: Chỉ cho phép advisor quyết định khi status = REVIEWING hoặc PENDING
+            if ($scope.selectedAppeal.status !== 'REVIEWING' && $scope.selectedAppeal.status !== 'PENDING') {
+                ToastService.error('Chỉ có thể quyết định phúc khảo khi trạng thái là "Đang xem xét" (REVIEWING) hoặc "Chờ xử lý" (PENDING). Trạng thái hiện tại: ' + $scope.selectedAppeal.status);
+                return;
+            }
+            
             if (!$scope.decisionData.advisorDecision) {
-                ToastService.error('Vui lòng chọn quyết định');
+                ToastService.error('Vui lòng chọn quyết định cuối cùng');
                 return;
             }
             
             if ($scope.decisionData.advisorDecision === 'APPROVE' && !$scope.decisionData.finalScore) {
-                ToastService.error('Vui lòng nhập điểm sau phúc khảo');
+                ToastService.error('Vui lòng nhập điểm sau phúc khảo khi duyệt');
                 return;
             }
             
@@ -141,12 +152,13 @@ app.controller('AdvisorGradeAppealController', [
             
             GradeAppealService.updateAdvisorDecision($scope.selectedAppeal.appealId, decisionData)
                 .then(function() {
-                    ToastService.success('Quyết định phúc khảo thành công!');
+                    ToastService.success('Quyết định phúc khảo cuối cùng thành công!');
                     $scope.closeDecisionModal();
                     loadAppeals();
                 })
                 .catch(function(error) {
-                    ToastService.error('Lỗi: ' + (error.data?.message || error.message || 'Không thể cập nhật quyết định'));
+                    var errorMessage = error.data?.message || error.message || 'Không thể quyết định phúc khảo';
+                    ToastService.error('Lỗi: ' + errorMessage);
                     LoggerService.error('Error updating advisor decision', error);
                 })
                 .finally(function() {

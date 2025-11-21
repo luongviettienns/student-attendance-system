@@ -252,7 +252,8 @@
     box-shadow: var(--box-shadow);
     margin-bottom: 20px;
     overflow: hidden;
-    transition: all 0.3s ease;
+    /* ✅ TỐI ƯU: Chỉ transition khi hover, không transition khi render */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .card:hover {

@@ -579,3 +579,43 @@
     }
 }
 
+/* ==============================================
+   EXAM VS SESSION ROW STYLING
+   Phân biệt style cho exam-row vs session-row
+   ============================================== */
+
+/* Exam row - Màu đỏ nhạt */
+.timetable-admin-table tbody tr.exam-row {
+    background-color: #fff5f5;
+    border-left: 3px solid #dc3545;
+}
+
+.timetable-admin-table tbody tr.exam-row:hover {
+    background-color: #ffe5e5;
+}
+
+/* Session row - Màu xanh nhạt */
+.timetable-admin-table tbody tr.session-row {
+    background-color: #f0f8ff;
+    border-left: 3px solid #007bff;
+}
+
+.timetable-admin-table tbody tr.session-row:hover {
+    background-color: #e0f0ff;
+}
+
+/* Badge phân loại */
+.timetable-admin-table .badge-danger {
+    background-color: #dc3545;
+    color: white;
+    font-size: 11px;
+    padding: 4px 8px;
+}
+
+.timetable-admin-table .badge-primary {
+    background-color: #007bff;
+    color: white;
+    font-size: 11px;
+    padding: 4px 8px;
+}
+

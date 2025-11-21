@@ -1,4 +1,4 @@
-<div class="admin-layout" ng-controller="RegistrationPeriodController">
+<div class="admin-layout">
     <!-- Sidebar -->
     <app-sidebar></app-sidebar>
     
@@ -6,27 +6,55 @@
         <app-topbar page-title="Quản lý Đợt đăng ký học phần"></app-topbar>
         
         <div class="content-body">
-            <!-- Active Period Alert -->
-            <div class="alert alert-success" ng-if="activePeriod">
+            <!-- Tabs Navigation -->
+            <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link" ng-class="{'active': activeTab === 'NORMAL'}" 
+                       ng-click="switchTab('NORMAL')" 
+                       href="javascript:void(0)">
+                        <i class="fas fa-calendar-alt"></i> Đợt đăng ký học phần
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" ng-class="{'active': activeTab === 'RETAKE'}" 
+                       ng-click="switchTab('RETAKE')" 
+                       href="javascript:void(0)">
+                        <i class="fas fa-redo"></i> Đợt đăng ký học lại
+                    </a>
+                </li>
+            </ul>
+            
+            <!-- Active Period Alert - Normal -->
+            <div class="alert alert-success" ng-if="activeTab === 'NORMAL' && activePeriod">
                 <i class="fas fa-info-circle"></i>
-                <strong>Đợt đăng ký đang mở:</strong> {{activePeriod.periodName}} 
+                <strong>Đợt đăng ký học phần đang mở:</strong> {{activePeriod.periodName}} 
                 ({{activePeriod.startDate | date:'dd/MM/yyyy'}} - {{activePeriod.endDate | date:'dd/MM/yyyy'}})
             </div>
             
-            <div class="alert alert-warning" ng-if="!activePeriod">
+            <!-- Active Period Alert - Retake -->
+            <div class="alert alert-success" ng-if="activeTab === 'RETAKE' && activeRetakePeriod">
+                <i class="fas fa-info-circle"></i>
+                <strong>Đợt đăng ký học lại đang mở:</strong> {{activeRetakePeriod.periodName}} 
+                ({{activeRetakePeriod.startDate | date:'dd/MM/yyyy'}} - {{activeRetakePeriod.endDate | date:'dd/MM/yyyy'}})
+            </div>
+            
+            <div class="alert alert-warning" ng-if="(activeTab === 'NORMAL' && !activePeriod) || (activeTab === 'RETAKE' && !activeRetakePeriod)">
                 <i class="fas fa-exclamation-triangle"></i>
                 Hiện tại không có đợt đăng ký nào đang mở
             </div>
             
-            <div class="card">
+            <!-- Tab Content: Normal Periods -->
+            <div class="card tab-content" 
+                 ng-if="activeTab === 'NORMAL'"
+>
                 <div class="card-header">
                     <h3 class="card-title">
                         <i class="fas fa-calendar-alt"></i>
-                        Danh sách Đợt đăng ký
+                        Danh sách Đợt đăng ký học phần
                     </h3>
                     <div class="card-actions">
                         <button class="btn btn-primary" ng-click="showCreateModal()">
-                            <i class="fas fa-plus"></i> Tạo đợt đăng ký
+                            <i class="fas fa-plus"></i> Tạo đợt đăng ký học phần
                         </button>
                     </div>
                 </div>
@@ -92,7 +120,97 @@
                                     </td>
                                 </tr>
                                 <tr ng-if="periods.length === 0">
-                                    <td colspan="6" class="text-center">Chưa có đợt đăng ký nào</td>
+                                    <td colspan="6" class="text-center">Chưa có đợt đăng ký học phần nào</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div ng-if="loading" class="text-center p-5">
+                        <i class="fas fa-spinner fa-spin fa-3x"></i>
+                        <p>Đang tải...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tab Content: Retake Periods -->
+            <div class="card tab-content" 
+                 ng-if="activeTab === 'RETAKE'"
+>
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-redo"></i>
+                        Danh sách Đợt đăng ký học lại
+                    </h3>
+                    <div class="card-actions">
+                        <button class="btn btn-primary" ng-click="showCreateModal()">
+                            <i class="fas fa-plus"></i> Tạo đợt đăng ký học lại
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <div class="table-responsive" ng-if="!loading">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Tên đợt</th>
+                                    <th>Năm học</th>
+                                    <th>Học kỳ</th>
+                                    <th>Thời gian</th>
+                                    <th>Trạng thái</th>
+                                    <th>Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="period in retakePeriods">
+                                    <td>{{period.periodName}}</td>
+                                    <td>{{period.academicYearName}}</td>
+                                    <td>{{getSemesterName(period.semester)}}</td>
+                                    <td>
+                                        {{period.startDate | date:'dd/MM/yyyy'}} - 
+                                        {{period.endDate | date:'dd/MM/yyyy'}}
+                                    </td>
+                                    <td>
+                                        <span class="badge" ng-class="getStatusBadge(period.status)">
+                                            {{period.status === 'OPEN' ? 'Đang mở' : 
+                                              period.status === 'CLOSED' ? 'Đã đóng' : 'Sắp mở'}}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" 
+                                                ng-click="loadPeriodClasses(period.periodId)"
+                                                title="Quản lý lớp trong đợt">
+                                            <i class="fas fa-list"></i> Quản lý lớp
+                                        </button>
+                                        <button class="btn btn-sm btn-warning" 
+                                                ng-click="showEditModal(period)"
+                                                ng-if="period.status !== 'CLOSED'"
+                                                title="Sửa">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-success" 
+                                                ng-click="openPeriod(period.periodId)"
+                                                ng-if="period.status !== 'OPEN'"
+                                                title="Mở đợt">
+                                            <i class="fas fa-unlock"></i> Mở
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" 
+                                                ng-click="closePeriod(period.periodId)"
+                                                ng-if="period.status === 'OPEN'"
+                                                title="Đóng đợt">
+                                            <i class="fas fa-lock"></i> Đóng
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" 
+                                                ng-click="deletePeriod(period.periodId)"
+                                                ng-if="period.status === 'UPCOMING'"
+                                                title="Xóa">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <tr ng-if="retakePeriods.length === 0">
+                                    <td colspan="6" class="text-center">Chưa có đợt đăng ký học lại nào</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -133,13 +251,26 @@
                                         </option>
                                     </select>
                                 </div>
-                                <div class="form-group">
-                                    <label>Học kỳ <span class="text-danger">*</span></label>
-                                    <select class="form-control" ng-model="currentPeriod.semester" required>
-                                        <option value="1">Học kỳ 1</option>
-                                        <option value="2">Học kỳ 2</option>
-                                        <option value="3">Học kỳ 3 (Hè)</option>
-                                    </select>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Loại đợt đăng ký <span class="text-danger">*</span></label>
+                                            <select class="form-control" ng-model="currentPeriod.periodType" required>
+                                                <option value="NORMAL">Đăng ký học phần</option>
+                                                <option value="RETAKE">Đăng ký học lại</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label>Học kỳ <span class="text-danger">*</span></label>
+                                            <select class="form-control" ng-model="currentPeriod.semester" required>
+                                                <option value="1">Học kỳ 1</option>
+                                                <option value="2">Học kỳ 2</option>
+                                                <option value="3">Học kỳ 3 (Hè)</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="row">
                                     <div class="col-md-6">

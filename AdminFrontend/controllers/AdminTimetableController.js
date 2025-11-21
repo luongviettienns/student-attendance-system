@@ -1,4 +1,4 @@
-app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location', '$timeout', 'TimetableApi', 'ClassService', 'SubjectService', 'LecturerService', 'AuthService', 'ToastService', 'LoggerService', function($scope, $rootScope, $location, $timeout, TimetableApi, ClassService, SubjectService, LecturerService, AuthService, ToastService, LoggerService) {
+app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location', '$timeout', 'TimetableApi', 'ClassService', 'SubjectService', 'LecturerService', 'AuthService', 'ToastService', 'LoggerService', 'ExamScheduleService', function($scope, $rootScope, $location, $timeout, TimetableApi, ClassService, SubjectService, LecturerService, AuthService, ToastService, LoggerService, ExamScheduleService) {
   function getIsoWeek(d) {
     var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     var dayNum = date.getUTCDay() || 7;
@@ -338,36 +338,170 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
     $scope.loadSessions();
   };
 
-  // Load sessions for current week
+  // Load sessions for current week (bao gồm cả exams nếu có selectedClassId)
   $scope.loadSessions = function() {
     $scope.loading = true;
     $scope.error = null;
     
-    var apiCall;
+    var promises = [];
+    
+    // 1. Load sessions (existing)
     if ($scope.selectedClassId) {
-      apiCall = TimetableApi.getSessionsByClass($scope.selectedClassId, $scope.week);
+      promises.push(TimetableApi.getSessionsByClass($scope.selectedClassId, $scope.week));
     } else {
-      apiCall = TimetableApi.getAllSessionsByWeek($scope.year, $scope.week);
+      promises.push(TimetableApi.getAllSessionsByWeek($scope.year, $scope.week));
     }
     
-    apiCall.then(function(res) {
-      var data = (res.data && res.data.data) || [];
-      $scope.allSessions = data;
-      // Map theo weekday để hiển thị grid
+    // 2. Load exams nếu có selectedClassId (để tích hợp vào timetable)
+    if ($scope.selectedClassId && ExamScheduleService) {
+      promises.push(ExamScheduleService.getExamsByClassAndWeek($scope.selectedClassId, $scope.year, $scope.week).catch(function(err) {
+        LoggerService.error('Load exams error', err);
+        return {data: {data: []}}; // Return empty array on error
+      }));
+    } else {
+      promises.push(Promise.resolve({data: {data: []}}));
+    }
+    
+    Promise.all(promises).then(function(results) {
+      var sessions = (results[0].data && results[0].data.data) || [];
+      var exams = (results[1].data && results[1].data.data) || [];
+      
+      // 3. Mark type cho sessions
+      sessions = sessions.map(function(s) {
+        s.type = 'session';
+        // Đảm bảo có đầy đủ fields
+        s.sessionId = s.sessionId || s.session_id;
+        s.classCode = s.classCode || s.class_code;
+        s.subjectName = s.subjectName || s.subject_name;
+        s.lecturerName = s.lecturerName || s.lecturer_name;
+        s.roomCode = s.roomCode || s.room_code;
+        s.startTime = s.startTime || s.start_time;
+        s.endTime = s.endTime || s.end_time;
+        return s;
+      });
+      
+      // 4. Process exams: Convert format và mark type
+      exams = exams.map(function(exam) {
+        var weekday = $scope.getWeekdayFromDate(exam.examDate);
+        var item = {
+          type: 'exam',
+          sessionId: exam.examId,  // Dùng examId làm sessionId để tương thích
+          examId: exam.examId,
+          weekday: weekday,
+          startTime: $scope.formatTime(exam.examTime || exam.startTime),
+          endTime: $scope.formatTime(exam.endTime),
+          classCode: exam.classCode || $scope.selectedClassInfo?.classCode || '',
+          className: exam.className || $scope.selectedClassInfo?.className || '',
+          subjectName: exam.subjectName || '',
+          subjectCode: exam.subjectCode || '',
+          lecturerName: exam.proctorName || exam.lecturerName || '—',
+          roomCode: exam.roomCode || '—',
+          roomId: exam.roomId,
+          building: exam.building,
+          status: exam.status,
+          examType: exam.examType,
+          sessionNo: exam.sessionNo,
+          examDate: exam.examDate,
+          duration: exam.duration,
+          maxStudents: exam.maxStudents,
+          assignedStudents: exam.assignedStudents,
+          notes: exam.notes
+        };
+        return item;
+      });
+      
+      // 5. Merge sessions và exams
+      var allItems = sessions.concat(exams);
+      
+      // 6. Filter out sessions trùng ngày với exams (business rule: không có lịch học vào ngày thi)
+      if (exams.length > 0 && $scope.selectedClassId) {
+        var examDates = exams.map(function(exam) {
+          return exam.examDate ? exam.examDate.substring(0, 10) : null; // Extract YYYY-MM-DD
+        }).filter(function(date) { return date != null; });
+        
+        allItems = allItems.filter(function(item) {
+          if (item.type === 'session') {
+            // Check nếu session có date trong examDates thì filter out
+            // Sessions không có examDate, nên cần tính từ weekday và week
+            // Tạm thời giữ lại tất cả, có thể filter sau khi tính date của session
+            return true; // TODO: Implement filter logic nếu cần
+          }
+          return true;
+        });
+      }
+      
+      // 7. Sort theo weekday + startTime
+      allItems.sort(function(a, b) {
+        if (a.weekday !== b.weekday) {
+          return (a.weekday || 0) - (b.weekday || 0);
+        }
+        var timeA = (a.startTime || '').toString();
+        var timeB = (b.startTime || '').toString();
+        return timeA.localeCompare(timeB);
+      });
+      
+      $scope.allSessions = allItems;
+      
+      // 8. Map theo weekday để hiển thị grid
       var map = {};
       $scope.days.forEach(function(d) { map[d] = []; });
-      data.forEach(function(s) {
-        if(s.weekday >= 1 && s.weekday <= 7) {
-          map[s.weekday].push(s);
+      allItems.forEach(function(item) {
+        if (item.weekday >= 1 && item.weekday <= 7) {
+          map[item.weekday].push(item);
         }
       });
       $scope.grid = map;
     }).catch(function(err) {
-      $scope.error = 'Lỗi tải danh sách phiên: ' + (err.data && err.data.message) || err.statusText;
+      $scope.error = 'Lỗi tải danh sách phiên: ' + ((err.data && err.data.message) || err.statusText || 'Unknown error');
       LoggerService.error('Load sessions error', err);
     }).finally(function() {
       $scope.loading = false;
     });
+  };
+
+  // ============================================================
+  // 🔹 HELPER: Tính weekday từ date string
+  // ============================================================
+  $scope.getWeekdayFromDate = function(dateStr) {
+    if (!dateStr) return null;
+    try {
+      var date = new Date(dateStr);
+      if (isNaN(date.getTime())) return null;
+      var day = date.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
+      return day === 0 ? 7 : day; // Convert Sunday to 7 (Monday=1, Sunday=7)
+    } catch (e) {
+      LoggerService.error('Error parsing date: ' + dateStr, e);
+      return null;
+    }
+  };
+
+  // ============================================================
+  // 🔹 HELPER: Format time (HH:mm:ss → HH:mm)
+  // ============================================================
+  $scope.formatTime = function(timeStr) {
+    if (!timeStr) return '—';
+    var str = String(timeStr);
+    if (str.length >= 5) {
+      return str.substring(0, 5); // "HH:mm"
+    }
+    return str;
+  };
+
+  // ============================================================
+  // 🔹 HELPER: Kiểm tra date có trong tuần không
+  // ============================================================
+  $scope.isDateInWeek = function(dateStr, year, week) {
+    if (!dateStr) return false;
+    try {
+      var date = new Date(dateStr);
+      if (isNaN(date.getTime())) return false;
+      
+      // Tính tuần ISO của date
+      var isoWeek = getIsoWeek(date);
+      return isoWeek.year === year && isoWeek.week === week;
+    } catch (e) {
+      return false;
+    }
   };
 
   // Check conflicts

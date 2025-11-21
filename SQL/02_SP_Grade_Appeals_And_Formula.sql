@@ -252,13 +252,16 @@ END
 GO
 
 -- 4. UPDATE GRADE APPEAL (Lecturer Response)
+-- ✅ NGHIỆP VỤ: Giảng viên chỉ đề xuất, không quyết định cuối cùng
+-- Tất cả lecturer decisions đều chuyển status sang REVIEWING (chờ advisor quyết định)
+-- Chỉ advisor mới có quyền update điểm và quyết định cuối cùng
 IF OBJECT_ID('sp_UpdateGradeAppealLecturer', 'P') IS NOT NULL DROP PROCEDURE sp_UpdateGradeAppealLecturer;
 GO
 CREATE PROCEDURE sp_UpdateGradeAppealLecturer
     @AppealId VARCHAR(50),
     @LecturerId VARCHAR(50),
     @LecturerResponse NVARCHAR(1000) = NULL,
-    @LecturerDecision NVARCHAR(20), -- APPROVE, REJECT, NEED_REVIEW
+    @LecturerDecision NVARCHAR(20), -- APPROVE (đề xuất chấp nhận), REJECT (đề xuất từ chối), NEED_REVIEW (cần xem xét thêm)
     @UpdatedBy VARCHAR(50)
 AS
 BEGIN
@@ -270,35 +273,18 @@ BEGIN
             THROW 50001, 'Không tìm thấy yêu cầu phúc khảo', 1;
         END
         
+        -- ✅ TẤT CẢ lecturer decisions đều chuyển status sang REVIEWING (chờ advisor quyết định)
         UPDATE dbo.grade_appeals
         SET lecturer_id = @LecturerId,
             lecturer_response = @LecturerResponse,
             lecturer_decision = @LecturerDecision,
-            status = CASE 
-                WHEN @LecturerDecision = 'APPROVE' THEN 'APPROVED'
-                WHEN @LecturerDecision = 'REJECT' THEN 'REJECTED'
-                WHEN @LecturerDecision = 'NEED_REVIEW' THEN 'REVIEWING'
-                ELSE status
-            END,
+            status = 'REVIEWING', -- ✅ Luôn chuyển sang REVIEWING để chờ advisor quyết định
             updated_at = GETDATE(),
             updated_by = @UpdatedBy
         WHERE appeal_id = @AppealId;
         
-        -- If approved by lecturer, update grade
-        IF @LecturerDecision = 'APPROVE'
-        BEGIN
-            DECLARE @FinalScore DECIMAL(4,2);
-            SELECT @FinalScore = expected_score FROM dbo.grade_appeals WHERE appeal_id = @AppealId;
-            
-            IF @FinalScore IS NOT NULL
-            BEGIN
-                UPDATE dbo.grades
-                SET total_score = @FinalScore,
-                    updated_at = GETDATE(),
-                    updated_by = @UpdatedBy
-                WHERE grade_id = (SELECT grade_id FROM dbo.grade_appeals WHERE appeal_id = @AppealId);
-            END
-        END
+        -- ❌ BỎ PHẦN UPDATE ĐIỂM: Chỉ advisor mới có quyền update điểm khi quyết định cuối cùng
+        -- Lecturer chỉ đề xuất, không update điểm trực tiếp
     END TRY
     BEGIN CATCH
         THROW;

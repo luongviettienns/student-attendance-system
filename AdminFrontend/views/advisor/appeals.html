@@ -136,9 +136,9 @@
                                             <i class="fas fa-eye"></i>
                                         </button>
                                         <button class="btn btn-sm btn-success" 
-                                                ng-if="appeal.status === 'REVIEWING' || (appeal.status === 'PENDING' && appeal.lecturerDecision === 'NEED_REVIEW')"
+                                                ng-if="appeal.status === 'REVIEWING' || appeal.status === 'PENDING'"
                                                 ng-click="openDecisionModal(appeal)" 
-                                                title="Quyết định">
+                                                title="Quyết định cuối cùng">
                                             <i class="fas fa-gavel"></i> Quyết định
                                         </button>
                                     </td>
@@ -194,11 +194,11 @@
             <div ng-if="selectedAppeal.lecturerResponse" class="alert alert-secondary">
                 <strong>Phản hồi giảng viên:</strong><br>
                 {{selectedAppeal.lecturerResponse}}<br>
-                <small>Quyết định: <span class="badge" ng-class="{
+                <small>Đề xuất của giảng viên: <span class="badge" ng-class="{
                     'badge-success': selectedAppeal.lecturerDecision === 'APPROVE',
                     'badge-danger': selectedAppeal.lecturerDecision === 'REJECT',
                     'badge-warning': selectedAppeal.lecturerDecision === 'NEED_REVIEW'
-                }">{{selectedAppeal.lecturerDecision}}</span></small>
+                }">{{selectedAppeal.lecturerDecision === 'APPROVE' ? 'Đề xuất chấp nhận' : selectedAppeal.lecturerDecision === 'REJECT' ? 'Đề xuất từ chối' : selectedAppeal.lecturerDecision === 'NEED_REVIEW' ? 'Cần xem xét thêm' : selectedAppeal.lecturerDecision}}</span></small>
             </div>
 
             <div class="form-group">
@@ -313,11 +313,11 @@
                         <div class="alert alert-info">
                             {{selectedAppeal.lecturerResponse}}
                         </div>
-                        <p><small>Quyết định: <span class="badge" ng-class="{
-                            'badge-success': selectedAppeal.lecturerDecision === 'APPROVE',
-                            'badge-danger': selectedAppeal.lecturerDecision === 'REJECT',
-                            'badge-warning': selectedAppeal.lecturerDecision === 'NEED_REVIEW'
-                        }">{{selectedAppeal.lecturerDecision}}</span></small></p>
+                        <p>                <small>Đề xuất của giảng viên: <span class="badge" ng-class="{
+                    'badge-success': selectedAppeal.lecturerDecision === 'APPROVE',
+                    'badge-danger': selectedAppeal.lecturerDecision === 'REJECT',
+                    'badge-warning': selectedAppeal.lecturerDecision === 'NEED_REVIEW'
+                }">{{selectedAppeal.lecturerDecision === 'APPROVE' ? 'Đề xuất chấp nhận' : selectedAppeal.lecturerDecision === 'REJECT' ? 'Đề xuất từ chối' : selectedAppeal.lecturerDecision === 'NEED_REVIEW' ? 'Cần xem xét thêm' : selectedAppeal.lecturerDecision}}</span></small></p>
                         <p><small>Giảng viên: {{selectedAppeal.lecturerName || selectedAppeal.lecturerCode}}</small></p>
                     </div>
                     <div ng-if="!selectedAppeal.lecturerResponse" class="text-muted">
@@ -345,9 +345,9 @@
         <div class="modal-footer">
             <button class="btn btn-secondary" ng-click="closeDetailModal()">Đóng</button>
             <button class="btn btn-primary" 
-                    ng-if="selectedAppeal.status === 'REVIEWING' || (selectedAppeal.status === 'PENDING' && selectedAppeal.lecturerDecision === 'NEED_REVIEW')"
+                    ng-if="selectedAppeal.status === 'REVIEWING' || selectedAppeal.status === 'PENDING'"
                     ng-click="openDecisionModal(selectedAppeal)">
-                <i class="fas fa-gavel"></i> Quyết định
+                <i class="fas fa-gavel"></i> Quyết định cuối cùng
             </button>
         </div>
     </div>
