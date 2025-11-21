@@ -252,7 +252,6 @@ student-attendance-system/
 
 - **.NET SDK 8.0** hoặc cao hơn
 - **SQL Server 2019** hoặc cao hơn
-- **Node.js** (cho frontend, nếu cần build)
 - **Visual Studio 2022** hoặc **VS Code** (khuyến nghị)
 
 ### Bước 1: Clone Repository
