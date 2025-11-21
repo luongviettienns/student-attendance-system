@@ -133,13 +133,23 @@ Hệ thống Quản lý Đào Tạo & Điểm Danh Sinh Viên là một giải p
 
 ## 🛠 Công Nghệ Sử Dụng
 
-### Backend
+### Backend (Microservices Architecture)
 - **.NET 8.0** - Framework chính
 - **ASP.NET Core Web API** - RESTful API
+- **Ocelot** - API Gateway pattern
 - **JWT Bearer Authentication** - Xác thực và phân quyền
 - **BCrypt.Net** - Mã hóa mật khẩu
 - **SignalR** - Real-time notifications
 - **StackExchange.Redis** - Caching (tùy chọn)
+
+### Kiến Trúc Hệ Thống
+- **API Gateway** (`EducationManagement.API.Gateway`) - Port 7033 (HTTPS)
+  - Điểm vào duy nhất cho tất cả requests từ frontend
+  - Routing, Authentication, CORS handling
+  - Static files serving (avatars)
+- **API Admin** (`EducationManagement.API.Admin`) - Port 5227 (HTTP)
+  - Business logic và data access
+  - Chạy nội bộ, chỉ nhận requests từ Gateway
 
 ### Frontend
 - **AngularJS 1.x** - Framework frontend
@@ -173,9 +183,11 @@ student-attendance-system/
 │   ├── js/                    # JavaScript libraries
 │   └── index.html             # Entry point
 │
-├── EducationManagement/        # Backend .NET
-│   ├── EducationManagement.API.Admin/    # API Controllers
-│   ├── EducationManagement.API.Gateway/  # API Gateway
+├── EducationManagement/        # Backend .NET (Microservices)
+│   ├── EducationManagement.API.Admin/    # API Admin Service (Port 5227)
+│   │   └── Controllers/       # Business logic controllers
+│   ├── EducationManagement.API.Gateway/  # API Gateway (Port 7033)
+│   │   └── ocelot.json        # Gateway routing config
 │   ├── EducationManagement.BLL/          # Business Logic Layer
 │   ├── EducationManagement.DAL/          # Data Access Layer
 │   ├── EducationManagement.Common/       # Shared Models & DTOs
@@ -192,6 +204,45 @@ student-attendance-system/
 ├── ĐÁNH_GIÁ_HỆ_THỐNG.md      # Đánh giá hệ thống
 └── README.md                  # File này
 ```
+
+### 🏗️ Kiến Trúc Hệ Thống
+
+```
+┌─────────────┐
+│   Frontend  │  (AngularJS - Port 8080)
+│  (Browser)  │
+└──────┬──────┘
+       │ HTTPS
+       │ https://localhost:7033/api-edu
+       ▼
+┌─────────────────┐
+│   API Gateway   │  (Ocelot - Port 7033)
+│  (Public Entry) │  • Authentication
+│                 │  • Routing
+│                 │  • CORS
+└──────┬──────────┘
+       │ HTTP (Internal)
+       │ http://localhost:5227/api-edu
+       ▼
+┌─────────────────┐
+│   API Admin     │  (ASP.NET Core - Port 5227)
+│  (Business API) │  • Controllers
+│                 │  • Business Logic
+│                 │  • Data Access
+└──────┬──────────┘
+       │
+       ▼
+┌─────────────────┐
+│  SQL Server     │  (Database)
+│  (Port 1433)    │
+└─────────────────┘
+```
+
+**Luồng Request:**
+1. Frontend gửi request → API Gateway (port 7033)
+2. Gateway xác thực JWT và route → API Admin (port 5227)
+3. API Admin xử lý business logic → Database
+4. Response quay ngược lại qua Gateway → Frontend
 
 ---
 
@@ -268,8 +319,9 @@ cd student-attendance-system
    }
    ```
 
-### Bước 4: Chạy Backend
+### Bước 4: Chạy Backend (Microservices)
 
+**Chạy API Admin (Port 5227):**
 ```bash
 cd EducationManagement/EducationManagement.API.Admin
 dotnet restore
@@ -277,15 +329,29 @@ dotnet build
 dotnet run
 ```
 
-Backend sẽ chạy tại: `https://localhost:5001` hoặc `http://localhost:5000`
+**Chạy API Gateway (Port 7033):**
+```bash
+cd EducationManagement/EducationManagement.API.Gateway
+dotnet restore
+dotnet build
+dotnet run
+```
+
+> ⚠️ **Lưu ý:** Cần chạy **cả 2 services** đồng thời:
+> - API Admin: `http://localhost:5227` (nội bộ)
+> - API Gateway: `https://localhost:7033` (public, frontend gọi vào đây)
 
 ### Bước 5: Cấu Hình Frontend
 
-1. Mở file `AdminFrontend/services/ApiService.js`
-2. Cập nhật API base URL:
+1. Mở file `AdminFrontend/app.js`
+2. Kiểm tra API base URL (mặc định đã trỏ đến Gateway):
    ```javascript
-   const API_BASE_URL = 'https://localhost:5001/api-edu';
+   API_CONFIG: {
+       BASE_URL: 'https://localhost:7033/api-edu',    // API Gateway URL
+       GATEWAY_URL: 'https://localhost:7033'             // Gateway URL
+   }
    ```
+   > ✅ Frontend đã được cấu hình để gọi API qua Gateway
 
 ### Bước 6: Chạy Frontend
 
@@ -373,8 +439,10 @@ Sau khi seed data, bạn có thể đăng nhập với các tài khoản sau:
 
 ### Base URL
 ```
-https://localhost:5001/api-edu
+https://localhost:7033/api-edu  (API Gateway)
 ```
+
+> **Lưu ý:** Tất cả requests từ frontend đều đi qua API Gateway. Gateway sẽ route đến API Admin (port 5227) nội bộ.
 
 ### Authentication
 Tất cả API (trừ login) đều yêu cầu JWT token trong header:
