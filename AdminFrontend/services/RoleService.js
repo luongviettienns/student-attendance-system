@@ -445,13 +445,12 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 '/advisor/dashboard',
                 '/advisor/students',
                 '/advisor/warnings', // Warnings page (cảnh báo và gửi email)
-                '/advisor/enrollments', // Enrollments approval page
+                '/enrollments', // Duyệt đăng ký học phần/học lại (đã gộp chung với admin)
                 '/advisor/reports', // Reports & Statistics
                 '/notifications',
                 // Quyền Nhân viên phòng đào tạo (gộp vào Advisor)
                 '/dashboard', // Dashboard admin (Overview)
                 '/registration-periods', // Quản lý đợt đăng ký
-                '/enrollments', // Quản lý đăng ký học phần
                 '/audit-logs' // Nhật ký hệ thống
             ]
         };
@@ -534,7 +533,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         'ADVISOR_DASHBOARD': '/advisor/dashboard',
         'ADVISOR_STUDENTS': '/advisor/students', // Fixed: route is /advisor/students, not /students
         'ADVISOR_WARNINGS': '/advisor/warnings', // Task 1.5: Cảnh báo và gửi email
-        'ADVISOR_ENROLLMENTS': '/advisor/enrollments', // Task 2: Duyệt đăng ký học phần
+        'ADVISOR_ENROLLMENTS': '/enrollments', // Task 2: Duyệt đăng ký học phần/học lại (đã gộp chung)
         'ADVISOR_APPEALS': '/advisor/appeals', // ✅ Phúc khảo cho cố vấn
         'ADVISOR_RETAKE': '/advisor/retakes', // ✅ Quản lý học lại
         'ADVISOR_GRADE_FORMULA': '/grade-formula', // ✅ Công thức điểm cho cố vấn
@@ -584,7 +583,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             return [];
         }
         
-        return backendMenus.map(function(menu) {
+        var sections = backendMenus.map(function(menu) {
             var section = {
                 section: menu.label || '',
                 items: []
@@ -712,6 +711,89 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         }).filter(function(section) {
             return section.items.length > 0;
         });
+        
+        // ✅ Gộp menu items trùng path toàn cục (loại bỏ duplicate giữa các sections)
+        // Đây là phần quan trọng để tránh hiển thị 2 menu items trùng nhau
+        // Ví dụ: "Duyệt đăng ký học phần/học lại" (trong section "CỐ VẤN HỌC TẬP") 
+        // và "Duyệt đăng ký" (trong section "ĐĂNG KÝ HỌC PHẦN") đều trỏ đến /enrollments
+        // Ưu tiên giữ menu item trong section "ĐĂNG KÝ HỌC PHẦN" và loại bỏ menu item trong section "CỐ VẤN HỌC TẬP"
+        
+        // ✅ Loại bỏ menu items enrollment approval trong section "CỐ VẤN HỌC TẬP" nếu đã có trong "ĐĂNG KÝ HỌC PHẦN"
+        // Đồng bộ với admin: chỉ cần menu item "Duyệt đăng ký" trong section "ĐĂNG KÝ HỌC PHẦN"
+        var currentUser = AuthService.getCurrentUser();
+        var role = currentUser ? (currentUser.Role || currentUser.role) : null;
+        
+        // Filter sections: loại bỏ menu items enrollment trong section "CỐ VẤN HỌC TẬP" nếu đã có trong "ĐĂNG KÝ HỌC PHẦN"
+        var sectionsFiltered = sections.map(function(section) {
+            // Nếu là section "CỐ VẤN HỌC TẬP" hoặc "ACADEMIC ADVISOR", loại bỏ menu items enrollment
+            var sectionLabelLower = (section.section || '').toLowerCase();
+            var isAdvisorSection = sectionLabelLower.includes('cố vấn') || sectionLabelLower.includes('advisor') || 
+                                   sectionLabelLower.includes('học tập') || sectionLabelLower.includes('academic');
+            
+            // Kiểm tra xem có section "ĐĂNG KÝ HỌC PHẦN" hay không
+            var hasRegistrationSection = sections.some(function(s) {
+                var sLabelLower = (s.section || '').toLowerCase();
+                return sLabelLower.includes('đăng ký') || sLabelLower.includes('registration');
+            });
+            
+            // Nếu đã có section "ĐĂNG KÝ HỌC PHẦN" và đang ở section "CỐ VẤN HỌC TẬP", loại bỏ enrollment items
+            if (isAdvisorSection && hasRegistrationSection) {
+                var filteredItems = section.items.filter(function(item) {
+                    var itemPath = item.path || '';
+                    var itemLabelLower = (item.label || '').toLowerCase();
+                    // Loại bỏ menu items có path là /enrollments hoặc label chứa "duyệt đăng ký"
+                    var isEnrollmentItem = itemPath === '/enrollments' || 
+                                          itemPath === '/advisor/enrollments' ||
+                                          itemLabelLower.includes('duyệt đăng ký') ||
+                                          itemLabelLower.includes('enrollment approval');
+                    return !isEnrollmentItem;
+                });
+                return {
+                    section: section.section,
+                    items: filteredItems
+                };
+            }
+            
+            return section;
+        });
+        
+        // Sắp xếp sections theo thứ tự ưu tiên (section "ĐĂNG KÝ HỌC PHẦN" có ưu tiên cao hơn)
+        var sectionsSorted = sectionsFiltered.slice().sort(function(a, b) {
+            // Ưu tiên section "ĐĂNG KÝ HỌC PHẦN" hoặc sections chứa "ĐĂNG KÝ" hoặc "Đợt đăng ký"
+            var aPriority = (a.section && (a.section.includes('ĐĂNG KÝ') || a.section.includes('Đợt đăng ký') || a.section.includes('REGISTRATION'))) ? 1 : 0;
+            var bPriority = (b.section && (b.section.includes('ĐĂNG KÝ') || b.section.includes('Đợt đăng ký') || b.section.includes('REGISTRATION'))) ? 1 : 0;
+            return bPriority - aPriority; // Ưu tiên cao hơn (1) sẽ được xử lý trước
+        });
+        
+        // Loại bỏ duplicate menu items (chỉ giữ menu item đầu tiên cho mỗi path)
+        var globalSeenPaths = {};
+        var processedSections = sectionsSorted.map(function(section) {
+            var filteredItems = [];
+            
+            section.items.forEach(function(item) {
+                // Nếu path chưa được thấy trong toàn bộ menu, thêm vào
+                if (!globalSeenPaths[item.path]) {
+                    globalSeenPaths[item.path] = {
+                        section: section.section,
+                        item: item
+                    };
+                    filteredItems.push(item);
+                }
+                // Nếu path đã có trong section khác, bỏ qua menu item này (đã có menu item khác trỏ đến path này)
+                // Điều này đảm bảo chỉ có 1 menu item cho mỗi path trong toàn bộ sidebar
+                // Vì đã sắp xếp sections, menu item trong section có ưu tiên cao hơn sẽ được giữ lại
+            });
+            
+            return {
+                section: section.section,
+                items: filteredItems
+            };
+        });
+        
+        // Filter sections có items sau khi loại bỏ duplicate
+        return processedSections.filter(function(section) {
+            return section.items.length > 0;
+        });
     }
     
     /**
@@ -757,7 +839,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('dashboard')) return '/advisor/dashboard';
             if (labelLower.includes('student') || labelLower.includes('sinh viên')) return '/advisor/students';
             if (labelLower.includes('warning') || labelLower.includes('cảnh báo')) return '/advisor/warnings';
-            if (labelLower.includes('enrollment') || labelLower.includes('đăng ký học phần') || labelLower.includes('duyệt đăng ký') || labelLower.includes('đăng ký học lại')) return '/advisor/enrollments';
+            if (labelLower.includes('enrollment') || labelLower.includes('đăng ký học phần') || labelLower.includes('duyệt đăng ký') || labelLower.includes('đăng ký học lại')) return '/enrollments';
             if (labelLower.includes('appeal') || labelLower.includes('phúc khảo')) return '/advisor/appeals';
             if (labelLower.includes('retake') || labelLower.includes('học lại')) return '/advisor/retake';
             if (labelLower.includes('report') || labelLower.includes('thống kê') || labelLower.includes('báo cáo')) return '/advisor/reports';
@@ -779,7 +861,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             if (labelLower.includes('lớp chính khóa') || (labelLower.includes('lớp') && labelLower.includes('chính khóa'))) return '/admin-classes';
             if (labelLower.includes('công thức điểm') || (labelLower.includes('công thức') && labelLower.includes('điểm')) || labelLower.includes('grade formula')) return '/grade-formula';
             if (labelLower.includes('đợt đăng ký') || labelLower.includes('registration period')) return '/registration-periods';
-            if (labelLower.includes('quản lý đăng ký') || (labelLower.includes('đăng ký') && labelLower.includes('quản lý'))) return '/enrollments';
+            if (labelLower.includes('quản lý đăng ký') || (labelLower.includes('đăng ký') && labelLower.includes('quản lý')) || labelLower.includes('duyệt đăng ký') || labelLower.includes('đăng ký học lại')) return '/enrollments';
             if (labelLower.includes('thời khóa biểu') || labelLower.includes('timetable') || labelLower.includes('xếp lịch')) return '/admin/timetable';
             if (labelLower.includes('phòng học') || labelLower.includes('room')) return '/rooms';
             if (labelLower.includes('nhật ký') || labelLower.includes('audit log')) return '/audit-logs';
@@ -998,6 +1080,10 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             'công thức điểm': '/grade-formula',
             'đợt đăng ký': '/registration-periods',
             'quản lý đăng ký': '/enrollments',
+            'duyệt đăng ký học phần': '/enrollments',
+            'duyệt đăng ký học lại': '/enrollments',
+            'duyệt đăng ký học phần/học lại': '/enrollments',
+            'duyệt đăng ký': '/enrollments',
             'thời khóa biểu': '/admin/timetable',
             'phòng học': '/rooms',
             'nhật ký': '/audit-logs',

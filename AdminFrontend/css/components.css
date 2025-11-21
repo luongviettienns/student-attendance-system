@@ -119,13 +119,11 @@
     color: var(--info-color);
 }
 
-/* Khi hover outline button → icon màu trắng */
-.btn-outline:hover i.fas,
-.btn-outline:hover i.far,
-.btn-outline:hover i.fab,
-[class*="btn-outline"]:hover i.fas,
-[class*="btn-outline"]:hover i.far,
-[class*="btn-outline"]:hover i.fab {
+/* Khi hover outline button → icon màu trắng CHỈ KHI button có background đậm */
+/* Rule này sẽ được override bởi các rule cụ thể hơn ở dưới */
+.btn-outline:hover:not(:disabled) i.fas,
+.btn-outline:hover:not(:disabled) i.far,
+.btn-outline:hover:not(:disabled) i.fab {
     color: white;
 }
 
@@ -221,6 +219,64 @@
     border-color: var(--danger-color);
     color: white;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Hover states cho tất cả outline buttons - đảm bảo background đậm khi hover */
+.btn-outline-primary:hover:not(:disabled) {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-outline-success:hover:not(:disabled) {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-outline-warning:hover:not(:disabled) {
+    background-color: var(--warning-color);
+    border-color: var(--warning-color);
+    color: white;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-outline-info:hover:not(:disabled) {
+    background-color: var(--info-color);
+    border-color: var(--info-color);
+    color: white;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.btn-outline-secondary:hover:not(:disabled) {
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: white;
+    box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+}
+
+/* Đảm bảo icon màu trắng khi hover vào outline buttons có background đậm */
+.btn-outline-primary:hover:not(:disabled) i.fas,
+.btn-outline-primary:hover:not(:disabled) i.far,
+.btn-outline-primary:hover:not(:disabled) i.fab,
+.btn-outline-success:hover:not(:disabled) i.fas,
+.btn-outline-success:hover:not(:disabled) i.far,
+.btn-outline-success:hover:not(:disabled) i.fab,
+.btn-outline-danger:hover:not(:disabled) i.fas,
+.btn-outline-danger:hover:not(:disabled) i.far,
+.btn-outline-danger:hover:not(:disabled) i.fab,
+.btn-outline-warning:hover:not(:disabled) i.fas,
+.btn-outline-warning:hover:not(:disabled) i.far,
+.btn-outline-warning:hover:not(:disabled) i.fab,
+.btn-outline-info:hover:not(:disabled) i.fas,
+.btn-outline-info:hover:not(:disabled) i.far,
+.btn-outline-info:hover:not(:disabled) i.fab,
+.btn-outline-secondary:hover:not(:disabled) i.fas,
+.btn-outline-secondary:hover:not(:disabled) i.far,
+.btn-outline-secondary:hover:not(:disabled) i.fab {
+    color: white !important;
 }
 
 .btn-sm {
@@ -651,6 +707,21 @@ input[type="radio"] {
 
 .table tbody tr:last-child td {
     border-bottom: none;
+}
+
+/* Table hoverable - thay cho table-hover của Bootstrap */
+.table-hoverable tbody tr:hover {
+    background-color: var(--bg-secondary);
+    cursor: pointer;
+}
+
+/* Table header light - thay cho table-light của Bootstrap */
+.table-header-light {
+    background-color: var(--bg-secondary);
+}
+
+.table-header-light th {
+    background-color: var(--bg-secondary);
 }
 
 .table-striped tbody tr:nth-child(even) {

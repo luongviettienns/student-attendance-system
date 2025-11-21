@@ -159,6 +159,17 @@ namespace EducationManagement.DAL.Repositories
                 }
             }
 
+            // ✅ Map is_menu_only
+            bool isMenuOnly = false;
+            if (row.Table.Columns.Contains("is_menu_only"))
+            {
+                var isMenuOnlyValue = row["is_menu_only"];
+                if (isMenuOnlyValue != DBNull.Value && isMenuOnlyValue != null)
+                {
+                    isMenuOnly = Convert.ToBoolean(isMenuOnlyValue);
+                }
+            }
+
             return new Permission
             {
                 PermissionId = row["permission_id"].ToString()!,
@@ -167,6 +178,7 @@ namespace EducationManagement.DAL.Repositories
                 ParentCode = parentCode, // ✅ Map ParentCode
                 Icon = icon, // ✅ Map Icon
                 SortOrder = sortOrder, // ✅ Map SortOrder
+                IsMenuOnly = isMenuOnly, // ✅ Map IsMenuOnly
                 IsActive = isActive, // ✅ Map IsActive
                 Description = row.Table.Columns.Contains("description") ? row["description"]?.ToString() : null,
                 CreatedAt = row.Table.Columns.Contains("created_at") && row["created_at"] != DBNull.Value

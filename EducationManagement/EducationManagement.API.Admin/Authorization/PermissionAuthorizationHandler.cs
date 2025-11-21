@@ -33,12 +33,19 @@ namespace EducationManagement.API.Admin.Authorization
 
             // Lấy permissions của role từ database
             var permissions = await _permissionRepository.GetByRoleNameAsync(roleName);
-            var permissionCodes = permissions.Select(p => p.PermissionCode).ToList();
+            
+            // ✅ CHỈ LẤY EXECUTABLE PERMISSIONS (bỏ qua menu-only permissions)
+            // Menu-only permissions (is_menu_only = true) chỉ dùng để hiển thị menu,
+            // KHÔNG dùng để check authorization
+            var executablePermissions = permissions
+                .Where(p => !p.IsMenuOnly) // Bỏ qua menu-only permissions
+                .Select(p => p.PermissionCode)
+                .ToList();
 
             // Kiểm tra xem role có permission cần thiết không
             // Hỗ trợ nhiều permission codes (OR logic)
             if (requirement.PermissionCodes.Any(code => 
-                permissionCodes.Contains(code, StringComparer.OrdinalIgnoreCase)))
+                executablePermissions.Contains(code, StringComparer.OrdinalIgnoreCase)))
             {
                 context.Succeed(requirement);
             }

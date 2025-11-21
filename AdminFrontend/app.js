@@ -231,9 +231,9 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'views/advisor/grade-formula.html',
             controller: 'AdvisorGradeFormulaConfigController'
         })
+        // Redirect /advisor/enrollments to /enrollments (đã gộp chung)
         .when('/advisor/enrollments', {
-            templateUrl: 'views/advisor/enrollment-approval.html',
-            controller: 'AdvisorEnrollmentApprovalController'
+            redirectTo: '/enrollments'
         })
         
         // Student Portal
@@ -302,8 +302,8 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
         
         // Enrollments - Admin
         .when('/enrollments', {
-            templateUrl: 'views/enrollments/admin-manage.html',
-            controller: 'EnrollmentController'
+            templateUrl: 'views/advisor/enrollment-approval.html',
+            controller: 'AdvisorEnrollmentApprovalController'
         })
         
         // Subject Prerequisites

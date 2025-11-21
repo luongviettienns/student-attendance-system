@@ -53,7 +53,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Get retake record by ID
         /// </summary>
         [HttpGet("{id}")]
-        [RequireAnyPermission("ADVISOR_STUDENTS", "ADMIN_STUDENTS", "STUDENT_SECTION_STUDY")] // ✅ Permission từ database
+        [RequireAnyPermission("ADVISOR_STUDENTS", "ADMIN_STUDENTS", "STUDENT_ENROLLMENT")] // ✅ STUDENT_ENROLLMENT (executable) thay vì STUDENT_SECTION_STUDY (menu-only)
         public async Task<IActionResult> GetById(string id)
         {
             try
@@ -78,7 +78,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// Get retake records by student ID
         /// </summary>
         [HttpGet("student/{studentId}")]
-        [RequireAnyPermission("ADVISOR_STUDENTS", "ADMIN_STUDENTS", "STUDENT_SECTION_STUDY")] // ✅ Permission từ database
+        [RequireAnyPermission("ADVISOR_STUDENTS", "ADMIN_STUDENTS", "STUDENT_ENROLLMENT")] // ✅ STUDENT_ENROLLMENT (executable) thay vì STUDENT_SECTION_STUDY (menu-only)
         public async Task<IActionResult> GetByStudent(
             string studentId,
             [FromQuery] string? status = null,

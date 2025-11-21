@@ -20,7 +20,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet]
-        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
+        [RequireAnyPermission("ADMIN_ORGANIZATION", "ADVISOR_DASHBOARD", "ADVISOR_REPORTS")] // ✅ Cho phép cả Admin và Advisor đọc
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 10,
@@ -47,7 +47,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
-        [RequirePermission("ADMIN_ORGANIZATION")] // ✅ Permission từ database
+        [RequireAnyPermission("ADMIN_ORGANIZATION", "ADVISOR_DASHBOARD", "ADVISOR_REPORTS")] // ✅ Cho phép cả Admin và Advisor đọc
         public async Task<IActionResult> GetById(string id)
         {
             var item = await _service.GetByIdAsync(id);

@@ -279,6 +279,11 @@ app.controller('RegistrationPeriodController', [
         $scope.currentPeriod.startDate = formatDateForInput($scope.currentPeriod.startDate);
         $scope.currentPeriod.endDate = formatDateForInput($scope.currentPeriod.endDate);
         
+        // Convert semester to string để match với option values (value="1", "2", "3")
+        if ($scope.currentPeriod.semester !== null && $scope.currentPeriod.semester !== undefined) {
+            $scope.currentPeriod.semester = String($scope.currentPeriod.semester);
+        }
+        
         // Use $timeout to ensure DOM is ready
         $timeout(function() {
             openModal();
@@ -313,10 +318,16 @@ app.controller('RegistrationPeriodController', [
             return;
         }
         
+        // Convert semester từ string về number trước khi gửi lên server
+        var periodToSave = angular.copy($scope.currentPeriod);
+        if (periodToSave.semester !== null && periodToSave.semester !== undefined) {
+            periodToSave.semester = parseInt(periodToSave.semester, 10);
+        }
+        
         var isNew = !$scope.currentPeriod.periodId;
         var promise = isNew ? 
-            RegistrationPeriodService.create($scope.currentPeriod) :
-            RegistrationPeriodService.update($scope.currentPeriod.periodId, $scope.currentPeriod);
+            RegistrationPeriodService.create(periodToSave) :
+            RegistrationPeriodService.update($scope.currentPeriod.periodId, periodToSave);
         
         promise
             .then(function(response) {
@@ -430,12 +441,12 @@ app.controller('RegistrationPeriodController', [
     // UI HELPERS
     // ============================================================
     $scope.getStatusBadge = function(status) {
-        if (!status) return 'badge-secondary';
+        if (!status) return 'bg-secondary';
         switch(status.toUpperCase()) {
-            case 'OPEN': return 'badge-success';
-            case 'CLOSED': return 'badge-danger';
-            case 'UPCOMING': return 'badge-warning';
-            default: return 'badge-secondary';
+            case 'OPEN': return 'bg-success';
+            case 'CLOSED': return 'bg-danger';
+            case 'UPCOMING': return 'bg-warning text-dark';
+            default: return 'bg-secondary';
         }
     };
     

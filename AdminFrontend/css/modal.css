@@ -156,6 +156,59 @@
     transition: color 0.3s ease;
 }
 
+/* Bootstrap btn-close button styling - Đảm bảo màu đậm, không trùng nền trắng */
+.modal .btn-close,
+.modal-header .btn-close,
+.modal-dialog .btn-close,
+#classFormModal .btn-close,
+#deleteClassModal .btn-close {
+    background: transparent !important;
+    border: 2px solid var(--text-secondary) !important;
+    opacity: 0.9 !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 6px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    filter: brightness(0.3) !important; /* Làm đậm màu X icon */
+}
+
+/* btn-close hover state - Đảo màu khi hover */
+.modal .btn-close:hover,
+.modal-header .btn-close:hover,
+.modal-dialog .btn-close:hover,
+#classFormModal .btn-close:hover,
+#deleteClassModal .btn-close:hover {
+    background: var(--danger-color) !important;
+    border-color: var(--danger-color) !important;
+    opacity: 1 !important;
+    filter: brightness(1) !important;
+    transform: scale(1.1) rotate(90deg) !important;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4) !important;
+}
+
+/* btn-close: Đảm bảo background-image (SVG X icon) có màu đậm */
+.modal .btn-close,
+.modal-header .btn-close,
+.modal-dialog .btn-close {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23334155'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") !important;
+    background-size: 16px !important;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+}
+
+.modal .btn-close:hover,
+.modal-header .btn-close:hover,
+.modal-dialog .btn-close:hover {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23ffffff'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") !important;
+}
+
 /* Modal Body */
 .modal-body {
     padding: 24px;

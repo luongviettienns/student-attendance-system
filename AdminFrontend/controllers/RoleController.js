@@ -187,10 +187,19 @@ app.controller('RoleController', [
     
     /**
      * Group permissions by sections (parent permissions)
+     * ✅ CHỈ LẤY EXECUTABLE PERMISSIONS (bỏ qua menu-only permissions)
      */
     $scope.groupPermissionsBySection = function(permissions, allPermissions) {
         var sections = [];
         var sectionsMap = {};
+        
+        // ✅ LỌC BỎ MENU-ONLY PERMISSIONS
+        // Menu-only permissions (is_menu_only = true) chỉ dùng để hiển thị menu,
+        // KHÔNG hiển thị trong permission management modal
+        var executablePermissions = permissions.filter(function(p) {
+            var isMenuOnly = p.isMenuOnly || p.IsMenuOnly || false;
+            return !isMenuOnly; // Chỉ lấy executable permissions
+        });
         
         // Tạo lookup map từ allPermissions để tìm permission name từ code
         var allPermsMap = {};
@@ -202,14 +211,15 @@ app.controller('RoleController', [
                         permissionName: p.permissionName || p.PermissionName,
                         description: p.description || p.Description,
                         icon: p.icon || p.Icon || 'fas fa-folder',
-                        sortOrder: p.sortOrder || p.SortOrder || 999
+                        sortOrder: p.sortOrder || p.SortOrder || 999,
+                        isMenuOnly: p.isMenuOnly || p.IsMenuOnly || false
                     };
                 }
             });
         }
         
-        // Normalize permission data
-        var normalizedPerms = permissions.map(function(p) {
+        // Normalize permission data (chỉ executable permissions)
+        var normalizedPerms = executablePermissions.map(function(p) {
             return {
                 permissionId: p.permissionId || p.PermissionId,
                 permissionCode: p.permissionCode || p.PermissionCode,
@@ -217,7 +227,8 @@ app.controller('RoleController', [
                 description: p.description || p.Description,
                 parentCode: p.parentCode || p.ParentCode || null,
                 icon: p.icon || p.Icon || 'fas fa-circle',
-                sortOrder: p.sortOrder || p.SortOrder || 999
+                sortOrder: p.sortOrder || p.SortOrder || 999,
+                isMenuOnly: p.isMenuOnly || p.IsMenuOnly || false
             };
         });
         

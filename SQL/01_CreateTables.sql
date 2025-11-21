@@ -527,6 +527,8 @@ CREATE TABLE dbo.permissions (
     icon            VARCHAR(100) NULL,        -- FontAwesome icon class
     sort_order      INT NULL,                 -- Display order in menu
     is_active       BIT NOT NULL DEFAULT 1,   -- Active status
+    -- ✅ Flag để phân biệt: menu-only permissions (chỉ cho menu) vs executable permissions (check authorization)
+    is_menu_only    BIT NOT NULL DEFAULT 0,   -- Menu-only flag: true = chỉ dùng cho menu, false = dùng để check authorization
     created_at      DATETIME NOT NULL DEFAULT(GETDATE()),
     created_by      VARCHAR(50) NULL,
     updated_at      DATETIME NULL,

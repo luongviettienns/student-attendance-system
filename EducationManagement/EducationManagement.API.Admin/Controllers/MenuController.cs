@@ -42,8 +42,11 @@
                         return Ok(new { role = roleName, menus = new List<object>() });
                     }
 
-                    // Map sang cấu trúc cần thiết
-                    var permissions = permissionsFromDb
+                    // ✅ CHỈ LẤY MENU-ONLY PERMISSIONS (is_menu_only = true)
+                    // Menu-only permissions dùng để hiển thị menu structure,
+                    // Executable permissions không hiển thị trong menu (chỉ dùng check authorization)
+                    var menuPermissions = permissionsFromDb
+                        .Where(p => p.IsMenuOnly) // Chỉ lấy menu-only permissions
                         .OrderBy(p => p.SortOrder ?? 999)
                         .ThenBy(p => p.PermissionName)
                         .Select(p => new
@@ -57,10 +60,14 @@
                         })
                         .ToList();
 
+                    if (!menuPermissions.Any())
+                    {
+                        return Ok(new { role = roleName, menus = new List<object>() });
+                    }
 
                     // ✅ Xây dựng cây menu cha - con (theo ParentCode)
                     // Lọc chỉ lấy sections (parent_code IS NULL hoặc empty)
-                    var menuTree = permissions
+                    var menuTree = menuPermissions
                         .Where(p => string.IsNullOrEmpty(p.ParentCode))
                         .OrderBy(p => p.SortOrder ?? 999)
                         .ThenBy(p => p.PermissionName)
@@ -69,7 +76,7 @@
                             label = parent.PermissionName,
                             icon = string.IsNullOrWhiteSpace(parent.Icon) ? "fa fa-circle" : parent.Icon,
                             state = FormatState(parent.PermissionCode),
-                            sub = permissions
+                            sub = menuPermissions
                                 .Where(child => !string.IsNullOrEmpty(child.ParentCode) && 
                                        child.ParentCode == parent.PermissionCode)
                                 .OrderBy(child => child.SortOrder ?? 999)
@@ -159,15 +166,18 @@
                     // 🔍 Lấy quyền theo RoleName từ repository
                     var permissionsFromDb = await _permissionRepository.GetByRoleNameAsync(roleName);
 
-                    // Trả về danh sách permission codes
-                    var permissionCodes = permissionsFromDb
+                    // ✅ CHỈ TRẢ VỀ EXECUTABLE PERMISSIONS (bỏ qua menu-only permissions)
+                    // Menu-only permissions chỉ dùng để hiển thị menu,
+                    // KHÔNG cần trả về cho frontend để check authorization
+                    var executablePermissions = permissionsFromDb
+                        .Where(p => !p.IsMenuOnly) // Chỉ lấy executable permissions
                         .Select(p => p.PermissionCode)
                         .ToList();
 
                     return Ok(new
                     {
                         role = roleName,
-                        permissions = permissionCodes
+                        permissions = executablePermissions
                     });
                 }
                 catch (Exception ex)

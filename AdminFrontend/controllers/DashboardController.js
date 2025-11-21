@@ -328,8 +328,8 @@ app.controller('DashboardController', ['$scope', '$q', '$timeout', 'AuthService'
         
         var userRole = currentUser.roleName || currentUser.Role || currentUser.role || '';
         
-        // Only load audit logs if user is Admin
-        if (userRole !== 'Admin' && userRole !== 'Quản trị viên') {
+        // Load audit logs for Admin and Advisor
+        if (userRole !== 'Admin' && userRole !== 'Quản trị viên' && userRole !== 'Advisor' && userRole !== 'Cố vấn') {
             $scope.allAuditLogs = [];
             $scope.recentAuditLogs = [];
             $scope.filteredAllAuditLogs = [];

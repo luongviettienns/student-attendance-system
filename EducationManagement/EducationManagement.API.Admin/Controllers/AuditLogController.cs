@@ -21,7 +21,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet]
-        [RequirePermission("ADMIN_AUDIT_LOGS")] // ✅ Permission từ database
+        [RequireAnyPermission("ADMIN_AUDIT_LOGS", "ADVISOR_REPORTS", "ADVISOR_DASHBOARD")] // ✅ Cho phép cả Admin và Advisor
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 25,
@@ -56,7 +56,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
-        [RequirePermission("ADMIN_AUDIT_LOGS")] // ✅ Permission từ database
+        [RequireAnyPermission("ADMIN_AUDIT_LOGS", "ADVISOR_REPORTS", "ADVISOR_DASHBOARD")] // ✅ Cho phép cả Admin và Advisor
         public async Task<IActionResult> GetById(long id)
         {
             try
@@ -76,7 +76,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("user/{userId}")]
-        [RequirePermission("ADMIN_AUDIT_LOGS")] // ✅ Permission từ database
+        [RequireAnyPermission("ADMIN_AUDIT_LOGS", "ADVISOR_REPORTS", "ADVISOR_DASHBOARD")] // ✅ Cho phép cả Admin và Advisor
         public async Task<IActionResult> GetByUser(
             string userId,
             [FromQuery] int page = 1,
@@ -105,7 +105,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("entity/{entityType}/{entityId}")]
-        [RequirePermission("ADMIN_AUDIT_LOGS")] // ✅ Permission từ database
+        [RequireAnyPermission("ADMIN_AUDIT_LOGS", "ADVISOR_REPORTS", "ADVISOR_DASHBOARD")] // ✅ Cho phép cả Admin và Advisor
         public async Task<IActionResult> GetByEntity(
             string entityType,
             string entityId,

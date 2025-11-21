@@ -21,9 +21,10 @@ namespace EducationManagement.API.Admin.Controllers
         /// <summary>
         /// Get admin reports
         /// GET /api-edu/reports/admin
+        /// Cho phép cả Admin và Advisor truy cập
         /// </summary>
         [HttpGet("admin")]
-        [RequirePermission("ADMIN_REPORTS")] // ✅ Permission từ database
+        [RequireAnyPermission("ADMIN_REPORTS", "ADVISOR_DASHBOARD", "ADVISOR_REPORTS")] // ✅ Cho phép cả Admin và Advisor
         public async Task<IActionResult> GetAdminReports(
             [FromQuery] string? schoolYearId = null,
             [FromQuery] int? semester = null,
@@ -93,7 +94,7 @@ namespace EducationManagement.API.Admin.Controllers
         /// GET /api-edu/reports/student
         /// </summary>
         [HttpGet("student")]
-        [RequireAnyPermission("STUDENT_SECTION_STUDY", "ADMIN_REPORTS")] // ✅ Permission từ database
+        [RequireAnyPermission("STUDENT_REPORTS", "ADMIN_REPORTS")] // ✅ STUDENT_REPORTS (executable) thay vì STUDENT_SECTION_STUDY (menu-only)
         public async Task<IActionResult> GetStudentReports(
             [FromQuery] string? schoolYearId = null,
             [FromQuery] int? semester = null)

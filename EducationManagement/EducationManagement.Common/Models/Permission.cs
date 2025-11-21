@@ -39,6 +39,10 @@ namespace EducationManagement.Common.Models
         [Column("IsActive")]
         public bool IsActive { get; set; } = true;
 
+        // ✅ Flag để phân biệt: menu-only permissions (chỉ cho menu) vs executable permissions (check authorization)
+        [Column("IsMenuOnly")]
+        public bool IsMenuOnly { get; set; } = false;
+
         [Column("CreatedAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

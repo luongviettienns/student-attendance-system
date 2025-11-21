@@ -1165,8 +1165,8 @@ WHEN MATCHED THEN
                updated_at = GETDATE(),
                updated_by = 'seed_full_test'
 WHEN NOT MATCHED THEN
-    INSERT (permission_id, permission_code, permission_name, parent_code, icon, sort_order, description, is_active, created_by)
-    VALUES (src.permission_id, src.permission_code, src.permission_name, src.parent_code, src.icon, src.sort_order, src.description, src.is_active, 'seed_full_test');
+    INSERT (permission_id, permission_code, permission_name, parent_code, icon, sort_order, description, is_active, is_menu_only, created_by)
+    VALUES (src.permission_id, src.permission_code, src.permission_name, src.parent_code, src.icon, src.sort_order, src.description, src.is_active, 0, 'seed_full_test');
 GO
 
 MERGE dbo.role_permissions AS target
@@ -1446,4 +1446,50 @@ PRINT '  - No tin chi: ranges 0-10, 11-20, 21-30, 31-40, 41-50, 50+';
 PRINT '  - Canh bao hoc tap: lowGPA (< 2.0), poorAttendance (< 50%), both';
 PRINT '  - Xu huong GPA theo hoc ky (line chart)';
 PRINT '  - Phan bo diem so: A, B, C, D, F';
+GO
+
+-- ===========================================
+-- 🔹 ĐÁNH DẤU SECTION PERMISSIONS LÀ MENU-ONLY
+-- ===========================================
+-- Section permissions (ADMIN_SECTION_*, ADVISOR_SECTION_*, etc.) chỉ dùng để hiển thị menu,
+-- KHÔNG dùng để check authorization
+PRINT 'Danh dau section permissions la menu-only...';
+
+UPDATE dbo.permissions
+SET is_menu_only = 1
+WHERE permission_code LIKE 'ADMIN_SECTION_%'
+   OR permission_code LIKE 'ADVISOR_SECTION_%'
+   OR permission_code LIKE 'STUDENT_SECTION_%'
+   OR permission_code LIKE 'LECTURER_SECTION_%'
+   OR permission_code LIKE 'TEACHER_SECTION_%'
+   OR permission_code LIKE 'MENU_%';  -- Nếu đã có MENU_* permissions
+
+PRINT '✅ Đã đánh dấu section permissions là menu-only';
+GO
+
+-- ===========================================
+-- 🔹 KIỂM TRA VÀ HIỂN THỊ KẾT QUẢ
+-- ===========================================
+DECLARE @MenuOnlyCount INT;
+SELECT @MenuOnlyCount = COUNT(*) 
+FROM dbo.permissions 
+WHERE is_menu_only = 1;
+
+DECLARE @ExecutableCount INT;
+SELECT @ExecutableCount = COUNT(*) 
+FROM dbo.permissions 
+WHERE is_menu_only = 0;
+
+PRINT '========================================';
+PRINT 'Permission Summary:';
+PRINT '  - Menu-only permissions: ' + CAST(@MenuOnlyCount AS VARCHAR(10));
+PRINT '  - Executable permissions: ' + CAST(@ExecutableCount AS VARCHAR(10));
+PRINT '  - Total permissions: ' + CAST((@MenuOnlyCount + @ExecutableCount) AS VARCHAR(10));
+PRINT '========================================';
+GO
+
+PRINT '========================================';
+PRINT 'Hoàn tất seed full test dataset';
+PRINT '========================================';
+GO
 

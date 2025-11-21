@@ -22,7 +22,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPost]
-        [RequireAnyPermission("STUDENT_SECTION_STUDY", "ADMIN_STUDENTS")] // ✅ Permission từ database
+        [RequireAnyPermission("STUDENT_APPEALS", "ADMIN_STUDENTS")] // ✅ STUDENT_APPEALS (executable) thay vì STUDENT_SECTION_STUDY (menu-only)
         public async Task<IActionResult> Create([FromBody] GradeAppealCreateDto dto)
         {
             if (!ModelState.IsValid)
@@ -44,7 +44,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet]
-        [RequireAnyPermission("ADVISOR_APPEALS", "ADMIN_STUDENTS", "TCH_CLASSES", "STUDENT_SECTION_STUDY")] // ✅ Permission từ database
+        [RequireAnyPermission("ADVISOR_APPEALS", "ADMIN_STUDENTS", "TCH_CLASSES", "STUDENT_APPEALS")] // ✅ STUDENT_APPEALS (executable) thay vì STUDENT_SECTION_STUDY (menu-only)
         public async Task<IActionResult> GetAll(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
@@ -75,7 +75,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpGet("{id}")]
-        [RequireAnyPermission("ADVISOR_APPEALS", "ADMIN_STUDENTS", "TCH_CLASSES", "STUDENT_SECTION_STUDY")] // ✅ Permission từ database
+        [RequireAnyPermission("ADVISOR_APPEALS", "ADMIN_STUDENTS", "TCH_CLASSES", "STUDENT_APPEALS")] // ✅ STUDENT_APPEALS (executable) thay vì STUDENT_SECTION_STUDY (menu-only)
         public async Task<IActionResult> GetById(string id)
         {
             try
@@ -141,7 +141,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         [HttpPut("{id}/cancel")]
-        [RequireAnyPermission("STUDENT_SECTION_STUDY", "ADMIN_STUDENTS")] // ✅ Permission từ database
+        [RequireAnyPermission("STUDENT_APPEALS", "ADMIN_STUDENTS")] // ✅ STUDENT_APPEALS (executable) thay vì STUDENT_SECTION_STUDY (menu-only)
         public async Task<IActionResult> Cancel(string id, [FromBody] GradeAppealCancelDto dto)
         {
             if (!ModelState.IsValid)
