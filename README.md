@@ -289,22 +289,9 @@ Backend sẽ chạy tại: `https://localhost:5001` hoặc `http://localhost:500
 
 ### Bước 6: Chạy Frontend
 
-**Cách 1: Sử dụng Live Server (VS Code)**
-- Cài đặt extension "Live Server"
+**Sử dụng Live Server (VS Code)**
+- Cài đặt extension "Live Server" trong VS Code
 - Right-click vào `AdminFrontend/index.html` → "Open with Live Server"
-
-**Cách 2: Sử dụng Python HTTP Server**
-```bash
-cd AdminFrontend
-python -m http.server 8080
-```
-
-**Cách 3: Sử dụng Node.js http-server**
-```bash
-npm install -g http-server
-cd AdminFrontend
-http-server -p 8080
-```
 
 Frontend sẽ chạy tại: `http://localhost:8080`
 
