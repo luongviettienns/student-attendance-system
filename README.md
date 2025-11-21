@@ -145,10 +145,12 @@ Hệ thống Quản lý Đào Tạo & Điểm Danh Sinh Viên là một giải p
 
 ### Frontend
 - **AngularJS 1.x** - Framework frontend
-- **Bootstrap** - UI framework
-- **Chart.js** - Biểu đồ (nếu có)
+- **Custom CSS** - UI framework tự viết (không dùng Bootstrap)
+- **Chart.js** - Biểu đồ
 - **XLSX.js** - Đọc file Excel
 - **SignalR Client** - Real-time communication
+- **Font Awesome** - Icons
+- **Google Fonts (Inter)** - Typography
 
 ### Database
 - **SQL Server 2019+** - Database chính
