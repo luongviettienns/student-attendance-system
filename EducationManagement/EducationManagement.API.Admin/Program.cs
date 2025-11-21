@@ -32,7 +32,7 @@ builder.Services.Scan(scan => scan
     .AddClasses(classes => classes.InNamespaces(
         "EducationManagement.BLL.Services",
         "EducationManagement.DAL.Repositories"
-    ))
+    ).Where(type => !type.IsAssignableTo(typeof(Microsoft.Extensions.Hosting.IHostedService))))
     .AsSelfWithInterfaces()
     .WithScopedLifetime()
 );
@@ -51,6 +51,9 @@ builder.Services.AddScoped<EducationManagement.BLL.Services.OTPService>();
 
 // ✅ Register RoomService (explicit registration to ensure it's available)
 builder.Services.AddScoped<EducationManagement.BLL.Services.RoomService>();
+
+// ✅ Register Exam Reminder Notification Background Service (for scheduled notifications)
+builder.Services.AddHostedService<EducationManagement.BLL.Services.ExamReminderNotificationService>();
 
 // ============================================================
 // 🔹 2.5️⃣ REDIS CACHING (OPTIONAL - Fallback to Memory Cache if Redis unavailable)

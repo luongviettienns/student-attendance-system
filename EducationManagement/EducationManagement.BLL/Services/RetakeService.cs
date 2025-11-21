@@ -179,6 +179,56 @@ namespace EducationManagement.BLL.Services
 
             return await _retakeRepository.GetByEnrollmentIdAsync(enrollmentId);
         }
+
+        /// <summary>
+        /// Get failed subjects by student
+        /// </summary>
+        public async Task<List<FailedSubjectDto>> GetFailedSubjectsByStudentAsync(
+            string studentId, string? schoolYearId = null, int? semester = null)
+        {
+            if (string.IsNullOrWhiteSpace(studentId))
+                throw new ArgumentException("Student ID không được để trống");
+
+            return await _retakeRepository.GetFailedSubjectsByStudentAsync(studentId, schoolYearId, semester);
+        }
+
+        /// <summary>
+        /// Get retake classes for a subject
+        /// </summary>
+        public async Task<List<RetakeClassDto>> GetRetakeClassesForSubjectAsync(
+            string subjectId, string? studentId = null, string? periodId = null)
+        {
+            if (string.IsNullOrWhiteSpace(subjectId))
+                throw new ArgumentException("Subject ID không được để trống");
+
+            return await _retakeRepository.GetRetakeClassesForSubjectAsync(subjectId, studentId, periodId);
+        }
+
+        /// <summary>
+        /// Register for retake class
+        /// </summary>
+        public async Task<string> RegisterForRetakeClassAsync(
+            RegisterRetakeClassDto dto, string createdBy)
+        {
+            if (string.IsNullOrWhiteSpace(dto.StudentId))
+                throw new ArgumentException("Student ID không được để trống");
+
+            if (string.IsNullOrWhiteSpace(dto.ClassId))
+                throw new ArgumentException("Class ID không được để trống");
+
+            if (string.IsNullOrWhiteSpace(createdBy))
+                throw new ArgumentException("CreatedBy không được để trống");
+
+            // Use existing enrollment repository to register (it already handles retake eligibility check via SP)
+            var enrollmentId = await _enrollmentRepository.CreateEnrollmentAsync(
+                dto.StudentId,
+                dto.ClassId,
+                dto.Notes,
+                createdBy
+            );
+
+            return enrollmentId;
+        }
     }
 }
 

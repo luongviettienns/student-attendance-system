@@ -251,6 +251,116 @@ namespace EducationManagement.API.Admin.Controllers
                 return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
             }
         }
+
+        /// <summary>
+        /// Get failed subjects by student ID
+        /// </summary>
+        [HttpGet("student/{studentId}/failed-subjects")]
+        [RequireAnyPermission("VIEW_FAILED_SUBJECTS", "ADVISOR_STUDENTS", "ADMIN_STUDENTS")] // ✅ Permission từ database
+        public async Task<IActionResult> GetFailedSubjects(
+            string studentId,
+            [FromQuery] string? schoolYearId = null,
+            [FromQuery] int? semester = null)
+        {
+            try
+            {
+                // Students can only see their own failed subjects
+                var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var isStudent = User.IsInRole("Student");
+                
+                if (isStudent && currentUserId != studentId)
+                {
+                    return Forbid("Bạn chỉ có thể xem môn trượt của chính mình");
+                }
+
+                var subjects = await _retakeService.GetFailedSubjectsByStudentAsync(studentId, schoolYearId, semester);
+                return Ok(new
+                {
+                    success = true,
+                    data = subjects,
+                    totalCount = subjects.Count
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Get retake classes for a subject
+        /// </summary>
+        [HttpGet("subject/{subjectId}/retake-classes")]
+        [RequireAnyPermission("VIEW_RETAKE_CLASSES", "ADVISOR_STUDENTS", "ADMIN_STUDENTS")] // ✅ Permission từ database
+        public async Task<IActionResult> GetRetakeClassesForSubject(
+            string subjectId,
+            [FromQuery] string? studentId = null,
+            [FromQuery] string? periodId = null)
+        {
+            try
+            {
+                var classes = await _retakeService.GetRetakeClassesForSubjectAsync(subjectId, studentId, periodId);
+                return Ok(new
+                {
+                    success = true,
+                    data = classes,
+                    totalCount = classes.Count
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// Register for retake class
+        /// </summary>
+        [HttpPost("register")]
+        [RequirePermission("REGISTER_RETAKE_CLASSES")] // ✅ Permission từ database
+        public async Task<IActionResult> RegisterForRetakeClass([FromBody] RegisterRetakeClassDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var createdBy = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system";
+                
+                // Students can only register for themselves
+                var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var isStudent = User.IsInRole("Student");
+                
+                if (isStudent && currentUserId != dto.StudentId)
+                {
+                    return Forbid("Bạn chỉ có thể đăng ký học lại cho chính mình");
+                }
+
+                var enrollmentId = await _retakeService.RegisterForRetakeClassAsync(dto, createdBy);
+                return Ok(new
+                {
+                    success = true,
+                    message = "Đăng ký lớp học lại thành công",
+                    enrollmentId
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
     }
 }
 

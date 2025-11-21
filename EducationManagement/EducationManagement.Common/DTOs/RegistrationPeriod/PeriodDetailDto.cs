@@ -25,6 +25,8 @@ namespace EducationManagement.Common.DTOs.RegistrationPeriod
         public DateTime EndDate { get; set; }
         public string Status { get; set; } = string.Empty;
         
+        public string PeriodType { get; set; } = "NORMAL"; // NORMAL: đăng ký học phần thường, RETAKE: đăng ký học lại
+        
         public string? Description { get; set; }
         
         // Calculated properties

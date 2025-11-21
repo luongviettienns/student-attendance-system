@@ -22,6 +22,12 @@ namespace EducationManagement.Common.Models
         [Column("final_score")]
         public decimal? FinalScore { get; set; }
 
+        [Column("attendance_score")]
+        public decimal? AttendanceScore { get; set; }
+
+        [Column("assignment_score")]
+        public decimal? AssignmentScore { get; set; }
+
         [Column("total_score")]
         public decimal? TotalScore { get; set; }
 

@@ -24,11 +24,34 @@ namespace EducationManagement.API.Admin.Controllers
         // ============================================================
         [HttpGet]
         [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] string? periodType = null)
         {
             try
             {
-                var periods = await _service.GetAllAsync();
+                var periods = await _service.GetAllAsync(periodType);
+                return Ok(new
+                {
+                    success = true,
+                    data = periods,
+                    totalCount = periods.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        // ============================================================
+        // 1️⃣.1 GET RETAKE PERIODS
+        // ============================================================
+        [HttpGet("retake")]
+        [RequirePermission("VIEW_RETAKE_PERIODS")] // ✅ Permission từ database
+        public async Task<IActionResult> GetRetakePeriods()
+        {
+            try
+            {
+                var periods = await _service.GetRetakePeriodsAsync();
                 return Ok(new
                 {
                     success = true,

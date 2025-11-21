@@ -1342,6 +1342,38 @@
                 "AuthenticationProviderKey": "Bearer",
                 "AllowedScopes": []
             }
+        },
+        {
+            "DownstreamPathTemplate": "/api-edu/exam-schedules/{everything}",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5227
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/exam-schedules/{everything}",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
+        },
+        {
+            "DownstreamPathTemplate": "/api-edu/exam-schedules",
+            "DownstreamScheme": "http",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 5227
+                }
+            ],
+            "UpstreamPathTemplate": "/api-edu/exam-schedules",
+            "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+            "AuthenticationOptions": {
+                "AuthenticationProviderKey": "Bearer",
+                "AllowedScopes": []
+            }
         }
     ],
     "GlobalConfiguration": {
