@@ -42,6 +42,10 @@ namespace EducationManagement.Common.Models
         [Column("expected_score")]
         public decimal? ExpectedScore { get; set; }
 
+        [Column("component_type")]
+        [MaxLength(20)]
+        public string? ComponentType { get; set; } // MIDTERM, FINAL, ATTENDANCE, ASSIGNMENT
+
         [Column("supporting_docs")]
         [MaxLength(500)]
         public string? SupportingDocs { get; set; }

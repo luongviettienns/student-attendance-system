@@ -58,7 +58,6 @@ app.service('GradeAppealService', ['ApiService', function(ApiService) {
         if (filters.lecturerId) params.lecturerId = filters.lecturerId;
         if (filters.advisorId) params.advisorId = filters.advisorId;
         if (filters.classId) params.classId = filters.classId;
-        if (filters.priority) params.priority = filters.priority;
 
         var cacheKey = CACHE_PREFIX + JSON.stringify(params);
         return ApiService.get('/grade-appeals', params, {

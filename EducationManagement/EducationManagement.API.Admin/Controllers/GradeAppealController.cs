@@ -4,6 +4,7 @@ using EducationManagement.Common.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 using EducationManagement.API.Admin.Authorization;
 
@@ -27,24 +28,52 @@ namespace EducationManagement.API.Admin.Controllers
         public async Task<IActionResult> Create([FromBody] GradeAppealCreateDto dto)
         {
             if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            {
+                var errors = ModelState
+                    .Where(x => x.Value?.Errors.Count > 0)
+                    .Select(x => new
+                    {
+                        field = x.Key,
+                        errors = x.Value?.Errors.Select(e => e.ErrorMessage)
+                    })
+                    .ToList();
+                
+                return BadRequest(new
+                {
+                    message = "Dữ liệu không hợp lệ",
+                    errors = errors
+                });
+            }
 
             try
             {
-                var appealId = await _appealService.CreateAppealAsync(dto);
+                Console.WriteLine($"[GradeAppealController] Create - Starting. DTO: GradeId={dto.GradeId}, StudentId={dto.StudentId}, ComponentType={dto.ComponentType}");
                 
-                // ✅ Audit log: Tạo yêu cầu phúc khảo
-                await LogCreateAsync("GradeAppeal", appealId, new
+                var appealId = await _appealService.CreateAppealAsync(dto);
+                Console.WriteLine($"[GradeAppealController] ✅ CreateAppealAsync completed. AppealId: {appealId}");
+                
+                // ✅ Audit log: Tạo yêu cầu phúc khảo (wrapped in try-catch to not fail request)
+                try
                 {
-                    student_id = dto.StudentId,
-                    grade_id = dto.GradeId,
-                    class_id = dto.ClassId,
-                    appeal_reason = dto.AppealReason,
-                    current_score = dto.CurrentScore,
-                    expected_score = dto.ExpectedScore,
-                    priority = dto.Priority ?? "NORMAL",
-                    action_description = $"Tạo yêu cầu phúc khảo: Lý do={dto.AppealReason}, Điểm hiện tại={dto.CurrentScore}, Điểm mong muốn={dto.ExpectedScore}"
-                });
+                    Console.WriteLine($"[GradeAppealController] Attempting audit log...");
+                    await LogCreateAsync("GradeAppeal", appealId, new
+                    {
+                        student_id = dto.StudentId,
+                        grade_id = dto.GradeId,
+                        class_id = dto.ClassId,
+                        appeal_reason = dto.AppealReason,
+                        current_score = dto.CurrentScore,
+                        expected_score = dto.ExpectedScore,
+                        component_type = dto.ComponentType,
+                        action_description = $"Tạo yêu cầu phúc khảo: Lý do={dto.AppealReason}, Điểm hiện tại={dto.CurrentScore}, Điểm mong muốn={dto.ExpectedScore}, Thành phần={dto.ComponentType}"
+                    });
+                    Console.WriteLine($"[GradeAppealController] ✅ Audit log completed");
+                }
+                catch (Exception auditEx)
+                {
+                    Console.WriteLine($"[GradeAppealController] ⚠️ Audit log failed (non-critical): {auditEx.Message}");
+                    // Don't fail the request if audit logging fails
+                }
                 
                 return Ok(new { message = "Tạo yêu cầu phúc khảo thành công", appealId });
             }
@@ -54,7 +83,23 @@ namespace EducationManagement.API.Admin.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                // Log detailed error information
+                var errorDetails = new
+                {
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace,
+                    innerException = ex.InnerException?.Message,
+                    source = ex.Source
+                };
+                
+                Console.WriteLine($"[GradeAppealController] Error creating appeal: {System.Text.Json.JsonSerializer.Serialize(errorDetails)}");
+                
+                return StatusCode(500, new 
+                { 
+                    message = "Lỗi hệ thống", 
+                    error = ex.Message,
+                    details = ex.InnerException?.Message ?? ex.StackTrace
+                });
             }
         }
 
@@ -67,13 +112,12 @@ namespace EducationManagement.API.Admin.Controllers
             [FromQuery] string? studentId = null,
             [FromQuery] string? lecturerId = null,
             [FromQuery] string? advisorId = null,
-            [FromQuery] string? classId = null,
-            [FromQuery] string? priority = null)
+            [FromQuery] string? classId = null)
         {
             try
             {
                 var (appeals, totalCount) = await _appealService.GetAllAppealsAsync(
-                    page, pageSize, status, studentId, lecturerId, advisorId, classId, priority);
+                    page, pageSize, status, studentId, lecturerId, advisorId, classId);
 
                 return Ok(new
                 {

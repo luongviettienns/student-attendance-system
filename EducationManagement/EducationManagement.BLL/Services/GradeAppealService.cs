@@ -43,13 +43,36 @@ namespace EducationManagement.BLL.Services
                 throw new ArgumentException("Điểm mong muốn phải nằm trong khoảng 0 đến 10");
 
             var appealId = IdGenerator.Generate("appeal");
-            var result = await _appealRepository.CreateAsync(
-                appealId, dto.GradeId, dto.EnrollmentId, dto.StudentId, dto.ClassId,
-                dto.AppealReason, dto.CurrentScore, dto.ExpectedScore, dto.SupportingDocs,
-                dto.Priority, dto.CreatedBy
-            );
+            
+            Console.WriteLine($"[GradeAppealService] CreateAppealAsync - Starting with appealId: {appealId}");
+            Console.WriteLine($"[GradeAppealService] DTO: GradeId={dto.GradeId}, StudentId={dto.StudentId}, ComponentType={dto.ComponentType}");
+            
+            string result;
+            try
+            {
+                Console.WriteLine($"[GradeAppealService] Calling repository.CreateAsync...");
+                result = await _appealRepository.CreateAsync(
+                    appealId, dto.GradeId, dto.EnrollmentId, dto.StudentId, dto.ClassId,
+                    dto.AppealReason, dto.CurrentScore, dto.ExpectedScore, dto.ComponentType, dto.CreatedBy
+                );
+                Console.WriteLine($"[GradeAppealService] ✅ Repository.CreateAsync completed. Result: {result}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[GradeAppealService] ❌ Exception in repository.CreateAsync:");
+                Console.WriteLine($"   Error Message: {ex.Message}");
+                Console.WriteLine($"   Error Type: {ex.GetType().Name}");
+                Console.WriteLine($"   Stack Trace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"   Inner Exception: {ex.InnerException.Message}");
+                    Console.WriteLine($"   Inner Exception Type: {ex.InnerException.GetType().Name}");
+                }
+                throw;
+            }
 
             // Get appeal details for notification
+            Console.WriteLine($"[GradeAppealService] Getting appeal details for notification...");
             var appeal = await _appealRepository.GetByIdAsync(appealId);
             if (appeal != null)
             {
@@ -125,14 +148,14 @@ namespace EducationManagement.BLL.Services
 
         public async Task<(List<GradeAppeal> Appeals, int TotalCount)> GetAllAppealsAsync(
             int page = 1, int pageSize = 20, string? status = null, string? studentId = null,
-            string? lecturerId = null, string? advisorId = null, string? classId = null, string? priority = null)
+            string? lecturerId = null, string? advisorId = null, string? classId = null)
         {
             if (page < 1) page = 1;
             if (pageSize < 1) pageSize = 20;
             if (pageSize > 100) pageSize = 100;
 
             return await _appealRepository.GetAllAsync(page, pageSize, status, studentId, 
-                lecturerId, advisorId, classId, priority);
+                lecturerId, advisorId, classId);
         }
 
         public async Task UpdateLecturerResponseAsync(string appealId, GradeAppealLecturerResponseDto dto)

@@ -33,8 +33,7 @@ CREATE PROCEDURE sp_CreateGradeAppeal
     @AppealReason NVARCHAR(1000),
     @CurrentScore DECIMAL(4,2) = NULL,
     @ExpectedScore DECIMAL(4,2) = NULL,
-    @SupportingDocs NVARCHAR(500) = NULL,
-    @Priority NVARCHAR(10) = 'NORMAL',
+    @ComponentType NVARCHAR(20) = NULL, -- MIDTERM, FINAL, ATTENDANCE, ASSIGNMENT
     @CreatedBy VARCHAR(50)
 AS
 BEGIN
@@ -53,15 +52,21 @@ BEGIN
             THROW 50002, 'Đăng ký học phần không thuộc về sinh viên này', 1;
         END
         
+        -- Validate component type
+        IF @ComponentType IS NOT NULL AND @ComponentType NOT IN ('MIDTERM', 'FINAL', 'ATTENDANCE', 'ASSIGNMENT')
+        BEGIN
+            THROW 50003, 'Loại điểm thành phần không hợp lệ. Phải là: MIDTERM, FINAL, ATTENDANCE, hoặc ASSIGNMENT', 1;
+        END
+        
         INSERT INTO dbo.grade_appeals (
             appeal_id, grade_id, enrollment_id, student_id, class_id,
-            appeal_reason, current_score, expected_score, supporting_docs,
-            status, priority, created_at, created_by
+            appeal_reason, current_score, expected_score, component_type,
+            status, created_at, created_by
         )
         VALUES (
             @AppealId, @GradeId, @EnrollmentId, @StudentId, @ClassId,
-            @AppealReason, @CurrentScore, @ExpectedScore, @SupportingDocs,
-            'PENDING', @Priority, GETDATE(), @CreatedBy
+            @AppealReason, @CurrentScore, @ExpectedScore, @ComponentType,
+            'PENDING', GETDATE(), @CreatedBy
         );
         
         SELECT @AppealId as appeal_id;
@@ -90,9 +95,8 @@ BEGIN
         a.appeal_reason,
         a.current_score,
         a.expected_score,
-        a.supporting_docs,
+        a.component_type,
         a.status,
-        a.priority,
         a.lecturer_response,
         a.lecturer_id,
         a.lecturer_decision,
@@ -153,8 +157,7 @@ CREATE PROCEDURE sp_GetAllGradeAppeals
     @StudentId VARCHAR(50) = NULL,
     @LecturerId VARCHAR(50) = NULL,
     @AdvisorId VARCHAR(50) = NULL,
-    @ClassId VARCHAR(50) = NULL,
-    @Priority NVARCHAR(10) = NULL
+    @ClassId VARCHAR(50) = NULL
 AS
 BEGIN
     SET NOCOUNT ON;
@@ -169,8 +172,7 @@ BEGIN
         AND (@StudentId IS NULL OR a.student_id = @StudentId)
         AND (@LecturerId IS NULL OR a.lecturer_id = @LecturerId)
         AND (@AdvisorId IS NULL OR a.advisor_id = @AdvisorId)
-        AND (@ClassId IS NULL OR a.class_id = @ClassId)
-        AND (@Priority IS NULL OR a.priority = @Priority);
+        AND (@ClassId IS NULL OR a.class_id = @ClassId);
     
     -- Get paginated results
     SELECT 
@@ -182,9 +184,8 @@ BEGIN
         a.appeal_reason,
         a.current_score,
         a.expected_score,
-        a.supporting_docs,
+        a.component_type,
         a.status,
-        a.priority,
         a.lecturer_response,
         a.lecturer_id,
         a.lecturer_decision,
@@ -237,15 +238,7 @@ BEGIN
         AND (@LecturerId IS NULL OR a.lecturer_id = @LecturerId)
         AND (@AdvisorId IS NULL OR a.advisor_id = @AdvisorId)
         AND (@ClassId IS NULL OR a.class_id = @ClassId)
-        AND (@Priority IS NULL OR a.priority = @Priority)
-    ORDER BY 
-        CASE a.priority
-            WHEN 'URGENT' THEN 1
-            WHEN 'HIGH' THEN 2
-            WHEN 'NORMAL' THEN 3
-            WHEN 'LOW' THEN 4
-        END,
-        a.created_at DESC
+    ORDER BY a.created_at DESC
     OFFSET @Offset ROWS
     FETCH NEXT @PageSize ROWS ONLY;
 END
@@ -330,14 +323,53 @@ BEGIN
             updated_by = @UpdatedBy
         WHERE appeal_id = @AppealId;
         
-        -- If approved by advisor, update grade
+        -- If approved by advisor, update grade component
         IF @AdvisorDecision = 'APPROVE' AND @FinalScore IS NOT NULL
         BEGIN
-            UPDATE dbo.grades
-            SET total_score = @FinalScore,
-                updated_at = GETDATE(),
-                updated_by = @UpdatedBy
-            WHERE grade_id = (SELECT grade_id FROM dbo.grade_appeals WHERE appeal_id = @AppealId);
+            DECLARE @GradeIdToUpdate VARCHAR(50);
+            DECLARE @ComponentTypeToUpdate NVARCHAR(20);
+            
+            SELECT @GradeIdToUpdate = grade_id, @ComponentTypeToUpdate = component_type
+            FROM dbo.grade_appeals 
+            WHERE appeal_id = @AppealId;
+            
+            -- Update specific component based on component_type
+            IF @ComponentTypeToUpdate = 'MIDTERM'
+            BEGIN
+                UPDATE dbo.grades
+                SET midterm_score = @FinalScore,
+                    updated_at = GETDATE(),
+                    updated_by = @UpdatedBy
+                WHERE grade_id = @GradeIdToUpdate;
+            END
+            ELSE IF @ComponentTypeToUpdate = 'FINAL'
+            BEGIN
+                UPDATE dbo.grades
+                SET final_score = @FinalScore,
+                    updated_at = GETDATE(),
+                    updated_by = @UpdatedBy
+                WHERE grade_id = @GradeIdToUpdate;
+            END
+            ELSE IF @ComponentTypeToUpdate = 'ATTENDANCE'
+            BEGIN
+                UPDATE dbo.grades
+                SET attendance_score = @FinalScore,
+                    updated_at = GETDATE(),
+                    updated_by = @UpdatedBy
+                WHERE grade_id = @GradeIdToUpdate;
+            END
+            ELSE IF @ComponentTypeToUpdate = 'ASSIGNMENT'
+            BEGIN
+                UPDATE dbo.grades
+                SET assignment_score = @FinalScore,
+                    updated_at = GETDATE(),
+                    updated_by = @UpdatedBy
+                WHERE grade_id = @GradeIdToUpdate;
+            END
+            
+            -- Recalculate total_score using grade formula (if exists)
+            -- This will be handled by a trigger or separate procedure
+            -- For now, we'll just update the component score
         END
     END TRY
     BEGIN CATCH

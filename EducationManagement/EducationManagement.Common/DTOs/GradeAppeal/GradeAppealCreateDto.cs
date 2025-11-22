@@ -30,11 +30,9 @@ namespace EducationManagement.Common.DTOs.GradeAppeal
         [Range(0, 10, ErrorMessage = "Expected score must be between 0 and 10")]
         public decimal? ExpectedScore { get; set; }
 
-        [StringLength(500, ErrorMessage = "Supporting documents path cannot exceed 500 characters")]
-        public string? SupportingDocs { get; set; }
-
-        [StringLength(10, ErrorMessage = "Priority cannot exceed 10 characters")]
-        public string? Priority { get; set; } = "NORMAL"; // LOW, NORMAL, HIGH, URGENT
+        [Required(ErrorMessage = "Component type is required")]
+        [StringLength(20, ErrorMessage = "Component type cannot exceed 20 characters")]
+        public string ComponentType { get; set; } = string.Empty; // MIDTERM, FINAL, ATTENDANCE, ASSIGNMENT
 
         [Required(ErrorMessage = "Created by is required")]
         [StringLength(50, ErrorMessage = "Created by cannot exceed 50 characters")]

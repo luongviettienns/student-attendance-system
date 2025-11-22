@@ -154,8 +154,35 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
                 ToastService.warning('Bạn không có quyền truy cập trang này');
                 return;
             }
+        } else if (role === 'Student') {
+            // For Student, allow student-specific routes immediately (don't wait for menu to load)
+            var isStudentRoute = path.startsWith('/student/') ||
+                               path.startsWith('/notifications') ||
+                               path === '/login';
+            
+            // ✅ Auto-redirect from root path to student dashboard
+            if (path === '/') {
+                event.preventDefault();
+                $location.path('/student/dashboard');
+                return;
+            }
+            
+            // ✅ Allow student routes immediately (don't wait for menu to load)
+            if (isStudentRoute) {
+                return; // Allow access
+            }
+            
+            // If not a student route, check if it's in allowed routes
+            var isAllowed = RoleService.isRouteAllowed(path);
+            if (!isAllowed) {
+                event.preventDefault();
+                var defaultRoute = getDefaultRouteForRole(role);
+                $location.path(defaultRoute);
+                ToastService.warning('Bạn không có quyền truy cập trang này');
+                return;
+            }
         } else {
-            // For other roles (Student), use strict route checking
+            // For other roles, use strict route checking
             if (!RoleService.isRouteAllowed(path)) {
                 event.preventDefault();
                 var defaultRoute = getDefaultRouteForRole(role);

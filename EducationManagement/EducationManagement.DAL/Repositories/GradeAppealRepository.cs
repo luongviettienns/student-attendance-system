@@ -20,25 +20,59 @@ namespace EducationManagement.DAL.Repositories
 
         public async Task<string> CreateAsync(string appealId, string gradeId, string enrollmentId, 
             string studentId, string classId, string appealReason, decimal? currentScore, 
-            decimal? expectedScore, string? supportingDocs, string? priority, string createdBy)
+            decimal? expectedScore, string? componentType, string createdBy)
         {
-            var parameters = new[]
+            try
             {
-                new SqlParameter("@AppealId", appealId),
-                new SqlParameter("@GradeId", gradeId),
-                new SqlParameter("@EnrollmentId", enrollmentId),
-                new SqlParameter("@StudentId", studentId),
-                new SqlParameter("@ClassId", classId),
-                new SqlParameter("@AppealReason", appealReason),
-                new SqlParameter("@CurrentScore", (object?)currentScore ?? DBNull.Value),
-                new SqlParameter("@ExpectedScore", (object?)expectedScore ?? DBNull.Value),
-                new SqlParameter("@SupportingDocs", (object?)supportingDocs ?? DBNull.Value),
-                new SqlParameter("@Priority", (object?)priority ?? "NORMAL"),
-                new SqlParameter("@CreatedBy", createdBy)
-            };
+                Console.WriteLine($"[GradeAppealRepository] CreateAsync - Starting with appealId: {appealId}");
+                Console.WriteLine($"[GradeAppealRepository] Parameters: gradeId={gradeId}, enrollmentId={enrollmentId}, studentId={studentId}, classId={classId}, componentType={componentType}");
+                
+                var parameters = new[]
+                {
+                    new SqlParameter("@AppealId", appealId),
+                    new SqlParameter("@GradeId", gradeId),
+                    new SqlParameter("@EnrollmentId", enrollmentId),
+                    new SqlParameter("@StudentId", studentId),
+                    new SqlParameter("@ClassId", classId),
+                    new SqlParameter("@AppealReason", appealReason),
+                    new SqlParameter("@CurrentScore", (object?)currentScore ?? DBNull.Value),
+                    new SqlParameter("@ExpectedScore", (object?)expectedScore ?? DBNull.Value),
+                    new SqlParameter("@ComponentType", (object?)componentType ?? DBNull.Value),
+                    new SqlParameter("@CreatedBy", createdBy)
+                };
 
-            var result = await DatabaseHelper.ExecuteScalarAsync(_connectionString, "sp_CreateGradeAppeal", parameters);
-            return result?.ToString() ?? appealId;
+                Console.WriteLine($"[GradeAppealRepository] Calling sp_CreateGradeAppeal...");
+                var result = await DatabaseHelper.ExecuteScalarAsync(_connectionString, "sp_CreateGradeAppeal", parameters);
+                Console.WriteLine($"[GradeAppealRepository] sp_CreateGradeAppeal completed successfully. Result: {result}");
+                return result?.ToString() ?? appealId;
+            }
+            catch (Microsoft.Data.SqlClient.SqlException sqlEx)
+            {
+                Console.WriteLine($"[GradeAppealRepository] ❌ SQL Exception in CreateAsync:");
+                Console.WriteLine($"   Error Number: {sqlEx.Number}");
+                Console.WriteLine($"   Error Message: {sqlEx.Message}");
+                Console.WriteLine($"   Error Source: {sqlEx.Source}");
+                Console.WriteLine($"   Procedure: {sqlEx.Procedure}");
+                Console.WriteLine($"   Line Number: {sqlEx.LineNumber}");
+                Console.WriteLine($"   Stack Trace: {sqlEx.StackTrace}");
+                if (sqlEx.InnerException != null)
+                {
+                    Console.WriteLine($"   Inner Exception: {sqlEx.InnerException.Message}");
+                }
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[GradeAppealRepository] ❌ General Exception in CreateAsync:");
+                Console.WriteLine($"   Error Message: {ex.Message}");
+                Console.WriteLine($"   Error Source: {ex.Source}");
+                Console.WriteLine($"   Stack Trace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"   Inner Exception: {ex.InnerException.Message}");
+                }
+                throw;
+            }
         }
 
         public async Task<GradeAppeal?> GetByIdAsync(string appealId)
@@ -54,7 +88,7 @@ namespace EducationManagement.DAL.Repositories
 
         public async Task<(List<GradeAppeal> Appeals, int TotalCount)> GetAllAsync(int page = 1, int pageSize = 20,
             string? status = null, string? studentId = null, string? lecturerId = null, 
-            string? advisorId = null, string? classId = null, string? priority = null)
+            string? advisorId = null, string? classId = null)
         {
             var parameters = new[]
             {
@@ -64,8 +98,7 @@ namespace EducationManagement.DAL.Repositories
                 new SqlParameter("@StudentId", (object?)studentId ?? DBNull.Value),
                 new SqlParameter("@LecturerId", (object?)lecturerId ?? DBNull.Value),
                 new SqlParameter("@AdvisorId", (object?)advisorId ?? DBNull.Value),
-                new SqlParameter("@ClassId", (object?)classId ?? DBNull.Value),
-                new SqlParameter("@Priority", (object?)priority ?? DBNull.Value)
+                new SqlParameter("@ClassId", (object?)classId ?? DBNull.Value)
             };
 
             var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAllGradeAppeals", parameters);
@@ -155,9 +188,8 @@ namespace EducationManagement.DAL.Repositories
                     ? Convert.ToDecimal(row["current_score"]) : null,
                 ExpectedScore = row.Table.Columns.Contains("expected_score") && row["expected_score"] != DBNull.Value
                     ? Convert.ToDecimal(row["expected_score"]) : null,
-                SupportingDocs = row["supporting_docs"]?.ToString(),
+                ComponentType = row.Table.Columns.Contains("component_type") ? row["component_type"]?.ToString() : null,
                 Status = row["status"]?.ToString() ?? "PENDING",
-                Priority = row["priority"]?.ToString(),
                 LecturerResponse = row["lecturer_response"]?.ToString(),
                 LecturerId = row["lecturer_id"]?.ToString(),
                 LecturerDecision = row["lecturer_decision"]?.ToString(),
@@ -178,7 +210,7 @@ namespace EducationManagement.DAL.Repositories
                 ResolvedBy = row["resolved_by"]?.ToString(),
                 DeletedAt = row.Table.Columns.Contains("deleted_at") && row["deleted_at"] != DBNull.Value
                     ? Convert.ToDateTime(row["deleted_at"]) : null,
-                DeletedBy = row["deleted_by"]?.ToString()
+                DeletedBy = row.Table.Columns.Contains("deleted_by") ? row["deleted_by"]?.ToString() : null
             };
 
             // Additional info from joins
