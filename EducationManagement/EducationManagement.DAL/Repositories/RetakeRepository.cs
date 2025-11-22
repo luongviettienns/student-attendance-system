@@ -165,6 +165,50 @@ namespace EducationManagement.DAL.Repositories
         }
 
         /// <summary>
+        /// Get all retake records (for admin/advisor)
+        /// </summary>
+        public async Task<(List<RetakeRecord> Records, int TotalCount)> GetAllAsync(
+            string? status = null, int page = 1, int pageSize = 50)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@Status", (object?)status ?? DBNull.Value),
+                new SqlParameter("@Page", page),
+                new SqlParameter("@PageSize", pageSize)
+            };
+
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            using var cmd = new SqlCommand("sp_GetAllRetakeRecords", conn)
+            {
+                CommandType = System.Data.CommandType.StoredProcedure
+            };
+            cmd.Parameters.AddRange(parameters);
+
+            var records = new List<RetakeRecord>();
+            int totalCount = 0;
+
+            using var reader = await cmd.ExecuteReaderAsync();
+
+            // Read records
+            while (await reader.ReadAsync())
+            {
+                records.Add(MapToRetakeRecordFromReader(reader));
+            }
+
+            // Read total count
+            if (await reader.NextResultAsync() && await reader.ReadAsync())
+            {
+                totalCount = reader["total_count"] != DBNull.Value 
+                    ? Convert.ToInt32(reader["total_count"]) 
+                    : 0;
+            }
+
+            return (records, totalCount);
+        }
+
+        /// <summary>
         /// Get retake record by enrollment ID
         /// </summary>
         public async Task<RetakeRecord?> GetByEnrollmentIdAsync(string enrollmentId)

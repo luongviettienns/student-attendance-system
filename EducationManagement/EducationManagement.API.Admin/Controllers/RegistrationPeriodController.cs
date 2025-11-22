@@ -66,11 +66,33 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         // ============================================================
-        // 2️⃣ GET ACTIVE PERIOD
+        // 2️⃣ GET ACTIVE PERIOD (Admin/Advisor)
         // ============================================================
         [HttpGet("active")]
         [RequirePermission("ADMIN_REGISTRATION_PERIODS")] // ✅ Permission từ database
         public async Task<IActionResult> GetActive()
+        {
+            try
+            {
+                var activePeriod = await _service.GetActiveAsync();
+                // Trả về 200 để FE không báo 404 khi không có đợt mở
+                if (activePeriod == null)
+                    return Ok(new { success = false, message = "Không có đợt đăng ký nào đang mở", data = (object?)null });
+
+                return Ok(new { success = true, data = activePeriod });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
+
+        // ============================================================
+        // 2️⃣.1 GET ACTIVE PERIOD FOR STUDENT (Student)
+        // ============================================================
+        [HttpGet("active/student")]
+        [RequireAnyPermission("STUDENT_ENROLLMENT", "VIEW_RETAKE_PERIODS")] // ✅ Cho phép student xem đợt đăng ký đang mở
+        public async Task<IActionResult> GetActiveForStudent()
         {
             try
             {

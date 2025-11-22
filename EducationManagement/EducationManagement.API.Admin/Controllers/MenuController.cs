@@ -42,11 +42,12 @@
                         return Ok(new { role = roleName, menus = new List<object>() });
                     }
 
-                    // ✅ CHỈ LẤY MENU-ONLY PERMISSIONS (is_menu_only = true)
-                    // Menu-only permissions dùng để hiển thị menu structure,
-                    // Executable permissions không hiển thị trong menu (chỉ dùng check authorization)
+                    // ✅ LẤY PERMISSIONS ĐỂ HIỂN THỊ MENU:
+                    // 1. Section permissions (is_menu_only = true, parent_code = NULL) - Hiển thị như sections
+                    // 2. Menu items (có parent_code, không phân biệt is_menu_only) - Hiển thị như items trong sections
+                    // Menu items có thể có is_menu_only = 0 (executable) nhưng vẫn cần hiển thị trong menu
                     var menuPermissions = permissionsFromDb
-                        .Where(p => p.IsMenuOnly) // Chỉ lấy menu-only permissions
+                        .Where(p => p.IsMenuOnly || !string.IsNullOrEmpty(p.ParentCode)) // Lấy menu-only permissions HOẶC permissions có parent_code
                         .OrderBy(p => p.SortOrder ?? 999)
                         .ThenBy(p => p.PermissionName)
                         .Select(p => new
@@ -67,8 +68,11 @@
 
                     // ✅ Xây dựng cây menu cha - con (theo ParentCode)
                     // Lọc chỉ lấy sections (parent_code IS NULL hoặc empty)
-                    var menuTree = menuPermissions
+                    var parentPermissions = menuPermissions
                         .Where(p => string.IsNullOrEmpty(p.ParentCode))
+                        .ToList();
+                    
+                    var menuTree = parentPermissions
                         .OrderBy(p => p.SortOrder ?? 999)
                         .ThenBy(p => p.PermissionName)
                         .Select(parent => new
@@ -90,7 +94,6 @@
                                 .ToList()
                         })
                         .ToList();
-
 
                     return Ok(new
                     {

@@ -61,18 +61,6 @@ app.controller('AdvisorEnrollmentApprovalController', [
                 
                 // Đợi tab mới fade in xong (10ms)
                 $timeout(function() {
-                    var animationEndTime = performance.now();
-                    var totalDuration = animationEndTime - animationStartTime;
-                    var showDuration = animationEndTime - hideEndTime;
-                    
-                    console.log('⏱️ Tab Switch Performance:', {
-                        from: oldTab,
-                        to: tab,
-                        hideDuration: hideDuration.toFixed(2) + 'ms',
-                        showDuration: showDuration.toFixed(2) + 'ms',
-                        totalDuration: totalDuration.toFixed(2) + 'ms'
-                    });
-                    
                     // Load data for new tab
                     if (tab === 'ENROLLMENT') {
                         $scope.loadEnrollments();
@@ -350,6 +338,9 @@ app.controller('AdvisorEnrollmentApprovalController', [
                 $scope.retakePagination.page = page;
             }
             
+            // ✅ Backend đã hỗ trợ load tất cả retakes khi không có filter (cho admin/advisor)
+            // Nếu không có filter, gọi API để load tất cả retakes
+            
             // Determine which endpoint to use
             var promise;
             if ($scope.retakeFilters.classId) {
@@ -359,10 +350,20 @@ app.controller('AdvisorEnrollmentApprovalController', [
                     $scope.retakePagination.page,
                     $scope.retakePagination.pageSize
                 );
+            } else if ($scope.retakeFilters.studentId) {
+                promise = RetakeService.getByStudent(
+                    $scope.retakeFilters.studentId,
+                    $scope.retakeFilters.status,
+                    $scope.retakePagination.page,
+                    $scope.retakePagination.pageSize
+                );
             } else {
-                // Load all with filters
+                // Nếu không có filter, gọi getAll để load tất cả retakes
                 promise = RetakeService.getAll(
-                    $scope.retakeFilters,
+                    {
+                        status: $scope.retakeFilters.status
+                        // Không truyền studentId và classId để load tất cả
+                    },
                     $scope.retakePagination.page,
                     $scope.retakePagination.pageSize
                 );
@@ -375,16 +376,12 @@ app.controller('AdvisorEnrollmentApprovalController', [
                     $scope.retakePagination.totalPages = result.totalPages || 0;
                     $scope.loadingRetakes = false;
                 }).catch(function(error) {
-                    $scope.errorRetakes = error.message || 'Lỗi khi tải danh sách học lại';
+                    console.error('[RETAKE ERROR] Failed to load retakes:', error);
+                    var errorMessage = error.data?.message || error.message || 'Lỗi khi tải danh sách học lại';
+                    $scope.errorRetakes = errorMessage;
                     $scope.loadingRetakes = false;
-                    ToastService.error('Lỗi: ' + $scope.errorRetakes);
+                    ToastService.error('Lỗi: ' + errorMessage);
                 });
-            } else {
-                if (!$scope.retakeFilters.classId) {
-                    $scope.errorRetakes = 'Vui lòng chọn lớp để xem danh sách học lại';
-                    $scope.loadingRetakes = false;
-                    $scope.retakes = [];
-                }
             }
         };
         

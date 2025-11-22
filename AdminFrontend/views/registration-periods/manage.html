@@ -3,7 +3,7 @@
     <app-sidebar></app-sidebar>
     
     <div class="main-content">
-        <app-topbar page-title="Quản lý Đợt đăng ký học phần"></app-topbar>
+        <app-topbar page-title="Quản lý Đợt đăng ký học phần/học lại"></app-topbar>
         
         <div class="content-body">
             <!-- Tabs Navigation -->
@@ -25,24 +25,30 @@
             </ul>
             
             <!-- Active Period Alert - Normal -->
-            <div class="alert alert-success" style="display: flex; align-items: center;" ng-if="activeTab === 'NORMAL' && activePeriod">
+            <div class="alert alert-success" style="display: flex; align-items: center;" ng-if="activeTab === 'NORMAL' && hasOpenPeriod('NORMAL')">
                 <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
                 <div>
-                    <strong>Đợt đăng ký học phần đang mở:</strong> {{activePeriod.periodName}} 
-                    ({{activePeriod.startDate | date:'dd/MM/yyyy'}} - {{activePeriod.endDate | date:'dd/MM/yyyy'}})
+                    <strong>Đợt đăng ký học phần đang mở:</strong> 
+                    <span ng-repeat="period in periods | filter:{status:'OPEN'}" ng-if="$first">
+                        {{period.periodName}} 
+                        ({{period.startDate | date:'dd/MM/yyyy'}} - {{period.endDate | date:'dd/MM/yyyy'}})
+                    </span>
                 </div>
             </div>
             
             <!-- Active Period Alert - Retake -->
-            <div class="alert alert-success" style="display: flex; align-items: center;" ng-if="activeTab === 'RETAKE' && activeRetakePeriod">
+            <div class="alert alert-success" style="display: flex; align-items: center;" ng-if="activeTab === 'RETAKE' && hasOpenPeriod('RETAKE')">
                 <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
                 <div>
-                    <strong>Đợt đăng ký học lại đang mở:</strong> {{activeRetakePeriod.periodName}} 
-                    ({{activeRetakePeriod.startDate | date:'dd/MM/yyyy'}} - {{activeRetakePeriod.endDate | date:'dd/MM/yyyy'}})
+                    <strong>Đợt đăng ký học lại đang mở:</strong> 
+                    <span ng-repeat="period in retakePeriods | filter:{status:'OPEN'}" ng-if="$first">
+                        {{period.periodName}} 
+                        ({{period.startDate | date:'dd/MM/yyyy'}} - {{period.endDate | date:'dd/MM/yyyy'}})
+                    </span>
                 </div>
             </div>
             
-            <div class="alert alert-warning" style="display: flex; align-items: center;" ng-if="(activeTab === 'NORMAL' && !activePeriod) || (activeTab === 'RETAKE' && !activeRetakePeriod)">
+            <div class="alert alert-warning" style="display: flex; align-items: center;" ng-if="(activeTab === 'NORMAL' && !hasOpenPeriod('NORMAL')) || (activeTab === 'RETAKE' && !hasOpenPeriod('RETAKE'))">
                 <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
                 <div>Hiện tại không có đợt đăng ký nào đang mở</div>
             </div>

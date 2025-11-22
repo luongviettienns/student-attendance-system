@@ -133,7 +133,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 🔹 GET EXAMS BY CLASS AND WEEK - Lấy lịch thi của lớp trong tuần (để tích hợp timetable)
         // ============================================================
         [HttpGet("class/{classId}/week/{year}/{week}")]
-        [RequirePermission("ADVISOR_EXAM_SCHEDULES")] // ✅ Cố vấn hoặc sinh viên xem lịch thi trong tuần
+        [RequireAnyPermission("ADVISOR_EXAM_SCHEDULES", "ADMIN_STUDENTS", "TCH_CLASSES")] // ✅ Admin, Cố vấn, hoặc Giảng viên xem lịch thi trong tuần
         public async Task<IActionResult> GetExamsByClassAndWeek(string classId, int year, int week)
         {
             try

@@ -239,8 +239,21 @@ namespace EducationManagement.API.Admin.Controllers
                     });
                 }
 
-                // If no filter, return bad request
-                return BadRequest(new { message = "Phải cung cấp studentId hoặc classId" });
+                // If no filter, get all retake records (for admin/advisor)
+                var (allRecords, allTotalCount) = await _retakeService.GetAllRetakeRecordsAsync(
+                    status, page, pageSize);
+
+                return Ok(new
+                {
+                    data = allRecords,
+                    pagination = new
+                    {
+                        page,
+                        pageSize,
+                        totalCount = allTotalCount,
+                        totalPages = (int)Math.Ceiling((double)allTotalCount / pageSize)
+                    }
+                });
             }
             catch (ArgumentException ex)
             {

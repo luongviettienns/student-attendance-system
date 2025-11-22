@@ -62,7 +62,7 @@
                             <div ng-if="grid[d] && grid[d].length > 0">
                                 <div ng-repeat="s in grid[d] | orderBy:'startTime'" 
                                      class="timetable-session-card"
-                                     ng-class="{'exam-card': s.type === 'exam', 'session-card': s.type === 'session' || !s.type, 'session-' + ($index % 4): !s.type || s.type === 'session'}">
+                                     ng-class="{'exam-card': s.type === 'exam', 'session-card': s.type === 'session' || !s.type, 'session-0': (!s.type || s.type === 'session') && ($index % 4 === 0), 'session-1': (!s.type || s.type === 'session') && ($index % 4 === 1), 'session-2': (!s.type || s.type === 'session') && ($index % 4 === 2), 'session-3': (!s.type || s.type === 'session') && ($index % 4 === 3)}">
                                     <!-- ✅ Label phân loại ở đầu card -->
                                     <div class="session-type-label">
                                         <span ng-if="s.type === 'exam'" class="badge badge-danger">
@@ -110,7 +110,7 @@
                             </div>
                             <div ng-if="!grid[d] || grid[d].length === 0" class="day-empty">
                                 <i class="fas fa-calendar-times"></i>
-                                <p>Không có lịch học</p>
+                                <p>Không có lịch</p>
                             </div>
                         </div>
                     </div>
@@ -120,8 +120,8 @@
                 <div ng-if="!loading && (!raw || raw.length === 0)" class="card">
                     <div class="card-body text-center" style="padding: 60px 20px;">
                         <i class="fas fa-calendar-times fa-4x" style="color: var(--text-light); margin-bottom: 20px;"></i>
-                        <h3 style="color: var(--text-secondary); margin-bottom: 10px;">Không có lịch học</h3>
-                        <p style="color: var(--text-secondary);">Tuần này không có môn học nào được lên lịch.</p>
+                        <h3 style="color: var(--text-secondary); margin-bottom: 10px;">Không có lịch học và lịch thi</h3>
+                        <p style="color: var(--text-secondary);">Tuần này không có môn học hoặc lịch thi nào được lên lịch.</p>
                     </div>
                 </div>
             </div>

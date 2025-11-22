@@ -379,6 +379,10 @@ body {
     text-decoration: none;
     transition: all 0.2s;
     flex-wrap: wrap;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 1;
 }
 
 .sidebar-menu a:hover {
@@ -478,6 +482,10 @@ body {
 
 .submenu li a {
     padding: 10px 20px 10px 36px;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+    position: relative;
+    z-index: 1;
 }
 
 /* =========================

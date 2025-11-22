@@ -143,28 +143,85 @@ app.controller('RegistrationPeriodController', [
             });
     };
     
+    // Helper function to decode JWT token
+    var decodeToken = function(token) {
+        if (!token) return null;
+        try {
+            var parts = token.split('.');
+            if (parts.length !== 3) return null;
+            var payload = parts[1];
+            payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+            while (payload.length % 4) {
+                payload += '=';
+            }
+            return JSON.parse(atob(payload));
+        } catch (e) {
+            return null;
+        }
+    };
+    
+    // Helper function to get role from user object or JWT token
+    var getUserRole = function(user) {
+        if (!user) return null;
+        
+        // Try to get from user object first
+        if (user.roleName) return user.roleName;
+        if (user.roleId) return user.roleId;
+        if (user.role) return user.role;
+        if (user.Role) return user.Role;
+        
+        // If not found, decode JWT token
+        var token = user.token || AuthService.getToken();
+        if (token) {
+            var decoded = decodeToken(token);
+            if (decoded) {
+                // Try different claim names
+                var role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+                           decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
+                           decoded.role || decoded.Role || decoded.roleName || decoded.roleId;
+                if (role) return role;
+            }
+        }
+        
+        return null;
+    };
+    
     $scope.loadActivePeriod = function() {
-        RegistrationPeriodService.getActive()
-            .then(function(response) {
-                if (response.data && response.data.success) {
-                    var period = response.data.data;
-                    if (period && period.periodType === 'RETAKE') {
-                        $scope.activeRetakePeriod = period;
-                        $scope.activePeriod = null; // Clear NORMAL period
-                    } else {
-                        $scope.activePeriod = period;
-                        $scope.activeRetakePeriod = null; // Clear RETAKE period
-                    }
+        // ✅ Tự động chọn endpoint dựa trên role
+        var user = AuthService.getCurrentUser();
+        if (!user) {
+            $scope.activePeriod = null;
+            $scope.activeRetakePeriod = null;
+            return;
+        }
+        
+        var role = getUserRole(user);
+        var isStudent = role === 'Student' || role === 'ROLE_STUDENT' || role === 'Sinh viên';
+        
+        var promise = isStudent 
+            ? RegistrationPeriodService.getActiveForStudent()
+            : RegistrationPeriodService.getActive();
+        
+        promise.then(function(response) {
+            if (response.data && response.data.success) {
+                var period = response.data.data;
+                if (period && period.periodType === 'RETAKE') {
+                    $scope.activeRetakePeriod = period;
+                    $scope.activePeriod = null; // Clear NORMAL period
                 } else {
-                    $scope.activePeriod = null;
-                    $scope.activeRetakePeriod = null;
+                    $scope.activePeriod = period;
+                    $scope.activeRetakePeriod = null; // Clear RETAKE period
                 }
-            })
-            .catch(function(error) {
-                // No active period is not an error
+            } else {
                 $scope.activePeriod = null;
                 $scope.activeRetakePeriod = null;
-            });
+            }
+        })
+        .catch(function(error) {
+            // No active period is not an error - silently fail
+            $scope.activePeriod = null;
+            $scope.activeRetakePeriod = null;
+        });
     };
     
     // Switch tabs - Sequential: đợi tab cũ ẩn xong rồi mới hiện tab mới - TỐI ƯU TỐC ĐỘ
@@ -191,18 +248,7 @@ app.controller('RegistrationPeriodController', [
             
             // Đợi tab mới fade in xong (10ms - cực nhanh)
             $timeout(function() {
-                var animationEndTime = performance.now();
-                var totalDuration = animationEndTime - animationStartTime;
-                var showDuration = animationEndTime - hideEndTime;
-                
-                console.log('⏱️ Animation Performance:', {
-                    from: oldTab,
-                    to: tab,
-                    hideDuration: hideDuration.toFixed(2) + 'ms',
-                    showDuration: showDuration.toFixed(2) + 'ms',
-                    totalDuration: totalDuration.toFixed(2) + 'ms',
-                    status: 'sequential (ultra fast - 10ms each)'
-                });
+                // Tab switch completed
             }, 10); // Đợi ng-enter animation hoàn tất (10ms)
         }, 10); // Đợi ng-leave animation hoàn tất (10ms)
     };
@@ -440,6 +486,20 @@ app.controller('RegistrationPeriodController', [
     // ============================================================
     // UI HELPERS
     // ============================================================
+    // Helper function to check if there's any open period
+    $scope.hasOpenPeriod = function(tabType) {
+        if (tabType === 'NORMAL') {
+            return $scope.periods && $scope.periods.some(function(p) {
+                return p.status === 'OPEN';
+            });
+        } else if (tabType === 'RETAKE') {
+            return $scope.retakePeriods && $scope.retakePeriods.some(function(p) {
+                return p.status === 'OPEN';
+            });
+        }
+        return false;
+    };
+    
     $scope.getStatusBadge = function(status) {
         if (!status) return 'bg-secondary';
         switch(status.toUpperCase()) {

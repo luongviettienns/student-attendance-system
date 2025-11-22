@@ -191,6 +191,9 @@ app.service('RetakeService', ['ApiService', function(ApiService) {
                 pageSize: data.pagination ? data.pagination.pageSize : pageSize,
                 totalPages: data.pagination ? data.pagination.totalPages : 0
             };
+        }).catch(function(error) {
+            console.error('[RETAKE SERVICE ERROR] getAll() failed:', error);
+            throw error; // Re-throw để controller có thể xử lý
         });
     };
 

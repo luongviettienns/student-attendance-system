@@ -265,7 +265,7 @@ namespace EducationManagement.DAL.Repositories
             LEFT JOIN dbo.lecturers l ON ts.lecturer_id = l.lecturer_id
             LEFT JOIN dbo.rooms r ON ts.room_id = r.room_id
             LEFT JOIN dbo.school_years sy ON ts.school_year_id = sy.school_year_id
-            WHERE ts.week_no = @weekNo
+            WHERE (ts.week_no = @weekNo OR ts.week_no IS NULL)
               AND ts.deleted_at IS NULL
               AND c.deleted_at IS NULL
             ORDER BY ts.weekday, ts.start_time";
@@ -298,7 +298,7 @@ namespace EducationManagement.DAL.Repositories
             LEFT JOIN dbo.rooms r ON ts.room_id = r.room_id
             LEFT JOIN dbo.school_years sy ON ts.school_year_id = sy.school_year_id
             WHERE ts.class_id = @classId
-              AND ts.week_no = @weekNo
+              AND (ts.week_no = @weekNo OR ts.week_no IS NULL)
               AND ts.deleted_at IS NULL
               AND c.deleted_at IS NULL
             ORDER BY ts.weekday, ts.start_time";

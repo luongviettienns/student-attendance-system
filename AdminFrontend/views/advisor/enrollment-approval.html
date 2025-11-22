@@ -258,7 +258,8 @@
                         <i class="fas fa-spinner fa-spin"></i> Đang tải...
                     </div>
                     
-                    <div ng-if="!loadingRetakes && retakes.length === 0" class="text-center" style="padding: 40px;">
+                    <!-- Empty state: Chỉ hiển thị khi không có dữ liệu (không có error) -->
+                    <div ng-if="!loadingRetakes && !errorRetakes && retakes.length === 0" class="text-center" style="padding: 40px;">
                         <i class="fas fa-check-circle" style="font-size: 48px; color: #ccc;"></i>
                         <p style="color: #999; margin-top: 10px;">Không có bản ghi học lại</p>
                     </div>

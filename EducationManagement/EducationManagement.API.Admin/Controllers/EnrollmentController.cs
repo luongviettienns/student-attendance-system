@@ -67,6 +67,7 @@ namespace EducationManagement.API.Admin.Controllers
         // 3️⃣ GET BY STUDENT
         // ============================================================
         [HttpGet("student/{studentId}")]
+        [RequireAnyPermission("STUDENT_ENROLLMENT", "ADMIN_ENROLLMENTS", "ADVISOR_ENROLLMENTS")] // ✅ Cho phép student xem enrollments của mình
         public async Task<IActionResult> GetByStudent(string studentId)
         {
             try

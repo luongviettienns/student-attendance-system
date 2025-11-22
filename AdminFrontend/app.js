@@ -245,10 +245,6 @@ app.config(['$routeProvider', '$locationProvider', function($routeProvider, $loc
             templateUrl: 'views/student/timetable.html',
             controller: 'StudentTimetableController'
         })
-        .when('/student/schedule', {
-            templateUrl: 'views/student/schedule.html',
-            controller: 'StudentScheduleController'
-        })
         .when('/student/grades', {
             templateUrl: 'views/student/grades.html',
             controller: 'StudentGradesController'

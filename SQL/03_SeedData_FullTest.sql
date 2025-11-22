@@ -713,13 +713,21 @@ GO
 -- ===========================================
 MERGE dbo.registration_periods AS target
 USING (VALUES
+    -- Đợt đăng ký học phần thường (NORMAL)
     ('PER_SY2024_HK1', N'Dot dang ky SY2024 HK1', 'AY2024', 1,
-        DATEFROMPARTS(2024,8,1), DATEFROMPARTS(2024,8,14), 'OPEN', N'Mo dang ky cho HK1 nam hoc 2024-2025', 1),
+        DATEFROMPARTS(2024,8,1), DATEFROMPARTS(2024,8,14), 'OPEN', N'Mo dang ky cho HK1 nam hoc 2024-2025', 1, 'NORMAL'),
     ('PER_SY2024_HK2', N'Dot dang ky SY2024 HK2', 'AY2024', 2,
-        DATEFROMPARTS(2025,1,5), DATEFROMPARTS(2025,1,15), 'UPCOMING', N'Du kien mo dang ky HK2', 1),
+        DATEFROMPARTS(2025,1,5), DATEFROMPARTS(2025,1,15), 'UPCOMING', N'Du kien mo dang ky HK2', 1, 'NORMAL'),
     ('PER_SY2023_HK2', N'Dot dang ky SY2023 HK2', 'AY2023', 2,
-        DATEFROMPARTS(2024,1,5), DATEFROMPARTS(2024,1,15), 'CLOSED', N'Khoa dang ky cu da dong', 0)
-) AS src(period_id, period_name, academic_year_id, semester, start_date, end_date, status, description, is_active)
+        DATEFROMPARTS(2024,1,5), DATEFROMPARTS(2024,1,15), 'CLOSED', N'Khoa dang ky cu da dong', 0, 'NORMAL'),
+    -- Đợt đăng ký học lại (RETAKE)
+    ('PER_RETAKE_SY2024_HK2', N'Dot dang ky hoc lai SY2024 HK2', 'AY2024', 2,
+        DATEFROMPARTS(2025,1,20), DATEFROMPARTS(2025,2,5), 'OPEN', N'Mo dang ky hoc lai cho HK2 nam hoc 2024-2025', 1, 'RETAKE'),
+    ('PER_RETAKE_SY2024_HK1', N'Dot dang ky hoc lai SY2024 HK1', 'AY2024', 1,
+        DATEFROMPARTS(2024,8,20), DATEFROMPARTS(2024,9,5), 'CLOSED', N'Dot dang ky hoc lai HK1 da dong', 0, 'RETAKE'),
+    ('PER_RETAKE_SY2025_HK1', N'Dot dang ky hoc lai SY2025 HK1', 'AY2024', 1,
+        DATEFROMPARTS(2025,8,15), DATEFROMPARTS(2025,8,30), 'UPCOMING', N'Du kien mo dang ky hoc lai HK1 nam hoc 2025-2026', 1, 'RETAKE')
+) AS src(period_id, period_name, academic_year_id, semester, start_date, end_date, status, description, is_active, period_type)
 ON target.period_id = src.period_id
 WHEN MATCHED THEN
     UPDATE SET period_name = src.period_name,
@@ -730,20 +738,28 @@ WHEN MATCHED THEN
                status = src.status,
                description = src.description,
                is_active = src.is_active,
+               period_type = src.period_type,
                updated_at = GETDATE(),
                updated_by = 'seed_full_test'
 WHEN NOT MATCHED THEN
-    INSERT (period_id, period_name, academic_year_id, semester, start_date, end_date, status, description, is_active, created_by)
-    VALUES (src.period_id, src.period_name, src.academic_year_id, src.semester, src.start_date, src.end_date, src.status, src.description, src.is_active, 'seed_full_test');
+    INSERT (period_id, period_name, academic_year_id, semester, start_date, end_date, status, description, is_active, period_type, created_by)
+    VALUES (src.period_id, src.period_name, src.academic_year_id, src.semester, src.start_date, src.end_date, src.status, src.description, src.is_active, src.period_type, 'seed_full_test');
 GO
 
 MERGE dbo.period_classes AS target
 USING (VALUES
+    -- Lớp học phần thường (NORMAL)
     ('PERCLS_FT_001', 'PER_SY2024_HK1', 'CLS_SE101_2024', 1),
     ('PERCLS_FT_002', 'PER_SY2024_HK1', 'CLS_SE201_2024', 1),
     ('PERCLS_FT_003', 'PER_SY2024_HK1', 'CLS_DS101_2024', 1),
     ('PERCLS_FT_004', 'PER_SY2024_HK1', 'CLS_BUS201_2024',1),
-    ('PERCLS_FT_005', 'PER_SY2024_HK2', 'CLS_SE301_2024', 1)
+    ('PERCLS_FT_005', 'PER_SY2024_HK2', 'CLS_SE301_2024', 1),
+    -- Lớp học lại (RETAKE) - thêm vào đợt đăng ký học lại
+    ('PERCLS_RETAKE_001', 'PER_RETAKE_SY2024_HK2', 'CLS_SE101_2024', 1),  -- Lớp SE101 học lại
+    ('PERCLS_RETAKE_002', 'PER_RETAKE_SY2024_HK2', 'CLS_SE201_2024', 1),  -- Lớp SE201 học lại
+    ('PERCLS_RETAKE_003', 'PER_RETAKE_SY2024_HK2', 'CLS_DS101_2024', 1),  -- Lớp DS101 học lại
+    ('PERCLS_RETAKE_004', 'PER_RETAKE_SY2024_HK2', 'CLS_BUS201_2024', 1), -- Lớp BUS201 học lại
+    ('PERCLS_RETAKE_005', 'PER_RETAKE_SY2024_HK2', 'CLS_SE301_2024', 1)   -- Lớp SE301 học lại
 ) AS src(period_class_id, period_id, class_id, is_active)
 ON target.period_class_id = src.period_class_id
 WHEN MATCHED THEN
@@ -998,11 +1014,35 @@ GO
 
 MERGE dbo.retake_records AS target
 USING (VALUES
+    -- Trượt do vắng mặt (ATTENDANCE) - đã được duyệt
     ('RETAKE_FT_001', 'ENR_FT_006', 'STU_K21_002', 'CLS_SE301_2024', 'SUB_SE301',
         'ATTENDANCE', 20.0, 35.0, 'APPROVED', N'Cho phep hoc lai o hoc ky tiep theo',
         DATEADD(DAY, -5, GETDATE()), 'LEC_FT_ADV'),
+    -- Trượt do điểm (GRADE) - đang chờ duyệt
     ('RETAKE_FT_002', 'ENR_FT_007', 'STU_K22_001', 'CLS_BUS201_2024', 'SUB_BUS201',
-        'GRADE', 4.0, 3.2, 'PENDING', NULL, NULL, NULL)
+        'GRADE', 4.0, 3.2, 'PENDING', NULL, NULL, NULL),
+    -- Trượt do cả hai (BOTH) - đã được duyệt
+    ('RETAKE_FT_003', 'ENR_FT_008', 'STU_K21_003', 'CLS_SE101_2024', 'SUB_SE101',
+        'BOTH', 20.0, 25.0, 'APPROVED', N'Trượt cả điểm và vắng mặt, được phép học lại',
+        DATEADD(DAY, -3, GETDATE()), 'LEC_FT_ADV'),
+    -- Trượt do điểm (GRADE) - đã được duyệt, đã đăng ký lớp học lại
+    ('RETAKE_FT_004', 'ENR_FT_009', 'STU_K22_002', 'CLS_SE201_2024', 'SUB_SE201',
+        'GRADE', 4.0, 3.7, 'APPROVED', N'Điểm dưới 4.0, được phép học lại',
+        DATEADD(DAY, -10, GETDATE()), 'LEC_FT_ADV'),
+    -- Trượt do vắng mặt (ATTENDANCE) - đang chờ duyệt
+    ('RETAKE_FT_005', 'ENR_FT_010', 'STU_K23_002', 'CLS_DS101_2024', 'SUB_DS101',
+        'ATTENDANCE', 20.0, 30.0, 'PENDING', NULL, NULL, NULL),
+    -- Trượt do điểm (GRADE) - đã bị từ chối
+    ('RETAKE_FT_006', 'ENR_FT_011', 'STU_K24_003', 'CLS_SE101_2024', 'SUB_SE101',
+        'GRADE', 4.0, 3.5, 'REJECTED', N'Điểm gần đạt, không đủ điều kiện học lại',
+        DATEADD(DAY, -7, GETDATE()), 'LEC_FT_ADV'),
+    -- Trượt do cả hai (BOTH) - đang chờ duyệt
+    ('RETAKE_FT_007', 'ENR_FT_012', 'STU_K24_001', 'CLS_SE201_2024', 'SUB_SE201',
+        'BOTH', 20.0, 22.0, 'PENDING', NULL, NULL, NULL),
+    -- Trượt do điểm (GRADE) - đã hoàn thành học lại
+    ('RETAKE_FT_008', 'ENR_FT_013', 'STU_K23_001', 'CLS_SE101_2024', 'SUB_SE101',
+        'GRADE', 4.0, 3.8, 'COMPLETED', N'Đã hoàn thành học lại thành công',
+        DATEADD(DAY, -30, GETDATE()), 'LEC_FT_ADV')
 ) AS src(retake_id, enrollment_id, student_id, class_id, subject_id,
           reason, threshold_value, current_value, status, advisor_notes,
           resolved_at, resolved_by)
@@ -1075,7 +1115,7 @@ USING (VALUES
     ('PERM_STU_SYSTEM',   'STUDENT_SECTION_SYSTEM',   N'Hệ thống',            NULL,                     'fas fa-cog',               4, N'Menu hệ thống',                               1),
     ('PERM_STU_DASHBOARD','STUDENT_DASHBOARD',        N'Bảng điều khiển',      'STUDENT_SECTION_OVERVIEW','fas fa-tachometer-alt',   1, N'Bảng điều khiển sinh viên',                   1),
     ('PERM_STU_TIMETABLE','STUDENT_TIMETABLE',        N'Thời khóa biểu',      'STUDENT_SECTION_STUDY',  'fas fa-calendar-alt',     1, N'Xem thời khóa biểu',                          1),
-    ('PERM_STU_SCHEDULE', 'STUDENT_SCHEDULE',         N'Lịch học',            'STUDENT_SECTION_STUDY',  'fas fa-calendar',         2, N'Xem lịch học',                                 1),
+    -- ('PERM_STU_SCHEDULE', 'STUDENT_SCHEDULE',         N'Lịch học',            'STUDENT_SECTION_STUDY',  'fas fa-calendar',         2, N'Xem lịch học',                                 1), -- ✅ Đã gộp vào STUDENT_TIMETABLE
     ('PERM_STU_GRADES',   'STUDENT_GRADES',           N'Kết quả học tập',     'STUDENT_SECTION_STUDY',  'fas fa-graduation-cap',   3, N'Xem bảng điểm',                                1),
     ('PERM_STU_ATTENDANCE','STUDENT_ATTENDANCE',      N'Điểm danh',           'STUDENT_SECTION_STUDY',  'fas fa-clipboard-check',  4, N'Xem lịch sử điểm danh',                        1),
     ('PERM_STU_ENROLLMENT','STUDENT_ENROLLMENT',      N'Đăng ký học phần',    'STUDENT_SECTION_STUDY',  'fas fa-edit',             5, N'Đăng ký học phần',                             1),
@@ -1129,7 +1169,7 @@ USING (VALUES
     ('PERM_ADM_CLASSES',  'ADMIN_CLASSES',            N'Lớp học phần',        'ADMIN_SECTION_ACADEMIC', 'fas fa-chalkboard',     8, N'Quản lý lớp học phần',                        1),
     -- Permission con cho ADMIN_SECTION_CLASSES
     ('PERM_ADM_ADMIN_CLASSES', 'ADMIN_ADMIN_CLASSES', N'Quản lý lớp hành chính', 'ADMIN_SECTION_CLASSES', 'fas fa-users-class', 1, N'Quản lý lớp hành chính (lớp sinh viên theo niên khóa)', 1),
-    ('PERM_ADM_REGISTRATION_PERIODS','ADMIN_REGISTRATION_PERIODS', N'Đợt đăng ký học phần','ADMIN_SECTION_ENROLLMENT','fas fa-clock',1,N'Quản lý đợt đăng ký học phần thường',                          1),
+    ('PERM_ADM_REGISTRATION_PERIODS','ADMIN_REGISTRATION_PERIODS', N'Đợt đăng ký học phần/học lại','ADMIN_SECTION_ENROLLMENT','fas fa-clock',1,N'Quản lý đợt đăng ký học phần và học lại',                          1),
     -- ✅ Parent permission cho Retake Periods Management (tab phụ trong quản lý đợt đăng ký)
     ('PERM_ADM_MANAGE_RET_PERIODS','MANAGE_REGISTRATION_PERIODS', N'Quản lý đợt đăng ký học lại','ADMIN_SECTION_ENROLLMENT','fas fa-redo',2,N'Quản lý đợt đăng ký học lại (tab phụ)',                          1),
     ('PERM_ADM_ENROLLMENTS','ADMIN_ENROLLMENTS',      N'Duyệt đăng ký',       'ADMIN_SECTION_ENROLLMENT','fas fa-clipboard-check',3,N'Xem và duyệt/từ chối đăng ký học phần của sinh viên', 1),
@@ -1175,7 +1215,7 @@ USING (VALUES
     ('ROLE_STUDENT','PERM_STU_DASHBOARD'),
     ('ROLE_STUDENT','PERM_STU_STUDY'),
     ('ROLE_STUDENT','PERM_STU_TIMETABLE'),
-    ('ROLE_STUDENT','PERM_STU_SCHEDULE'),
+    -- ('ROLE_STUDENT','PERM_STU_SCHEDULE'), -- ✅ Đã gộp vào STUDENT_TIMETABLE
     ('ROLE_STUDENT','PERM_STU_GRADES'),
     ('ROLE_STUDENT','PERM_STU_ATTENDANCE'),
     ('ROLE_STUDENT','PERM_STU_ENROLLMENT'),
@@ -1359,7 +1399,14 @@ USING (VALUES
     ('ENR_FT_011', 'STU_K24_003', 'CLS_SE101_2024', DATEFROMPARTS(2024,8,25), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2024,9,9), N'Hoc binh thuong', NULL),
     -- Thêm enrollments cho students cũ để tạo nợ tín chỉ và xu hướng GPA
     ('ENR_FT_012', 'STU_K24_001', 'CLS_SE201_2024', DATEFROMPARTS(2024,7,30), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2024,8,15), N'Hoc them', NULL),
-    ('ENR_FT_013', 'STU_K23_001', 'CLS_SE101_2024', DATEFROMPARTS(2023,8,25), N'Da hoan thanh', 'APPROVED', DATEFROMPARTS(2023,9,9), N'Hoc nam truoc', NULL)
+    ('ENR_FT_013', 'STU_K23_001', 'CLS_SE101_2024', DATEFROMPARTS(2023,8,25), N'Da hoan thanh', 'APPROVED', DATEFROMPARTS(2023,9,9), N'Hoc nam truoc', NULL),
+    -- Enrollments cho sinh viên đăng ký học lại (trong đợt đăng ký học lại)
+    ('ENR_RETAKE_001', 'STU_K21_002', 'CLS_SE301_2024', DATEFROMPARTS(2025,1,22), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2025,2,10), N'Dang ky hoc lai SE301 - trượt do vắng mặt', NULL),
+    ('ENR_RETAKE_002', 'STU_K21_003', 'CLS_SE101_2024', DATEFROMPARTS(2025,1,23), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2025,2,10), N'Dang ky hoc lai SE101 - trượt cả điểm và vắng mặt', NULL),
+    ('ENR_RETAKE_003', 'STU_K22_002', 'CLS_SE201_2024', DATEFROMPARTS(2025,1,24), N'Dang hoc', 'APPROVED', DATEFROMPARTS(2025,2,10), N'Dang ky hoc lai SE201 - trượt do điểm', NULL),
+    ('ENR_RETAKE_004', 'STU_K23_001', 'CLS_SE101_2024', DATEFROMPARTS(2024,8,22), N'Da hoan thanh', 'APPROVED', DATEFROMPARTS(2024,9,5), N'Da hoan thanh hoc lai SE101', NULL),
+    ('ENR_RETAKE_005', 'STU_K23_002', 'CLS_DS101_2024', DATEFROMPARTS(2025,1,25), N'Cho duyet', 'PENDING', DATEFROMPARTS(2025,2,10), N'Cho duyet dang ky hoc lai DS101', NULL),
+    ('ENR_RETAKE_006', 'STU_K24_001', 'CLS_SE201_2024', DATEFROMPARTS(2025,1,26), N'Cho duyet', 'PENDING', DATEFROMPARTS(2025,2,10), N'Cho duyet dang ky hoc lai SE201', NULL)
 ) AS src(enrollment_id, student_id, class_id, enrollment_date, status, enrollment_status, drop_deadline, notes, drop_reason)
 ON target.enrollment_id = src.enrollment_id
 WHEN NOT MATCHED THEN
@@ -1465,6 +1512,43 @@ WHERE permission_code LIKE 'ADMIN_SECTION_%'
    OR permission_code LIKE 'MENU_%';  -- Nếu đã có MENU_* permissions
 
 PRINT '✅ Đã đánh dấu section permissions là menu-only';
+GO
+
+-- ✅ FIX: Các menu items (permissions có parent_code) cần có is_menu_only = 0
+-- Vì chúng vừa hiển thị menu (qua parent section) vừa dùng để check authorization
+-- Chỉ section permissions (parent_code = NULL) mới có is_menu_only = 1
+PRINT 'Đảm bảo menu items có is_menu_only = 0 (executable)...';
+
+UPDATE dbo.permissions
+SET is_menu_only = 0,
+    updated_at = GETDATE(),
+    updated_by = 'seed_full_test'
+WHERE parent_code IS NOT NULL
+    AND is_active = 1
+    AND is_menu_only = 1
+    AND permission_code NOT LIKE '%_SECTION_%'; -- Không update section permissions
+
+DECLARE @MenuItemsUpdated INT = @@ROWCOUNT;
+PRINT CONCAT('✅ Đã set ', @MenuItemsUpdated, ' menu items là executable (is_menu_only = 0)');
+GO
+
+-- ===========================================
+-- 🔹 VÔ HIỆU HÓA PERMISSION TRÙNG LẶP
+-- ===========================================
+-- STUDENT_SCHEDULE đã được gộp vào STUDENT_TIMETABLE
+PRINT 'Vô hiệu hóa STUDENT_SCHEDULE (đã gộp vào STUDENT_TIMETABLE)...';
+
+UPDATE dbo.permissions
+SET is_active = 0,
+    updated_at = GETDATE(),
+    updated_by = 'seed_full_test'
+WHERE permission_code = 'STUDENT_SCHEDULE';
+
+-- Xóa khỏi role_permissions
+DELETE FROM dbo.role_permissions
+WHERE permission_id IN (SELECT permission_id FROM dbo.permissions WHERE permission_code = 'STUDENT_SCHEDULE');
+
+PRINT '✅ Đã vô hiệu hóa STUDENT_SCHEDULE';
 GO
 
 -- ===========================================

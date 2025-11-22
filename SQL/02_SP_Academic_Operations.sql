@@ -1378,11 +1378,14 @@ BEGIN
         r.created_at,
         r.updated_at,
         r.resolved_at,
-        r.resolved_by
+        r.resolved_by,
+        sy.year_code as school_year_code,
+        c.semester
     FROM dbo.retake_records r
     INNER JOIN dbo.students s ON r.student_id = s.student_id
     INNER JOIN dbo.classes c ON r.class_id = c.class_id
     INNER JOIN dbo.subjects sub ON r.subject_id = sub.subject_id
+    LEFT JOIN dbo.school_years sy ON c.school_year_id = sy.school_year_id
     WHERE r.class_id = @ClassId
         AND r.deleted_at IS NULL
         AND (@Status IS NULL OR r.status = @Status)
@@ -1395,6 +1398,62 @@ BEGIN
     FROM dbo.retake_records r
     WHERE r.class_id = @ClassId
         AND r.deleted_at IS NULL
+        AND (@Status IS NULL OR r.status = @Status);
+END
+GO
+
+-- 2.4.1. GET ALL RETAKE RECORDS (for admin/advisor)
+IF OBJECT_ID('sp_GetAllRetakeRecords', 'P') IS NOT NULL DROP PROCEDURE sp_GetAllRetakeRecords;
+GO
+CREATE PROCEDURE sp_GetAllRetakeRecords
+    @Status NVARCHAR(20) = NULL,
+    @Page INT = 1,
+    @PageSize INT = 50
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @Offset INT = (@Page - 1) * @PageSize;
+    
+    -- Get retake records
+    SELECT 
+        r.retake_id,
+        r.enrollment_id,
+        r.student_id,
+        s.student_code,
+        s.full_name as student_name,
+        r.class_id,
+        c.class_code,
+        c.class_name,
+        r.subject_id,
+        sub.subject_code,
+        sub.subject_name,
+        r.reason,
+        r.threshold_value,
+        r.current_value,
+        r.status,
+        r.advisor_notes,
+        r.created_at,
+        r.updated_at,
+        r.resolved_at,
+        r.resolved_by,
+        sy.year_code as school_year_code,
+        c.semester
+    FROM dbo.retake_records r
+    INNER JOIN dbo.students s ON r.student_id = s.student_id
+    INNER JOIN dbo.classes c ON r.class_id = c.class_id
+    INNER JOIN dbo.subjects sub ON r.subject_id = sub.subject_id
+    LEFT JOIN dbo.school_years sy ON c.school_year_id = sy.school_year_id
+    WHERE r.deleted_at IS NULL
+        AND (@Status IS NULL OR r.status = @Status)
+    ORDER BY r.created_at DESC
+    OFFSET @Offset ROWS
+    FETCH NEXT @PageSize ROWS ONLY;
+    
+    -- Get total count
+    SELECT COUNT(*) as total_count
+    FROM dbo.retake_records r
+    WHERE r.deleted_at IS NULL
         AND (@Status IS NULL OR r.status = @Status);
 END
 GO

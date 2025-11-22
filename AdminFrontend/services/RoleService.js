@@ -430,7 +430,6 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             ],
             'Student': [
                 '/dashboard',
-                '/student/schedule',
                 '/student/grades',
                 '/student/dashboard',
                 '/student/timetable',
@@ -509,7 +508,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         // Student permissions
         'STUDENT_DASHBOARD': '/student/dashboard',
         'STUDENT_TIMETABLE': '/student/timetable',
-        'STUDENT_SCHEDULE': '/student/schedule',
+        'STUDENT_SCHEDULE': '/student/timetable', // ✅ Đã gộp vào STUDENT_TIMETABLE
         'STUDENT_GRADES': '/student/grades',
         'STUDENT_ATTENDANCE': '/student/attendance',
         'STUDENT_PROFILE': '/student/profile',
@@ -597,10 +596,41 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                     
                     // ✅ Step 1: Try to reverse-engineer permission code from state
                     // Backend FormatState: "ADMIN_DASHBOARD" -> "main.admin.dashboard"
+                    // Backend FormatState: "ADMIN_SECTION_USERS" -> "main.admin.sectionUsers"
                     // Reverse: "main.admin.dashboard" -> "ADMIN_DASHBOARD"
                     if (subItem.state) {
-                        path = reverseEngineerPathFromState(subItem.state);
-                        if (path) pathSource = 'reverseEngineer';
+                        // Special handling for SECTION_* states
+                        var stateLower = subItem.state.toLowerCase();
+                        if (stateLower.includes('section')) {
+                            // Map section states directly
+                            if (stateLower.includes('sectionusers') || stateLower.includes('section.users')) {
+                                path = '/users';
+                                pathSource = 'sectionUsers';
+                            } else if (stateLower.includes('sectionacademic') || stateLower.includes('section.academic')) {
+                                path = '/organization';
+                                pathSource = 'sectionAcademic';
+                            } else if (stateLower.includes('sectionprogram') || stateLower.includes('section.program')) {
+                                path = '/subject-prerequisites';
+                                pathSource = 'sectionProgram';
+                            } else if (stateLower.includes('sectionenrollment') || stateLower.includes('section.enrollment')) {
+                                path = '/registration-periods';
+                                pathSource = 'sectionEnrollment';
+                            } else if (stateLower.includes('sectiontimetable') || stateLower.includes('section.timetable')) {
+                                path = '/admin/timetable';
+                                pathSource = 'sectionTimetable';
+                            } else if (stateLower.includes('sectionsystem') || stateLower.includes('section.system')) {
+                                path = '/audit-logs';
+                                pathSource = 'sectionSystem';
+                            } else if (stateLower.includes('sectionoverview') || stateLower.includes('section.overview')) {
+                                path = '/dashboard';
+                                pathSource = 'sectionOverview';
+                            }
+                        }
+                        // If no section path found, try reverse engineering
+                        if (!path) {
+                            path = reverseEngineerPathFromState(subItem.state);
+                            if (path) pathSource = 'reverseEngineer';
+                        }
                     }
                     
                     // ✅ Step 2: Check label first for lecturer class management (before extractPath)
@@ -791,9 +821,11 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         });
         
         // Filter sections có items sau khi loại bỏ duplicate
-        return processedSections.filter(function(section) {
+        var finalSections = processedSections.filter(function(section) {
             return section.items.length > 0;
         });
+        
+        return finalSections;
     }
     
     /**
@@ -809,8 +841,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         // Student routes
         if (stateLower.includes('student')) {
             if (labelLower.includes('dashboard')) return '/student/dashboard';
-            if (labelLower.includes('timetable') || labelLower.includes('thời khóa biểu')) return '/student/timetable';
-            if (labelLower.includes('schedule') || labelLower.includes('lịch học')) return '/student/schedule';
+            if (labelLower.includes('timetable') || labelLower.includes('thời khóa biểu') || labelLower.includes('schedule') || labelLower.includes('lịch học')) return '/student/timetable'; // ✅ Gộp cả schedule vào timetable
             if (labelLower.includes('grade') || labelLower.includes('điểm')) return '/student/grades';
             if (labelLower.includes('attendance') || labelLower.includes('điểm danh')) return '/student/attendance';
             if (labelLower.includes('profile') || labelLower.includes('cá nhân')) return '/student/profile';
@@ -922,7 +953,43 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             return PERMISSION_CODE_TO_PATH[permissionCode];
         }
         
-        // ✅ Step 4: Try common variations and patterns
+        // ✅ Step 4: Handle SECTION_* patterns FIRST (before other patterns)
+        // State: "main.admin.sectionUsers" -> "ADMIN_SECTIONUSERS" -> Need to map to "ADMIN_SECTION_USERS"
+        if (permissionCode.includes('SECTION')) {
+            // Try to reconstruct SECTION_* pattern
+            var sectionMatch = permissionCode.match(/SECTION([A-Z_]+)/);
+            if (sectionMatch) {
+                var sectionPart = sectionMatch[1];
+                // Try different SECTION patterns
+                var sectionPatterns = [
+                    'ADMIN_SECTION_' + sectionPart,
+                    'ADMIN_SECTION' + sectionPart,
+                    'ADMIN_SECTION_' + sectionPart.replace(/_/g, '_')
+                ];
+                for (var i = 0; i < sectionPatterns.length; i++) {
+                    if (PERMISSION_CODE_TO_PATH[sectionPatterns[i]]) {
+                        return PERMISSION_CODE_TO_PATH[sectionPatterns[i]];
+                    }
+                }
+            }
+            // Direct SECTION_* lookup
+            if (permissionCode.startsWith('ADMIN_SECTION')) {
+                // Try to find matching SECTION permission
+                var sectionKeys = Object.keys(PERMISSION_CODE_TO_PATH).filter(function(key) {
+                    return key.startsWith('ADMIN_SECTION_');
+                });
+                // Match by removing "SECTION" and comparing remaining parts
+                var remaining = permissionCode.replace('ADMIN_SECTION', '').replace(/_/g, '');
+                for (var j = 0; j < sectionKeys.length; j++) {
+                    var keyRemaining = sectionKeys[j].replace('ADMIN_SECTION_', '').replace(/_/g, '');
+                    if (remaining === keyRemaining || remaining.includes(keyRemaining) || keyRemaining.includes(remaining)) {
+                        return PERMISSION_CODE_TO_PATH[sectionKeys[j]];
+                    }
+                }
+            }
+        }
+        
+        // ✅ Step 5: Try common variations and patterns
         // Handle plural/singular variations
         if (permissionCode.includes('ACADEMIC_YEAR') && !permissionCode.endsWith('S')) {
             var pluralCode = permissionCode.replace('ACADEMIC_YEAR', 'ACADEMIC_YEARS');
@@ -940,7 +1007,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         }
         
         // Handle other common patterns
-        if (permissionCode.includes('USER') && !permissionCode.includes('USERS')) {
+        if (permissionCode.includes('USER') && !permissionCode.includes('USERS') && !permissionCode.includes('SECTION')) {
             if (PERMISSION_CODE_TO_PATH['ADMIN_USERS']) return PERMISSION_CODE_TO_PATH['ADMIN_USERS'];
         }
         if (permissionCode.includes('ROLE')) {
@@ -1021,6 +1088,34 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
             var firstPart = routeParts[0].toLowerCase();
             if (firstPart.includes('class') || firstPart.includes('lớp')) {
                 return '/lecturer/classes';
+            }
+        }
+        
+        // ✅ Special handling for SECTION_* patterns (before converting to kebab-case)
+        // State: "main.admin.sectionUsers" -> Should map to "/users" not "/section-users"
+        if (routeParts.length > 0) {
+            var firstPart = routeParts[0].toLowerCase();
+            if (firstPart.startsWith('section')) {
+                // Extract the section name (e.g., "sectionUsers" -> "users")
+                var sectionName = firstPart.replace(/^section/, '');
+                // Map section names to actual routes
+                var sectionRouteMap = {
+                    'users': '/users',
+                    'academic': '/organization',
+                    'program': '/subject-prerequisites',
+                    'enrollment': '/registration-periods',
+                    'timetable': '/admin/timetable',
+                    'system': '/audit-logs',
+                    'overview': '/dashboard'
+                };
+                if (sectionRouteMap[sectionName]) {
+                    return sectionRouteMap[sectionName];
+                }
+                // Try to find in PERMISSION_CODE_TO_PATH
+                var sectionPermissionCode = 'ADMIN_SECTION_' + sectionName.toUpperCase();
+                if (PERMISSION_CODE_TO_PATH[sectionPermissionCode]) {
+                    return PERMISSION_CODE_TO_PATH[sectionPermissionCode];
+                }
             }
         }
         
@@ -1136,10 +1231,9 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         }
         
         // Return cached if available (but allow force reload)
-        // Uncomment to enable caching
-        // if (cachedMenuItems) {
-        //     return Promise.resolve(cachedMenuItems);
-        // }
+        if (cachedMenuItems && cachedMenuItems.length > 0) {
+            return Promise.resolve(cachedMenuItems);
+        }
         
         // Return existing promise if loading
         if (menuLoadPromise) {
@@ -1147,7 +1241,9 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
         }
         
         // Load from API - NO FALLBACK
-        menuLoadPromise = $http.get(API_CONFIG.BASE_URL + '/menu', {
+        var apiUrl = API_CONFIG.BASE_URL + '/menu';
+        
+        menuLoadPromise = $http.get(apiUrl, {
             cache: false, // Disable cache to get fresh data
             headers: {
                 'Cache-Control': 'no-cache'
@@ -1160,7 +1256,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                     // Only use API menus if we got valid data
                     if (mappedMenus.length > 0) {
                         cachedMenuItems = mappedMenus;
-                        LoggerService.log('Menu loaded from API for role: ' + role + ', sections: ' + mappedMenus.length);
+                        LoggerService.log('Menu loaded: ' + mappedMenus.length + ' sections');
                         return cachedMenuItems;
                     } else {
                         LoggerService.warn('API returned empty menu after mapping');
@@ -1174,8 +1270,7 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
                 }
             })
             .catch(function(error) {
-                LoggerService.error('Error loading menu from API', error);
-                // NO FALLBACK - Return empty menu
+                LoggerService.error('Error loading menu: ' + (error.message || error));
                 cachedMenuItems = [];
                 return [];
             })
@@ -1191,8 +1286,8 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
      * Returns empty array if not loaded yet - menu must come from API
      */
     this.getMenuItems = function() {
-        // Return empty array - menu will be loaded asynchronously from API
-        return [];
+        // Return cached menu items or empty array if not loaded yet
+        return cachedMenuItems || [];
     };
     
     /**
@@ -1200,11 +1295,8 @@ app.service('RoleService', ['AuthService', '$http', '$rootScope', 'API_CONFIG', 
      * Returns cached menu if available, otherwise empty array
      */
     this.getMenuItemsSync = function() {
-        if (cachedMenuItems) {
-            return cachedMenuItems;
-        }
-        // NO FALLBACK - Return empty array if not loaded yet
-        return [];
+        // Return cached menu items or empty array if not loaded yet
+        return cachedMenuItems || [];
     };
 }]);
 

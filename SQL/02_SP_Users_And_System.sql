@@ -290,6 +290,8 @@ BEGIN
         icon,
         sort_order,
         is_active,
+        -- ✅ Thêm is_menu_only để frontend có thể filter menu-only permissions
+        ISNULL(is_menu_only, 0) AS is_menu_only,
         created_at,
         created_by,
         updated_at,
@@ -527,6 +529,8 @@ BEGIN
         p.icon AS icon,
         p.sort_order AS sort_order,
         ISNULL(p.is_active, 1) AS is_active,
+        -- ✅ Thêm is_menu_only để frontend có thể filter menu-only permissions
+        ISNULL(p.is_menu_only, 0) AS is_menu_only,
         p.created_at,
         p.created_by,
         p.updated_at,

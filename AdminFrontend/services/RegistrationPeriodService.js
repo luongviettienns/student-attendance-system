@@ -20,10 +20,17 @@ app.service('RegistrationPeriodService', ['ApiService', function(ApiService) {
     };
     
     // ============================================================
-    // 2️⃣ GET ACTIVE PERIOD
+    // 2️⃣ GET ACTIVE PERIOD (Admin/Advisor)
     // ============================================================
     this.getActive = function() {
         return ApiService.get('/registration-periods/active');
+    };
+    
+    // ============================================================
+    // 2️⃣.1 GET ACTIVE PERIOD FOR STUDENT
+    // ============================================================
+    this.getActiveForStudent = function() {
+        return ApiService.get('/registration-periods/active/student');
     };
     
     // ============================================================

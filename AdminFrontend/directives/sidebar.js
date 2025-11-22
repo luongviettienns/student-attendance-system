@@ -7,7 +7,7 @@ app.directive('appSidebar', ['$location', 'AuthService', 'RoleService', function
             // Get current user
             scope.currentUser = AuthService.getCurrentUser() || { fullName: 'Admin' };
             
-            // ✅ Get menu items based on user role
+            // ✅ Get menu items based on user role (try cache first)
             scope.menuSections = RoleService.getMenuItems();
 
             // Trạng thái mở/đóng cho từng section
@@ -85,10 +85,10 @@ app.directive('appSidebar', ['$location', 'AuthService', 'RoleService', function
             scope.navigateTo = function(path, event) {
                 if (!path) {
                     if (event) event.preventDefault();
-                    return;
+                    return false;
                 }
                 
-                // Prevent default link behavior if event is provided
+                // Prevent default link behavior
                 if (event) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -101,8 +101,14 @@ app.directive('appSidebar', ['$location', 'AuthService', 'RoleService', function
                 }
                 normalized = normalized.replace(/\/+/g, '/');
                 
-                // Navigate using $location (will trigger digest automatically)
-                $location.path(normalized);
+                // Navigate using $location
+                try {
+                    $location.path(normalized);
+                    return true;
+                } catch (error) {
+                    console.error('[NAV] ❌ Navigation error:', error);
+                    return false;
+                }
             };
             
             // Listen for menu updates from API
@@ -120,19 +126,23 @@ app.directive('appSidebar', ['$location', 'AuthService', 'RoleService', function
                 });
             });
             
-            // Load menu from API on init
-            RoleService.loadMenuItems().then(function(menuItems) {
-                scope.menuSections = menuItems;
+            // Load menu from API on init (only if not already cached)
+            if (!scope.menuSections || scope.menuSections.length === 0) {
+                RoleService.loadMenuItems().then(function(menuItems) {
+                    scope.menuSections = menuItems;
+                    expandSectionForCurrentPath();
+                }).catch(function(error) {
+                    console.error('[NAV] ❌ Error loading menu:', error);
+                });
+            } else {
                 expandSectionForCurrentPath();
-            });
+            }
             
             // Watch for route changes
             scope.$on('$routeChangeSuccess', function() {
-                // Update current user if needed
                 scope.currentUser = AuthService.getCurrentUser() || { fullName: 'Admin' };
-                // Update menu items (use sync method to get latest)
-                scope.menuSections = RoleService.getMenuItemsSync();
-                // Sync trạng thái mở theo route
+                var syncMenuItems = RoleService.getMenuItemsSync();
+                scope.menuSections = syncMenuItems;
                 expandSectionForCurrentPath();
             });
         }

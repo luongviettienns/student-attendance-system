@@ -1785,6 +1785,15 @@
     background: var(--bg-secondary);
 }
 
+.grade-row-failed {
+    background-color: rgba(239, 68, 68, 0.05) !important;
+    border-left: 3px solid var(--danger-color);
+}
+
+.grade-row-failed:hover {
+    background-color: rgba(239, 68, 68, 0.1) !important;
+}
+
 .grade-col-code {
     width: 120px;
     font-weight: 600;
@@ -1809,6 +1818,10 @@
 
 .grade-col-letter {
     width: 90px;
+}
+
+.grade-col-status {
+    width: 110px;
 }
 
 .grade-total-score {
@@ -2787,7 +2800,8 @@
     .grade-col-midterm,
     .grade-col-final,
     .grade-col-total,
-    .grade-col-letter {
+    .grade-col-letter,
+    .grade-col-status {
         width: auto;
     }
     

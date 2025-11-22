@@ -103,6 +103,19 @@ namespace EducationManagement.BLL.Services
         }
 
         /// <summary>
+        /// Get all retake records (for admin/advisor)
+        /// </summary>
+        public async Task<(List<RetakeRecord> Records, int TotalCount)> GetAllRetakeRecordsAsync(
+            string? status = null, int page = 1, int pageSize = 50)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 50;
+            if (pageSize > 100) pageSize = 100;
+
+            return await _retakeRepository.GetAllAsync(status, page, pageSize);
+        }
+
+        /// <summary>
         /// Update retake status (approve/reject)
         /// </summary>
         public async Task UpdateRetakeStatusAsync(string retakeId, RetakeRecordUpdateDto dto)

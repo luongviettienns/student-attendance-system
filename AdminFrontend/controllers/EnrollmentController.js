@@ -21,6 +21,49 @@ app.controller('EnrollmentController', [
         status: ''
     };
     
+    // Helper function to decode JWT token
+    var decodeToken = function(token) {
+        if (!token) return null;
+        try {
+            var parts = token.split('.');
+            if (parts.length !== 3) return null;
+            var payload = parts[1];
+            payload = payload.replace(/-/g, '+').replace(/_/g, '/');
+            while (payload.length % 4) {
+                payload += '=';
+            }
+            return JSON.parse(atob(payload));
+        } catch (e) {
+            return null;
+        }
+    };
+    
+    // Helper function to get role from user object or JWT token
+    var getUserRole = function(user) {
+        if (!user) return null;
+        
+        // Try to get from user object first
+        if (user.roleName) return user.roleName;
+        if (user.roleId) return user.roleId;
+        if (user.role) return user.role;
+        if (user.Role) return user.Role;
+        
+        // If not found, decode JWT token
+        var token = user.token || AuthService.getToken();
+        if (token) {
+            var decoded = decodeToken(token);
+            if (decoded) {
+                // Try different claim names
+                var role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] ||
+                           decoded['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
+                           decoded.role || decoded.Role || decoded.roleName || decoded.roleId;
+                if (role) return role;
+            }
+        }
+        
+        return null;
+    };
+    
     // Get current user
     $scope.getCurrentUser = function() {
         return AuthService.getCurrentUser();
@@ -28,12 +71,16 @@ app.controller('EnrollmentController', [
     
     $scope.isAdmin = function() {
         const user = $scope.getCurrentUser();
-        return user && (user.roleName === 'Admin' || user.roleName === 'SuperAdmin');
+        if (!user) return false;
+        var role = getUserRole(user);
+        return role === 'Admin' || role === 'SuperAdmin' || role === 'ROLE_ADMIN';
     };
     
     $scope.isStudent = function() {
         const user = $scope.getCurrentUser();
-        return user && user.roleName === 'Student';
+        if (!user) return false;
+        var role = getUserRole(user);
+        return role === 'Student' || role === 'ROLE_STUDENT' || role === 'Sinh viên';
     };
     
     // ============================================================
@@ -43,7 +90,23 @@ app.controller('EnrollmentController', [
         $scope.loading = true;
         
         let promise;
-        if ($scope.filters.studentId) {
+        var user = $scope.getCurrentUser();
+        var role = getUserRole(user);
+        var isStudent = role === 'Student' || role === 'ROLE_STUDENT' || role === 'Sinh viên';
+        
+        // ✅ Student luôn phải dùng getByStudent, không được gọi getAll
+        if (isStudent) {
+            // Try to get studentId from various sources
+            var studentId = user.relatedId || user.studentId || user.userId;
+            if (studentId) {
+                promise = EnrollmentService.getByStudent(studentId);
+            } else {
+                console.error('[ENROLLMENT DEBUG] ❌ Student but no studentId found!');
+                ToastService.error('Không tìm thấy mã sinh viên');
+                $scope.loading = false;
+                return;
+            }
+        } else if ($scope.filters.studentId) {
             promise = EnrollmentService.getByStudent($scope.filters.studentId);
         } else if ($scope.filters.classId) {
             promise = EnrollmentService.getByClass($scope.filters.classId);
@@ -57,6 +120,7 @@ app.controller('EnrollmentController', [
             }
             $scope.loading = false;
         }).catch(function(error) {
+            console.error('[ENROLLMENT DEBUG] ❌ Error loading enrollments:', error);
             ToastService.error('Không thể tải danh sách đăng ký');
             $scope.loading = false;
         });
@@ -138,11 +202,28 @@ app.controller('EnrollmentController', [
     };
     
     $scope.loadActivePeriod = function() {
-        RegistrationPeriodService.getActive().then(function(response) {
-            if (response.data.success) {
+        // ✅ Tự động chọn endpoint dựa trên role
+        var user = $scope.getCurrentUser();
+        if (!user) {
+            $scope.activePeriod = null;
+            return;
+        }
+        
+        var role = getUserRole(user);
+        var isStudent = role === 'Student' || role === 'ROLE_STUDENT' || role === 'Sinh viên';
+        
+        var promise = isStudent 
+            ? RegistrationPeriodService.getActiveForStudent()
+            : RegistrationPeriodService.getActive();
+        
+        promise.then(function(response) {
+            if (response.data && response.data.success) {
                 $scope.activePeriod = response.data.data;
+            } else {
+                $scope.activePeriod = null;
             }
-        }).catch(function() {
+        }).catch(function(error) {
+            // Silently fail - không có đợt đăng ký đang mở là bình thường
             $scope.activePeriod = null;
         });
     };
