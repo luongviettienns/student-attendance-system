@@ -590,14 +590,51 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
         }
     }
     
+    // Format Vietnamese phone number to international format for [Phone] attribute validation
+    // Vietnamese format: 0912345678 or 0123456789
+    // International format: +84912345678
+    function formatPhoneNumber(phone) {
+        if (!phone || typeof phone !== 'string') return null;
+        
+        // Remove all spaces, dashes, and other non-digit characters except +
+        var cleaned = phone.replace(/[\s\-\(\)\.]/g, '');
+        
+        // If empty after cleaning, return null
+        if (cleaned === '') return null;
+        
+        // If already starts with +, return as is (assume already formatted)
+        if (cleaned.startsWith('+')) {
+            return cleaned;
+        }
+        
+        // If starts with 0 (Vietnamese format), convert to +84
+        if (cleaned.startsWith('0')) {
+            return '+84' + cleaned.substring(1);
+        }
+        
+        // If starts with 84 (without +), add +
+        if (cleaned.startsWith('84')) {
+            return '+' + cleaned;
+        }
+        
+        // If it's just digits (10-11 digits), assume Vietnamese format starting with 0
+        if (/^\d{10,11}$/.test(cleaned)) {
+            return '+84' + cleaned;
+        }
+        
+        // Otherwise, return as is (might be invalid, but let backend validate)
+        return cleaned;
+    }
+    
     $scope.loadStudent = function(id) {
         $scope.loadingStates.students = true;
         StudentService.getById(id)
             .then(function(response) {
                 $scope.student = response.data?.data || response.data;
                 
-                // Format dates for date inputs to avoid AngularJS datefmt error
+                // Store original dob value for fallback if user doesn't change it
                 if ($scope.student.dob) {
+                    $scope.student._originalDob = $scope.student.dob; // Store original ISO string
                     $scope.student.dob = formatDateForInput($scope.student.dob);
                 }
                 
@@ -634,13 +671,112 @@ $scope.saveStudent = function () {
 
     var savePromise;
     if ($scope.isEditMode) {
-        savePromise = StudentService.update($scope.student.studentId, $scope.student);
-    } else {
-        savePromise = StudentService.create($scope.student);
-    }
-    if (!$scope.student.createdBy) {
+        // Map student data to UpdateStudentFullDto format (camelCase for JSON)
         var user = AuthService.getCurrentUser();
-        $scope.student.createdBy = user ? user.userId || user.username || "admin" : "admin";
+        var updateData = {
+            studentId: $scope.student.studentId || $scope.student.StudentId,
+            fullName: $scope.student.fullName || $scope.student.FullName || '',
+            gender: $scope.student.gender || $scope.student.Gender || '',
+            email: $scope.student.email || $scope.student.Email || '',
+            phone: ($scope.student.phone || $scope.student.Phone) ? (formatPhoneNumber($scope.student.phone || $scope.student.Phone) || '') : '',
+            facultyId: $scope.student.facultyId || $scope.student.FacultyId || null,
+            majorId: $scope.student.majorId || $scope.student.MajorId || null,
+            academicYearId: $scope.student.academicYearId || $scope.student.AcademicYearId || null,
+            cohortYear: $scope.student.cohortYear || $scope.student.CohortYear || null,
+            updatedBy: user ? (user.userId || user.username || "admin") : "admin"
+        };
+        
+        // Convert dob from date input (YYYY-MM-DD) to DateTime (ISO format)
+        // API expects dob in camelCase and DateTime format
+        var dobValue = $scope.student.dob;
+        if (dobValue) {
+            // If dob is in YYYY-MM-DD format from date input, convert to ISO string
+            if (typeof dobValue === 'string' && dobValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                // YYYY-MM-DD format from date input
+                var dobDate = new Date(dobValue + 'T00:00:00');
+                if (!isNaN(dobDate.getTime())) {
+                    updateData.dob = dobDate.toISOString();
+                } else {
+                    // Fallback to original dob if conversion fails
+                    updateData.dob = $scope.student._originalDob || new Date().toISOString();
+                }
+            } else if (typeof dobValue === 'string' && dobValue.includes('T')) {
+                // Already in ISO format
+                updateData.dob = dobValue;
+            } else {
+                // Try to parse as Date object
+                var parsedDate = new Date(dobValue);
+                if (!isNaN(parsedDate.getTime())) {
+                    updateData.dob = parsedDate.toISOString();
+                } else {
+                    // Fallback to original dob
+                    updateData.dob = $scope.student._originalDob || new Date().toISOString();
+                }
+            }
+        } else if ($scope.student._originalDob) {
+            // If user cleared the date, use original value
+            updateData.dob = $scope.student._originalDob;
+        } else if ($scope.student.Dob) {
+            // If Dob (capital) already exists, convert if needed
+            var dobValue2 = $scope.student.Dob;
+            if (typeof dobValue2 === 'string' && dobValue2.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                updateData.dob = new Date(dobValue2 + 'T00:00:00').toISOString();
+            } else {
+                updateData.dob = dobValue2;
+            }
+        } else {
+            // If no date provided at all, set a default (required field)
+            // This shouldn't happen in edit mode, but handle it gracefully
+            updateData.dob = new Date().toISOString();
+        }
+        
+        savePromise = StudentService.update($scope.student.studentId, updateData);
+    } else {
+        // Map student data to StudentCreateDto format (camelCase for JSON)
+        var user = AuthService.getCurrentUser();
+        var createData = {
+            userId: $scope.student.userId || '',
+            studentCode: $scope.student.studentCode || '',
+            fullName: $scope.student.fullName || '',
+            gender: $scope.student.gender || null,
+            email: $scope.student.email || null,
+            phone: formatPhoneNumber($scope.student.phone),
+            facultyId: $scope.student.facultyId && $scope.student.facultyId.trim() !== '' ? $scope.student.facultyId : null,
+            majorId: $scope.student.majorId && $scope.student.majorId.trim() !== '' ? $scope.student.majorId : null,
+            academicYearId: $scope.student.academicYearId && $scope.student.academicYearId.trim() !== '' ? $scope.student.academicYearId : null,
+            cohortYear: $scope.student.cohortYear && $scope.student.cohortYear.trim() !== '' ? $scope.student.cohortYear : null,
+            createdBy: user ? (user.userId || user.username || "admin") : "admin"
+        };
+        
+        // Convert dob from date input (YYYY-MM-DD) to DateTime (ISO format) or null
+        if ($scope.student.dob && (typeof $scope.student.dob === 'string' ? $scope.student.dob.trim() !== '' : true)) {
+            var dobValue = $scope.student.dob;
+            if (typeof dobValue === 'string' && dobValue.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                // YYYY-MM-DD format from date input
+                var dobDate = new Date(dobValue + 'T00:00:00');
+                if (!isNaN(dobDate.getTime())) {
+                    createData.dob = dobDate.toISOString();
+                } else {
+                    createData.dob = null;
+                }
+            } else if (typeof dobValue === 'string' && dobValue.includes('T')) {
+                // Already in ISO format
+                createData.dob = dobValue;
+            } else {
+                // Try to parse as Date object
+                var parsedDate = new Date(dobValue);
+                if (!isNaN(parsedDate.getTime())) {
+                    createData.dob = parsedDate.toISOString();
+                } else {
+                    createData.dob = null;
+                }
+            }
+        } else {
+            // dob is optional, send null if not provided
+            createData.dob = null;
+        }
+        
+        savePromise = StudentService.create(createData);
     }
 
     savePromise

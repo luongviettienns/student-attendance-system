@@ -31,6 +31,7 @@ CREATE PROCEDURE sp_AddStudentFull
     @MajorId VARCHAR(50) = NULL,
     @AcademicYearId VARCHAR(50) = NULL,
     @CohortYear VARCHAR(10) = NULL,
+    @PasswordHash VARCHAR(255) = NULL,
     @CreatedBy VARCHAR(50) = 'system'
 AS
 BEGIN
@@ -38,11 +39,33 @@ BEGIN
     BEGIN TRY
         BEGIN TRANSACTION;
         
-        -- Validate User exists
+        -- Auto-create user if not exists
         IF NOT EXISTS (SELECT 1 FROM dbo.users WHERE user_id = @UserId AND deleted_at IS NULL)
         BEGIN
-            RAISERROR(N'User does not exist: %s', 16, 1, @UserId);
-            RETURN;
+            -- Get role_id for Student (ROLE_STUDENT)
+            DECLARE @RoleId VARCHAR(50) = 'ROLE_STUDENT';
+            
+            -- Validate role exists
+            IF NOT EXISTS (SELECT 1 FROM dbo.roles WHERE role_id = @RoleId AND deleted_at IS NULL)
+            BEGIN
+                RAISERROR(N'Role does not exist: %s', 16, 1, @RoleId);
+                RETURN;
+            END
+            
+            -- Use provided password hash, or fallback to default if not provided
+            -- (Backend should provide password hash from StudentCode)
+            IF @PasswordHash IS NULL OR @PasswordHash = ''
+            BEGIN
+                -- Fallback: default password hash (should not happen if backend works correctly)
+                SET @PasswordHash = '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5lSWE0cQ5pZri';
+            END
+            
+            -- Create user account automatically
+            INSERT INTO dbo.users (user_id, username, password_hash, email, phone, full_name, 
+                                  role_id, is_active, avatar_url, created_at, created_by)
+            VALUES (@UserId, @StudentCode, @PasswordHash, 
+                    ISNULL(@Email, @StudentCode + '@student.edu.vn'), 
+                    @Phone, @FullName, @RoleId, 1, '/avatars/default.png', GETDATE(), @CreatedBy);
         END
         
         -- Validate StudentCode unique
@@ -475,7 +498,7 @@ BEGIN
                     INSERT INTO users (user_id, username, password_hash, email, phone, full_name, 
                                       role_id, is_active, avatar_url, created_at, created_by)
                     VALUES (@UserId, @StudentCode, @PasswordHash, @Email, @Phone, @FullName,
-                            'ROLE003', 1, '/avatars/default.png', GETDATE(), @CreatedBy);
+                            'ROLE_STUDENT', 1, '/avatars/default.png', GETDATE(), @CreatedBy);
                     
                     -- Create student record
                     INSERT INTO students (student_id, user_id, student_code, full_name, gender, 

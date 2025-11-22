@@ -4,6 +4,7 @@ using EducationManagement.DAL.Repositories;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using BCrypt.Net;
 
 namespace EducationManagement.BLL.Services
 {
@@ -18,6 +19,7 @@ namespace EducationManagement.BLL.Services
 
         /// <summary>
         /// Thêm sinh viên mới
+        /// Tự động tạo user với mật khẩu là mã sinh viên
         /// </summary>
         public async Task AddStudentAsync(StudentCreateDto model)
         {
@@ -27,7 +29,10 @@ namespace EducationManagement.BLL.Services
             if (string.IsNullOrWhiteSpace(model.FullName))
                 throw new ArgumentException("Họ tên không được để trống");
 
-            await _studentRepository.AddAsync(model);
+            // Hash password từ StudentCode (mật khẩu mặc định là mã sinh viên)
+            string passwordHash = BCrypt.Net.BCrypt.HashPassword(model.StudentCode, workFactor: 12);
+
+            await _studentRepository.AddAsync(model, passwordHash);
         }
 
         /// <summary>

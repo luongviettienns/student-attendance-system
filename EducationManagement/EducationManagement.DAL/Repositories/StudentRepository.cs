@@ -22,7 +22,7 @@ namespace EducationManagement.DAL.Repositories
         // ============================================================
         // 🔹 1️⃣ THÊM SINH VIÊN (SP: sp_AddStudentFull)
         // ============================================================
-        public async Task AddAsync(StudentCreateDto model)
+        public async Task AddAsync(StudentCreateDto model, string? passwordHash = null)
         {
             var parameters = new[]
             {
@@ -37,6 +37,7 @@ namespace EducationManagement.DAL.Repositories
                 new SqlParameter("@MajorId", (object?)model.MajorId ?? DBNull.Value),
                 new SqlParameter("@AcademicYearId", (object?)model.AcademicYearId ?? DBNull.Value),
                 new SqlParameter("@CohortYear", (object?)model.CohortYear ?? DBNull.Value),
+                new SqlParameter("@PasswordHash", (object?)passwordHash ?? DBNull.Value),
                 new SqlParameter("@CreatedBy", model.CreatedBy)
             };
 
