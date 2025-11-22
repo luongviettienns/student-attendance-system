@@ -41,7 +41,17 @@ app.controller('AcademicYearController', ['$scope', '$location', '$routeParams',
         $scope.loading = true;
         AcademicYearService.getById(id)
             .then(function(response) {
-                $scope.academicYear = response.data;
+                // ✅ Normalize data - đảm bảo có academicYearId
+                var data = response.data.data || response.data;
+                $scope.academicYear = data;
+                
+                // ✅ Đảm bảo academicYearId được set đúng (hỗ trợ cả camelCase và PascalCase)
+                if (!$scope.academicYear.academicYearId && !$scope.academicYear.AcademicYearId) {
+                    $scope.academicYear.academicYearId = id;
+                } else if ($scope.academicYear.AcademicYearId && !$scope.academicYear.academicYearId) {
+                    $scope.academicYear.academicYearId = $scope.academicYear.AcademicYearId;
+                }
+                
                 $scope.isEditMode = true;
                 $scope.loading = false;
             })
@@ -56,9 +66,29 @@ app.controller('AcademicYearController', ['$scope', '$location', '$routeParams',
         $scope.error = null;
         $scope.loading = true;
         
+        // ✅ Lấy ID từ route params hoặc từ academicYear object
+        var academicYearId = $routeParams.id || 
+                             $scope.academicYear.academicYearId || 
+                             $scope.academicYear.AcademicYearId;
+        
+        // ✅ Validation: Kiểm tra ID khi ở edit mode
+        if ($scope.isEditMode && !academicYearId) {
+            $scope.error = 'Không tìm thấy ID niên khóa. Vui lòng quay lại danh sách và thử lại.';
+            $scope.loading = false;
+            return;
+        }
+        
+        // ✅ Đảm bảo academicYear object có ID đúng
+        if ($scope.academicYear && !$scope.academicYear.academicYearId && !$scope.academicYear.AcademicYearId) {
+            if (academicYearId) {
+                $scope.academicYear.academicYearId = academicYearId;
+            }
+        }
+        
         var savePromise;
         if ($scope.isEditMode) {
-            savePromise = AcademicYearService.update($scope.academicYear.academicYearId, $scope.academicYear);
+            // ✅ Sử dụng ID từ route params hoặc từ object
+            savePromise = AcademicYearService.update(academicYearId, $scope.academicYear);
         } else {
             savePromise = AcademicYearService.create($scope.academicYear);
         }
@@ -72,7 +102,7 @@ app.controller('AcademicYearController', ['$scope', '$location', '$routeParams',
                 }, 1500);
             })
             .catch(function(error) {
-                $scope.error = error.data?.message || 'Không thể lưu niên khóa';
+                $scope.error = error.data?.message || error.data?.error || 'Không thể lưu niên khóa';
                 $scope.loading = false;
             });
     };

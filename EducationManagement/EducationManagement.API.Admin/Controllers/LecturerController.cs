@@ -66,21 +66,32 @@ namespace EducationManagement.API.Admin.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(string id, [FromBody] Lecturer model)
         {
-            if (id != model.LecturerId)
-                return BadRequest(new { message = "ID không khớp!" });
-
-            var oldLecturer = await _service.GetByIdAsync(id);
-            await _service.UpdateAsync(model);
-
-            // ✅ Audit Log: Update Lecturer
-            if (oldLecturer != null)
+            try
             {
+                if (model == null)
+                    return BadRequest(new { message = "Dữ liệu không hợp lệ!" });
+
+                if (id != model.LecturerId)
+                    return BadRequest(new { message = "ID không khớp!" });
+
+                // Check if lecturer exists
+                var oldLecturer = await _service.GetByIdAsync(id);
+                if (oldLecturer == null)
+                    return NotFound(new { message = "❌ Không tìm thấy giảng viên" });
+
+                await _service.UpdateAsync(model);
+
+                // ✅ Audit Log: Update Lecturer
                 await LogUpdateAsync("Lecturer", model.LecturerId,
                     new { full_name = oldLecturer.FullName, department_id = oldLecturer.DepartmentId },
                     new { full_name = model.FullName, department_id = model.DepartmentId });
-            }
 
-            return Ok(new { message = "✅ Cập nhật giảng viên thành công!" });
+                return Ok(new { message = "✅ Cập nhật giảng viên thành công!" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]

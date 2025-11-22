@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using Scrutor;
 using System.IO.Compression;
 
@@ -181,6 +182,39 @@ builder.Services.AddSwaggerGen(options =>
     
     // ✅ Ignore circular references
     options.CustomSchemaIds(type => type.FullName);
+    
+    // ✅ Ensure all controllers are included
+    options.DocInclusionPredicate((docName, apiDesc) =>
+    {
+        // Include all APIs
+        return true;
+    });
+    
+    // ✅ JWT Bearer Authentication cho Swagger
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Example: \"Authorization: Bearer {token}\"",
+        Name = "Authorization",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Scheme = "Bearer",
+        BearerFormat = "JWT"
+    });
+    
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 // ✅ SignalR for real-time notifications
@@ -188,26 +222,54 @@ builder.Services.AddSignalR();
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
+    // Policy cho SignalR và các request cần credentials
+    options.AddPolicy("AllowFrontendWithCredentials", policy =>
     {
         policy
             .WithOrigins(
-                "https://localhost:3000",  // FE (HTTPS)
-                "http://localhost:3000",   // FE (HTTP)
-                "https://localhost:7033",  // Gateway (HTTPS)
-                "http://localhost:7034",   // Gateway (HTTP fallback)
-                "http://localhost:5227",   // Admin API (same port as backend)
-                "http://127.0.0.1:5227",   // Admin API (127.0.0.1)
-                "http://localhost:5500",   // Live Server (localhost)
-                "http://127.0.0.1:5500",   // Live Server (127.0.0.1)
-                "http://localhost:5501",   // Live Server port 5501 (localhost)
-                "http://127.0.0.1:5501",   // Live Server port 5501 (127.0.0.1)
-                "http://localhost:8080",   // Python/Node HTTP Server
-                "http://127.0.0.1:8080"    // Python/Node HTTP Server (127.0.0.1)
+                "http://127.0.0.1:5500",
+                "http://localhost:5500",
+                "https://localhost:5500",
+                "http://127.0.0.1:5501",
+                "http://localhost:5501",
+                "https://localhost:5501",
+                "http://127.0.0.1:3000",
+                "http://localhost:3000",
+                "https://localhost:3000"
             )
             .AllowAnyHeader()
             .AllowAnyMethod()
-            .AllowCredentials();
+            .AllowCredentials(); // ✅ QUAN TRỌNG: Cho phép credentials cho SignalR
+    });
+    
+    // Policy cho các request không cần credentials (fallback)
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy
+            .SetIsOriginAllowed(origin => 
+            {
+                // Allow null origin (file:// protocol) - but can't use AllowCredentials with this
+                if (string.IsNullOrEmpty(origin) || origin == "null")
+                    return true;
+                
+                // Allow localhost and 127.0.0.1 with any port
+                try
+                {
+                    var uri = new Uri(origin);
+                    return uri.Host == "localhost" || 
+                           uri.Host == "127.0.0.1" || 
+                           uri.Host == "::1" ||
+                           origin.StartsWith("https://localhost") ||
+                           origin.StartsWith("http://localhost") ||
+                           origin.StartsWith("http://127.0.0.1");
+                }
+                catch
+                {
+                    return false;
+                }
+            })
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
@@ -426,8 +488,9 @@ if (app.Environment.IsDevelopment())
 // ✅ Controller endpoints
 app.MapControllers();
 
-// ✅ SignalR Hub endpoints
-app.MapHub<EducationManagement.API.Admin.Hubs.NotificationHub>("/notificationHub");
+// ✅ SignalR Hub endpoints - Sử dụng CORS policy với credentials
+app.MapHub<EducationManagement.API.Admin.Hubs.NotificationHub>("/notificationHub")
+    .RequireCors("AllowFrontendWithCredentials");
 
 // ============================================================
 // 🚀 Run

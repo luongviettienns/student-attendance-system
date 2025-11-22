@@ -142,14 +142,16 @@ namespace EducationManagement.DAL.Repositories
                 SubjectCredits = row.Table.Columns.Contains("subject_credits") && row["subject_credits"] != DBNull.Value
                     ? Convert.ToInt32(row["subject_credits"]) : null,
                 PrerequisiteSubjectId = row["prerequisite_subject_id"].ToString()!,
-                PrerequisiteSubjectCode = row["prerequisite_subject_code"]?.ToString(),
-                PrerequisiteSubjectName = row["prerequisite_subject_name"]?.ToString(),
+                // Stored procedure returns "prerequisite_code" and "prerequisite_name", not "prerequisite_subject_code" and "prerequisite_subject_name"
+                PrerequisiteSubjectCode = row["prerequisite_code"]?.ToString(),
+                PrerequisiteSubjectName = row["prerequisite_name"]?.ToString(),
                 PrerequisiteCredits = row.Table.Columns.Contains("prerequisite_credits") && row["prerequisite_credits"] != DBNull.Value
                     ? Convert.ToInt32(row["prerequisite_credits"]) : null,
                 MinimumGrade = Convert.ToDecimal(row["minimum_grade"]),
                 IsRequired = Convert.ToBoolean(row["is_required"]),
                 Description = row["description"]?.ToString(),
-                IsActive = Convert.ToBoolean(row["is_active"]),
+                // Stored procedure doesn't return is_active, but we know it's active if it's in the result (filtered by is_active = 1)
+                IsActive = true,
                 CreatedAt = Convert.ToDateTime(row["created_at"]),
                 CreatedBy = row["created_by"]?.ToString()
             };

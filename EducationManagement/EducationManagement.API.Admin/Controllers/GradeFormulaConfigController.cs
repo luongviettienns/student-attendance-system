@@ -55,8 +55,12 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
+                System.Diagnostics.Debug.WriteLine($"🔍 GetAll called with: page={page}, pageSize={pageSize}");
+                
                 var (configs, totalCount) = await _formulaService.GetAllConfigsAsync(
                     page, pageSize, subjectId, classId, schoolYearId, isDefault);
+
+                System.Diagnostics.Debug.WriteLine($"✅ GetAll success: {configs?.Count ?? 0} configs, totalCount={totalCount}");
 
                 return Ok(new
                 {
@@ -71,7 +75,27 @@ namespace EducationManagement.API.Admin.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
+                // Log error for debugging
+                var errorDetails = new
+                {
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace,
+                    innerException = ex.InnerException != null ? new
+                    {
+                        message = ex.InnerException.Message,
+                        stackTrace = ex.InnerException.StackTrace
+                    } : null
+                };
+
+                System.Diagnostics.Debug.WriteLine($"❌ Error in GetAll: {System.Text.Json.JsonSerializer.Serialize(errorDetails)}");
+
+                // Return detailed error (only in development - remove in production)
+                return StatusCode(500, new { 
+                    message = "Lỗi hệ thống khi lấy danh sách cấu hình công thức", 
+                    error = ex.Message,
+                    details = ex.InnerException?.Message ?? "Không có thông tin chi tiết",
+                    hint = "Kiểm tra xem stored procedure 'sp_GetAllGradeFormulaConfigs' đã được tạo trong database chưa. Chạy script SQL/Check_And_Create_GradeFormula_SP.sql"
+                });
             }
         }
 
@@ -207,6 +231,60 @@ namespace EducationManagement.API.Admin.Controllers
                 return StatusCode(500, new { message = "Lỗi hệ thống", error = ex.Message });
             }
         }
+
+        [HttpGet("test-connection")]
+        public async Task<IActionResult> TestConnection()
+        {
+            try
+            {
+                // Test if we can connect to database by calling a simple query
+                var testResult = new
+                {
+                    message = "Test endpoint hoạt động",
+                    timestamp = DateTime.Now,
+                    note = "Nếu bạn thấy message này, API đang hoạt động. Lỗi 500 có thể do stored procedure chưa được tạo."
+                };
+                return Ok(testResult);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Lỗi khi test kết nối",
+                    error = ex.Message,
+                    stackTrace = ex.StackTrace
+                });
+            }
+        }
+
+        [HttpGet("test-db")]
+        public async Task<IActionResult> TestDatabase()
+        {
+            try
+            {
+                // Try to call the stored procedure with minimal parameters
+                var (configs, totalCount) = await _formulaService.GetAllConfigsAsync(1, 1);
+                
+                return Ok(new
+                {
+                    success = true,
+                    message = "Kết nối database thành công!",
+                    totalCount = totalCount,
+                    configsCount = configs?.Count ?? 0
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Lỗi khi kết nối database hoặc gọi stored procedure",
+                    error = ex.Message,
+                    details = ex.InnerException?.Message ?? "Không có thông tin chi tiết",
+                    hint = "Có thể stored procedure 'sp_GetAllGradeFormulaConfigs' chưa được tạo. Chạy script SQL/Check_And_Create_GradeFormula_SP.sql"
+                });
+            }
+        }
     }
 
     public class DeleteConfigRequest
@@ -214,4 +292,3 @@ namespace EducationManagement.API.Admin.Controllers
         public string? DeletedBy { get; set; }
     }
 }
-

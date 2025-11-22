@@ -5,6 +5,23 @@ using System.Text;
 
 namespace EducationManagement.API.Admin.Controllers
 {
+    // ✅ DTO để nhận string time từ frontend
+    public class TimetableConflictCheckInputDto
+    {
+        public string? SessionId { get; set; }
+        public string ClassId { get; set; } = string.Empty;
+        public string? SubjectId { get; set; }
+        public string? LecturerId { get; set; }
+        public string? RoomId { get; set; }
+        public string? SchoolYearId { get; set; }
+        public int? WeekNo { get; set; }
+        public int Weekday { get; set; }
+        public string StartTime { get; set; } = string.Empty; // String format: "HH:mm:ss" or "HH:mm"
+        public string EndTime { get; set; } = string.Empty;   // String format: "HH:mm:ss" or "HH:mm"
+        public int? PeriodFrom { get; set; }
+        public int? PeriodTo { get; set; }
+    }
+
     [ApiController]
     [Route("api-edu/timetable")]
     public class TimetableController : ControllerBase
@@ -82,10 +99,107 @@ namespace EducationManagement.API.Admin.Controllers
         // POST: /api-edu/timetable/conflicts
         [HttpPost("conflicts")]
         [Authorize]
-        public async Task<IActionResult> CheckConflicts([FromBody] TimetableConflictCheckInput input)
+        public async Task<IActionResult> CheckConflicts([FromBody] TimetableConflictCheckInputDto dto)
         {
-            var conflicts = await _timetableService.CheckConflictsAsync(input);
-            return Ok(new { data = conflicts });
+            try
+            {
+                // ✅ Validation: Kiểm tra input không null
+                if (dto == null)
+                {
+                    return BadRequest(new { success = false, message = "Dữ liệu kiểm tra xung đột không được để trống" });
+                }
+
+                // ✅ Validation: Kiểm tra các trường bắt buộc
+                if (string.IsNullOrWhiteSpace(dto.ClassId))
+                {
+                    return BadRequest(new { success = false, message = "Lớp học là bắt buộc" });
+                }
+
+                if (string.IsNullOrWhiteSpace(dto.SubjectId))
+                {
+                    return BadRequest(new { success = false, message = "Môn học là bắt buộc" });
+                }
+
+                if (dto.Weekday < 1 || dto.Weekday > 7)
+                {
+                    return BadRequest(new { success = false, message = "Thứ trong tuần không hợp lệ (1-7)" });
+                }
+
+                // ✅ Parse time từ string "HH:mm:ss" hoặc "HH:mm"
+                if (string.IsNullOrWhiteSpace(dto.StartTime))
+                {
+                    return BadRequest(new { success = false, message = "Thời gian bắt đầu là bắt buộc" });
+                }
+
+                if (string.IsNullOrWhiteSpace(dto.EndTime))
+                {
+                    return BadRequest(new { success = false, message = "Thời gian kết thúc là bắt buộc" });
+                }
+
+                if (!TimeSpan.TryParse(dto.StartTime, out var startTime))
+                {
+                    return BadRequest(new { success = false, message = $"Định dạng thời gian bắt đầu không hợp lệ: {dto.StartTime}. Cần định dạng HH:mm:ss hoặc HH:mm" });
+                }
+
+                if (!TimeSpan.TryParse(dto.EndTime, out var endTime))
+                {
+                    return BadRequest(new { success = false, message = $"Định dạng thời gian kết thúc không hợp lệ: {dto.EndTime}. Cần định dạng HH:mm:ss hoặc HH:mm" });
+                }
+
+                if (startTime >= endTime)
+                {
+                    return BadRequest(new { success = false, message = "Thời gian kết thúc phải sau thời gian bắt đầu" });
+                }
+
+                // ✅ Log input để debug
+                Console.ForegroundColor = ConsoleColor.Cyan;
+                Console.WriteLine($"[CheckConflicts] ClassId: {dto.ClassId}");
+                Console.WriteLine($"[CheckConflicts] SubjectId: {dto.SubjectId}");
+                Console.WriteLine($"[CheckConflicts] StartTime: {dto.StartTime} -> {startTime}");
+                Console.WriteLine($"[CheckConflicts] EndTime: {dto.EndTime} -> {endTime}");
+                Console.WriteLine($"[CheckConflicts] PeriodFrom: {dto.PeriodFrom}, PeriodTo: {dto.PeriodTo}");
+                Console.ResetColor();
+
+                // ✅ Convert DTO sang TimetableConflictCheckInput
+                var input = new TimetableConflictCheckInput
+                {
+                    SessionId = dto.SessionId,
+                    ClassId = dto.ClassId,
+                    SubjectId = dto.SubjectId ?? string.Empty,
+                    LecturerId = dto.LecturerId,
+                    RoomId = dto.RoomId,
+                    SchoolYearId = dto.SchoolYearId,
+                    WeekNo = dto.WeekNo,
+                    Weekday = dto.Weekday,
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    PeriodFrom = dto.PeriodFrom,
+                    PeriodTo = dto.PeriodTo
+                };
+
+                var conflicts = await _timetableService.CheckConflictsAsync(input);
+                return Ok(new { success = true, data = conflicts });
+            }
+            catch (Exception ex)
+            {
+                // ✅ Log chi tiết lỗi để debug
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[Timetable CheckConflicts Error] {ex.Message}");
+                Console.WriteLine($"[Timetable CheckConflicts Error] StackTrace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"[Timetable CheckConflicts Error] InnerException: {ex.InnerException.Message}");
+                }
+                Console.ResetColor();
+
+                return StatusCode(500, new 
+                { 
+                    success = false, 
+                    message = "Lỗi hệ thống khi kiểm tra xung đột", 
+                    error = ex.Message,
+                    details = ex.InnerException?.Message
+                });
+            }
         }
 
         // POST: /api-edu/timetable/session

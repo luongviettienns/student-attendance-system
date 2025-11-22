@@ -1720,7 +1720,13 @@ BEGIN
         ac.academic_year_id,
         ac.cohort_year,
         ac.max_students,
-        ac.current_students,
+        -- ✅ Tính current_students từ COUNT thực tế thay vì lấy từ bảng
+        ISNULL((
+            SELECT COUNT(*)
+            FROM dbo.students s
+            WHERE s.admin_class_id = ac.admin_class_id
+              AND s.deleted_at IS NULL
+        ), 0) AS current_students,
         ac.description,
         ac.is_active,
         ac.created_at,
@@ -1797,7 +1803,13 @@ BEGIN
             ac.academic_year_id,
             ay.year_name AS academic_year_name,
             ac.max_students,
-            ac.current_students,
+            -- ✅ Tính current_students từ COUNT thực tế thay vì lấy từ bảng
+            ISNULL((
+                SELECT COUNT(*)
+                FROM dbo.students s
+                WHERE s.admin_class_id = ac.admin_class_id
+                  AND s.deleted_at IS NULL
+            ), 0) AS current_students,
             ac.description,
             ac.is_active,
             ac.created_at,

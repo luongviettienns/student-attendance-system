@@ -161,19 +161,25 @@
                             </div>
                             <div class="timetable-admin-form-field">
                                 <label>Giờ bắt đầu <span class="timetable-admin-required">*</span></label>
-                                <input type="time" 
+                                <input type="text" 
                                        ng-model="form.startTime" 
                                        ng-model-options="{ updateOn: 'blur' }"
+                                       placeholder="HH:mm (VD: 07:00)"
+                                       pattern="^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
                                        class="form-control" 
                                        required>
+                                <small class="text-muted">Định dạng: HH:mm (24 giờ)</small>
                             </div>
                             <div class="timetable-admin-form-field">
                                 <label>Giờ kết thúc <span class="timetable-admin-required">*</span></label>
-                                <input type="time" 
+                                <input type="text" 
                                        ng-model="form.endTime" 
                                        ng-model-options="{ updateOn: 'blur' }"
+                                       placeholder="HH:mm (VD: 09:00)"
+                                       pattern="^([0-1][0-9]|2[0-3]):[0-5][0-9]$"
                                        class="form-control" 
                                        required>
+                                <small class="text-muted">Định dạng: HH:mm (24 giờ)</small>
                             </div>
                             <!-- ✅ CẬP NHẬT: Period Selector với dropdown -->
                             <div class="timetable-admin-form-field">
@@ -182,8 +188,8 @@
                                     <option value="">-- Chọn tiết --</option>
                                     <option ng-repeat="p in [1,2,3,4,5,6,7,8,9,10,11,12]" value="{{p}}">Tiết {{p}}</option>
                                 </select>
-                                <small class="text-muted" ng-if="form.periodFrom && form.periodTo">
-                                    Thời gian: {{calculateTimeFromPeriod(form.periodFrom, form.periodTo)?.startTime}} - {{calculateTimeFromPeriod(form.periodFrom, form.periodTo)?.endTime}}
+                                <small class="text-muted" ng-if="form.periodFrom && form.periodTo && periodTimeDisplay">
+                                    Thời gian: {{periodTimeDisplay}}
                                 </small>
                             </div>
                             <div class="timetable-admin-form-field">

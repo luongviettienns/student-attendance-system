@@ -76,10 +76,10 @@ namespace EducationManagement.DAL.Repositories
             var parameters = new[]
             {
                 new SqlParameter("@AcademicYearId", academicYear.AcademicYearId),
-                new SqlParameter("@YearName", academicYear.YearName),
+                new SqlParameter("@YearName", academicYear.YearName ?? string.Empty),
                 new SqlParameter("@StartYear", academicYear.StartYear),
                 new SqlParameter("@EndYear", academicYear.EndYear),
-                new SqlParameter("@Description", (object?)academicYear.Description ?? DBNull.Value),
+                new SqlParameter("@IsActive", academicYear.IsActive),
                 new SqlParameter("@UpdatedBy", academicYear.UpdatedBy ?? "System")
             };
 

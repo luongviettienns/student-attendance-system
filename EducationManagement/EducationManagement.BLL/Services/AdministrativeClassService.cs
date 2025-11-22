@@ -114,6 +114,9 @@ namespace EducationManagement.BLL.Services
             if (string.IsNullOrWhiteSpace(adminClassId))
                 throw new ArgumentException("Admin Class ID không được để trống");
 
+            // ✅ Recalculate student count before getting students to ensure accuracy
+            await _repository.RecalculateStudentCountAsync(adminClassId);
+
             return await _repository.GetStudentsByClassAsync(adminClassId);
         }
 
@@ -158,6 +161,37 @@ namespace EducationManagement.BLL.Services
                 throw new ArgumentException("RemovedBy không được để trống");
 
             await _repository.RemoveStudentFromClassAsync(studentId, removedBy);
+        }
+
+        // ============================================================
+        // 🔟 TRANSFER STUDENT TO CLASS
+        // ============================================================
+        public async Task TransferStudentAsync(string studentId, string toAdminClassId, string? transferReason, string transferredBy)
+        {
+            // Validation
+            if (string.IsNullOrWhiteSpace(studentId))
+                throw new ArgumentException("Student ID không được để trống");
+
+            if (string.IsNullOrWhiteSpace(toAdminClassId))
+                throw new ArgumentException("Lớp đích không được để trống");
+
+            if (string.IsNullOrWhiteSpace(transferredBy))
+                throw new ArgumentException("TransferredBy không được để trống");
+
+            // Check if student exists
+            var students = await _repository.GetStudentsByClassAsync(toAdminClassId);
+            // Note: We can't check student existence directly here, but stored procedure will validate
+
+            // Check if target class exists and has available slots
+            var targetClass = await _repository.GetByIdAsync(toAdminClassId);
+            if (targetClass == null)
+                throw new Exception($"Không tìm thấy lớp hành chính với ID: {toAdminClassId}");
+
+            if (targetClass.AvailableSlots < 1)
+                throw new Exception($"Lớp chỉ còn {targetClass.AvailableSlots} chỗ trống, không thể chuyển sinh viên");
+
+            // Transfer student (stored procedure will handle all validations and updates)
+            await _repository.TransferStudentToClassAsync(studentId, toAdminClassId, transferReason, transferredBy);
         }
 
         // ============================================================

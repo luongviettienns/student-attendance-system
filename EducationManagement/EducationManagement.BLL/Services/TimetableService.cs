@@ -77,63 +77,86 @@ namespace EducationManagement.BLL.Services
 
         public async Task<TimetableConflicts> CheckConflictsAsync(TimetableConflictCheckInput input)
         {
-            var ds = await _repo.CheckConflictsAsync(
-                input.SessionId,
-                input.ClassId,
-                input.SubjectId,
-                input.LecturerId,
-                input.RoomId,
-                input.SchoolYearId,
-                input.WeekNo,
-                input.Weekday,
-                input.StartTime,
-                input.EndTime,
-                input.PeriodFrom,  // ✅ THÊM
-                input.PeriodTo);   // ✅ THÊM
+            try
+            {
+                var ds = await _repo.CheckConflictsAsync(
+                    input.SessionId,
+                    input.ClassId,
+                    input.SubjectId,
+                    input.LecturerId,
+                    input.RoomId,
+                    input.SchoolYearId,
+                    input.WeekNo,
+                    input.Weekday,
+                    input.StartTime,
+                    input.EndTime,
+                    input.PeriodFrom,  // ✅ THÊM
+                    input.PeriodTo);   // ✅ THÊM
 
-            var result = new TimetableConflicts();
-            int tableIndex = 0;
-            
-            // Table 0: LECTURER conflicts (time-based)
-            if (ds.Tables.Count > tableIndex) result.LecturerConflicts = MapConflictRows(ds.Tables[tableIndex]);
-            tableIndex++;
-            
-            // Table 1: ROOM conflicts (time-based)
-            if (ds.Tables.Count > tableIndex) result.RoomConflicts = MapConflictRows(ds.Tables[tableIndex]);
-            tableIndex++;
-            
-            // Table 2: STUDENT conflicts
-            if (ds.Tables.Count > tableIndex) result.StudentConflicts = MapStudentConflictRows(ds.Tables[tableIndex]);
-            tableIndex++;
-            
-            // Table 3: Room capacity info
-            if (ds.Tables.Count > tableIndex && ds.Tables[tableIndex].Rows.Count > 0)
-            {
-                var r = ds.Tables[tableIndex].Rows[0];
-                result.RoomCapacity = r["room_capacity"] == DBNull.Value ? null : Convert.ToInt32(r["room_capacity"]);
-                result.Enrolled = r["enrolled"] == DBNull.Value ? 0 : Convert.ToInt32(r["enrolled"]);
-                result.IsOverCapacity = r["is_over_capacity"] != DBNull.Value && Convert.ToInt32(r["is_over_capacity"]) == 1;
+                var result = new TimetableConflicts();
+                
+                // ✅ Xử lý tất cả tables dựa vào cấu trúc, không dựa vào index
+                foreach (DataTable table in ds.Tables)
+                {
+                    // Kiểm tra xem table này có column conflict_type không
+                    if (table.Columns.Contains("conflict_type"))
+                    {
+                        // Đây là conflict table - kiểm tra loại conflict
+                        if (table.Rows.Count > 0)
+                        {
+                            var firstRow = table.Rows[0];
+                            var conflictType = firstRow["conflict_type"]?.ToString() ?? "";
+                            
+                            if (conflictType == "LECTURER" && table.Columns.Contains("start_time"))
+                            {
+                                // LECTURER time-based conflicts
+                                result.LecturerConflicts = MapConflictRows(table);
+                            }
+                            else if (conflictType == "ROOM" && table.Columns.Contains("start_time"))
+                            {
+                                // ROOM time-based conflicts
+                                result.RoomConflicts = MapConflictRows(table);
+                            }
+                            else if (conflictType == "STUDENT")
+                            {
+                                // STUDENT conflicts
+                                result.StudentConflicts = MapStudentConflictRows(table);
+                            }
+                            else if (conflictType == "LECTURER_PERIOD" || conflictType == "ROOM_PERIOD")
+                            {
+                                // Period-based conflicts
+                                if (table.Columns.Contains("period_from") && table.Columns.Contains("period_to"))
+                                {
+                                    var periodConflicts = MapPeriodConflictRows(table);
+                                    result.PeriodConflicts.AddRange(periodConflicts);
+                                }
+                            }
+                        }
+                    }
+                    // Kiểm tra xem table này có phải là capacity table không
+                    else if (table.Columns.Contains("room_capacity") && table.Rows.Count > 0)
+                    {
+                        var r = table.Rows[0];
+                        result.RoomCapacity = r["room_capacity"] == DBNull.Value ? null : Convert.ToInt32(r["room_capacity"]);
+                        result.Enrolled = r["enrolled"] == DBNull.Value ? 0 : Convert.ToInt32(r["enrolled"]);
+                        result.IsOverCapacity = r["is_over_capacity"] != DBNull.Value && Convert.ToInt32(r["is_over_capacity"]) == 1;
+                    }
+                }
+                
+                return result;
             }
-            tableIndex++;
-            
-            // ✅ THÊM: Map period conflicts từ stored procedure
-            // Stored procedure trả về period conflicts trong các table tiếp theo (nếu có period)
-            // Table 4: LECTURER_PERIOD conflicts (nếu có period và lecturer)
-            if (ds.Tables.Count > tableIndex && ds.Tables[tableIndex].Rows.Count > 0)
+            catch (Exception ex)
             {
-                var lecturerPeriodConflicts = MapPeriodConflictRows(ds.Tables[tableIndex]);
-                result.PeriodConflicts.AddRange(lecturerPeriodConflicts);
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[TimetableService CheckConflictsAsync Error] {ex.Message}");
+                Console.WriteLine($"[TimetableService CheckConflictsAsync Error] StackTrace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    Console.WriteLine($"[TimetableService CheckConflictsAsync Error] InnerException: {ex.InnerException.Message}");
+                }
+                Console.ResetColor();
+                throw; // Re-throw để controller catch
             }
-            tableIndex++;
-            
-            // Table 5: ROOM_PERIOD conflicts (nếu có period và room)
-            if (ds.Tables.Count > tableIndex && ds.Tables[tableIndex].Rows.Count > 0)
-            {
-                var roomPeriodConflicts = MapPeriodConflictRows(ds.Tables[tableIndex]);
-                result.PeriodConflicts.AddRange(roomPeriodConflicts);
-            }
-            
-            return result;
         }
 
         public async Task<(bool HasConflict, TimetableConflicts Conflicts)> ValidateBeforeSaveAsync(TimetableConflictCheckInput input)
@@ -262,18 +285,59 @@ namespace EducationManagement.BLL.Services
             var list = new List<TimetableConflictItem>();
             foreach (DataRow r in dt.Rows)
             {
+                var conflictType = r.Table.Columns.Contains("conflict_type") ? r["conflict_type"]?.ToString() : "";
+                var classCode = r.Table.Columns.Contains("class_code") ? r["class_code"]?.ToString() : null;
+                var roomCode = r.Table.Columns.Contains("room_code") ? r["room_code"]?.ToString() : null;
+                var weekNo = r.Table.Columns.Contains("week_no") && r["week_no"] != DBNull.Value ? Convert.ToInt32(r["week_no"]) : (int?)null;
+                var startTime = TimeSpan.Parse(r["start_time"].ToString()!);
+                var endTime = TimeSpan.Parse(r["end_time"].ToString()!);
+                
+                // Tạo message mô tả xung đột
+                var message = "";
+                if (conflictType == "LECTURER")
+                {
+                    message = $"Giảng viên đã có lịch vào {GetWeekdayName(Convert.ToInt32(r["weekday"]))}";
+                    if (weekNo.HasValue) message += $" (Tuần {weekNo})";
+                    message += $" từ {startTime:hh\\:mm} đến {endTime:hh\\:mm}";
+                    if (!string.IsNullOrEmpty(classCode)) message += $" - Lớp: {classCode}";
+                    if (!string.IsNullOrEmpty(roomCode)) message += $" - Phòng: {roomCode}";
+                }
+                else if (conflictType == "ROOM")
+                {
+                    message = $"Phòng {roomCode} đã được sử dụng vào {GetWeekdayName(Convert.ToInt32(r["weekday"]))}";
+                    if (weekNo.HasValue) message += $" (Tuần {weekNo})";
+                    message += $" từ {startTime:hh\\:mm} đến {endTime:hh\\:mm}";
+                    if (!string.IsNullOrEmpty(classCode)) message += $" - Lớp: {classCode}";
+                }
+                
                 list.Add(new TimetableConflictItem
                 {
                     ExistingSessionId = r["existing_session_id"].ToString()!,
-                    WeekNo = r.Table.Columns.Contains("week_no") && r["week_no"] != DBNull.Value ? Convert.ToInt32(r["week_no"]) : (int?)null,
+                    WeekNo = weekNo,
                     Weekday = Convert.ToInt32(r["weekday"]),
-                    StartTime = TimeSpan.Parse(r["start_time"].ToString()!),
-                    EndTime = TimeSpan.Parse(r["end_time"].ToString()!),
-                    ClassCode = r.Table.Columns.Contains("class_code") ? r["class_code"]?.ToString() : null,
-                    RoomCode = r.Table.Columns.Contains("room_code") ? r["room_code"]?.ToString() : null
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    ClassCode = classCode,
+                    RoomCode = roomCode,
+                    Message = message // ✅ THÊM message
                 });
             }
             return list;
+        }
+        
+        private static string GetWeekdayName(int weekday)
+        {
+            return weekday switch
+            {
+                1 => "Chủ nhật",
+                2 => "Thứ 2",
+                3 => "Thứ 3",
+                4 => "Thứ 4",
+                5 => "Thứ 5",
+                6 => "Thứ 6",
+                7 => "Thứ 7",
+                _ => $"Thứ {weekday}"
+            };
         }
 
         // ✅ THÊM: Map period conflict rows
@@ -301,17 +365,32 @@ namespace EducationManagement.BLL.Services
             var list = new List<TimetableStudentConflictItem>();
             foreach (DataRow r in dt.Rows)
             {
+                var studentCode = r["student_code"].ToString()!;
+                var studentName = r["student_name"].ToString()!;
+                var weekNo = r.Table.Columns.Contains("week_no") && r["week_no"] != DBNull.Value ? Convert.ToInt32(r["week_no"]) : (int?)null;
+                var weekday = Convert.ToInt32(r["weekday"]);
+                var startTime = TimeSpan.Parse(r["start_time"].ToString()!);
+                var endTime = TimeSpan.Parse(r["end_time"].ToString()!);
+                var classCode = r.Table.Columns.Contains("class_code") ? r["class_code"]?.ToString() : null;
+                
+                // Tạo message mô tả xung đột sinh viên
+                var message = $"Sinh viên {studentCode} - {studentName} đã có lịch học vào {GetWeekdayName(weekday)}";
+                if (weekNo.HasValue) message += $" (Tuần {weekNo})";
+                message += $" từ {startTime:hh\\:mm} đến {endTime:hh\\:mm}";
+                if (!string.IsNullOrEmpty(classCode)) message += $" - Lớp: {classCode}";
+                
                 list.Add(new TimetableStudentConflictItem
                 {
                     ExistingSessionId = r["existing_session_id"].ToString()!,
                     StudentId = r["student_id"].ToString()!,
-                    StudentCode = r["student_code"].ToString()!,
-                    StudentName = r["student_name"].ToString()!,
-                    WeekNo = r.Table.Columns.Contains("week_no") && r["week_no"] != DBNull.Value ? Convert.ToInt32(r["week_no"]) : (int?)null,
-                    Weekday = Convert.ToInt32(r["weekday"]),
-                    StartTime = TimeSpan.Parse(r["start_time"].ToString()!),
-                    EndTime = TimeSpan.Parse(r["end_time"].ToString()!),
-                    ClassCode = r.Table.Columns.Contains("class_code") ? r["class_code"]?.ToString() : null
+                    StudentCode = studentCode,
+                    StudentName = studentName,
+                    WeekNo = weekNo,
+                    Weekday = weekday,
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    ClassCode = classCode,
+                    Message = message // ✅ THÊM message
                 });
             }
             return list;
@@ -955,6 +1034,7 @@ new { Start = TimeSpan.FromHours(15), End = TimeSpan.FromHours(17) },  // 15:00-
         public TimeSpan EndTime { get; set; }
         public string? ClassCode { get; set; }
         public string? RoomCode { get; set; }
+        public string? Message { get; set; } // ✅ THÊM: Message mô tả xung đột
     }
 
     public class TimetableStudentConflictItem : TimetableConflictItem

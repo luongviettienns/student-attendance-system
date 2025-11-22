@@ -144,6 +144,11 @@ app.controller('AdministrativeClassController', [
         }
     };
     
+    $scope.closeAllModals = function() {
+        $scope.closeDetailModal();
+        $scope.closeTransferModal();
+    };
+    
     // ============================================================
     // CREATE / UPDATE
     // ============================================================
@@ -234,10 +239,90 @@ app.controller('AdministrativeClassController', [
                 if (response.data.success) {
                     ToastService.success('Xóa sinh viên khỏi lớp thành công');
                     $scope.loadStudents($scope.currentClass.adminClassId);
+                    $scope.loadClasses(); // Reload to update student count
                 }
             }).catch(function(error) {
                 ToastService.error(error.data?.message || 'Có lỗi xảy ra');
             });
+    };
+    
+    // ============================================================
+    // TRANSFER STUDENT
+    // ============================================================
+    $scope.transferData = {
+        student: null,
+        toClassId: '',
+        transferReason: ''
+    };
+    $scope.transferring = false;
+    
+    $scope.showTransferModal = function(student) {
+        $scope.transferData = {
+            student: student,
+            toClassId: '',
+            transferReason: ''
+        };
+        
+        // Use ModalUtils or class-based approach
+        if (window.ModalUtils && typeof window.ModalUtils.open === 'function') {
+            window.ModalUtils.open('transferModal');
+        } else {
+            // Fallback: use class-based approach
+            $('#transferModal').addClass('active');
+            $('#modal-overlay').addClass('active');
+            $('body').css('overflow', 'hidden');
+        }
+    };
+    
+    $scope.closeTransferModal = function() {
+        if (window.ModalUtils && typeof window.ModalUtils.close === 'function') {
+            window.ModalUtils.close('transferModal');
+        } else if (window.ModalUtils && typeof window.ModalUtils.closeAll === 'function') {
+            window.ModalUtils.closeAll();
+        } else {
+            // Fallback: use class-based approach
+            $('#transferModal').removeClass('active');
+            $('#modal-overlay').removeClass('active');
+            $('body').css('overflow', '');
+        }
+    };
+    
+    $scope.transferStudent = function() {
+        if (!$scope.transferData.student || !$scope.transferData.toClassId || !$scope.transferData.transferReason) {
+            ToastService.error('Vui lòng điền đầy đủ thông tin');
+            return;
+        }
+        
+        if (!confirm('Bạn có chắc chắn muốn chuyển sinh viên sang lớp mới?')) return;
+        
+        $scope.transferring = true;
+        AdministrativeClassService.transferStudent(
+            $scope.transferData.toClassId,
+            $scope.transferData.student.studentId,
+            $scope.transferData.transferReason
+        ).then(function(response) {
+            if (response.data.success) {
+                ToastService.success('Chuyển lớp thành công');
+                $scope.closeTransferModal();
+                
+                // ✅ Reload danh sách sinh viên trong modal
+                $scope.loadStudents($scope.currentClass.adminClassId).then(function() {
+                    // ✅ Reload thông tin lớp để cập nhật số lượng sinh viên
+                    return AdministrativeClassService.getById($scope.currentClass.adminClassId);
+                }).then(function(response) {
+                    if (response.data.success) {
+                        $scope.currentClass = response.data.data;
+                    }
+                });
+                
+                // ✅ Reload danh sách lớp ở trang chính để cập nhật số lượng
+                $scope.loadClasses();
+            }
+            $scope.transferring = false;
+        }).catch(function(error) {
+            ToastService.error(error.data?.message || 'Có lỗi xảy ra khi chuyển lớp');
+            $scope.transferring = false;
+        });
     };
     
     // ============================================================

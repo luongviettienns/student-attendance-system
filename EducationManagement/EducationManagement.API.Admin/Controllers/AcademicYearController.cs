@@ -81,17 +81,39 @@ namespace EducationManagement.API.Admin.Controllers
         [Authorize(Roles = "Admin")] // ✅ Chỉ Admin được cập nhật
         public async Task<IActionResult> Update(string id, [FromBody] AcademicYear model)
         {
+            // ✅ Validation: Kiểm tra ID không được null hoặc undefined
+            if (string.IsNullOrWhiteSpace(id) || id == "undefined" || id == "null")
+            {
+                return BadRequest(new { success = false, message = "ID niên khóa không hợp lệ. Vui lòng kiểm tra lại." });
+            }
+
             if (!ModelState.IsValid)
                 return BadRequest(new { success = false, message = "Dữ liệu không hợp lệ", errors = ModelState });
 
             try
             {
+                // ✅ Validation: Kiểm tra model không null
+                if (model == null)
+                {
+                    return BadRequest(new { success = false, message = "Dữ liệu niên khóa không được để trống" });
+                }
+
+                // ✅ Nếu model.AcademicYearId rỗng, sử dụng id từ route
+                if (string.IsNullOrWhiteSpace(model.AcademicYearId))
+                {
+                    model.AcademicYearId = id;
+                }
+
                 if (id != model.AcademicYearId)
-                    return BadRequest(new { success = false, message = "ID không khớp" });
+                    return BadRequest(new { success = false, message = $"ID không khớp. Route ID: {id}, Body ID: {model.AcademicYearId}" });
 
                 var userName = User.Identity?.Name ?? "admin";
                 await _service.UpdateAsync(model, userName);
                 return Ok(new { success = true, message = "Cập nhật niên khóa thành công" });
+            }
+            catch (ArgumentNullException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
             }
             catch (ArgumentException ex)
             {
@@ -99,7 +121,18 @@ namespace EducationManagement.API.Admin.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+                // ✅ Log chi tiết lỗi để debug
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine($"[AcademicYear Update Error] {ex.Message}");
+                Console.WriteLine($"[AcademicYear Update Error] StackTrace: {ex.StackTrace}");
+                Console.ResetColor();
+                
+                return StatusCode(500, new { 
+                    success = false, 
+                    message = "Lỗi hệ thống khi cập nhật niên khóa", 
+                    error = ex.Message,
+                    details = ex.InnerException?.Message
+                });
             }
         }
 

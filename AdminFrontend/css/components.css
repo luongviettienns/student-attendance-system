@@ -1053,6 +1053,19 @@ input[type="radio"] {
     overflow-y: auto;
 }
 
+/* Detail Modal - Large size override */
+#detailModal {
+    max-width: 98% !important;
+    width: 1400px !important;
+    max-height: 95vh !important;
+}
+
+#detailModal .modal-content {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 95vh !important;
+}
+
 .modal-header {
     padding: 20px;
     border-bottom: 1px solid var(--border-color);

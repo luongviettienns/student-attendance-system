@@ -199,6 +199,37 @@ namespace EducationManagement.DAL.Repositories
         }
 
         // ============================================================
+        // 🔟 TRANSFER STUDENT TO CLASS
+        // ============================================================
+        public async Task TransferStudentToClassAsync(string studentId, string toAdminClassId, string? transferReason, string transferredBy)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@StudentId", studentId),
+                new SqlParameter("@ToAdminClassId", toAdminClassId),
+                new SqlParameter("@TransferReason", (object?)transferReason ?? DBNull.Value),
+                new SqlParameter("@TransferredBy", transferredBy)
+            };
+
+            await DatabaseHelper.ExecuteNonQueryAsync(
+                _connectionString, "sp_TransferStudentToClass", parameters);
+        }
+
+        // ============================================================
+        // 1️⃣1️⃣ RECALCULATE STUDENT COUNT
+        // ============================================================
+        public async Task RecalculateStudentCountAsync(string? adminClassId = null)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@AdminClassId", (object?)adminClassId ?? DBNull.Value)
+            };
+
+            await DatabaseHelper.ExecuteNonQueryAsync(
+                _connectionString, "sp_RecalculateAdminClassStudentCount", parameters);
+        }
+
+        // ============================================================
         // 9️⃣ GET CLASS REPORT
         // ============================================================
         public async Task<AdminClassReportDto?> GetClassReportAsync(

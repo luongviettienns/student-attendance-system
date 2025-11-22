@@ -2,6 +2,7 @@
 using EducationManagement.Common.DTOs.Student;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http.Features;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -12,10 +13,12 @@ namespace EducationManagement.API.Admin.Controllers
     {
         private readonly IWebHostEnvironment _env;
         private readonly StudentService _studentService;
+        private readonly StudentExcelService _excelService;
 
-        public StudentsController(StudentService studentService, IWebHostEnvironment env)
+        public StudentsController(StudentService studentService, StudentExcelService excelService, IWebHostEnvironment env)
         {
             _studentService = studentService;
+            _excelService = excelService;
             _env = env;
         }
 
@@ -152,7 +155,7 @@ namespace EducationManagement.API.Admin.Controllers
         }
 
         // ============================================================
-        // 🔹 6️⃣ BATCH IMPORT STUDENTS
+        // 🔹 6️⃣ BATCH IMPORT STUDENTS (JSON)
         // ============================================================
         [HttpPost("import/batch")]
         public async Task<IActionResult> ImportStudentsBatch([FromBody] List<StudentImportDto> students)
@@ -175,6 +178,105 @@ namespace EducationManagement.API.Admin.Controllers
                 return StatusCode(500, new { 
                     success = false, 
                     message = "Lỗi khi import: " + ex.Message 
+                });
+            }
+        }
+
+        // ============================================================
+        // 🔹 7️⃣ TẢI MẪU IMPORT EXCEL
+        // ============================================================
+        [HttpGet("download-template")]
+        public async Task<IActionResult> DownloadImportTemplate()
+        {
+            try
+            {
+                var fileBytes = await _excelService.GenerateImportTemplateAsync();
+                var fileName = $"Mau_Import_Sinh_Vien_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                
+                return File(fileBytes, 
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", 
+                    fileName);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { 
+                    success = false, 
+                    message = "Lỗi khi tạo file mẫu: " + ex.Message 
+                });
+            }
+        }
+
+        // ============================================================
+        // 🔹 8️⃣ IMPORT SINH VIÊN TỪ EXCEL
+        // ============================================================
+        [HttpPost("import/excel")]
+        [RequestFormLimits(MultipartBodyLengthLimit = 10485760)] // 10MB
+        [DisableRequestSizeLimit]
+        public async Task<IActionResult> ImportFromExcel(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest(new { 
+                    success = false, 
+                    message = "Vui lòng chọn file Excel để import" 
+                });
+
+            // Kiểm tra định dạng file
+            var allowedExtensions = new[] { ".xlsx", ".xls" };
+            var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+            
+            if (string.IsNullOrEmpty(fileExtension) || !allowedExtensions.Contains(fileExtension))
+                return BadRequest(new { 
+                    success = false, 
+                    message = "File phải có định dạng .xlsx hoặc .xls" 
+                });
+
+            // Giới hạn kích thước file (10MB)
+            if (file.Length > 10 * 1024 * 1024)
+                return BadRequest(new { 
+                    success = false, 
+                    message = "File không được vượt quá 10MB" 
+                });
+
+            try
+            {
+                System.Diagnostics.Debug.WriteLine($"📥 Nhận file import: {file.FileName}, Size: {file.Length} bytes");
+                
+                using var stream = file.OpenReadStream();
+                var result = await _excelService.ImportFromExcelAsync(stream, User.Identity?.Name ?? "system");
+
+                System.Diagnostics.Debug.WriteLine($"✅ Import hoàn tất: Success={result.SuccessCount}, Errors={result.ErrorCount}");
+
+                if (result.ErrorCount > 0 && result.SuccessCount == 0)
+                {
+                    // Tất cả đều lỗi
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = $"Import thất bại. Có {result.ErrorCount} lỗi",
+                        data = result,
+                        errors = result.Errors
+                    });
+                }
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Import thành công {result.SuccessCount} sinh viên" + 
+                              (result.ErrorCount > 0 ? $", có {result.ErrorCount} lỗi" : ""),
+                    data = result,
+                    errors = result.ErrorCount > 0 ? result.Errors : null
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"❌ Lỗi import Excel: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                return StatusCode(500, new { 
+                    success = false, 
+                    message = "Lỗi khi import file Excel: " + ex.Message,
+                    detail = ex.InnerException?.Message,
+                    stackTrace = ex.StackTrace
                 });
             }
         }

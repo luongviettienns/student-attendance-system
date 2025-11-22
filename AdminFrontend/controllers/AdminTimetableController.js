@@ -92,28 +92,78 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
     return true;
   };
 
+  // ✅ Cache để hiển thị thời gian từ period (tránh gọi function trong template)
+  $scope.periodTimeDisplay = '';
+  
+  // ✅ Helper function để update period time display
+  var updatePeriodTimeDisplay = function() {
+    if ($scope.form.periodFrom && $scope.form.periodTo) {
+      var times = $scope.calculateTimeFromPeriod($scope.form.periodFrom, $scope.form.periodTo);
+      if (times && times.startTime && times.endTime) {
+        $scope.periodTimeDisplay = times.startTime + ' - ' + times.endTime;
+      } else {
+        $scope.periodTimeDisplay = '';
+      }
+    } else {
+      $scope.periodTimeDisplay = '';
+    }
+  };
+  
+  // ✅ Flag để tránh infinite loop khi update time từ period
+  var isUpdatingTimeFromPeriod = false;
+  
   // ✅ THÊM: Watch period changes để tự động cập nhật thời gian
-  $scope.$watch('form.periodFrom', function(newVal) {
+  $scope.$watch('form.periodFrom', function(newVal, oldVal) {
+    // Skip if value hasn't changed or if we're updating from period
+    if (newVal === oldVal || isUpdatingTimeFromPeriod) {
+      updatePeriodTimeDisplay();
+      return;
+    }
+    
     if (newVal && $scope.form.periodTo) {
       var times = $scope.calculateTimeFromPeriod(newVal, $scope.form.periodTo);
-      if (times) {
+      if (times && times.startTime && times.endTime) {
+        isUpdatingTimeFromPeriod = true;
+        $timeout(function() {
         $scope.form.startTime = times.startTime;
         $scope.form.endTime = times.endTime;
+          updatePeriodTimeDisplay();
+          isUpdatingTimeFromPeriod = false;
+        }, 0);
+      } else {
+        updatePeriodTimeDisplay();
       }
+    } else {
+      updatePeriodTimeDisplay();
     }
   });
 
-  $scope.$watch('form.periodTo', function(newVal) {
+  $scope.$watch('form.periodTo', function(newVal, oldVal) {
+    // Skip if value hasn't changed or if we're updating from period
+    if (newVal === oldVal || isUpdatingTimeFromPeriod) {
+      updatePeriodTimeDisplay();
+      return;
+    }
+    
     if ($scope.form.periodFrom && newVal) {
       var times = $scope.calculateTimeFromPeriod($scope.form.periodFrom, newVal);
-      if (times) {
+      if (times && times.startTime && times.endTime) {
+        isUpdatingTimeFromPeriod = true;
+        $timeout(function() {
         $scope.form.startTime = times.startTime;
         $scope.form.endTime = times.endTime;
+          updatePeriodTimeDisplay();
+          isUpdatingTimeFromPeriod = false;
+        }, 0);
+      } else {
+        updatePeriodTimeDisplay();
       }
+    } else {
+      updatePeriodTimeDisplay();
     }
   });
 
-  // Form data - Initialize with null for time fields to avoid Angular parsing issues
+  // Form data - Initialize with string time values to avoid Angular parsing issues
   $scope.form = {
     sessionId: null,
     classId: '',
@@ -123,8 +173,8 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
     schoolYearId: 'SY2024',
     weekNo: iso.week,
     weekday: 2,
-    startTime: null, // Will be set after initialization
-    endTime: null,   // Will be set after initialization
+    startTime: '07:00', // ✅ Set as string immediately to avoid datefmt error
+    endTime: '09:00',   // ✅ Set as string immediately to avoid datefmt error
     periodFrom: 1,
     periodTo: 3,
     recurrence: 'once',
@@ -136,59 +186,14 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
   $scope.checkingConflicts = false;
   $scope.conflictResult = null;
   
-  // Set default time values after initialization to avoid Angular datefmt error
-  $timeout(function() {
-    if (!$scope.form.startTime || typeof $scope.form.startTime !== 'string') {
-      $scope.form.startTime = '07:00';
-    }
-    if (!$scope.form.endTime || typeof $scope.form.endTime !== 'string') {
-      $scope.form.endTime = '09:00';
-    }
-  }, 0);
-  
   // Helper to pad number with zero
   function padZero(num) {
     return (num < 10 ? '0' : '') + num;
   }
   
-  // Watch for time values to ensure they're always strings in "HH:mm" format
-  $scope.$watch('form.startTime', function(newVal, oldVal) {
-    if (newVal === null || newVal === undefined) return;
-    if (typeof newVal !== 'string') {
-      // If it's somehow not a string, convert it
-      if (newVal instanceof Date) {
-        var hours = padZero(newVal.getHours());
-        var minutes = padZero(newVal.getMinutes());
-        $timeout(function() {
-          $scope.form.startTime = hours + ':' + minutes;
-        }, 0);
-      }
-    } else if (newVal.length === 8) {
-      // If it's "HH:mm:ss", convert to "HH:mm"
-      $timeout(function() {
-        $scope.form.startTime = newVal.substring(0, 5);
-      }, 0);
-    }
-  });
-  
-  $scope.$watch('form.endTime', function(newVal, oldVal) {
-    if (newVal === null || newVal === undefined) return;
-    if (typeof newVal !== 'string') {
-      // If it's somehow not a string, convert it
-      if (newVal instanceof Date) {
-        var hours = padZero(newVal.getHours());
-        var minutes = padZero(newVal.getMinutes());
-        $timeout(function() {
-          $scope.form.endTime = hours + ':' + minutes;
-        }, 0);
-      }
-    } else if (newVal.length === 8) {
-      // If it's "HH:mm:ss", convert to "HH:mm"
-      $timeout(function() {
-        $scope.form.endTime = newVal.substring(0, 5);
-      }, 0);
-    }
-  });
+  // ✅ REMOVED: Watch functions for time formatting - causing infinite loops
+  // Time formatting is now handled only when loading data from backend
+  // Period watch will directly set time values without triggering format watches
 
   // Dropdown data
   $scope.classes = [];
@@ -724,14 +729,36 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
     
     // Set time values after a short delay to avoid Angular parsing issues
     $timeout(function() {
-      $scope.form.startTime = '07:00'; // Format cho input type="time"
-      $scope.form.endTime = '09:00';   // Format cho input type="time"
+      // ✅ Ensure time values are strings in "HH:mm" format
+      $scope.form.startTime = '07:00';
+      $scope.form.endTime = '09:00';
     }, 10);
   };
 
   // Open form to create
   $scope.openCreateForm = function() {
     $scope.resetForm();
+    
+    // ✅ Nếu đã chọn lớp từ danh sách, tự động set vào form
+    if ($scope.selectedClassId) {
+      $scope.form.classId = $scope.selectedClassId;
+      
+      // ✅ Tự động load thông tin lớp nếu có
+      var selectedClass = $scope.classes.find(function(c) {
+        return c.classId === $scope.selectedClassId || c.class_id === $scope.selectedClassId;
+      });
+      
+      if (selectedClass) {
+        // Tự động set subjectId và lecturerId nếu có
+        if (selectedClass.subjectId && !$scope.form.subjectId) {
+          $scope.form.subjectId = selectedClass.subjectId;
+        }
+        if (selectedClass.lecturerId && !$scope.form.lecturerId) {
+          $scope.form.lecturerId = selectedClass.lecturerId;
+        }
+      }
+    }
+    
     $scope.showForm = true;
   };
 
@@ -756,13 +783,20 @@ app.controller('AdminTimetableController', ['$scope', '$rootScope', '$location',
     $scope.form.status = session.status;
     $scope.form.notes = session.notes || '';
     
-    // Set time values after a short delay to avoid parsing issues
-    $timeout(function() {
+    // ✅ Set time values - ensure they're strings in "HH:mm" format
+    // Don't use $timeout to avoid Angular parsing issues
       var start = timeToInput(session.startTime);
       var end = timeToInput(session.endTime);
-      if (start && typeof start === 'string') $scope.form.startTime = start;
-      if (end && typeof end === 'string') $scope.form.endTime = end;
-    }, 10);
+    if (start && typeof start === 'string' && /^\d{2}:\d{2}$/.test(start)) {
+      $scope.form.startTime = start;
+    } else {
+      $scope.form.startTime = '07:00'; // Default fallback
+    }
+    if (end && typeof end === 'string' && /^\d{2}:\d{2}$/.test(end)) {
+      $scope.form.endTime = end;
+    } else {
+      $scope.form.endTime = '09:00'; // Default fallback
+    }
   };
 
   // Week navigation

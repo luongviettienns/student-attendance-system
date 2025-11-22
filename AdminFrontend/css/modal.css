@@ -448,11 +448,36 @@
     padding: 0 20px;
 }
 
+/* ==============================================
+   DETAIL MODAL - CUSTOM LARGE SIZE
+   ============================================== */
+#detailModal {
+    max-width: 98% !important;
+    width: 1400px !important;
+    max-height: 95vh !important;
+}
+
+#detailModal .modal-content {
+    max-width: 100% !important;
+    width: 100% !important;
+    max-height: 95vh !important;
+}
+
+#detailModal .modal-body {
+    max-height: 85vh !important;
+    overflow-y: auto !important;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .modal {
         width: 95%;
         max-height: 95vh;
+    }
+    
+    #detailModal {
+        max-width: 98% !important;
+        width: 95% !important;
     }
     
     .modal-body {

@@ -28,10 +28,26 @@ app.controller('AdvisorGradeFormulaConfigController', [
         
         // Pagination
         $scope.pagination = {
-            page: 1,
+            currentPage: 1,
             pageSize: 20,
-            totalCount: 0
+            totalItems: 0,
+            totalPages: 0,
+            startItem: 0,
+            endItem: 0,
+            pageSizeOptions: [10, 20, 50, 100]
         };
+        
+        // Helper function to update pagination info
+        function updatePaginationInfo() {
+            $scope.pagination.totalPages = Math.ceil($scope.pagination.totalItems / $scope.pagination.pageSize) || 1;
+            $scope.pagination.startItem = $scope.pagination.totalItems > 0 
+                ? (($scope.pagination.currentPage - 1) * $scope.pagination.pageSize) + 1 
+                : 0;
+            $scope.pagination.endItem = Math.min(
+                $scope.pagination.currentPage * $scope.pagination.pageSize,
+                $scope.pagination.totalItems
+            );
+        }
         
         // Create/Edit modal
         $scope.showFormModal = false;
@@ -74,10 +90,11 @@ app.controller('AdvisorGradeFormulaConfigController', [
                 filters.isDefault = $scope.filters.isDefault;
             }
             
-            GradeFormulaConfigService.getAll(filters, $scope.pagination.page, $scope.pagination.pageSize)
+            GradeFormulaConfigService.getAll(filters, $scope.pagination.currentPage, $scope.pagination.pageSize)
                 .then(function(result) {
                     $scope.configs = result.configs || [];
-                    $scope.pagination.totalCount = result.totalCount || 0;
+                    $scope.pagination.totalItems = result.totalCount || 0;
+                    updatePaginationInfo();
                     $scope.loading = false;
                 })
                 .catch(function(error) {
@@ -403,7 +420,7 @@ app.controller('AdvisorGradeFormulaConfigController', [
         
         // Filter configs
         $scope.applyFilters = function() {
-            $scope.pagination.page = 1;
+            $scope.pagination.currentPage = 1;
             loadConfigs();
         };
         

@@ -79,5 +79,15 @@ app.service('AdministrativeClassService', ['ApiService', function(ApiService) {
     this.removeStudent = function(classId, studentId) {
         return ApiService.delete('/admin-classes/' + classId + '/students/' + studentId);
     };
+    
+    // ============================================================
+    // 🔟 TRANSFER STUDENT TO CLASS
+    // ============================================================
+    this.transferStudent = function(toClassId, studentId, transferReason) {
+        return ApiService.post('/admin-classes/' + toClassId + '/transfer-student', {
+            studentId: studentId,
+            transferReason: transferReason
+        });
+    };
 }]);
 

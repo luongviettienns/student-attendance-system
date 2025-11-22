@@ -51,6 +51,23 @@ namespace EducationManagement.BLL.Services
 
         public async Task UpdateAsync(AcademicYear entity, string updatedBy = "system")
         {
+            // ✅ Validation: Kiểm tra entity không null
+            if (entity == null)
+                throw new ArgumentNullException(nameof(entity), "❌ AcademicYear entity không được null");
+
+            // ✅ Validation: Kiểm tra ID có tồn tại
+            if (string.IsNullOrWhiteSpace(entity.AcademicYearId))
+                throw new ArgumentException("❌ AcademicYearId không được để trống", nameof(entity));
+
+            // ✅ Validation: Kiểm tra năm hợp lệ
+            if (entity.StartYear >= entity.EndYear)
+                throw new ArgumentException("❌ Năm kết thúc phải sau năm bắt đầu!", nameof(entity));
+
+            // ✅ Validation: Kiểm tra record có tồn tại không
+            var existing = await _repo.GetByIdAsync(entity.AcademicYearId);
+            if (existing == null)
+                throw new ArgumentException($"❌ Không tìm thấy niên khóa với ID: {entity.AcademicYearId}", nameof(entity));
+
             entity.UpdatedAt = DateTime.Now;
             entity.UpdatedBy = updatedBy;
             await _repo.UpdateAsync(entity);

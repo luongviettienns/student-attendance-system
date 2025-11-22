@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Threading.Tasks;
@@ -15,7 +15,7 @@ namespace EducationManagement.DAL.Repositories
         public GradeFormulaConfigRepository(IConfiguration configuration)
         {
             _connectionString = configuration.GetConnectionString("DefaultConnection")
-                ?? throw new ArgumentNullException("Connection string 'DefaultConnection' not found.");
+                ?? throw new ArgumentNullException("Connection string ''DefaultConnection'' not found.");
         }
 
         public async Task<string> CreateAsync(string configId, string? subjectId, string? classId, 
@@ -78,7 +78,6 @@ namespace EducationManagement.DAL.Repositories
             }
             catch (Exception ex)
             {
-                // Log error and return null (will use default formula)
                 System.Diagnostics.Debug.WriteLine($"Error in GetByScopeAsync: {ex.Message}");
                 return null;
             }
@@ -88,43 +87,54 @@ namespace EducationManagement.DAL.Repositories
             int pageSize = 20, string? subjectId = null, string? classId = null, 
             string? schoolYearId = null, bool? isDefault = null)
         {
-            var parameters = new[]
+            try
             {
-                new SqlParameter("@Page", page),
-                new SqlParameter("@PageSize", pageSize),
-                new SqlParameter("@SubjectId", (object?)subjectId ?? DBNull.Value),
-                new SqlParameter("@ClassId", (object?)classId ?? DBNull.Value),
-                new SqlParameter("@SchoolYearId", (object?)schoolYearId ?? DBNull.Value),
-                new SqlParameter("@IsDefault", (object?)isDefault ?? DBNull.Value)
-            };
-
-            var dt = await DatabaseHelper.ExecuteQueryAsync(_connectionString, "sp_GetAllGradeFormulaConfigs", parameters);
-
-            var configs = new List<GradeFormulaConfig>();
-            int totalCount = 0;
-
-            // First result set is total count
-            if (dt.Rows.Count > 0 && dt.Rows[0].Table.Columns.Contains("total_count"))
-            {
-                totalCount = Convert.ToInt32(dt.Rows[0]["total_count"]);
-            }
-
-            // Second result set is the data
-            DataTable dataTable = dt;
-            if (dt.DataSet != null && dt.DataSet.Tables.Count > 1)
-            {
-                dataTable = dt.DataSet.Tables[1];
-            }
-
-            foreach (DataRow row in dataTable.Rows)
-            {
-                if (row.Table.Columns.Contains("config_id"))
+                var parameters = new[]
                 {
-                    configs.Add(MapToGradeFormulaConfigWithDetails(row));
-                }
-            }
+                    new SqlParameter("@Page", page),
+                    new SqlParameter("@PageSize", pageSize),
+                    new SqlParameter("@SubjectId", (object?)subjectId ?? DBNull.Value),
+                    new SqlParameter("@ClassId", (object?)classId ?? DBNull.Value),
+                    new SqlParameter("@SchoolYearId", (object?)schoolYearId ?? DBNull.Value),
+                    new SqlParameter("@IsDefault", (object?)isDefault ?? DBNull.Value)
+                };
 
-            return (configs, totalCount);
+                var ds = await DatabaseHelper.ExecuteQueryMultipleAsync(_connectionString, "sp_GetAllGradeFormulaConfigs", parameters);
+
+                var configs = new List<GradeFormulaConfig>();
+                int totalCount = 0;
+
+                if (ds != null && ds.Tables.Count > 0 && ds.Tables[0].Rows.Count > 0 && ds.Tables[0].Columns.Contains("total_count"))
+                {
+                    totalCount = Convert.ToInt32(ds.Tables[0].Rows[0]["total_count"]);
+                }
+
+                if (ds != null && ds.Tables.Count > 1)
+                {
+                    var dataTable = ds.Tables[1];
+                    foreach (DataRow row in dataTable.Rows)
+                    {
+                        if (row.Table.Columns.Contains("config_id"))
+                        {
+                            configs.Add(MapToGradeFormulaConfigWithDetails(row));
+                        }
+                    }
+                }
+
+                return (configs, totalCount);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error in GetAllAsync: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"Stack Trace: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Inner Exception: {ex.InnerException.Message}");
+                }
+                
+                throw new Exception($"Lá»—i khi láº¥y danh sÃ¡ch cáº¥u hÃ¬nh cÃ´ng thá»©c: {ex.Message}. " +
+                    $"Chi tiáº¿t: {(ex.InnerException?.Message ?? "KhÃ´ng cÃ³ thÃ´ng tin chi tiáº¿t")}", ex);
+            }
         }
 
         public async Task UpdateAsync(string configId, decimal? midtermWeight, decimal? finalWeight,
@@ -194,10 +204,9 @@ namespace EducationManagement.DAL.Repositories
                 UpdatedBy = row["updated_by"]?.ToString(),
                 DeletedAt = row.Table.Columns.Contains("deleted_at") && row["deleted_at"] != DBNull.Value
                     ? Convert.ToDateTime(row["deleted_at"]) : null,
-                DeletedBy = row["deleted_by"]?.ToString()
+                DeletedBy = row.Table.Columns.Contains("deleted_by") ? row["deleted_by"]?.ToString() : null
             };
 
-            // Additional info from joins
             if (row.Table.Columns.Contains("subject_code"))
                 config.SubjectCode = row["subject_code"]?.ToString();
             if (row.Table.Columns.Contains("subject_name"))
@@ -215,4 +224,3 @@ namespace EducationManagement.DAL.Repositories
         }
     }
 }
-

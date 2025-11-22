@@ -305,6 +305,37 @@ namespace EducationManagement.API.Admin.Controllers
                 return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }
+
+        // ============================================================
+        // 🔟 TRANSFER STUDENT TO CLASS (Admin Only)
+        // ============================================================
+        [HttpPost("{id}/transfer-student")]
+        [RequirePermission("ADMIN_ADMIN_CLASSES")]
+        public async Task<IActionResult> TransferStudent(string id, [FromBody] Common.DTOs.AdministrativeClass.TransferStudentDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var transferredBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+                await _service.TransferStudentAsync(dto.StudentId, id, dto.TransferReason, transferredBy);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Chuyển sinh viên sang lớp mới thành công"
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
+            }
+        }
     }
 }
 

@@ -123,7 +123,7 @@
             <!-- Configs List -->
             <div class="card" ng-if="!loading && configs.length > 0">
                 <div class="card-header">
-                    <h3>Danh sách cấu hình ({{pagination.totalCount}})</h3>
+                    <h3>Danh sách cấu hình ({{pagination.totalItems}})</h3>
                 </div>
                 <div class="card-body">
                     <div class="table-responsive">
@@ -181,9 +181,7 @@
 
                     <!-- Pagination -->
                     <pagination 
-                        current-page="pagination.page" 
-                        page-size="pagination.pageSize" 
-                        total-items="pagination.totalCount"
+                        pagination="pagination"
                         on-page-change="handlePageChange()">
                     </pagination>
                 </div>
