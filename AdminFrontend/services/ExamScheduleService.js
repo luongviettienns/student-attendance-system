@@ -31,6 +31,15 @@ app.factory('ExamScheduleService', ['ApiService', function(ApiService) {
       return ApiService.get('/exam-schedules/student/' + studentId, {
         schoolYearId: schoolYearId,
         semester: semester
+      }).catch(function(error) {
+        // Xử lý lỗi 403 (Forbidden) - có thể do không có quyền hoặc chưa có lịch thi
+        if (error.status === 403) {
+          // Trả về mảng rỗng thay vì throw error để app vẫn chạy bình thường
+          console.warn('[ExamScheduleService] ⚠️ Không có quyền truy cập lịch thi cho', studentId, '- Có thể chưa có lịch thi được tạo');
+          return { data: { data: [] } };
+        }
+        // Với các lỗi khác, vẫn throw để caller xử lý
+        throw error;
       });
     },
 

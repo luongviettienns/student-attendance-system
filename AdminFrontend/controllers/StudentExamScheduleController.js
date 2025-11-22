@@ -152,9 +152,19 @@ app.controller('StudentExamScheduleController', ['$scope', '$location', '$routeP
             })
             .catch(function(error) {
                 LoggerService.error('Error loading exam schedules', error);
-                $scope.error = 'Không thể tải lịch thi: ' + (error.data && error.data.message || error.message || 'Lỗi không xác định');
-                $scope.exams = [];
-                $scope.filteredExams = [];
+                var errorStatus = error.status || 0;
+                var errorMessage = error.data && error.data.message || error.message || 'Lỗi không xác định';
+                
+                // Handle 403 (Forbidden) gracefully - user doesn't have permission
+                if (errorStatus === 403) {
+                    $scope.error = 'Bạn không có quyền truy cập lịch thi này. Vui lòng liên hệ quản trị viên.';
+                    $scope.exams = [];
+                    $scope.filteredExams = [];
+                } else {
+                    $scope.error = 'Không thể tải lịch thi: ' + errorMessage;
+                    $scope.exams = [];
+                    $scope.filteredExams = [];
+                }
             })
             .finally(function() {
                 $scope.loading = false;

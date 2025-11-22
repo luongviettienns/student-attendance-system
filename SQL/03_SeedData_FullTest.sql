@@ -1420,8 +1420,8 @@ GO
 MERGE dbo.grades AS target
 USING (VALUES
     -- Grades D (4.0-5.4)
-    ('GRD_FT_007', 'ENR_FT_008', 4.5, 4.8, 4.7, 'D'),  -- Average GPA student
-    ('GRD_FT_008', 'ENR_FT_009', 4.0, 5.0, 4.6, 'D'),  -- Average GPA student
+    ('GRD_FT_007', 'ENR_FT_008', 5.5, 5.8, 5.7, 'C'),  -- Average GPA student (updated to pass threshold)
+    ('GRD_FT_008', 'ENR_FT_009', 5.0, 5.5, 5.3, 'C'),  -- Average GPA student (updated to pass threshold)
     -- Grades F (< 4.0)
     ('GRD_FT_009', 'ENR_FT_010', 3.5, 3.8, 3.7, 'F'),  -- Weak GPA student
     ('GRD_FT_010', 'ENR_FT_011', 3.0, 3.5, 3.3, 'F'),  -- Weak GPA student

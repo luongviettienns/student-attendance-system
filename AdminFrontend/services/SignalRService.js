@@ -64,7 +64,7 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
                     return null; // Stop reconnecting
                 }
             })
-            .configureLogging(signalR.LogLevel.Error) // Only show errors, suppress warnings
+            .configureLogging(signalR.LogLevel.None) // Suppress all SignalR logs (handle errors manually)
             .build();
         
         // Connection event handlers
@@ -74,14 +74,21 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
             
             // Suppress common non-critical errors (1006 = connection closed without reason)
             // This is normal when server restarts, network issues, or idle timeout
-            var isNonCriticalError = error && (
-                error.message && error.message.includes('1006') ||
-                error.message && error.message.includes('no reason given')
+            var isNonCriticalError = !error || (
+                (error.message && (
+                    error.message.includes('1006') ||
+                    error.message.includes('no reason given') ||
+                    error.message.includes('WebSocket closed')
+                )) ||
+                (error.toString && error.toString().includes('1006'))
             );
             
-            if (!isNonCriticalError && reconnectAttempts >= maxReconnectAttempts && error) {
-                // Only log critical errors after max reconnection attempts
-                console.warn('SignalR: Connection failed after multiple attempts', error);
+            // Chỉ log lỗi quan trọng, bỏ qua lỗi 1006 (thường xảy ra khi server restart hoặc idle timeout)
+            if (!isNonCriticalError && reconnectAttempts >= maxReconnectAttempts) {
+                console.warn('[SignalR] ⚠️ Connection failed after multiple attempts:', error);
+            } else if (isNonCriticalError && reconnectAttempts <= 1) {
+                // Chỉ log lần đầu để biết connection đã ngắt (không phải lỗi)
+                // console.log('[SignalR] Connection closed (normal) - sẽ tự động reconnect');
             }
             
             $rootScope.$broadcast('signalr:disconnected', error);
@@ -108,6 +115,22 @@ app.service('SignalRService', ['$rootScope', 'AuthService', function($rootScope,
             })
             .catch(function(error) {
                 isConnected = false;
+                
+                // Suppress common non-critical errors
+                var errorMessage = error && (error.message || error.toString() || '');
+                var isNonCriticalError = !errorMessage || (
+                    errorMessage.includes('1006') ||
+                    errorMessage.includes('no reason given') ||
+                    errorMessage.includes('WebSocket closed') ||
+                    errorMessage.includes('Failed to start') ||
+                    errorMessage.includes('ECONNREFUSED')
+                );
+                
+                // Chỉ log lỗi quan trọng
+                if (!isNonCriticalError) {
+                    console.warn('[SignalR] ⚠️ Không thể kết nối - sẽ dùng polling thay thế');
+                }
+                
                 $rootScope.$broadcast('signalr:error', error);
                 // Don't throw error - let the app continue with polling fallback
                 // Return a rejected promise that can be caught but won't break the app

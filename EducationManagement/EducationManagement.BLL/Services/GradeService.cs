@@ -63,7 +63,7 @@ namespace EducationManagement.BLL.Services
 
             await _gradeRepository.UpdateAsync(gradeId, gradeType, score, maxScore, weight, notes, updatedBy);
 
-            // ✅ Auto-create retake record if total_score < 4.0
+            // ✅ Auto-create retake record if total_score < 5.0
             if (_retakeService != null)
             {
                 try
@@ -72,8 +72,8 @@ namespace EducationManagement.BLL.Services
                     var grade = await _gradeRepository.GetByIdAsync(gradeId);
                     if (grade != null && !string.IsNullOrWhiteSpace(grade.EnrollmentId))
                     {
-                        // Check if total_score < 4.0 (grade threshold)
-                        if (grade.TotalScore.HasValue && grade.TotalScore.Value < 4.0m)
+                        // Check if total_score < 5.0 (grade threshold)
+                        if (grade.TotalScore.HasValue && grade.TotalScore.Value < 5.0m)
                         {
                             // Trigger retake check (async, don't wait)
                             _ = Task.Run(async () =>
@@ -162,7 +162,7 @@ namespace EducationManagement.BLL.Services
                 
                 summary.Gpa10 = totalCredits > 0 ? Math.Round(totalScoreCredit / totalCredits, 2) : 0;
                 summary.TotalCredits = totalCredits;
-                summary.AccumulatedCredits = gradesWithScore.Where(g => g.TotalScore!.Value >= 4.0m)
+                summary.AccumulatedCredits = gradesWithScore.Where(g => g.TotalScore!.Value >= 5.0m)
                     .Sum(g => g.Credits!.Value);
 
                 // Convert GPA 10 to GPA 4

@@ -144,7 +144,7 @@ namespace EducationManagement.BLL.Services
         /// Called from GradeService or AdvisorService
         /// </summary>
         public async Task CheckAndCreateRetakeAsync(string enrollmentId, 
-            decimal attendanceThreshold = 20.0m, decimal gradeThreshold = 4.0m)
+            decimal attendanceThreshold = 20.0m, decimal gradeThreshold = 5.0m)
         {
             if (string.IsNullOrWhiteSpace(enrollmentId))
                 return;

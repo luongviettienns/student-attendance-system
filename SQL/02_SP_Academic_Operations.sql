@@ -38,7 +38,7 @@ BEGIN
     SELECT 
         @Gpa10 = ROUND(SUM(g.total_score * sub.credits) / NULLIF(SUM(sub.credits), 0), 2),
         @TotalCredits = SUM(sub.credits),
-        @AccumulatedCredits = SUM(CASE WHEN g.total_score >= 4.0 THEN sub.credits ELSE 0 END)
+        @AccumulatedCredits = SUM(CASE WHEN g.total_score >= 5.0 THEN sub.credits ELSE 0 END)
     FROM dbo.students s
     INNER JOIN dbo.enrollments e ON s.student_id = e.student_id
     INNER JOIN dbo.classes c ON e.class_id = c.class_id
@@ -62,7 +62,6 @@ BEGIN
                     WHEN g.total_score >= 6.5 THEN 2.5
                     WHEN g.total_score >= 5.5 THEN 2.0
                     WHEN g.total_score >= 5.0 THEN 1.5
-                    WHEN g.total_score >= 4.0 THEN 1.0
                     ELSE 0
                 END * sub.credits
             ) / NULLIF(SUM(sub.credits), 0),
@@ -203,7 +202,7 @@ BEGIN
     SELECT 
         @Gpa10 = ROUND(SUM(g.total_score * sub.credits) / NULLIF(SUM(sub.credits), 0), 2),
         @TotalCredits = SUM(sub.credits),
-        @AccumulatedCredits = SUM(CASE WHEN g.total_score >= 4.0 THEN sub.credits ELSE 0 END)
+        @AccumulatedCredits = SUM(CASE WHEN g.total_score >= 5.0 THEN sub.credits ELSE 0 END)
     FROM dbo.grades g
     INNER JOIN dbo.enrollments e ON g.enrollment_id = e.enrollment_id
     INNER JOIN dbo.classes c ON e.class_id = c.class_id
@@ -808,7 +807,6 @@ BEGIN
                     WHEN g.total_score >= 6.0 THEN 2.0
                     WHEN g.total_score >= 5.5 THEN 1.5
                     WHEN g.total_score >= 5.0 THEN 1.0
-                    WHEN g.total_score >= 4.0 THEN 0.5
                     ELSE 0
                 END * sub.credits
             ) / NULLIF(SUM(sub.credits), 0),
@@ -817,7 +815,7 @@ BEGIN
         -- Tổng tín chỉ đã học
         SUM(sub.credits) as total_credits_earned,
         -- Tín chỉ tích lũy (môn đạt >= 4.0)
-        SUM(CASE WHEN g.total_score >= 4.0 THEN sub.credits ELSE 0 END) as accumulated_credits,
+        SUM(CASE WHEN g.total_score >= 5.0 THEN sub.credits ELSE 0 END) as accumulated_credits,
         -- Số môn đã học
         COUNT(*) as total_subjects,
         -- Số môn đạt (>= 5.0)
@@ -830,7 +828,7 @@ BEGIN
             WHEN ROUND(SUM(g.total_score * sub.credits) / NULLIF(SUM(sub.credits), 0), 2) >= 8.0 THEN N'Giỏi'
             WHEN ROUND(SUM(g.total_score * sub.credits) / NULLIF(SUM(sub.credits), 0), 2) >= 7.0 THEN N'Khá'
             WHEN ROUND(SUM(g.total_score * sub.credits) / NULLIF(SUM(sub.credits), 0), 2) >= 5.5 THEN N'Trung bình'
-            WHEN ROUND(SUM(g.total_score * sub.credits) / NULLIF(SUM(sub.credits), 0), 2) >= 4.0 THEN N'Yếu'
+            WHEN ROUND(SUM(g.total_score * sub.credits) / NULLIF(SUM(sub.credits), 0), 2) >= 5.0 THEN N'Yếu'
             ELSE N'Kém'
         END as overall_rank
     FROM dbo.students s
@@ -1531,7 +1529,7 @@ GO
 CREATE PROCEDURE sp_CheckRetakeRequired
     @EnrollmentId VARCHAR(50),
     @AttendanceThreshold DECIMAL(5,2) = 20.0,
-    @GradeThreshold DECIMAL(4,2) = 4.0
+    @GradeThreshold DECIMAL(4,2) = 5.0
 AS
 BEGIN
     SET NOCOUNT ON;

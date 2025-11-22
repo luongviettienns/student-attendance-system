@@ -219,18 +219,22 @@ app.service('GradeDashboardService', [
                 }
 
                 if (!currentUser || !currentUser.userId) {
+                    console.error('[GradeDashboard] ❌ Không tìm thấy currentUser hoặc userId');
                     return handleError('Không tìm thấy thông tin đăng nhập hợp lệ.');
                 }
 
                 return StudentService.getByUserId(currentUser.userId)
                     .then(function (response) {
                         var profile = unwrap(response, null);
+                        
                         if (!profile || !profile.studentId) {
+                            console.error('[GradeDashboard] ❌ Không tìm thấy profile hoặc studentId');
                             return handleError('Không tìm thấy thông tin sinh viên.', response);
                         }
 
                         state.studentId = profile.studentId;
                         state.studentProfile = profile;
+                        console.log('[GradeDashboard] ✅ Đã load profile cho', profile.studentCode, '-', profile.fullName);
 
                         var requiredCredits = resolveRequiredCredits(profile, config.requiredCreditsResolver);
                         safeApply($scope, function () {
@@ -239,6 +243,7 @@ app.service('GradeDashboardService', [
                         });
                     })
                     .catch(function (error) {
+                        console.error('[GradeDashboard] loadStudentProfile - Lỗi khi tải thông tin sinh viên:', error);
                         return handleError('Không thể tải thông tin sinh viên.', error);
                     });
             }
@@ -262,6 +267,7 @@ app.service('GradeDashboardService', [
                                 if (active.currentSemester) {
                                     $scope.selectedSemester = String(active.currentSemester);
                                 }
+                                console.log('[GradeDashboard] ✅ Chọn năm học:', active.yearCode, '- Học kỳ:', $scope.selectedSemester);
                             } else if ($scope.selectedSchoolYear) {
                                 // Đã có năm học được chọn: Kiểm tra và cập nhật
                                 var selectedSchoolYearObj = schoolYears.find(function (sy) {
@@ -301,6 +307,7 @@ app.service('GradeDashboardService', [
 
             function loadGrades(forceRefresh) {
                 if (!state.studentId || !$scope.selectedSchoolYear) {
+                    console.warn('[GradeDashboard] ⚠️ Bỏ qua load grades - thiếu studentId hoặc selectedSchoolYear');
                     return $q.resolve();
                 }
 
@@ -311,6 +318,7 @@ app.service('GradeDashboardService', [
                 };
 
                 var semesterValue = $scope.selectedSemester || null;
+                console.log('[GradeDashboard] 📊 Đang load điểm cho', state.studentId, '- Năm học:', $scope.selectedSchoolYear, '- HK:', semesterValue);
 
                 return $q.all([
                     GradeService.getByStudentSchoolYear(state.studentId, $scope.selectedSchoolYear, semesterValue, requestOptions),
@@ -321,6 +329,18 @@ app.service('GradeDashboardService', [
                     var summary = results[1] || {};
                     var cumulative = results[2] || {};
                     var requiredCredits = resolveRequiredCredits(state.studentProfile, config.requiredCreditsResolver);
+
+                    if (grades.length === 0) {
+                        console.warn('[GradeDashboard] ⚠️ Không có điểm nào cho', state.studentId, 'năm học', $scope.selectedSchoolYear, 'học kỳ', semesterValue);
+                        console.warn('[GradeDashboard] Kiểm tra: enrollment, grade records, hoặc deleted_at');
+                    } else {
+                        console.log('[GradeDashboard] ✅ Tìm thấy', grades.length, 'điểm');
+                        // Log tóm tắt điểm
+                        var gradeSummary = grades.map(function(g) {
+                            return g.classCode + ': ' + g.totalScore + ' (' + g.letterGrade + ')';
+                        }).join(', ');
+                        console.log('[GradeDashboard] Điểm:', gradeSummary);
+                    }
 
                     safeApply($scope, function () {
                         $scope.grades = grades;
@@ -333,8 +353,13 @@ app.service('GradeDashboardService', [
                             rank: summary.rankText || 'Chưa có',
                             cumulativeRank: cumulative.overallRank || 'Chưa có'
                         };
+                        
+                        if (grades.length > 0) {
+                            console.log('[GradeDashboard] ✅ GPA:', $scope.summary.currentGPA, '- Tín chỉ:', $scope.summary.totalCredits);
+                        }
                     });
                 }).catch(function (error) {
+                    console.error('[GradeDashboard] ❌ Lỗi khi tải điểm:', error.message || error);
                     return handleError('Không thể tải thông tin điểm.', error);
                 }).finally(function () {
                     setLoading(false);
@@ -347,6 +372,7 @@ app.service('GradeDashboardService', [
                  * @returns {Promise<void>}
                  */
                 init: function () {
+                    console.log('[GradeDashboard] 🚀 Bắt đầu khởi tạo...');
                     setLoading(true);
                     return loadStudentProfile()
                         .then(function () {
@@ -354,6 +380,18 @@ app.service('GradeDashboardService', [
                         })
                         .then(function () {
                             return loadGrades(false);
+                        })
+                        .then(function () {
+                            var gradesCount = $scope.grades ? $scope.grades.length : 0;
+                            if (gradesCount > 0) {
+                                console.log('[GradeDashboard] ✅ Khởi tạo hoàn thành -', gradesCount, 'điểm');
+                            } else {
+                                console.log('[GradeDashboard] ⚠️ Khởi tạo hoàn thành - Chưa có điểm');
+                            }
+                        })
+                        .catch(function (error) {
+                            console.error('[GradeDashboard] ❌ Lỗi khởi tạo:', error.message || error);
+                            throw error;
                         })
                         .finally(function () {
                             setLoading(false);

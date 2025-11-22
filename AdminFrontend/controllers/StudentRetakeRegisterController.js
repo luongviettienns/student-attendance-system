@@ -154,7 +154,7 @@ app.controller('StudentRetakeRegisterController', [
         if (!reason) return 'Không xác định';
         switch(reason.toUpperCase()) {
             case 'ATTENDANCE': return 'Vắng học quá 20%';
-            case 'GRADE': return 'Điểm thấp (< 4.0)';
+            case 'GRADE': return 'Điểm thấp (< 5.0)';
             case 'BOTH': return 'Vắng học và điểm thấp';
             default: return reason;
         }

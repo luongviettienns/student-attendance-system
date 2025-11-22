@@ -14,6 +14,9 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
             dragOver: false
         };
         
+        // Store actual File object outside of scope to avoid digest cycle issues
+        var fileStorage = {};
+        
         // ✅ Open Avatar Modal - Only called explicitly by user click
         $scope.openAvatarModal = function(event) {
             // Prevent event propagation if event is provided
@@ -92,7 +95,9 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
         $scope.handleFileSelect = function(files) {
             if (!files || files.length === 0) return;
             
-            var file = files[0];
+            // Convert FileList to array if needed
+            var fileArray = Array.isArray(files) ? files : Array.prototype.slice.call(files);
+            var file = fileArray[0];
             
             // Validate file type
             if (!file.type.match('image.*')) {
@@ -114,24 +119,45 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
                 return;
             }
             
+            // Store file object outside of Angular's scope to avoid digest cycle issues
+            var fileId = 'file_' + Date.now();
+            fileStorage[fileId] = file;
+            
             // Create preview
             var reader = new FileReader();
             reader.onload = function(e) {
-                $scope.$evalAsync(function() {
-                    $scope.avatarModal.selectedFile = file;
+                // Extract values before entering Angular's digest cycle
+                var result = e.target.result;
+                var fileName = file.name;
+                var fileSize = file.size;
+                var fileType = file.type;
+                
+                // Use $timeout to safely update scope outside of current digest cycle
+                $timeout(function() {
+                    // Create a simple object representation of the file to avoid File object issues
+                    $scope.avatarModal.selectedFile = {
+                        name: fileName,
+                        size: fileSize,
+                        type: fileType,
+                        _fileId: fileId // Reference to stored file
+                    };
                     $scope.avatarModal.error = null;
-                    $scope.avatarModal.previewUrl = e.target.result;
-                });
+                    $scope.avatarModal.previewUrl = result;
+                }, 0);
             };
             reader.readAsDataURL(file);
         };
         
         // Clear Selected File
         $scope.clearSelectedFile = function() {
+            if ($scope.avatarModal.selectedFile && $scope.avatarModal.selectedFile._fileId) {
+                delete fileStorage[$scope.avatarModal.selectedFile._fileId];
+            }
             $scope.avatarModal.selectedFile = null;
-            $scope.avatarModal.previewUrl = $scope.currentUser.avatarUrl || null;
+            $scope.avatarModal.previewUrl = $scope.currentUser ? ($scope.currentUser.avatarUrl || null) : null;
             $scope.avatarModal.error = null;
-            document.getElementById('avatarFileInput').value = '';
+            var fileInput = document.getElementById('avatarFileInput');
+            if (fileInput) fileInput.value = '';
         };
         
         // Format File Size
@@ -196,7 +222,10 @@ app.service('AvatarService', ['$timeout', 'ApiService', 'AuthService', 'ToastSer
             $scope.avatarModal.success = null;
             
             var formData = new FormData();
-            formData.append('avatar', $scope.avatarModal.selectedFile);
+            // Retrieve file from storage using fileId
+            var fileId = $scope.avatarModal.selectedFile._fileId;
+            var fileToUpload = fileStorage[fileId] || $scope.avatarModal.selectedFile;
+            formData.append('avatar', fileToUpload);
             // ✅ Không cần gửi userId vì backend sẽ lấy từ token
             
             // Make API call to upload avatar

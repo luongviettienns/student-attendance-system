@@ -32,7 +32,7 @@ namespace EducationManagement.Common.DTOs.Retake
         public string ReasonText => Reason switch
         {
             "ATTENDANCE" => "Vắng học quá 20%",
-            "GRADE" => "Điểm thấp (< 4.0)",
+            "GRADE" => "Điểm thấp (< 5.0)",
             "BOTH" => "Vắng học và điểm thấp",
             _ => "Không xác định"
         };

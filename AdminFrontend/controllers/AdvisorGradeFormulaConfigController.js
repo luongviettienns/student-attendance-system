@@ -36,6 +36,7 @@ app.controller('AdvisorGradeFormulaConfigController', [
         // Create/Edit modal
         $scope.showFormModal = false;
         $scope.editingConfig = null;
+        $scope.currentStep = 1; // Wizard step (1-4)
         $scope.formData = {
             subjectId: null,
             classId: null,
@@ -108,6 +109,7 @@ app.controller('AdvisorGradeFormulaConfigController', [
         // Open create modal
         $scope.openCreateModal = function() {
             $scope.editingConfig = null;
+            $scope.currentStep = 1;
             $scope.formData = {
                 subjectId: null,
                 classId: null,
@@ -130,6 +132,7 @@ app.controller('AdvisorGradeFormulaConfigController', [
         // Open edit modal
         $scope.openEditModal = function(config) {
             $scope.editingConfig = config;
+            $scope.currentStep = 1;
             $scope.formData = {
                 subjectId: config.subjectId,
                 classId: config.classId,
@@ -153,7 +156,97 @@ app.controller('AdvisorGradeFormulaConfigController', [
         $scope.closeFormModal = function() {
             $scope.showFormModal = false;
             $scope.editingConfig = null;
+            $scope.currentStep = 1;
             $scope.weightError = null;
+        };
+
+        // Wizard navigation
+        $scope.nextStep = function() {
+            if ($scope.currentStep < 4 && $scope.canProceedToNextStep()) {
+                $scope.currentStep++;
+            }
+        };
+
+        $scope.previousStep = function() {
+            if ($scope.currentStep > 1) {
+                $scope.currentStep--;
+            }
+        };
+
+        // Check if can proceed to next step
+        $scope.canProceedToNextStep = function() {
+            if ($scope.currentStep === 1) {
+                // Step 1: Must have at least one scope
+                return $scope.formData.classId || $scope.formData.subjectId || 
+                       $scope.formData.schoolYearId || $scope.formData.isDefault;
+            }
+            if ($scope.currentStep === 2) {
+                // Step 2: Total weight must be valid (can be < 1.0, but not > 1.0)
+                return !$scope.weightError && $scope.calculateTotalWeight() <= 1.0;
+            }
+            if ($scope.currentStep === 3) {
+                // Step 3: Always can proceed (optional fields)
+                return true;
+            }
+            return false;
+        };
+
+        // Check if step 4 is valid
+        $scope.isStep4Valid = function() {
+            return !$scope.weightError && 
+                   ($scope.formData.classId || $scope.formData.subjectId || 
+                    $scope.formData.schoolYearId || $scope.formData.isDefault) &&
+                   $scope.calculateTotalWeight() <= 1.0;
+        };
+
+        // Apply template
+        $scope.applyTemplate = function(template) {
+            if (template === 'standard') {
+                $scope.formData.midtermWeight = 0.30;
+                $scope.formData.finalWeight = 0.70;
+                $scope.formData.assignmentWeight = 0.00;
+                $scope.formData.quizWeight = 0.00;
+                $scope.formData.projectWeight = 0.00;
+            } else if (template === 'balanced') {
+                $scope.formData.midtermWeight = 0.40;
+                $scope.formData.finalWeight = 0.60;
+                $scope.formData.assignmentWeight = 0.00;
+                $scope.formData.quizWeight = 0.00;
+                $scope.formData.projectWeight = 0.00;
+            } else if (template === 'practice') {
+                $scope.formData.midtermWeight = 0.20;
+                $scope.formData.finalWeight = 0.30;
+                $scope.formData.assignmentWeight = 0.30;
+                $scope.formData.quizWeight = 0.00;
+                $scope.formData.projectWeight = 0.20;
+            }
+            $scope.calculateTotalWeight();
+        };
+
+        // Reset weights
+        $scope.resetWeights = function() {
+            $scope.formData.midtermWeight = 0.30;
+            $scope.formData.finalWeight = 0.70;
+            $scope.formData.assignmentWeight = 0.00;
+            $scope.formData.quizWeight = 0.00;
+            $scope.formData.projectWeight = 0.00;
+            $scope.calculateTotalWeight();
+        };
+
+        // Calculate example score
+        $scope.calculateExampleScore = function() {
+            var example = 0;
+            if ($scope.formData.midtermWeight > 0) example += 8.0 * $scope.formData.midtermWeight;
+            if ($scope.formData.finalWeight > 0) example += 9.0 * $scope.formData.finalWeight;
+            if ($scope.formData.assignmentWeight > 0) example += 7.5 * $scope.formData.assignmentWeight;
+            if ($scope.formData.quizWeight > 0) example += 8.5 * $scope.formData.quizWeight;
+            if ($scope.formData.projectWeight > 0) example += 9.5 * $scope.formData.projectWeight;
+            return example;
+        };
+
+        // On scope change
+        $scope.onScopeChange = function() {
+            // Auto-validate scope
         };
         
         // Calculate total weight

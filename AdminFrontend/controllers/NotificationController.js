@@ -870,7 +870,13 @@ app.controller('NotificationBellController', ['$scope', '$interval', '$location'
     var intervalPromise = $interval(function() {
         if (document.visibilityState === 'visible') {
             NotificationService.fetchUnreadCount().then(function(count) {
-                $scope.unreadCount = count;
+                if (!$scope.$$phase && !$scope.$root.$$phase) {
+                    $scope.$apply(function() {
+                        $scope.unreadCount = count;
+                    });
+                } else {
+                    $scope.unreadCount = count;
+                }
             });
             // Reload notifications if dropdown is open
             if ($scope.showDropdown) {

@@ -5,6 +5,191 @@
    ============================================== */
 
 /* ==============================================
+   WIZARD STEPS (Form Wizard)
+   ============================================== */
+.wizard-steps {
+    position: relative;
+    padding: 20px 0;
+    margin-bottom: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.wizard-step {
+    position: relative;
+    z-index: 2;
+    flex: 1;
+    text-align: center;
+    padding: 0 10px;
+}
+
+.wizard-step .step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    font-size: 14px;
+}
+
+.wizard-step.active .step-number {
+    background: var(--primary-color) !important;
+    color: white !important;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.wizard-step.completed .step-number {
+    background: var(--success-color) !important;
+    color: white !important;
+    border-color: var(--success-color);
+}
+
+.wizard-step .step-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+    transition: color 0.3s ease;
+}
+
+.wizard-step.active .step-label {
+    color: var(--primary-color);
+}
+
+.wizard-step.completed .step-label {
+    color: var(--success-color);
+}
+
+.wizard-line {
+    position: absolute;
+    top: 20px;
+    height: 2px;
+    background: #e2e8f0;
+    z-index: 0;
+    transition: background 0.3s ease;
+}
+
+.wizard-line.bg-success {
+    background: var(--success-color);
+}
+
+.wizard-step-content {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ==============================================
+   TOOLTIP (Help Icons)
+   ============================================== */
+.fa-question-circle {
+    cursor: help;
+    color: #64748b;
+    transition: color 0.2s;
+}
+
+.fa-question-circle:hover {
+    color: var(--primary-color);
+}
+
+/* Native browser tooltip enhancement */
+[title] {
+    position: relative;
+}
+
+/* Custom tooltip for better UX */
+.tooltip-wrapper {
+    position: relative;
+    display: inline-block;
+}
+
+.tooltip-wrapper .tooltip-text {
+    visibility: hidden;
+    width: 250px;
+    background-color: #1e293b;
+    color: white;
+    text-align: left;
+    border-radius: 6px;
+    padding: 10px 12px;
+    position: absolute;
+    z-index: 1000;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -125px;
+    opacity: 0;
+    transition: opacity 0.3s, visibility 0.3s;
+    font-size: 12px;
+    line-height: 1.5;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.tooltip-wrapper .tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #1e293b transparent transparent transparent;
+}
+
+.tooltip-wrapper:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/* ==============================================
+   FORM HELP TEXT & EXAMPLES
+   ============================================== */
+.form-help-text {
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 5px;
+    line-height: 1.5;
+}
+
+.form-help-text i {
+    margin-right: 5px;
+    color: var(--info-color);
+}
+
+.form-example {
+    background: #f8fafc;
+    border-left: 3px solid var(--primary-color);
+    padding: 10px 15px;
+    margin-top: 10px;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.form-example code {
+    background: white;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* ==============================================
    BUTTONS
    ============================================== */
 

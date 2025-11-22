@@ -552,6 +552,24 @@ app.factory('AuthInterceptor', ['$q', '$location', '$window', '$injector', funct
             return response;
         },
         responseError: function(rejection) {
+            // Xử lý lỗi 403 (Forbidden) - không hiển thị error cho một số endpoint không quan trọng
+            if (rejection.status === 403) {
+                var url = rejection.config && rejection.config.url || '';
+                
+                // Suppress 403 errors cho exam-schedules (có thể do chưa có lịch thi hoặc không có quyền)
+                if (url.indexOf('/exam-schedules/student/') !== -1) {
+                    // Trả về response rỗng thay vì error để app vẫn chạy bình thường
+                    return $q.resolve({
+                        data: { data: [] },
+                        status: 200,
+                        config: rejection.config
+                    });
+                }
+                
+                // Với các endpoint khác, vẫn reject để caller xử lý
+                return $q.reject(rejection);
+            }
+            
             if (rejection.status === 401) {
                 // Unauthorized - Try to refresh token first
                 var AuthService = $injector.get('AuthService');

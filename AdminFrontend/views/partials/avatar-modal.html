@@ -40,7 +40,7 @@
                        id="avatarFileInput" 
                        accept="image/jpeg,image/png,image/gif" 
                        style="display: none;" 
-                       onchange="angular.element(this).scope().handleFileSelect(this.files)">
+                       onchange="var scope = angular.element(this).scope(); var files = Array.prototype.slice.call(this.files); scope.$apply(function() { scope.handleFileSelect(files); });">
                 
                 <div class="avatar-file-info" ng-if="avatarModal.selectedFile">
                     <i class="fas fa-check-circle"></i>

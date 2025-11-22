@@ -76,10 +76,32 @@ app.service('GradeService', ['ApiService', function(ApiService) {
             params.semester = semester;
         }
         var options = buildCacheOptions(CACHE_PREFIX, studentId, schoolYearId, semester || null, requestOptions);
-        return ApiService.get('/grades/student/' + studentId + '/school-year/' + schoolYearId, params, options)
+        var url = '/grades/student/' + studentId + '/school-year/' + schoolYearId;
+        
+        return ApiService.get(url, params, options)
             .then(function(response) {
                 var grades = unwrap(response, []);
-                return Array.isArray(grades) ? grades : [];
+                var result = Array.isArray(grades) ? grades : [];
+                
+                // Chỉ log khi có vấn đề hoặc thành công
+                if (result.length === 0) {
+                    console.warn('[GradeService] ⚠️ Không có điểm nào cho', studentId, 'năm học', schoolYearId, 'học kỳ', semester);
+                    console.warn('[GradeService] Kiểm tra: enrollment, grade records, hoặc deleted_at');
+                } else {
+                    console.log('[GradeService] ✅ Tìm thấy', result.length, 'điểm cho', studentId);
+                }
+                
+                return result;
+            })
+            .catch(function(error) {
+                console.error('[GradeService] getByStudentSchoolYear - API Error:', error);
+                console.error('[GradeService] getByStudentSchoolYear - Error details:', {
+                    message: error.message,
+                    status: error.status,
+                    statusText: error.statusText,
+                    data: error.data
+                });
+                throw error;
             });
     };
 
@@ -100,9 +122,15 @@ app.service('GradeService', ['ApiService', function(ApiService) {
             params.semester = semester;
         }
         var options = buildCacheOptions(SUMMARY_CACHE_PREFIX, studentId, schoolYearId || null, semester || null, requestOptions);
-        return ApiService.get('/grades/student/' + studentId + '/summary', params, options)
+        var url = '/grades/student/' + studentId + '/summary';
+        
+        return ApiService.get(url, params, options)
             .then(function(response) {
                 return unwrap(response, {});
+            })
+            .catch(function(error) {
+                console.error('[GradeService] getGradeSummary - API Error:', error);
+                throw error;
             });
     };
 

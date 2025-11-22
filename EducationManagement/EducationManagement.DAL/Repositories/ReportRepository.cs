@@ -167,7 +167,6 @@ namespace EducationManagement.DAL.Repositories
                                         WHEN g.total_score >= 6.0 THEN 2.0
                                         WHEN g.total_score >= 5.5 THEN 1.5
                                         WHEN g.total_score >= 5.0 THEN 1.0
-                                        WHEN g.total_score >= 4.0 THEN 0.5
                                         ELSE 0
                                     END * sub.credits
                                 ) / NULLIF(SUM(sub.credits), 0), 2)
@@ -253,7 +252,6 @@ namespace EducationManagement.DAL.Repositories
                                         WHEN g.total_score >= 6.0 THEN 2.0
                                         WHEN g.total_score >= 5.5 THEN 1.5
                                         WHEN g.total_score >= 5.0 THEN 1.0
-                                        WHEN g.total_score >= 4.0 THEN 0.5
                                         ELSE 0
                                     END * sub.credits
                                 ) / NULLIF(SUM(sub.credits), 0), 2)
