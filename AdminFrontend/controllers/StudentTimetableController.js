@@ -158,11 +158,24 @@ app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location
       $scope.debug = { studentId: $scope.studentId, year: $scope.year, week: $scope.week, sessions: sessions.length, exams: exams.length, total: allItems.length };
       
       // 9. Map theo weekday để hiển thị grid
+      // ✅ Convert weekday từ backend format (1=Sunday, 2=Monday, ..., 7=Saturday) 
+      // sang frontend format (1=Monday, 2=Tuesday, ..., 7=Sunday)
+      function convertWeekdayBackendToFrontend(backendWeekday) {
+        if (!backendWeekday || backendWeekday < 1 || backendWeekday > 7) return null;
+        // Backend: 1=Sunday, 2=Monday, 3=Tuesday, 4=Wednesday, 5=Thursday, 6=Friday, 7=Saturday
+        // Frontend: 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday, 7=Sunday
+        if (backendWeekday === 1) return 7; // Sunday: Backend 1 → Frontend 7
+        return backendWeekday - 1; // Monday-Saturday: Backend 2-7 → Frontend 1-6
+      }
+      
       var map = {};
       $scope.days.forEach(function(d){ map[d] = []; });
       allItems.forEach(function(s){
         if(s.weekday >= 1 && s.weekday <= 7){
-          map[s.weekday].push(s);
+          var frontendWeekday = convertWeekdayBackendToFrontend(s.weekday);
+          if (frontendWeekday && frontendWeekday >= 1 && frontendWeekday <= 7) {
+            map[frontendWeekday].push(s);
+          }
         }
       });
       $scope.grid = map;
@@ -187,6 +200,78 @@ app.controller('StudentTimetableController', ['$scope', '$rootScope', '$location
       return str.substring(0, 5); // "HH:mm"
     }
     return str;
+  };
+
+  // ============================================================
+  // 🔹 HELPER: Tính ngày cho mỗi thứ trong tuần (ISO week)
+  // ============================================================
+  function getDateForWeekday(year, week, weekday) {
+    // weekday: 1=Monday, 2=Tuesday, ..., 7=Sunday
+    // ISO week: Thứ 2 (1) là ngày đầu tuần
+    // Get January 4th of the year (always in week 1 of ISO week)
+    var jan4 = new Date(year, 0, 4);
+    var jan4Day = jan4.getDay() || 7; // Convert Sunday (0) to 7
+    
+    // Calculate the Monday of week 1
+    // jan4Day: 1=Monday, 2=Tuesday, ..., 7=Sunday
+    // Nếu jan4Day = 1 (Monday), thì mondayOfWeek1 = jan4
+    // Nếu jan4Day = 2 (Tuesday), thì mondayOfWeek1 = jan4 - 1
+    // Nếu jan4Day = 7 (Sunday), thì mondayOfWeek1 = jan4 - 6
+    var mondayOfWeek1 = new Date(jan4);
+    mondayOfWeek1.setDate(jan4.getDate() - (jan4Day - 1));
+    
+    // Calculate the date for the given week and weekday
+    // weekday: 1=Monday, 2=Tuesday, ..., 7=Sunday
+    var targetDate = new Date(mondayOfWeek1);
+    targetDate.setDate(mondayOfWeek1.getDate() + (week - 1) * 7 + (weekday - 1));
+    
+    return targetDate;
+  }
+
+  // Format ngày (dd/MM)
+  $scope.formatDate = function(date) {
+    if (!date) return '';
+    var day = ('0' + date.getDate()).slice(-2);
+    var month = ('0' + (date.getMonth() + 1)).slice(-2);
+    return day + '/' + month;
+  };
+
+  // Lấy ngày cho thứ cụ thể
+  $scope.getDateForDay = function(dayOfWeek) {
+    // dayOfWeek: 1=Monday, 2=Tuesday, ..., 7=Sunday
+    try {
+      var date = getDateForWeekday($scope.year, $scope.week, dayOfWeek);
+      return $scope.formatDate(date);
+    } catch (e) {
+      LoggerService.error('Error calculating date for day ' + dayOfWeek, e);
+      return '';
+    }
+  };
+
+  // Lấy khoảng ngày của tuần (từ thứ 2 đến chủ nhật)
+  $scope.getWeekDateRange = function() {
+    try {
+      var monday = getDateForWeekday($scope.year, $scope.week, 1);
+      var sunday = getDateForWeekday($scope.year, $scope.week, 7);
+      return $scope.formatDate(monday) + ' - ' + $scope.formatDate(sunday);
+    } catch (e) {
+      LoggerService.error('Error calculating week date range', e);
+      return '';
+    }
+  };
+  
+  // ✅ Helper: Lấy tên thứ từ weekday (ISO format: 1=Monday, 2=Tuesday, ..., 7=Sunday)
+  $scope.getDayName = function(dayOfWeek) {
+    var names = {
+      1: 'Thứ 2',
+      2: 'Thứ 3',
+      3: 'Thứ 4',
+      4: 'Thứ 5',
+      5: 'Thứ 6',
+      6: 'Thứ 7',
+      7: 'Chủ nhật'
+    };
+    return names[dayOfWeek] || 'Thứ ' + dayOfWeek;
   };
 
   $scope.prevWeek = function(){

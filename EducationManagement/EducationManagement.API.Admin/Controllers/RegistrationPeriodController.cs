@@ -10,11 +10,12 @@ namespace EducationManagement.API.Admin.Controllers
     [Authorize]
     [ApiController]
     [Route("api-edu/registration-periods")]
-    public class RegistrationPeriodController : ControllerBase
+    public class RegistrationPeriodController : BaseController
     {
         private readonly RegistrationPeriodService _service;
 
-        public RegistrationPeriodController(RegistrationPeriodService service)
+        public RegistrationPeriodController(RegistrationPeriodService service, AuditLogService auditLogService) 
+            : base(auditLogService)
         {
             _service = service;
         }
@@ -142,8 +143,22 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
-                var createdBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+                var createdBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? GetCurrentUserId() ?? "system";
                 var periodId = await _service.CreateAsync(dto, createdBy);
+
+                // ✅ Audit log: Tạo đợt đăng ký
+                var periodTypeText = dto.PeriodType == "NORMAL" ? "Đăng ký học phần" : dto.PeriodType == "RETAKE" ? "Đăng ký học lại" : dto.PeriodType;
+                await LogCreateAsync("RegistrationPeriod", periodId, new
+                {
+                    period_name = dto.PeriodName,
+                    period_type = dto.PeriodType,
+                    period_type_text = periodTypeText,
+                    academic_year_id = dto.AcademicYearId,
+                    semester = dto.Semester,
+                    start_date = dto.StartDate,
+                    end_date = dto.EndDate,
+                    action_description = $"Tạo đợt đăng ký: {dto.PeriodName} ({periodTypeText})"
+                });
 
                 return Ok(new
                 {
@@ -174,8 +189,28 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
-                var updatedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+                // Lấy thông tin cũ trước khi update
+                var oldPeriod = await _service.GetByIdAsync(id);
+                var updatedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? GetCurrentUserId() ?? "system";
+                
                 await _service.UpdateAsync(id, dto, updatedBy);
+
+                // ✅ Audit log: Cập nhật đợt đăng ký
+                await LogUpdateAsync("RegistrationPeriod", id,
+                    oldPeriod != null ? new
+                    {
+                        period_name = oldPeriod.PeriodName,
+                        start_date = oldPeriod.StartDate,
+                        end_date = oldPeriod.EndDate,
+                        status = oldPeriod.Status
+                    } : null,
+                    new
+                    {
+                        period_name = dto.PeriodName,
+                        start_date = dto.StartDate,
+                        end_date = dto.EndDate,
+                        action_description = $"Cập nhật đợt đăng ký: {dto.PeriodName}"
+                    });
 
                 return Ok(new { success = true, message = "Cập nhật đợt đăng ký thành công" });
             }
@@ -198,8 +233,20 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                var deletedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+                // Lấy thông tin đợt đăng ký trước khi xóa
+                var period = await _service.GetByIdAsync(id);
+                var deletedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? GetCurrentUserId() ?? "system";
+                
                 await _service.DeleteAsync(id, deletedBy);
+
+                // ✅ Audit log: Xóa đợt đăng ký
+                await LogDeleteAsync("RegistrationPeriod", id, new
+                {
+                    period_name = period?.PeriodName,
+                    period_type = period?.PeriodType,
+                    deleted_by = deletedBy,
+                    action_description = $"Xóa đợt đăng ký: {period?.PeriodName}"
+                });
 
                 return Ok(new { success = true, message = "Xóa đợt đăng ký thành công" });
             }
@@ -222,8 +269,21 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                var openedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+                // Lấy thông tin đợt đăng ký trước khi mở
+                var period = await _service.GetByIdAsync(id);
+                var openedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? GetCurrentUserId() ?? "system";
+                
                 await _service.OpenPeriodAsync(id, openedBy);
+
+                // ✅ Audit log: Mở đợt đăng ký
+                await LogUpdateAsync("RegistrationPeriod", id,
+                    period != null ? new { status = period.Status } : null,
+                    new
+                    {
+                        status = "OPEN",
+                        opened_by = openedBy,
+                        action_description = $"Mở đợt đăng ký: {period?.PeriodName}"
+                    });
 
                 return Ok(new
                 {
@@ -250,8 +310,21 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                var closedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+                // Lấy thông tin đợt đăng ký trước khi đóng
+                var period = await _service.GetByIdAsync(id);
+                var closedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? GetCurrentUserId() ?? "system";
+                
                 await _service.ClosePeriodAsync(id, closedBy);
+
+                // ✅ Audit log: Đóng đợt đăng ký
+                await LogUpdateAsync("RegistrationPeriod", id,
+                    period != null ? new { status = period.Status } : null,
+                    new
+                    {
+                        status = "CLOSED",
+                        closed_by = closedBy,
+                        action_description = $"Đóng đợt đăng ký: {period?.PeriodName}"
+                    });
 
                 return Ok(new { success = true, message = "Đã đóng đợt đăng ký thành công" });
             }

@@ -4,6 +4,7 @@ app.controller('StudentDashboardController', ['$scope', 'AuthService', 'AvatarSe
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.loading = false;
     $scope.todaySchedule = [];
+    $scope.upcomingSchedule = []; // Lịch học trong 2 ngày tiếp theo
     
     // Initialize Avatar Modal Functions
     AvatarService.initAvatarModal($scope);
@@ -30,11 +31,33 @@ app.controller('StudentDashboardController', ['$scope', 'AuthService', 'AvatarSe
         return { year: date.getUTCFullYear(), week: weekNo };
     }
     
-    // Get current weekday (1 = Monday, 7 = Sunday)
-    function getCurrentWeekday() {
+    // Get current weekday (Backend format: 1 = Sunday, 2 = Monday, ..., 7 = Saturday)
+    function getCurrentWeekdayBackend() {
         var today = new Date();
-        var day = today.getDay();
-        return day === 0 ? 7 : day; // Convert Sunday (0) to 7
+        var day = today.getDay(); // JavaScript: 0=Sunday, 1=Monday, ..., 6=Saturday
+        return day === 0 ? 1 : day + 1; // Convert to backend format: 1=Sunday, 2=Monday, ..., 7=Saturday
+    }
+    
+    // Get weekday for next N days (Backend format)
+    function getWeekdayForNextDays(daysFromToday) {
+        var targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() + daysFromToday);
+        var day = targetDate.getDay(); // JavaScript: 0=Sunday, 1=Monday, ..., 6=Saturday
+        return day === 0 ? 1 : day + 1; // Convert to backend format: 1=Sunday, 2=Monday, ..., 7=Saturday
+    }
+    
+    // Get day name from weekday (Backend format)
+    function getDayNameFromWeekday(weekday) {
+        var names = {
+            1: 'Chủ nhật',
+            2: 'Thứ 2',
+            3: 'Thứ 3',
+            4: 'Thứ 4',
+            5: 'Thứ 5',
+            6: 'Thứ 6',
+            7: 'Thứ 7'
+        };
+        return names[weekday] || 'Thứ ' + weekday;
     }
     
     // Format time from HH:mm:ss to HH:mm
@@ -64,56 +87,143 @@ app.controller('StudentDashboardController', ['$scope', 'AuthService', 'AvatarSe
     function loadTodaySchedule() {
         if (!$scope.studentId) {
             $scope.todaySchedule = [];
+            $scope.upcomingSchedule = [];
             return;
         }
         
         $scope.loading = true;
         var today = new Date();
         var iso = getIsoWeek(today);
-        var currentWeekday = getCurrentWeekday();
+        var currentWeekday = getCurrentWeekdayBackend(); // Backend format: 1=Sunday, 2=Monday, ..., 7=Saturday
         
-        TimetableApi.getStudentWeek($scope.studentId, iso.year, iso.week)
-            .then(function(res) {
-                var data = (res.data && res.data.data) || [];
+        // ✅ Load cả tuần hiện tại và tuần tiếp theo (nếu cần) để lấy đủ 2 ngày tiếp theo
+        var promises = [];
+        promises.push(TimetableApi.getStudentWeek($scope.studentId, iso.year, iso.week));
+        
+        // Kiểm tra xem 2 ngày tiếp theo có rơi vào tuần sau không
+        var tomorrow = new Date(today);
+        tomorrow.setDate(today.getDate() + 1);
+        var dayAfterTomorrow = new Date(today);
+        dayAfterTomorrow.setDate(today.getDate() + 2);
+        
+        var tomorrowIso = getIsoWeek(tomorrow);
+        var dayAfterIso = getIsoWeek(dayAfterTomorrow);
+        
+        // Nếu tuần sau khác tuần hiện tại, load thêm
+        if (tomorrowIso.week !== iso.week || tomorrowIso.year !== iso.year ||
+            dayAfterIso.week !== iso.week || dayAfterIso.year !== iso.year) {
+            var nextWeekIso = getIsoWeek(dayAfterTomorrow);
+            promises.push(TimetableApi.getStudentWeek($scope.studentId, nextWeekIso.year, nextWeekIso.week));
+        } else {
+            promises.push(Promise.resolve({data: {data: []}}));
+        }
+        
+        Promise.all(promises)
+            .then(function(results) {
+                var currentWeekData = (results[0].data && results[0].data.data) || [];
+                var nextWeekData = (results[1].data && results[1].data.data) || [];
+                var allData = currentWeekData.concat(nextWeekData);
                 
-                // Filter today's schedule
-                var todaySchedules = data.filter(function(schedule) {
+                // Filter today's schedule (backend weekday format)
+                var todaySchedules = allData.filter(function(schedule) {
                     return schedule.weekday === currentWeekday;
                 });
                 
                 // Sort by start time
                 todaySchedules.sort(function(a, b) {
-                    var timeA = a.start_time || '';
-                    var timeB = b.start_time || '';
+                    var timeA = a.start_time || a.startTime || '';
+                    var timeB = b.start_time || b.startTime || '';
                     return timeA.localeCompare(timeB);
                 });
                 
                 // Format data for display
                 $scope.todaySchedule = todaySchedules.map(function(schedule) {
-                    var startTime = formatTime(schedule.start_time || '');
-                    var endTime = formatTime(schedule.end_time || '');
-                    var period = (schedule.period_from && schedule.period_to) 
-                        ? schedule.period_from + '-' + schedule.period_to 
+                    var startTime = formatTime(schedule.start_time || schedule.startTime || '');
+                    var endTime = formatTime(schedule.end_time || schedule.endTime || '');
+                    var period = (schedule.period_from || schedule.periodFrom) && (schedule.period_to || schedule.periodTo)
+                        ? (schedule.period_from || schedule.periodFrom) + '-' + (schedule.period_to || schedule.periodTo)
                         : '';
                     
                     return {
                         period: period,
-                        subjectName: schedule.subject_name || 'N/A',
-                        lecturerName: schedule.lecturer_name || 'N/A',
-                        room: schedule.room_code || 'N/A',
+                        subjectName: schedule.subject_name || schedule.subjectName || 'N/A',
+                        lecturerName: schedule.lecturer_name || schedule.lecturerName || 'N/A',
+                        room: schedule.room_code || schedule.roomCode || 'N/A',
                         startTime: startTime,
                         endTime: endTime,
                         status: getStatus(startTime, endTime)
                     };
                 });
+                
+                // Load upcoming schedule (2 ngày tiếp theo)
+                loadUpcomingSchedule(allData);
             })
             .catch(function(err) {
                 LoggerService.error('Load today schedule error', err);
                 $scope.todaySchedule = [];
+                $scope.upcomingSchedule = [];
             })
             .finally(function() {
                 $scope.loading = false;
             });
+    }
+    
+    // ✅ Load lịch học trong 2 ngày tiếp theo
+    function loadUpcomingSchedule(allSessions) {
+        if (!allSessions || allSessions.length === 0) {
+            $scope.upcomingSchedule = [];
+            return;
+        }
+        
+        var upcomingDays = [];
+        
+        // Lấy weekday của 2 ngày tiếp theo (Backend format)
+        for (var i = 1; i <= 2; i++) {
+            var weekday = getWeekdayForNextDays(i);
+            var dayName = getDayNameFromWeekday(weekday);
+            
+            // Filter sessions cho ngày này
+            var daySessions = allSessions.filter(function(schedule) {
+                return schedule.weekday === weekday;
+            });
+            
+            if (daySessions.length > 0) {
+                // Sort by start time
+                daySessions.sort(function(a, b) {
+                    var timeA = a.start_time || a.startTime || '';
+                    var timeB = b.start_time || b.startTime || '';
+                    return timeA.localeCompare(timeB);
+                });
+                
+                // Format data
+                var formattedSessions = daySessions.map(function(schedule) {
+                    var startTime = formatTime(schedule.start_time || schedule.startTime || '');
+                    var endTime = formatTime(schedule.end_time || schedule.endTime || '');
+                    var period = (schedule.period_from || schedule.periodFrom) && (schedule.period_to || schedule.periodTo)
+                        ? (schedule.period_from || schedule.periodFrom) + '-' + (schedule.period_to || schedule.periodTo)
+                        : '';
+                    
+                    return {
+                        period: period,
+                        subjectName: schedule.subject_name || schedule.subjectName || 'N/A',
+                        lecturerName: schedule.lecturer_name || schedule.lecturerName || 'N/A',
+                        room: schedule.room_code || schedule.roomCode || 'N/A',
+                        startTime: startTime,
+                        endTime: endTime,
+                        dayName: dayName,
+                        weekday: weekday
+                    };
+                });
+                
+                upcomingDays.push({
+                    dayName: dayName,
+                    weekday: weekday,
+                    sessions: formattedSessions
+                });
+            }
+        }
+        
+        $scope.upcomingSchedule = upcomingDays;
     }
     
     // Load student ID and info

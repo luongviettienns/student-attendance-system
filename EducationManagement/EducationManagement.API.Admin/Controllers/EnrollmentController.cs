@@ -10,11 +10,12 @@ namespace EducationManagement.API.Admin.Controllers
     [Authorize]
     [ApiController]
     [Route("api-edu/enrollments")]
-    public class EnrollmentController : ControllerBase
+    public class EnrollmentController : BaseController
     {
         private readonly EnrollmentService _service;
 
-        public EnrollmentController(EnrollmentService service)
+        public EnrollmentController(EnrollmentService service, AuditLogService auditLogService) 
+            : base(auditLogService)
         {
             _service = service;
         }
@@ -145,6 +146,16 @@ namespace EducationManagement.API.Admin.Controllers
                 var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
                 var enrollmentId = await _service.RegisterAsync(dto.StudentId, dto.ClassId, userId);
 
+                // ✅ Audit log: Đăng ký học phần
+                await LogCreateAsync("Enrollment", enrollmentId, new
+                {
+                    student_id = dto.StudentId,
+                    class_id = dto.ClassId,
+                    enrollment_status = "PENDING",
+                    registered_by = userId,
+                    action_description = $"Sinh viên đăng ký học phần: ClassId={dto.ClassId}"
+                });
+
                 return Ok(new
                 {
                     success = true,
@@ -171,8 +182,21 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                var approvedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+                // Lấy thông tin enrollment trước khi approve
+                var enrollment = await _service.GetEnrollmentByIdAsync(id);
+                var approvedBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? GetCurrentUserId() ?? "system";
+                
                 await _service.ApproveAsync(id, approvedBy);
+
+                // ✅ Audit log: Duyệt đăng ký học phần
+                await LogApproveAsync("Enrollment", id, new
+                {
+                    enrollment_id = id,
+                    student_id = enrollment?.StudentId,
+                    class_id = enrollment?.ClassId,
+                    approved_by = approvedBy,
+                    action_description = $"Duyệt đăng ký học phần: EnrollmentId={id}"
+                });
 
                 return Ok(new { success = true, message = "Đã phê duyệt đăng ký thành công" });
             }
@@ -197,8 +221,26 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+                // Lấy thông tin enrollment trước khi drop
+                var enrollment = await _service.GetEnrollmentByIdAsync(id);
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? GetCurrentUserId() ?? "system";
+                
                 await _service.DropAsync(id, dto.Reason, userId);
+
+                // ✅ Audit log: Hủy đăng ký học phần
+                await LogUpdateAsync("Enrollment", id,
+                    enrollment != null ? new
+                    {
+                        enrollment_status = enrollment.EnrollmentStatus,
+                        class_id = enrollment.ClassId
+                    } : null,
+                    new
+                    {
+                        enrollment_status = "DROPPED",
+                        drop_reason = dto.Reason,
+                        dropped_by = userId,
+                        action_description = $"Hủy đăng ký học phần: EnrollmentId={id}, Lý do: {dto.Reason}"
+                    });
 
                 return Ok(new { success = true, message = "Đã hủy đăng ký học phần thành công" });
             }
@@ -224,8 +266,26 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
-                var withdrawnBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+                // Lấy thông tin enrollment trước khi withdraw
+                var enrollment = await _service.GetEnrollmentByIdAsync(id);
+                var withdrawnBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? GetCurrentUserId() ?? "system";
+                
                 await _service.WithdrawAsync(id, dto.Reason, withdrawnBy);
+
+                // ✅ Audit log: Rút học phần (Admin)
+                await LogUpdateAsync("Enrollment", id,
+                    enrollment != null ? new
+                    {
+                        enrollment_status = enrollment.EnrollmentStatus,
+                        class_id = enrollment.ClassId
+                    } : null,
+                    new
+                    {
+                        enrollment_status = "WITHDRAWN",
+                        withdraw_reason = dto.Reason,
+                        withdrawn_by = withdrawnBy,
+                        action_description = $"Admin rút học phần: EnrollmentId={id}, Lý do: {dto.Reason}"
+                    });
 
                 return Ok(new { success = true, message = "Đã rút học phần thành công" });
             }

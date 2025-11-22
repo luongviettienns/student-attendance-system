@@ -213,6 +213,36 @@ namespace EducationManagement.DAL.Repositories
             return o != null;
         }
 
+        // ✅ NEW: Get session by ID for validation
+        public async Task<SessionInfo?> GetSessionByIdAsync(string sessionId)
+        {
+            using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = @"SELECT week_no, weekday 
+                                FROM dbo.timetable_sessions 
+                                WHERE session_id = @id AND deleted_at IS NULL";
+            cmd.Parameters.AddWithValue("@id", sessionId);
+            
+            using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                return new SessionInfo
+                {
+                    WeekNo = reader.IsDBNull(0) ? null : reader.GetInt32(0),
+                    Weekday = reader.GetInt32(1)
+                };
+            }
+            return null;
+        }
+        
+        // ✅ Helper class for session info
+        public class SessionInfo
+        {
+            public int? WeekNo { get; set; }
+            public int Weekday { get; set; }
+        }
+
         public async Task<int> SoftDeleteSessionAsync(string sessionId, string? actor)
         {
             using var conn = new SqlConnection(_connectionString);

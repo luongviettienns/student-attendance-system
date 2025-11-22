@@ -373,6 +373,7 @@ BEGIN
             UPDATE dbo.attendances
             SET status = @Status,
                 note = @Note,
+                marked_by = @MarkedBy,  -- ✅ Cập nhật marked_by khi update
                 updated_at = GETDATE(),
                 updated_by = @CreatedBy
             WHERE enrollment_id = @ActualEnrollmentId
@@ -386,9 +387,9 @@ BEGIN
         
         -- ✅ 6. Insert new attendance record
         INSERT INTO dbo.attendances (attendance_id, enrollment_id, class_id, attendance_date,
-                                      status, note, created_at, created_by)
+                                      status, note, marked_by, created_at, created_by)
         VALUES (@AttendanceId, @ActualEnrollmentId, @ActualClassId, @AttendanceDate, @Status, @Note,
-                GETDATE(), @CreatedBy);
+                @MarkedBy, GETDATE(), @CreatedBy);
         
         SELECT @AttendanceId as attendance_id;
     END TRY
@@ -560,6 +561,8 @@ BEGIN
         a.attendance_date,
         a.status,
         a.note,
+        a.marked_by,
+        u.full_name as marked_by_name,
         a.created_at,
         a.created_by,
         a.updated_at,
@@ -573,6 +576,7 @@ BEGIN
     INNER JOIN dbo.enrollments e ON a.enrollment_id = e.enrollment_id
     INNER JOIN dbo.students s ON e.student_id = s.student_id
     INNER JOIN dbo.classes c ON a.class_id = c.class_id
+    LEFT JOIN dbo.users u ON a.marked_by = u.user_id
     WHERE a.deleted_at IS NULL
         AND e.deleted_at IS NULL
     ORDER BY a.attendance_date DESC, s.student_code;
@@ -627,6 +631,8 @@ BEGIN
         a.attendance_date,
         a.status,
         a.note,
+        a.marked_by,
+        u.full_name as marked_by_name,
         a.created_at,
         a.created_by,
         a.updated_at,
@@ -640,6 +646,7 @@ BEGIN
     INNER JOIN dbo.enrollments e ON a.enrollment_id = e.enrollment_id
     INNER JOIN dbo.students s ON e.student_id = s.student_id
     INNER JOIN dbo.classes c ON a.class_id = c.class_id
+    LEFT JOIN dbo.users u ON a.marked_by = u.user_id
     WHERE a.attendance_id = @AttendanceId 
         AND a.deleted_at IS NULL
         AND e.deleted_at IS NULL;
@@ -679,6 +686,8 @@ BEGIN
         a.attendance_date,
         a.status,
         a.note,
+        a.marked_by,
+        u.full_name as marked_by_name,
         a.created_at,
         a.created_by,
         a.updated_at,
@@ -694,6 +703,7 @@ BEGIN
     INNER JOIN dbo.students s ON e.student_id = s.student_id
     INNER JOIN dbo.classes c ON a.class_id = c.class_id
     INNER JOIN dbo.timetable_sessions ts ON ts.class_id = a.class_id
+    LEFT JOIN dbo.users u ON a.marked_by = u.user_id
     WHERE ts.session_id = @ScheduleId 
         AND a.deleted_at IS NULL
         AND e.deleted_at IS NULL
@@ -723,11 +733,23 @@ BEGIN
         s.student_code,
         s.full_name as student_name,
         c.class_code,
-        c.class_name
+        c.class_name,
+        -- Thêm thông tin môn học
+        sub.subject_id,
+        sub.subject_code,
+        sub.subject_name,
+        -- Thêm thông tin giảng viên (từ marked_by hoặc lecturer của class)
+        a.marked_by,
+        u.full_name as marked_by_name,
+        l.lecturer_id,
+        l.full_name as lecturer_name
     FROM dbo.attendances a
     INNER JOIN dbo.enrollments e ON a.enrollment_id = e.enrollment_id
     INNER JOIN dbo.students s ON e.student_id = s.student_id
     INNER JOIN dbo.classes c ON a.class_id = c.class_id
+    LEFT JOIN dbo.subjects sub ON c.subject_id = sub.subject_id
+    LEFT JOIN dbo.users u ON a.marked_by = u.user_id
+    LEFT JOIN dbo.lecturers l ON c.lecturer_id = l.lecturer_id
     WHERE e.student_id = @StudentId 
         AND a.deleted_at IS NULL
         AND e.deleted_at IS NULL

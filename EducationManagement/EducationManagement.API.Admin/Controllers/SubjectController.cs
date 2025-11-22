@@ -8,11 +8,12 @@ namespace EducationManagement.API.Admin.Controllers
     [ApiController]
     [Authorize]
     [Route("api-edu/subjects")]
-    public class SubjectController : ControllerBase
+    public class SubjectController : BaseController
     {
         private readonly SubjectService _service;
 
-        public SubjectController(SubjectService service)
+        public SubjectController(SubjectService service, AuditLogService auditLogService) 
+            : base(auditLogService)
         {
             _service = service;
         }
@@ -98,6 +99,17 @@ namespace EducationManagement.API.Admin.Controllers
             try
             {
                 await _service.AddAsync(model);
+                
+                // ✅ Audit log: Tạo môn học mới
+                await LogCreateAsync("Subject", model.SubjectId, new
+                {
+                    subject_code = model.SubjectCode,
+                    subject_name = model.SubjectName,
+                    credits = model.Credits,
+                    department_id = model.DepartmentId,
+                    action_description = $"Thêm môn học mới: {model.SubjectName} ({model.SubjectCode})"
+                });
+                
                 return Ok(new { success = true, message = "Thêm môn học thành công", data = model });
             }
             catch (ArgumentException ex)
@@ -121,7 +133,27 @@ namespace EducationManagement.API.Admin.Controllers
                 if (id != model.SubjectId)
                     return BadRequest(new { success = false, message = "ID không khớp" });
 
+                // Lấy thông tin cũ trước khi update
+                var oldSubject = await _service.GetByIdAsync(id);
+                
                 await _service.UpdateAsync(model);
+                
+                // ✅ Audit log: Cập nhật môn học
+                await LogUpdateAsync("Subject", id,
+                    oldSubject != null ? new
+                    {
+                        subject_name = oldSubject.SubjectName,
+                        credits = oldSubject.Credits,
+                        department_id = oldSubject.DepartmentId
+                    } : null,
+                    new
+                    {
+                        subject_name = model.SubjectName,
+                        credits = model.Credits,
+                        department_id = model.DepartmentId,
+                        action_description = $"Cập nhật môn học: {model.SubjectName} ({model.SubjectCode})"
+                    });
+                
                 return Ok(new { success = true, message = "Cập nhật môn học thành công" });
             }
             catch (ArgumentException ex)
@@ -139,7 +171,19 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
+                // Lấy thông tin môn học trước khi xóa
+                var subject = await _service.GetByIdAsync(id);
+                
                 await _service.DeleteAsync(id);
+                
+                // ✅ Audit log: Xóa môn học
+                await LogDeleteAsync("Subject", id, new
+                {
+                    subject_code = subject?.SubjectCode,
+                    subject_name = subject?.SubjectName,
+                    action_description = $"Xóa môn học: {subject?.SubjectName} ({subject?.SubjectCode})"
+                });
+                
                 return Ok(new { success = true, message = "Xóa môn học thành công" });
             }
             catch (ArgumentException ex)

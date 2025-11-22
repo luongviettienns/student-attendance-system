@@ -70,7 +70,8 @@
                     <div ng-if="!loading && todaySchedule.length > 0" class="schedule-list">
                         <div class="schedule-item" ng-repeat="schedule in todaySchedule">
                             <div class="schedule-time">
-                                <div class="time-period">Tiết {{schedule.period}}</div>
+                                <div class="time-period" ng-if="schedule.period">Tiết {{schedule.period}}</div>
+                                <div class="time-period" ng-if="!schedule.period">Lịch học</div>
                                 <div class="time-range">{{schedule.startTime}} - {{schedule.endTime}}</div>
                             </div>
                             <div class="schedule-details">
@@ -89,6 +90,36 @@
                                     {{schedule.status === 'completed' ? 'Đã kết thúc' : 
                                       schedule.status === 'in_progress' ? 'Đang diễn ra' : 'Sắp diễn ra'}}
                                 </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Upcoming Schedule Notifications (2 ngày tiếp theo) -->
+            <div ng-if="!loading && upcomingSchedule.length > 0" class="card">
+                <div class="card-header bg-info text-white">
+                    <h2><i class="fas fa-bell"></i> Thông báo lịch học sắp tới</h2>
+                </div>
+                <div class="card-body">
+                    <div ng-repeat="day in upcomingSchedule" class="upcoming-day-section" style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e9ecef;" ng-if="!$last || $index === 0">
+                        <h4 style="color: #007bff; margin-bottom: 10px;">
+                            <i class="fas fa-calendar-check"></i> {{day.dayName}}
+                        </h4>
+                        <div class="schedule-list">
+                            <div class="schedule-item" ng-repeat="schedule in day.sessions" style="background: #f8f9fa; border-left: 3px solid #007bff; margin-bottom: 10px;">
+                                <div class="schedule-time">
+                                    <div class="time-period" ng-if="schedule.period">Tiết {{schedule.period}}</div>
+                                    <div class="time-period" ng-if="!schedule.period">Lịch học</div>
+                                    <div class="time-range">{{schedule.startTime}} - {{schedule.endTime}}</div>
+                                </div>
+                                <div class="schedule-details">
+                                    <h3 style="margin: 0; font-size: 16px;">{{schedule.subjectName}}</h3>
+                                    <div class="schedule-meta" style="font-size: 13px; color: #6c757d;">
+                                        <span><i class="fas fa-chalkboard-teacher"></i> {{schedule.lecturerName}}</span>
+                                        <span style="margin-left: 15px;"><i class="fas fa-door-open"></i> Phòng {{schedule.room}}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>

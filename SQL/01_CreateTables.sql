@@ -21,6 +21,12 @@ GO
 -- ===========================================
 
 -- Create StudentImportType for table-valued parameter
+-- ✅ Drop stored procedure trước (vì nó sử dụng type này)
+IF OBJECT_ID('sp_ImportStudentsBatch', 'P') IS NOT NULL 
+    DROP PROCEDURE sp_ImportStudentsBatch;
+GO
+
+-- Sau đó mới drop type
 IF EXISTS (SELECT * FROM sys.types WHERE name = 'StudentImportType' AND is_table_type = 1)
     DROP TYPE StudentImportType;
 GO
@@ -392,6 +398,7 @@ CREATE TABLE dbo.attendances (
     attendance_date DATETIME NOT NULL,
     status          NVARCHAR(20) NOT NULL,
     note            NVARCHAR(500) NULL,
+    marked_by       VARCHAR(50) NULL,  -- ✅ Người thực hiện điểm danh (user_id của giảng viên/admin/cố vấn)
     created_at      DATETIME NOT NULL DEFAULT(GETDATE()),
     created_by      VARCHAR(50) NULL,
     updated_at      DATETIME NULL,
@@ -915,10 +922,13 @@ BEGIN
         DROP INDEX UQ_Period_AcademicYearSemester ON registration_periods;
     END
     
-    -- Tạo unique constraint mới bao gồm period_type
-    CREATE UNIQUE INDEX UQ_Period_AcademicYearSemesterType 
-    ON registration_periods(academic_year_id, semester, period_type, is_active) 
-    WHERE is_active = 1 AND deleted_at IS NULL AND status = 'OPEN';
+    -- Tạo unique constraint mới bao gồm period_type (chỉ tạo nếu chưa tồn tại)
+    IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'UQ_Period_AcademicYearSemesterType' AND object_id = OBJECT_ID('registration_periods'))
+    BEGIN
+        CREATE UNIQUE INDEX UQ_Period_AcademicYearSemesterType 
+        ON registration_periods(academic_year_id, semester, period_type, is_active) 
+        WHERE is_active = 1 AND deleted_at IS NULL AND status = 'OPEN';
+    END
 END
 
 -- Index cho period_type

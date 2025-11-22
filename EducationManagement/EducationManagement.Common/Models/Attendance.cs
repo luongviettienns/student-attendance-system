@@ -38,6 +38,14 @@ namespace EducationManagement.Common.Models
         [NotMapped]
         public string? ClassName { get; set; }
 
+        // 🔹 Thêm để map kết quả SP (sub.subject_name)
+        [NotMapped]
+        public string? SubjectName { get; set; }
+
+        // 🔹 Thêm để map kết quả SP (l.full_name as lecturer_name)
+        [NotMapped]
+        public string? LecturerName { get; set; }
+
         [Column("attendance_date")]
         public DateTime AttendanceDate { get; set; } = DateTime.Now;
 

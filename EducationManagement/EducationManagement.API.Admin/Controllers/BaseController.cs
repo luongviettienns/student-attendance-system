@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System;
+using System.Collections.Generic;
 
 namespace EducationManagement.API.Admin.Controllers
 {
@@ -99,6 +101,59 @@ namespace EducationManagement.API.Admin.Controllers
         /// </summary>
         protected Task LogLogoutAsync(string userId)
             => LogAuditAsync("LOGOUT", "Auth", userId, null, null);
+
+        /// <summary>
+        /// Shortcut for APPROVE action (Duyệt)
+        /// </summary>
+        protected Task LogApproveAsync(string entityType, string? entityId, object? data)
+            => LogAuditAsync("APPROVE", entityType, entityId, null, data);
+
+        /// <summary>
+        /// Shortcut for REJECT action (Từ chối)
+        /// </summary>
+        protected Task LogRejectAsync(string entityType, string? entityId, object? data)
+            => LogAuditAsync("REJECT", entityType, entityId, null, data);
+
+        /// <summary>
+        /// Shortcut for IMPORT action (Nhập dữ liệu)
+        /// </summary>
+        protected Task LogImportAsync(string entityType, object? data)
+            => LogAuditAsync("IMPORT", entityType, null, null, data);
+
+        /// <summary>
+        /// Shortcut for EXPORT action (Xuất dữ liệu)
+        /// </summary>
+        protected Task LogExportAsync(string entityType, object? data)
+            => LogAuditAsync("EXPORT", entityType, null, null, data);
+
+        /// <summary>
+        /// Helper để tạo object audit log với thông tin tiếng Việt rõ ràng
+        /// </summary>
+        protected object CreateAuditData(string action, string entityName, object? data = null)
+        {
+            var auditData = new Dictionary<string, object?>
+            {
+                ["action"] = action,
+                ["entity_name"] = entityName,
+                ["timestamp"] = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+            };
+
+            if (data != null)
+            {
+                // Thêm thông tin từ data vào auditData
+                var properties = data.GetType().GetProperties();
+                foreach (var prop in properties)
+                {
+                    var value = prop.GetValue(data);
+                    if (value != null)
+                    {
+                        auditData[prop.Name] = value;
+                    }
+                }
+            }
+
+            return auditData;
+        }
     }
 }
 

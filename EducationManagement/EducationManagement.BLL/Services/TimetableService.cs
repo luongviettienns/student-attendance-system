@@ -246,6 +246,18 @@ namespace EducationManagement.BLL.Services
 
         public async Task UpdateSessionAsync(string sessionId, TimetableUpdateInput input)
         {
+            // ✅ NGHIỆP VỤ: Kiểm tra xem session có được phép sửa không
+            // Không được sửa lịch của quá khứ, hôm nay, và 2 ngày tiếp theo
+            var existingSession = await _repo.GetSessionByIdAsync(sessionId);
+            if (existingSession != null)
+            {
+                var sessionDate = CalculateSessionDate(existingSession.WeekNo, existingSession.Weekday, DateTime.Now.Year);
+                if (sessionDate.HasValue && !CanEditSession(sessionDate.Value))
+                {
+                    throw new InvalidOperationException("Không thể sửa lịch giảng dạy của quá khứ, hôm nay, và 2 ngày tiếp theo");
+                }
+            }
+
             var fkErrors = await ValidateForeignKeysAsync(new TimetableForeignKeys
             {
                 LecturerId = input.LecturerId,
@@ -276,8 +288,63 @@ namespace EducationManagement.BLL.Services
         public async Task<bool> DeleteSessionAsync(string sessionId, string? actor)
         {
             if (!await _repo.ExistsSessionAsync(sessionId)) return false;
+            
+            // ✅ NGHIỆP VỤ: Kiểm tra xem session có được phép xóa không
+            // Không được xóa lịch của quá khứ, hôm nay, và 2 ngày tiếp theo
+            var existingSession = await _repo.GetSessionByIdAsync(sessionId);
+            if (existingSession != null)
+            {
+                var sessionDate = CalculateSessionDate(existingSession.WeekNo, existingSession.Weekday, DateTime.Now.Year);
+                if (sessionDate.HasValue && !CanEditSession(sessionDate.Value))
+                {
+                    throw new InvalidOperationException("Không thể xóa lịch giảng dạy của quá khứ, hôm nay, và 2 ngày tiếp theo");
+                }
+            }
+            
             var n = await _repo.SoftDeleteSessionAsync(sessionId, actor);
             return n > 0;
+        }
+        
+        // ✅ Helper: Tính ngày của session từ weekNo và weekday
+        private DateTime? CalculateSessionDate(int? weekNo, int weekday, int year)
+        {
+            if (!weekNo.HasValue) return null;
+            
+            try
+            {
+                // ISO week: Thứ 2 là ngày đầu tuần
+                // Get January 4th of the year (always in week 1 of ISO week)
+                var jan4 = new DateTime(year, 1, 4);
+                var jan4Day = (int)jan4.DayOfWeek;
+                if (jan4Day == 0) jan4Day = 7; // Convert Sunday (0) to 7
+                
+                // Calculate the Monday of week 1
+                var mondayOfWeek1 = jan4.AddDays(-(jan4Day - 1));
+                
+                // Calculate the date for the given week and weekday
+                // weekday: 1=Sunday, 2=Monday, ..., 7=Saturday (database format)
+                // Convert to ISO format: 2=Monday, 3=Tuesday, ..., 8=Sunday
+                var dayForCalc = weekday;
+                if (weekday == 1) dayForCalc = 8; // Sunday
+                else if (weekday >= 2 && weekday <= 7) dayForCalc = weekday; // Monday-Saturday
+                
+                var targetDate = mondayOfWeek1.AddDays((weekNo.Value - 1) * 7 + (dayForCalc - 2));
+                return targetDate;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+        
+        // ✅ Helper: Kiểm tra xem session có được phép sửa/xóa không
+        // Quy tắc: Không được sửa lịch của quá khứ, hôm nay, và 2 ngày tiếp theo
+        private bool CanEditSession(DateTime sessionDate)
+        {
+            var today = DateTime.Now.Date;
+            var limitDate = today.AddDays(2); // Hôm nay + 2 ngày
+            
+            return sessionDate > limitDate;
         }
 
         private static List<TimetableConflictItem> MapConflictRows(DataTable dt)

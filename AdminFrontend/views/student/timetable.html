@@ -36,6 +36,9 @@
                                     <i class="fas fa-calendar-week"></i>
                                     Tuần {{week}}
                                 </div>
+                                <div class="week-date-range" style="font-size: 13px; color: #ffffff; margin-top: 4px; font-weight: 500;">
+                                    {{getWeekDateRange()}}
+                                </div>
                                 <div class="week-year">Năm học {{year}}</div>
                             </div>
                             <button class="btn-week-nav" ng-click="nextWeek()" title="Tuần sau">
@@ -53,7 +56,10 @@
                 <div class="timetable-grid" ng-if="raw && raw.length > 0">
                     <div ng-repeat="d in days" class="timetable-day-card">
                         <div class="day-header">
-                            <div class="day-name">Thứ {{d}}</div>
+                            <div class="day-name">{{getDayName(d)}}</div>
+                            <div class="day-date" style="font-size: 12px; color: #ffffff; margin-top: 4px; font-weight: 500;">
+                                {{getDateForDay(d)}}
+                            </div>
                             <div class="day-session-count" ng-if="grid[d] && grid[d].length > 0">
                                 {{grid[d].length}} môn
                             </div>

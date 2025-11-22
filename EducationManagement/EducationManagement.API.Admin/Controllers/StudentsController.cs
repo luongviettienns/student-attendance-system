@@ -9,13 +9,14 @@ namespace EducationManagement.API.Admin.Controllers
     [Authorize]
     [ApiController]
     [Route("api-edu/students")]
-    public class StudentsController : ControllerBase
+    public class StudentsController : BaseController
     {
         private readonly IWebHostEnvironment _env;
         private readonly StudentService _studentService;
         private readonly StudentExcelService _excelService;
 
-        public StudentsController(StudentService studentService, StudentExcelService excelService, IWebHostEnvironment env)
+        public StudentsController(StudentService studentService, StudentExcelService excelService, IWebHostEnvironment env, AuditLogService auditLogService) 
+            : base(auditLogService)
         {
             _studentService = studentService;
             _excelService = excelService;
@@ -34,6 +35,22 @@ namespace EducationManagement.API.Admin.Controllers
             try
             {
                 await _studentService.AddStudentAsync(model);
+                
+                // Lấy studentId sau khi tạo (từ StudentCode hoặc UserId)
+                // Vì AddStudentAsync không trả về studentId, ta dùng StudentCode làm identifier
+                var studentId = model.StudentCode;
+                
+                // ✅ Audit log: Tạo sinh viên mới
+                await LogCreateAsync("Student", studentId, new
+                {
+                    student_code = model.StudentCode,
+                    full_name = model.FullName,
+                    email = model.Email,
+                    major_id = model.MajorId,
+                    academic_year_id = model.AcademicYearId,
+                    action_description = $"Thêm sinh viên mới: {model.FullName} ({model.StudentCode})"
+                });
+                
                 return Ok(new { success = true, message = "Thêm sinh viên thành công!" });
             }
             catch (Exception ex)
@@ -53,7 +70,27 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
+                // Lấy thông tin cũ trước khi update
+                var oldStudent = await _studentService.GetStudentByIdAsync(request.StudentId);
+                
                 await _studentService.UpdateStudentAsync(request);
+                
+                // ✅ Audit log: Cập nhật sinh viên
+                await LogUpdateAsync("Student", request.StudentId, 
+                    oldStudent != null ? new
+                    {
+                        full_name = oldStudent.FullName,
+                        email = oldStudent.Email,
+                        phone = oldStudent.Phone
+                    } : null,
+                    new
+                    {
+                        full_name = request.FullName,
+                        email = request.Email,
+                        phone = request.Phone,
+                        action_description = $"Cập nhật thông tin sinh viên: {request.FullName} ({request.StudentId})"
+                    });
+                
                 return Ok(new { message = "Cập nhật sinh viên (sp_UpdateStudentFull) thành công!" });
             }
             catch (Exception ex)
@@ -70,7 +107,20 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                await _studentService.DeleteStudentAsync(dto.StudentId, dto.DeletedBy);
+                // Lấy thông tin sinh viên trước khi xóa
+                var student = await _studentService.GetStudentByIdAsync(dto.StudentId);
+                
+                await _studentService.DeleteStudentAsync(dto.StudentId, dto.DeletedBy ?? GetCurrentUserId() ?? "system");
+                
+                // ✅ Audit log: Xóa sinh viên
+                await LogDeleteAsync("Student", dto.StudentId, new
+                {
+                    student_code = student?.StudentCode,
+                    full_name = student?.FullName,
+                    deleted_by = dto.DeletedBy ?? GetCurrentUserId() ?? "system",
+                    action_description = $"Xóa sinh viên: {student?.FullName} ({student?.StudentCode})"
+                });
+                
                 return Ok(new { message = "Xóa sinh viên (sp_DeleteStudentFull) thành công!" });
             }
             catch (Exception ex)
@@ -167,6 +217,16 @@ namespace EducationManagement.API.Admin.Controllers
             {
                 var result = await _studentService.ImportStudentsBatchAsync(students, User.Identity?.Name ?? "system");
                 
+                // ✅ Audit log: Import sinh viên
+                await LogImportAsync("Student", new
+                {
+                    total_count = students.Count,
+                    success_count = result.SuccessCount,
+                    error_count = result.ErrorCount,
+                    imported_by = User.Identity?.Name ?? GetCurrentUserId() ?? "system",
+                    action_description = $"Nhập dữ liệu sinh viên: {result.SuccessCount}/{students.Count} thành công"
+                });
+                
                 return Ok(new { 
                     success = true,
                     message = $"Import thành công {result.SuccessCount}/{students.Count} sinh viên",
@@ -242,9 +302,21 @@ namespace EducationManagement.API.Admin.Controllers
                 System.Diagnostics.Debug.WriteLine($"📥 Nhận file import: {file.FileName}, Size: {file.Length} bytes");
                 
                 using var stream = file.OpenReadStream();
-                var result = await _excelService.ImportFromExcelAsync(stream, User.Identity?.Name ?? "system");
+                var result = await _excelService.ImportFromExcelAsync(stream, User.Identity?.Name ?? GetCurrentUserId() ?? "system");
 
                 System.Diagnostics.Debug.WriteLine($"✅ Import hoàn tất: Success={result.SuccessCount}, Errors={result.ErrorCount}");
+
+                // ✅ Audit log: Import từ Excel
+                await LogImportAsync("Student", new
+                {
+                    file_name = file.FileName,
+                    file_size = file.Length,
+                    total_count = result.SuccessCount + result.ErrorCount,
+                    success_count = result.SuccessCount,
+                    error_count = result.ErrorCount,
+                    imported_by = User.Identity?.Name ?? GetCurrentUserId() ?? "system",
+                    action_description = $"Nhập dữ liệu sinh viên từ Excel: {result.SuccessCount} thành công, {result.ErrorCount} lỗi"
+                });
 
                 if (result.ErrorCount > 0 && result.SuccessCount == 0)
                 {

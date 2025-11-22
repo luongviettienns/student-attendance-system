@@ -1,149 +1,302 @@
-// Lecturer Attendance Controller
-app.controller('LecturerAttendanceController', ['$scope', '$timeout', '$http', '$routeParams', '$location', '$rootScope', 'AuthService', 'ClassService', 'EnrollmentService', 'TimetableApi', 'ApiService', 'LoggerService', 'API_CONFIG', 'ToastService',
-    function($scope, $timeout, $http, $routeParams, $location, $rootScope, AuthService, ClassService, EnrollmentService, TimetableApi, ApiService, LoggerService, API_CONFIG, ToastService) {
+// Lecturer Attendance Controller - Simplified Version
+app.controller('LecturerAttendanceController', ['$scope', '$timeout', '$http', '$routeParams', '$location', '$rootScope', 'AuthService', 'ClassService', 'EnrollmentService', 'TimetableApi', 'ApiService', 'LoggerService', 'API_CONFIG', 'ToastService', 'LecturerService',
+    function($scope, $timeout, $http, $routeParams, $location, $rootScope, AuthService, ClassService, EnrollmentService, TimetableApi, ApiService, LoggerService, API_CONFIG, ToastService, LecturerService) {
+    
     $scope.currentUser = AuthService.getCurrentUser();
-    $scope.selectedClass = '';
     $scope.loading = false;
     $scope.loadingStudents = false;
+    $scope.saving = false;
+    $scope.todaySessions = [];
+    $scope.lecturerId = null;
     
-    // ✅ Get parameters from route or query string (dùng cả URLSearchParams và $location.search)
-    var urlParams = new URLSearchParams(window.location.search);
-    var locationParams = $location.search();
+    // Helper function to get ISO week
+    function getIsoWeek(d) {
+        var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+        var dayNum = date.getUTCDay() || 7;
+        date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+        var yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+        var weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
+        return { year: date.getUTCFullYear(), week: weekNo };
+    }
     
-    $scope.sessionId = $routeParams.sessionId || urlParams.get('sessionId') || locationParams.sessionId || null;
-    var classIdFromUrl = urlParams.get('classId') || locationParams.classId || null;
-    var periodFromUrl = urlParams.get('period') || locationParams.period || null;
+    // Helper function to get current weekday in backend format (1=Sunday, 2=Monday, ..., 7=Saturday)
+    function getCurrentWeekday() {
+        var today = new Date();
+        var day = today.getDay(); // JS format: 0=Sunday, 1=Monday, ..., 6=Saturday
+        // Convert to backend format: 1=Sunday, 2=Monday, ..., 7=Saturday
+        return day === 0 ? 1 : day + 1;
+    }
     
-    // Initialize attendanceDate as string in YYYY-MM-DD format
-    // Format immediately to prevent ngModel:datefmt errors
-    (function() {
+    // Helper function to format time
+    function formatTime(timeStr) {
+        if (!timeStr) return '';
+        var str = String(timeStr);
+        if (str.length >= 5) {
+            return str.substring(0, 5); // "07:00:00" -> "07:00"
+        }
+        return str;
+    }
+    
+    // Helper function to get today's date string (YYYY-MM-DD)
+    function getTodayString() {
         var today = new Date();
         var year = today.getFullYear();
         var month = String(today.getMonth() + 1).padStart(2, '0');
         var day = String(today.getDate()).padStart(2, '0');
-        $scope.attendanceDate = year + '-' + month + '-' + day;
-    })();
+        return year + '-' + month + '-' + day;
+    }
     
-    $scope.period = '';
-    $scope.saving = false;
+    // Map attendance status from backend to frontend
+    function mapAttendanceStatus(backendStatus) {
+        if (!backendStatus) return 'present';
+        var status = backendStatus.toUpperCase();
+        switch(status) {
+            case 'PRESENT': return 'present';
+            case 'ABSENT': return 'absent';
+            case 'LATE': return 'late';
+            case 'EXCUSED': return 'excused';
+            default: return 'present';
+        }
+    }
     
-    // Load classes for lecturer
-    $scope.classes = [];
+    // Map status from frontend to backend
+    function mapStatusToBackend(frontendStatus) {
+        switch(frontendStatus) {
+            case 'present': return 'Present';
+            case 'absent': return 'Absent';
+            case 'late': return 'Late';
+            case 'excused': return 'Excused';
+            default: return 'Present';
+        }
+    }
     
-    $scope.loadClasses = function() {
-        // Return promise for chaining
+    // Load lecturerId from userId if needed
+    function loadLecturerId() {
         return new Promise(function(resolve, reject) {
-        var lecturerId = $scope.currentUser && ($scope.currentUser.lecturerId || $scope.currentUser.userId || $scope.currentUser.relatedId);
+            // Try to get lecturerId from currentUser first
+            $scope.lecturerId = $scope.currentUser && (
+                $scope.currentUser.lecturerId || 
+                $scope.currentUser.lecturer_id ||
+                $scope.currentUser.relatedId
+            );
+            
+            if ($scope.lecturerId) {
+                resolve($scope.lecturerId);
+                return;
+            }
+            
+            // If not found, try to get from API using userId
+            if (!$scope.currentUser || !$scope.currentUser.userId) {
+                reject('Không tìm thấy userId');
+                return;
+            }
+            
+            LecturerService.getByUserId($scope.currentUser.userId)
+                .then(function(response) {
+                    var lecturer = null;
+                    if (response.data) {
+                        if (response.data.data) {
+                            lecturer = response.data.data;
+                        } else if (response.data.lecturerId || response.data.lecturer_id) {
+                            lecturer = response.data;
+                        }
+                    }
+                    
+                    if (lecturer && (lecturer.lecturerId || lecturer.lecturer_id)) {
+                        $scope.lecturerId = lecturer.lecturerId || lecturer.lecturer_id;
+                        resolve($scope.lecturerId);
+                    } else {
+                        reject('Không tìm thấy thông tin giảng viên');
+                    }
+                })
+                .catch(function(error) {
+                    reject(error);
+                });
+        });
+    }
+    
+    // Load today's sessions from timetable
+    $scope.loadTodaySessions = function() {
+        // Check if lecturerId is already loaded
+        if ($scope.lecturerId) {
+            return loadTodaySessionsWithLecturerId($scope.lecturerId);
+        }
         
+        // First, ensure we have lecturerId
+        loadLecturerId()
+            .then(function(lecturerId) {
+                return loadTodaySessionsWithLecturerId(lecturerId);
+            })
+            .catch(function(error) {
+                $scope.error = 'Không tìm thấy thông tin giảng viên';
+                $scope.todaySessions = [];
+                $scope.loading = false;
+            });
+    };
+    
+    // Load today's sessions with lecturerId
+    function loadTodaySessionsWithLecturerId(lecturerId) {
         if (!lecturerId) {
             $scope.error = 'Không tìm thấy thông tin giảng viên';
-            $scope.classes = [];
-            return;
+            $scope.todaySessions = [];
+            $scope.loading = false;
+            return Promise.resolve();
         }
         
         $scope.loading = true;
-        ClassService.getByLecturer(lecturerId)
-            .then(function(response) {
-                var data = response.data;
-                if (data && data.data) {
-                    $scope.classes = data.data.map(function(cls) {
-                        return {
-                            id: cls.classId,
-                            classId: cls.classId,
-                            subjectName: cls.subjectName || 'N/A',
-                            className: cls.classCode || cls.className || 'N/A'
-                        };
-                    });
-                } else if (Array.isArray(data)) {
-                    $scope.classes = data.map(function(cls) {
-                        return {
-                            id: cls.classId,
-                            classId: cls.classId,
-                            subjectName: cls.subjectName || 'N/A',
-                            className: cls.classCode || cls.className || 'N/A'
-                        };
-                    });
-                } else {
-                    $scope.classes = [];
-                }
-            })
-            .catch(function(error) {
-                ToastService.error('Không thể tải danh sách lớp học');
-                $scope.classes = [];
-                reject(error);
-            })
-            .finally(function() {
-                $scope.loading = false;
-                resolve();
-            });
-        });
-    };
-    
-    // Load students for selected class
-    $scope.students = [];
-    
-    // ✅ Load existing attendance records (store in scope để dùng lại)
-    $scope.existingAttendances = [];
-    
-    function loadExistingAttendance() {
-        if (!$scope.sessionId || !$scope.attendanceDate) {
-            $scope.existingAttendances = [];
-            return Promise.resolve([]);
-        }
+        $scope.error = null;
         
-        return ApiService.get('/attendances/schedule/' + $scope.sessionId, null, { cache: false })
-            .then(function(response) {
-                var attendances = (response.data && response.data.data) || [];
+        var today = new Date();
+        var iso = getIsoWeek(today);
+        var currentWeekday = getCurrentWeekday();
+        var todayStr = getTodayString();
+        
+        return TimetableApi.getLecturerWeek(lecturerId, iso.year, iso.week)
+            .then(function(res) {
+                var data = (res.data && res.data.data) || [];
                 
-                // ✅ Filter attendance records của ngày được chọn
-                var selectedDate = new Date($scope.attendanceDate);
-                var selectedDateStr = selectedDate.getFullYear() + '-' + 
-                              String(selectedDate.getMonth() + 1).padStart(2, '0') + '-' + 
-                              String(selectedDate.getDate()).padStart(2, '0');
-                
-                var filtered = attendances.filter(function(att) {
-                    var attDateValue = att.attendanceDate || att.attendance_date || att.date || att.Date || null;
-                    
-                    if (!attDateValue) {
-                        return false;
-                    }
-                    
-                    var attDate = new Date(attDateValue);
-                    if (isNaN(attDate.getTime())) {
-                        return false;
-                    }
-                    
-                    var attDateStr = attDate.getFullYear() + '-' + 
-                                   String(attDate.getMonth() + 1).padStart(2, '0') + '-' + 
-                                   String(attDate.getDate()).padStart(2, '0');
-                    
-                    return attDateStr === selectedDateStr;
+                // Filter today's schedule
+                var todaySchedules = data.filter(function(schedule) {
+                    return schedule.weekday === currentWeekday;
                 });
                 
-                // ✅ Store in scope để dùng lại
-                $scope.existingAttendances = filtered;
+                // Sort by start time
+                todaySchedules.sort(function(a, b) {
+                    var timeA = a.start_time || a.startTime || '';
+                    var timeB = b.start_time || b.startTime || '';
+                    return timeA.localeCompare(timeB);
+                });
                 
-                return filtered;
+                // Format data for display
+                $scope.todaySessions = todaySchedules.map(function(schedule) {
+                    var startTime = formatTime(schedule.start_time || schedule.startTime || '');
+                    var endTime = formatTime(schedule.end_time || schedule.endTime || '');
+                    var period = (schedule.period_from && schedule.period_to) 
+                        ? schedule.period_from + '-' + schedule.period_to 
+                        : (schedule.periodFrom && schedule.periodTo)
+                        ? schedule.periodFrom + '-' + schedule.periodTo
+                        : '';
+                    
+                    return {
+                        sessionId: schedule.session_id || schedule.sessionId || '',
+                        classId: schedule.class_id || schedule.classId || '',
+                        subjectName: schedule.subject_name || schedule.subjectName || 'N/A',
+                        className: schedule.class_name || schedule.className || 'N/A',
+                        room: schedule.room_code || schedule.roomCode || 'N/A',
+                        startTime: startTime,
+                        endTime: endTime,
+                        period: period,
+                        attendanceSaved: false, // Sẽ được cập nhật sau
+                        showAttendanceForm: false,
+                        students: null // Sẽ được load khi click "Điểm danh"
+                    };
+                });
+                
+                // Check attendance for each session
+                var attendanceCheckPromises = $scope.todaySessions.map(function(session) {
+                    if (!session.sessionId) {
+                        session.attendanceSaved = false;
+                        return Promise.resolve();
+                    }
+                    
+                    return ApiService.get('/attendances/schedule/' + session.sessionId, null, { cache: false })
+                        .then(function(response) {
+                            var attendances = (response.data && response.data.data) || [];
+                            
+                            // Filter attendance records of today
+                            var todayAttendances = attendances.filter(function(att) {
+                                var attDateValue = att.attendanceDate || att.attendance_date || att.date || att.Date || null;
+                                
+                                if (!attDateValue) {
+                                    return false;
+                                }
+                                
+                                var attDate = new Date(attDateValue);
+                                if (isNaN(attDate.getTime())) {
+                                    return false;
+                                }
+                                
+                                var attDateStr = attDate.getFullYear() + '-' + 
+                                               String(attDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                                               String(attDate.getDate()).padStart(2, '0');
+                                
+                                return attDateStr === todayStr;
+                            });
+                            
+                            // If there's at least 1 attendance record for today → already saved
+                            session.attendanceSaved = todayAttendances.length > 0;
+                            return session;
+                        })
+                        .catch(function(error) {
+                            // If error (404 or 403), consider as not saved
+                            session.attendanceSaved = false;
+                            return session;
+                        });
+                });
+                
+                return Promise.all(attendanceCheckPromises);
             })
-            .catch(function(error) {
-                LoggerService.error('Error loading existing attendance', error);
-                $scope.existingAttendances = [];
-                return [];
+            .then(function() {
+                // Dùng $timeout để đảm bảo update scope trong digest cycle an toàn
+                $timeout(function() {
+                    $scope.loading = false;
+                }, 0);
+            })
+            .catch(function(err) {
+                LoggerService.error('Load today sessions error', err);
+                $scope.error = 'Không thể tải lịch học hôm nay: ' + (err.data?.message || err.message || 'Lỗi không xác định');
+                ToastService.error('Không thể tải lịch học hôm nay');
+                $scope.todaySessions = [];
+                $scope.loading = false;
             });
-    }
+    };
     
-    $scope.loadStudents = function() {
-        if (!$scope.selectedClass) {
-            $scope.students = [];
+    // Open attendance form for a session
+    $scope.openAttendanceForm = function(session) {
+        if (!session || !session.classId) {
+            ToastService.error('Không tìm thấy thông tin lớp học');
             return;
         }
         
-        $scope.loadingStudents = true;
+        // If already showing, hide it
+        if (session.showAttendanceForm) {
+            session.showAttendanceForm = false;
+            return;
+        }
         
-        // Load students và existing attendance records song song
+        // If already saved, don't show form
+        if (session.attendanceSaved) {
+            ToastService.warning('Lớp học này đã được điểm danh');
+            return;
+        }
+        
+        // Show form
+        session.showAttendanceForm = true;
+        session.loadingStudents = true;
+        
+        // Load students and existing attendance records
+        var todayStr = getTodayString();
+        
         Promise.all([
-            EnrollmentService.getClassRoster($scope.selectedClass),
-            loadExistingAttendance()
+            EnrollmentService.getClassRoster(session.classId),
+            session.sessionId ? ApiService.get('/attendances/schedule/' + session.sessionId, null, { cache: false })
+                .then(function(response) {
+                    var attendances = (response.data && response.data.data) || [];
+                    // Filter attendance records of today
+                    return attendances.filter(function(att) {
+                        var attDateValue = att.attendanceDate || att.attendance_date || att.date || att.Date || null;
+                        if (!attDateValue) return false;
+                        var attDate = new Date(attDateValue);
+                        if (isNaN(attDate.getTime())) return false;
+                        var attDateStr = attDate.getFullYear() + '-' + 
+                                       String(attDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                                       String(attDate.getDate()).padStart(2, '0');
+                        return attDateStr === todayStr;
+                    });
+                })
+                .catch(function(error) {
+                    return [];
+                }) : Promise.resolve([])
         ])
             .then(function(results) {
                 var rosterResponse = results[0];
@@ -152,7 +305,7 @@ app.controller('LecturerAttendanceController', ['$scope', '$timeout', '$http', '
                 var data = rosterResponse.data;
                 var roster = (data && data.data) ? data.data : (Array.isArray(data) ? data : []);
                 
-                // ✅ Tạo map từ attendance records để dễ lookup
+                // Create map from attendance records
                 var attendanceMap = {};
                 existingAttendances.forEach(function(att) {
                     var studentId = att.student_id || att.studentId;
@@ -162,8 +315,8 @@ app.controller('LecturerAttendanceController', ['$scope', '$timeout', '$http', '
                     };
                 });
                 
-                // ✅ Map students và điền attendance nếu có
-                $scope.students = roster.map(function(enrollment) {
+                // Map students and fill attendance if exists
+                session.students = roster.map(function(enrollment) {
                     var student = enrollment.student || {};
                     var studentId = student.studentId || enrollment.studentId;
                     var existingAtt = attendanceMap[studentId];
@@ -177,204 +330,50 @@ app.controller('LecturerAttendanceController', ['$scope', '$timeout', '$http', '
                         note: existingAtt ? existingAtt.note : ''
                     };
                 });
+                
+                // Dùng $timeout để đảm bảo UI update trong digest cycle
+                $timeout(function() {
+                    session.loadingStudents = false;
+                }, 0);
             })
             .catch(function(error) {
-                ToastService.error('Không thể tải danh sách sinh viên');
-                $scope.students = [];
-            })
-            .finally(function() {
-                $scope.loadingStudents = false;
+                LoggerService.error('Error loading students', error);
+                ToastService.error('Không thể tải danh sách sinh viên: ' + (error.data?.message || error.message || 'Lỗi không xác định'));
+                session.students = [];
+                session.loadingStudents = false;
             });
     };
     
-    // ✅ Map attendance status từ backend (PRESENT, ABSENT, LATE, EXCUSED) sang frontend (present, absent, late, excused)
-    function mapAttendanceStatus(backendStatus) {
-        if (!backendStatus) return 'present';
-        var status = backendStatus.toUpperCase();
-        switch(status) {
-            case 'PRESENT': return 'present';
-            case 'ABSENT': return 'absent';
-            case 'LATE': return 'late';
-            case 'EXCUSED': return 'excused';
-            default: return 'present';
-        }
-    }
-    
-    // ✅ Auto-fill form if parameters are provided from URL
-    function autoFillFromUrl() {
-        if (classIdFromUrl) {
-            $scope.selectedClass = classIdFromUrl;
-        }
-        
-        if (periodFromUrl) {
-            $scope.period = periodFromUrl;
-        }
-        
-        // Auto-fill date (today) - chỉ được điểm danh hôm nay
-        var today = new Date();
-        var year = today.getFullYear();
-        var month = String(today.getMonth() + 1).padStart(2, '0');
-        var day = String(today.getDate()).padStart(2, '0');
-        $scope.attendanceDate = year + '-' + month + '-' + day;
-        
-        // ✅ Set max date = today (chỉ được điểm danh hôm nay)
-        $scope.maxAttendanceDate = $scope.attendanceDate;
-    }
-    
-    // ✅ Auto-fill form if parameters are provided
-    autoFillFromUrl();
-    
-    // ✅ Watch attendanceDate để reload attendance khi đổi ngày
-    $scope.$watch('attendanceDate', function(newDate, oldDate) {
-        if (newDate && newDate !== oldDate && $scope.selectedClass) {
-            $scope.loadStudents();
-        }
-    });
-    
-    // ✅ Get classId from sessionId if not provided in URL
-    function getClassIdFromSessionId() {
-        if (!$scope.sessionId || $scope.selectedClass) {
-            return Promise.resolve();
-        }
-        
-        // Get lecturer ID first
-        var lecturerId = $scope.currentUser && ($scope.currentUser.lecturerId || $scope.currentUser.userId || $scope.currentUser.relatedId);
-        if (!lecturerId) {
-            return Promise.resolve();
-        }
-        
-        // Get current week
-        var today = new Date();
-        var iso = getIsoWeek(today);
-        
-        // Get lecturer's timetable for current week
-        return TimetableApi.getLecturerWeek(lecturerId, iso.year, iso.week)
-            .then(function(res) {
-                var data = (res.data && res.data.data) || [];
-                
-                // Find session by sessionId
-                var session = data.find(function(s) {
-                    return (s.session_id || s.sessionId) === $scope.sessionId;
-                });
-                
-                if (session) {
-                    var foundClassId = session.class_id || session.classId;
-                    
-                    if (foundClassId) {
-                        $scope.selectedClass = foundClassId;
-                        
-                        // Also set period if available
-                        if (session.period_from && session.period_to && !$scope.period) {
-                            $scope.period = session.period_from + '-' + session.period_to;
-                        }
-                    }
-                }
-            })
-            .catch(function(error) {
-                LoggerService.error('Error getting classId from sessionId', error);
-            });
-    }
-    
-    // Helper function to get ISO week
-    function getIsoWeek(d) {
-        var date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-        var dayNum = date.getUTCDay() || 7;
-        date.setUTCDate(date.getUTCDate() + 4 - dayNum);
-        var yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-        var weekNo = Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
-        return { year: date.getUTCFullYear(), week: weekNo };
-    }
-    
-    // ✅ Initialize maxAttendanceDate = today (chỉ được điểm danh hôm nay)
-    var today = new Date();
-    var todayStr = today.getFullYear() + '-' + 
-                  String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-                  String(today.getDate()).padStart(2, '0');
-    $scope.maxAttendanceDate = todayStr;
-    
-    // Load classes on init
-    $scope.loadClasses().then(function() {
-        // If no classId from URL but have sessionId, try to get it from session
-        if (!$scope.selectedClass && $scope.sessionId) {
-            getClassIdFromSessionId().then(function() {
-                // After getting classId, load students
-                if ($scope.selectedClass) {
-                    $scope.loadStudents();
-                }
-            });
-        } else if ($scope.selectedClass) {
-            $scope.loadStudents();
-        }
-    });
-    
-    $scope.markAllPresent = function() {
-        $scope.students.forEach(function(student) {
+    // Mark all students as present
+    $scope.markAllPresent = function(session) {
+        if (!session || !session.students) return;
+        session.students.forEach(function(student) {
             student.status = 'present';
         });
     };
     
-    $scope.getCountByStatus = function(status) {
-        return $scope.students.filter(function(student) {
+    // Get count by status for a session
+    $scope.getCountByStatus = function(session, status) {
+        if (!session || !session.students) return 0;
+        return session.students.filter(function(student) {
             return student.status === status;
         }).length;
     };
     
-    // ✅ Map status từ frontend sang backend
-    function mapStatusToBackend(frontendStatus) {
-        switch(frontendStatus) {
-            case 'present': return 'Present';
-            case 'absent': return 'Absent';
-            case 'late': return 'Late';
-            case 'excused': return 'Excused';
-            default: return 'Present';
-        }
-    }
-    
-    // ✅ Kiểm tra xem attendance đã tồn tại chưa
-    function findExistingAttendance(studentId) {
-        if (!$scope.existingAttendances || $scope.existingAttendances.length === 0) {
-            return null;
-        }
-        
-        // Tìm attendance record có cùng studentId (đã được filter theo date rồi)
-        return $scope.existingAttendances.find(function(att) {
-            return (att.studentId || att.student_id) === studentId;
-        });
-    }
-    
-    $scope.saveAttendance = function() {
-        if (!$scope.selectedClass || !$scope.attendanceDate || !$scope.period) {
-            $scope.error = 'Vui lòng chọn đầy đủ thông tin lớp học, ngày và tiết học';
-            ToastService.warning('Vui lòng chọn đầy đủ thông tin lớp học, ngày và tiết học');
+    // Save attendance for a session
+    $scope.saveAttendance = function(session) {
+        if (!session || !session.sessionId || !session.classId) {
+            ToastService.error('Thông tin lớp học không hợp lệ');
             return;
         }
         
-        if (!$scope.sessionId) {
-            $scope.error = 'Không tìm thấy thông tin tiết học';
-            ToastService.error('Không tìm thấy thông tin tiết học');
-            return;
-        }
-        
-        if (!$scope.students || $scope.students.length === 0) {
-            $scope.error = 'Không có sinh viên để điểm danh';
+        if (!session.students || session.students.length === 0) {
             ToastService.warning('Không có sinh viên để điểm danh');
             return;
         }
         
-        // ✅ Validate: Chỉ được điểm danh cho ngày hôm nay
-        var today = new Date();
-        var todayStr = today.getFullYear() + '-' + 
-                      String(today.getMonth() + 1).padStart(2, '0') + '-' + 
-                      String(today.getDate()).padStart(2, '0');
-        
-        if ($scope.attendanceDate !== todayStr) {
-            $scope.error = 'Chỉ được điểm danh cho ngày hôm nay (' + todayStr + ')';
-            ToastService.error('Chỉ được điểm danh cho ngày hôm nay');
-            return;
-        }
-        
-        // ✅ Xác nhận trước khi lưu
-        var confirmMessage = 'Bạn có chắc muốn lưu điểm danh cho ' + $scope.students.length + ' sinh viên?';
+        // Confirm before saving
+        var confirmMessage = 'Bạn có chắc muốn lưu điểm danh cho ' + session.students.length + ' sinh viên?';
         if (!confirm(confirmMessage)) {
             return;
         }
@@ -383,15 +382,39 @@ app.controller('LecturerAttendanceController', ['$scope', '$timeout', '$http', '
         $scope.error = null;
         $scope.success = null;
         
-        // ✅ Load existing attendances để kiểm tra xem cần create hay update
-        loadExistingAttendance()
-            .then(function(existingAttendances) {
-                // ✅ Tạo hoặc cập nhật attendance cho từng sinh viên
-                var savePromises = $scope.students.map(function(student) {
-                    var existingAtt = findExistingAttendance(student.studentId);
+        var todayStr = getTodayString();
+        var today = new Date();
+        
+        // Load existing attendances to check if need to create or update
+        ApiService.get('/attendances/schedule/' + session.sessionId, null, { cache: false })
+            .then(function(response) {
+                var attendances = (response.data && response.data.data) || [];
+                
+                // Filter attendance records of today
+                var todayAttendances = attendances.filter(function(att) {
+                    var attDateValue = att.attendanceDate || att.attendance_date || att.date || att.Date || null;
+                    if (!attDateValue) return false;
+                    var attDate = new Date(attDateValue);
+                    if (isNaN(attDate.getTime())) return false;
+                    var attDateStr = attDate.getFullYear() + '-' + 
+                                   String(attDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                                   String(attDate.getDate()).padStart(2, '0');
+                    return attDateStr === todayStr;
+                });
+                
+                // Create map from existing attendances
+                var attendanceMap = {};
+                todayAttendances.forEach(function(att) {
+                    var studentId = att.student_id || att.studentId;
+                    attendanceMap[studentId] = att;
+                });
+                
+                // Create or update attendance for each student
+                var savePromises = session.students.map(function(student) {
+                    var existingAtt = attendanceMap[student.studentId];
                     
                     if (existingAtt) {
-                        // ✅ Update existing attendance
+                        // Update existing attendance
                         var attendanceId = existingAtt.attendanceId || existingAtt.attendance_id;
                         
                         return ApiService.put('/attendances/' + attendanceId, {
@@ -400,41 +423,58 @@ app.controller('LecturerAttendanceController', ['$scope', '$timeout', '$http', '
                             updatedBy: $scope.currentUser.username || $scope.currentUser.userId || 'lecturer'
                         });
                     } else {
-                        // ✅ Create new attendance
-                        var attendanceDate = new Date($scope.attendanceDate);
+                        // Create new attendance
+                        // ✅ Fix timezone issue: Use today's date with current time
+                        // Backend expects date to be today, so we use todayStr + current time
                         var now = new Date();
-                        attendanceDate.setHours(now.getHours());
-                        attendanceDate.setMinutes(now.getMinutes());
-                        attendanceDate.setSeconds(now.getSeconds());
+                        var year = now.getFullYear();
+                        var month = String(now.getMonth() + 1).padStart(2, '0');
+                        var day = String(now.getDate()).padStart(2, '0');
+                        var hours = String(now.getHours()).padStart(2, '0');
+                        var minutes = String(now.getMinutes()).padStart(2, '0');
+                        var seconds = String(now.getSeconds()).padStart(2, '0');
                         
-                        return ApiService.post('/attendances', {
+                        // Create ISO string with timezone offset to ensure correct date parsing
+                        // Get timezone offset in minutes and convert to HH:mm format
+                        var timezoneOffset = -now.getTimezoneOffset(); // Negative because getTimezoneOffset returns offset from UTC
+                        var offsetHours = Math.floor(Math.abs(timezoneOffset) / 60);
+                        var offsetMinutes = Math.abs(timezoneOffset) % 60;
+                        var offsetSign = timezoneOffset >= 0 ? '+' : '-';
+                        var offsetStr = offsetSign + String(offsetHours).padStart(2, '0') + ':' + String(offsetMinutes).padStart(2, '0');
+                        
+                        // Create ISO string with timezone offset (YYYY-MM-DDTHH:mm:ss+HH:mm)
+                        var attendanceDateStr = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes + ':' + seconds + offsetStr;
+                        
+                        var requestData = {
                             studentId: student.studentId,
-                            scheduleId: $scope.sessionId,
-                            attendanceDate: attendanceDate.toISOString(),
+                            scheduleId: session.sessionId,
+                            attendanceDate: attendanceDateStr,
                             status: mapStatusToBackend(student.status),
                             notes: student.note || null,
                             markedBy: $scope.currentUser.username || $scope.currentUser.userId || 'lecturer',
                             createdBy: $scope.currentUser.username || $scope.currentUser.userId || 'lecturer'
-                        });
+                        };
+                        
+                        return ApiService.post('/attendances', requestData);
                     }
                 });
                 
-                // ✅ Thực hiện tất cả các requests
                 return Promise.all(savePromises);
             })
             .then(function(results) {
                 $scope.saving = false;
-                $scope.success = 'Lưu điểm danh thành công cho ' + $scope.students.length + ' sinh viên!';
+                $scope.success = 'Lưu điểm danh thành công cho ' + session.students.length + ' sinh viên!';
                 ToastService.success('Lưu điểm danh thành công!');
                 
-                // ✅ Reload danh sách attendance để hiển thị dữ liệu mới
-                $scope.loadStudents();
+                // Mark as saved and hide form
+                session.attendanceSaved = true;
+                session.showAttendanceForm = false;
                 
-                // ✅ Emit event để dashboard tự động cập nhật
+                // Emit event để dashboard tự động cập nhật
                 $rootScope.$broadcast('attendanceSaved', {
-                    sessionId: $scope.sessionId,
-                    classId: $scope.selectedClass,
-                    date: $scope.attendanceDate
+                    sessionId: session.sessionId,
+                    classId: session.classId,
+                    date: todayStr
                 });
                 
                 // Clear success message after 5 seconds
@@ -444,10 +484,21 @@ app.controller('LecturerAttendanceController', ['$scope', '$timeout', '$http', '
             })
             .catch(function(error) {
                 $scope.saving = false;
-                var errorMessage = 'Lỗi khi lưu điểm danh: ' + (error.data?.message || error.message || 'Lỗi không xác định');
+                var errorMessage = 'Lỗi khi lưu điểm danh: ' + (error.data?.message || error.data?.error || error.message || 'Lỗi không xác định');
                 $scope.error = errorMessage;
                 ToastService.error(errorMessage);
             });
     };
+    
+    // Initialize: Load lecturerId first, then load sessions
+    loadLecturerId()
+        .then(function(lecturerId) {
+            if (lecturerId) {
+                $scope.loadTodaySessions();
+            }
+        })
+        .catch(function(error) {
+            $scope.error = 'Không thể tải thông tin giảng viên';
+            $scope.loading = false;
+        });
 }]);
-

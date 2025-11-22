@@ -11,11 +11,12 @@ namespace EducationManagement.API.Admin.Controllers
     [Authorize]
     [ApiController]
     [Route("api-edu/classes")]
-    public class ClassController : ControllerBase
+    public class ClassController : BaseController
     {
         private readonly ClassService _classService;
 
-        public ClassController(ClassService classService)
+        public ClassController(ClassService classService, AuditLogService auditLogService) 
+            : base(auditLogService)
         {
             _classService = classService;
         }
@@ -94,8 +95,20 @@ namespace EducationManagement.API.Admin.Controllers
                     request.Semester,
                     request.AcademicYearId,
                     request.MaxStudents,
-                    request.CreatedBy ?? "system"
+                    request.CreatedBy ?? GetCurrentUserId() ?? "system"
                 );
+
+                // ✅ Audit log: Tạo lớp học mới
+                await LogCreateAsync("Class", newId, new
+                {
+                    class_code = request.ClassCode,
+                    class_name = request.ClassName,
+                    subject_id = request.SubjectId,
+                    lecturer_id = request.LecturerId,
+                    semester = request.Semester,
+                    max_students = request.MaxStudents,
+                    action_description = $"Tạo lớp học mới: {request.ClassName} ({request.ClassCode})"
+                });
 
                 return Ok(new { message = "Tạo lớp học thành công", classId = newId });
             }
@@ -116,6 +129,9 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
+                // Lấy thông tin cũ trước khi update
+                var oldClass = await _classService.GetClassByIdAsync(id);
+                
                 await _classService.UpdateClassAsync(
                     id,
                     request.ClassCode,
@@ -125,8 +141,24 @@ namespace EducationManagement.API.Admin.Controllers
                     request.Semester,
                     request.AcademicYearId,
                     request.MaxStudents,
-                    request.UpdatedBy ?? "system"
+                    request.UpdatedBy ?? GetCurrentUserId() ?? "system"
                 );
+
+                // ✅ Audit log: Cập nhật lớp học
+                await LogUpdateAsync("Class", id,
+                    oldClass != null ? new
+                    {
+                        class_code = oldClass.ClassCode,
+                        class_name = oldClass.ClassName,
+                        max_students = oldClass.MaxStudents
+                    } : null,
+                    new
+                    {
+                        class_code = request.ClassCode,
+                        class_name = request.ClassName,
+                        max_students = request.MaxStudents,
+                        action_description = $"Cập nhật lớp học: {request.ClassName} ({request.ClassCode})"
+                    });
 
                 return Ok(new { message = "Cập nhật lớp học thành công" });
             }
@@ -176,7 +208,20 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                await _classService.DeleteClassAsync(id, "system");
+                // Lấy thông tin lớp học trước khi xóa
+                var classItem = await _classService.GetClassByIdAsync(id);
+                
+                await _classService.DeleteClassAsync(id, GetCurrentUserId() ?? "system");
+                
+                // ✅ Audit log: Xóa lớp học
+                await LogDeleteAsync("Class", id, new
+                {
+                    class_code = classItem?.ClassCode,
+                    class_name = classItem?.ClassName,
+                    deleted_by = GetCurrentUserId() ?? "system",
+                    action_description = $"Xóa lớp học: {classItem?.ClassName} ({classItem?.ClassCode})"
+                });
+                
                 return Ok(new { message = "Xóa lớp học thành công" });
             }
             catch (Exception ex)

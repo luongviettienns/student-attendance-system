@@ -201,24 +201,24 @@ namespace EducationManagement.DAL.Repositories
         /// </summary>
         private static Attendance MapToAttendance(DataRow row)
         {
-            // Stored procedure sp_GetAllAttendances trả về:
-            // attendance_id, enrollment_id, class_id, attendance_date, status, note (không phải notes),
-            // created_at, created_by, updated_at, updated_by, student_id, student_code, student_name, class_code, class_name
-            // KHÔNG có: schedule_id, marked_by, is_active, deleted_at, deleted_by
+            // Stored procedure sp_GetAttendancesByStudent trả về:
+            // attendance_id, enrollment_id, class_id, attendance_date, status, note,
+            // created_at, created_by, updated_at, updated_by, student_id, student_code, student_name,
+            // class_code, class_name, subject_id, subject_code, subject_name,
+            // marked_by, marked_by_name, lecturer_id, lecturer_name
             
             // Lấy schedule_id từ enrollment_id hoặc class_id (nếu cần)
-            // Vì stored procedure không trả về schedule_id, ta sẽ dùng enrollment_id hoặc null
             var scheduleId = row.Table.Columns.Contains("schedule_id") && row["schedule_id"] != DBNull.Value
                 ? row["schedule_id"].ToString()!
                 : row.Table.Columns.Contains("enrollment_id") && row["enrollment_id"] != DBNull.Value
                     ? row["enrollment_id"].ToString()!
                     : string.Empty;
             
-            return new Attendance
+            var attendance = new Attendance
             {
                 AttendanceId = row["attendance_id"].ToString()!,
                 StudentId = row["student_id"].ToString()!,
-                ScheduleId = scheduleId, // Sử dụng enrollment_id nếu không có schedule_id
+                ScheduleId = scheduleId,
                 AttendanceDate = row.Table.Columns.Contains("attendance_date") && row["attendance_date"] != DBNull.Value 
                     ? Convert.ToDateTime(row["attendance_date"]) 
                     : DateTime.Now,
@@ -231,10 +231,10 @@ namespace EducationManagement.DAL.Repositories
                         : null,
                 MarkedBy = row.Table.Columns.Contains("marked_by") && row["marked_by"] != DBNull.Value
                     ? row["marked_by"]?.ToString()
-                    : null, // Stored procedure không trả về marked_by
+                    : null,
                 IsActive = row.Table.Columns.Contains("is_active") && row["is_active"] != DBNull.Value
                     ? Convert.ToBoolean(row["is_active"])
-                    : true, // Default true vì stored procedure filter deleted_at IS NULL
+                    : true,
                 CreatedAt = row.Table.Columns.Contains("created_at") && row["created_at"] != DBNull.Value 
                     ? Convert.ToDateTime(row["created_at"]) 
                     : DateTime.Now,
@@ -249,11 +249,38 @@ namespace EducationManagement.DAL.Repositories
                     : null,
                 DeletedAt = row.Table.Columns.Contains("deleted_at") && row["deleted_at"] != DBNull.Value
                     ? Convert.ToDateTime(row["deleted_at"])
-                    : null, // Stored procedure filter deleted_at IS NULL nên luôn null
+                    : null,
                 DeletedBy = row.Table.Columns.Contains("deleted_by") && row["deleted_by"] != DBNull.Value
                     ? row["deleted_by"]?.ToString()
                     : null
             };
+            
+            // Map các field NotMapped
+            attendance.StudentCode = row.Table.Columns.Contains("student_code") && row["student_code"] != DBNull.Value
+                ? row["student_code"]?.ToString()
+                : null;
+            
+            attendance.StudentName = row.Table.Columns.Contains("student_name") && row["student_name"] != DBNull.Value
+                ? row["student_name"]?.ToString()
+                : null;
+            
+            attendance.ClassName = row.Table.Columns.Contains("class_name") && row["class_name"] != DBNull.Value
+                ? row["class_name"]?.ToString()
+                : null;
+            
+            attendance.MarkedByName = row.Table.Columns.Contains("marked_by_name") && row["marked_by_name"] != DBNull.Value
+                ? row["marked_by_name"]?.ToString()
+                : null;
+            
+            attendance.SubjectName = row.Table.Columns.Contains("subject_name") && row["subject_name"] != DBNull.Value
+                ? row["subject_name"]?.ToString()
+                : null;
+            
+            attendance.LecturerName = row.Table.Columns.Contains("lecturer_name") && row["lecturer_name"] != DBNull.Value
+                ? row["lecturer_name"]?.ToString()
+                : null;
+            
+            return attendance;
         }
     }
 }

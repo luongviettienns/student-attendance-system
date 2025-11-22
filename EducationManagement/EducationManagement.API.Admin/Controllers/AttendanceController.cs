@@ -10,11 +10,12 @@ namespace EducationManagement.API.Admin.Controllers
     [Authorize]
     [ApiController]
     [Route("api-edu/attendances")]
-    public class AttendanceController : ControllerBase
+    public class AttendanceController : BaseController
     {
         private readonly AttendanceService _attendanceService;
 
-        public AttendanceController(AttendanceService attendanceService)
+        public AttendanceController(AttendanceService attendanceService, AuditLogService auditLogService) 
+            : base(auditLogService)
         {
             _attendanceService = attendanceService;
         }
@@ -75,9 +76,20 @@ namespace EducationManagement.API.Admin.Controllers
                     request.AttendanceDate ?? DateTime.Now,
                     request.Status,
                     request.Notes,
-                    request.MarkedBy,
-                    request.CreatedBy ?? "system"
+                    request.MarkedBy ?? GetCurrentUserId(),
+                    request.CreatedBy ?? GetCurrentUserId() ?? "system"
                 );
+
+                // ✅ Audit log: Tạo bản ghi điểm danh
+                await LogCreateAsync("Attendance", newId, new
+                {
+                    student_id = request.StudentId,
+                    schedule_id = request.ScheduleId,
+                    attendance_date = request.AttendanceDate ?? DateTime.Now,
+                    status = request.Status,
+                    marked_by = request.MarkedBy ?? GetCurrentUserId(),
+                    action_description = $"Điểm danh sinh viên: Status={request.Status}, Ngày={request.AttendanceDate:dd/MM/yyyy}"
+                });
 
                 return Ok(new { message = "Tạo bản ghi điểm danh thành công", attendanceId = newId });
             }
@@ -98,12 +110,30 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
+                // Lấy thông tin cũ trước khi update
+                var oldAttendance = await _attendanceService.GetAttendanceByIdAsync(id);
+                
                 await _attendanceService.UpdateAttendanceAsync(
                     id,
                     request.Status,
                     request.Notes,
-                    request.UpdatedBy ?? "system"
+                    request.UpdatedBy ?? GetCurrentUserId() ?? "system"
                 );
+
+                // ✅ Audit log: Cập nhật điểm danh
+                await LogUpdateAsync("Attendance", id,
+                    oldAttendance != null ? new
+                    {
+                        status = oldAttendance.Status,
+                        notes = oldAttendance.Notes
+                    } : null,
+                    new
+                    {
+                        status = request.Status,
+                        notes = request.Notes,
+                        updated_by = request.UpdatedBy ?? GetCurrentUserId() ?? "system",
+                        action_description = $"Cập nhật điểm danh: Status từ {oldAttendance?.Status} → {request.Status}"
+                    });
 
                 return Ok(new { message = "Cập nhật điểm danh thành công" });
             }
@@ -121,7 +151,22 @@ namespace EducationManagement.API.Admin.Controllers
         {
             try
             {
-                await _attendanceService.DeleteAttendanceAsync(id, request.DeletedBy ?? "system");
+                // Lấy thông tin attendance trước khi xóa
+                var attendance = await _attendanceService.GetAttendanceByIdAsync(id);
+                var deletedBy = request.DeletedBy ?? GetCurrentUserId() ?? "system";
+                
+                await _attendanceService.DeleteAttendanceAsync(id, deletedBy);
+                
+                // ✅ Audit log: Xóa bản ghi điểm danh
+                await LogDeleteAsync("Attendance", id, new
+                {
+                    student_id = attendance?.StudentId,
+                    attendance_date = attendance?.AttendanceDate,
+                    status = attendance?.Status,
+                    deleted_by = deletedBy,
+                    action_description = $"Xóa bản ghi điểm danh: AttendanceId={id}, Ngày={attendance?.AttendanceDate:dd/MM/yyyy}"
+                });
+                
                 return Ok(new { message = "Xóa bản ghi điểm danh thành công" });
             }
             catch (Exception ex)

@@ -78,15 +78,19 @@ namespace EducationManagement.API.Admin.Controllers
                     request.GradedBy, request.CreatedBy ?? GetCurrentUserId() ?? "system"
                 );
 
-                // Audit log: CREATE GRADE
+                // ✅ Audit log: Tạo điểm mới
+                var gradeTypeText = request.GradeType == "midterm" ? "Giữa kỳ" : request.GradeType == "final" ? "Cuối kỳ" : request.GradeType;
                 await LogCreateAsync("Grade", newId, new
                 {
-                    studentId = request.StudentId,
-                    classId = request.ClassId,
-                    gradeType = request.GradeType,
+                    student_id = request.StudentId,
+                    class_id = request.ClassId,
+                    grade_type = request.GradeType,
+                    grade_type_text = gradeTypeText,
                     score = request.Score,
-                    maxScore = request.MaxScore,
-                    weight = request.Weight
+                    max_score = request.MaxScore,
+                    weight = request.Weight,
+                    graded_by = request.GradedBy ?? GetCurrentUserId() ?? "system",
+                    action_description = $"Nhập điểm {gradeTypeText}: {request.Score}/{request.MaxScore} cho sinh viên {request.StudentId}"
                 });
 
                 // Gửi thông báo cho sinh viên khi điểm được tạo
@@ -95,11 +99,11 @@ namespace EducationManagement.API.Admin.Controllers
                     var student = await _studentService.GetStudentByIdAsync(request.StudentId);
                     if (student != null && !string.IsNullOrEmpty(student.UserId))
                     {
-                        var gradeTypeText = request.GradeType == "midterm" ? "giữa kỳ" : request.GradeType == "final" ? "cuối kỳ" : request.GradeType;
+                        var gradeTypeTextNotification = request.GradeType == "midterm" ? "giữa kỳ" : request.GradeType == "final" ? "cuối kỳ" : request.GradeType;
                         var notificationId = await _notificationService.CreateNotificationAsync(
                             student.UserId,
                             "Điểm mới đã được cập nhật",
-                            $"Điểm {gradeTypeText} của bạn cho lớp {request.ClassId} đã được cập nhật: {request.Score}/{request.MaxScore}",
+                            $"Điểm {gradeTypeTextNotification} của bạn cho lớp {request.ClassId} đã được cập nhật: {request.Score}/{request.MaxScore}",
                             "GradeUpdate",
                             request.CreatedBy ?? GetCurrentUserId() ?? "system"
                         );
@@ -157,8 +161,20 @@ namespace EducationManagement.API.Admin.Controllers
                     totalScore = newGrade.TotalScore
                 } : null;
 
-                // Audit log: UPDATE GRADE (BẮT BUỘC theo NFR)
-                await LogUpdateAsync("Grade", id, oldValues, newValues);
+                // ✅ Audit log: Cập nhật điểm (BẮT BUỘC theo NFR)
+                var gradeTypeText = request.GradeType == "midterm" ? "Giữa kỳ" : request.GradeType == "final" ? "Cuối kỳ" : request.GradeType;
+                var oldScore = oldValues != null ? (oldValues.GetType().GetProperty("score")?.GetValue(oldValues) ?? 0) : 0;
+                await LogUpdateAsync("Grade", id, oldValues, new
+                {
+                    grade_type = request.GradeType,
+                    grade_type_text = gradeTypeText,
+                    score = request.Score,
+                    max_score = request.MaxScore,
+                    weight = request.Weight,
+                    total_score = newValues?.GetType().GetProperty("totalScore")?.GetValue(newValues),
+                    updated_by = request.UpdatedBy ?? GetCurrentUserId() ?? "system",
+                    action_description = $"Cập nhật điểm {gradeTypeText}: {oldScore} → {request.Score}/{request.MaxScore}"
+                });
 
                 // Gửi thông báo cho sinh viên khi điểm được cập nhật
                 if (newGrade != null && !string.IsNullOrEmpty(newGrade.StudentId))
@@ -168,9 +184,9 @@ namespace EducationManagement.API.Admin.Controllers
                         var student = await _studentService.GetStudentByIdAsync(newGrade.StudentId);
                         if (student != null && !string.IsNullOrEmpty(student.UserId))
                         {
-                            var gradeTypeText = request.GradeType == "midterm" ? "giữa kỳ" : request.GradeType == "final" ? "cuối kỳ" : request.GradeType;
+                            var gradeTypeTextNotification = request.GradeType == "midterm" ? "giữa kỳ" : request.GradeType == "final" ? "cuối kỳ" : request.GradeType;
                             var className = newGrade.ClassName ?? newGrade.ClassCode ?? newGrade.ClassId ?? "lớp học";
-                            var notificationContent = $"Điểm {gradeTypeText} của bạn cho {className} đã được cập nhật: {request.Score}/{request.MaxScore}";
+                            var notificationContent = $"Điểm {gradeTypeTextNotification} của bạn cho {className} đã được cập nhật: {request.Score}/{request.MaxScore}";
                             
                             // Nếu có điểm tổng kết, thêm vào thông báo
                             if (newGrade.TotalScore.HasValue)
@@ -231,8 +247,17 @@ namespace EducationManagement.API.Admin.Controllers
 
                 await _gradeService.DeleteGradeAsync(id, request.DeletedBy ?? GetCurrentUserId() ?? "system");
 
-                // Audit log: DELETE GRADE
-                await LogDeleteAsync("Grade", id, gradeData);
+                // ✅ Audit log: Xóa điểm
+                await LogDeleteAsync("Grade", id, new
+                {
+                    student_id = grade?.StudentId,
+                    class_id = grade?.ClassId,
+                    midterm_score = grade?.MidtermScore,
+                    final_score = grade?.FinalScore,
+                    total_score = grade?.TotalScore,
+                    deleted_by = request.DeletedBy ?? GetCurrentUserId() ?? "system",
+                    action_description = $"Xóa điểm: StudentId={grade?.StudentId}, TotalScore={grade?.TotalScore}"
+                });
 
                 return Ok(new { message = "Xóa điểm thành công" });
             }

@@ -1086,6 +1086,7 @@ USING (VALUES
     ('PERM_ADV_APPEALS',  'ADVISOR_APPEALS',          N'Phúc khảo',           'ADVISOR_SECTION_ADVISING','fas fa-gavel',          3, N'Duyệt phúc khảo',                             1),
     ('PERM_ADV_RETAKE',   'ADVISOR_RETAKE',           N'Quản lý học lại',     'ADVISOR_SECTION_ADVISING','fas fa-history',       4, N'Quản lý hồ sơ học lại',                       1),
     ('PERM_ADV_GRADE_FORMULA','ADVISOR_GRADE_FORMULA',N'Công thức điểm',      'ADVISOR_SECTION_ADVISING','fas fa-calculator',    5, N'Quản lý công thức điểm',                      1),
+    ('PERM_ADV_EXAM_SCHEDULES','ADVISOR_EXAM_SCHEDULES',N'Quản lý lịch thi',  'ADVISOR_SECTION_ADVISING','fas fa-calendar-check',6, N'Quản lý lịch thi cho sinh viên',               1),
     ('PERM_ADV_NOTIFICATIONS','ADVISOR_NOTIFICATIONS',N'Thông báo',           'ADVISOR_SECTION_SYSTEM', 'fas fa-bell',           1, N'Nhận thông báo',                              1),
     ('PERM_ADM_OVERVIEW', 'ADMIN_SECTION_OVERVIEW',   N'Tổng quan',           NULL,                     'fas fa-home',           1, N'Menu tổng quan admin',                        1),
     ('PERM_ADM_USERS',    'ADMIN_SECTION_USERS',      N'Quản lý người dùng',  NULL,                     'fas fa-users',          2, N'Menu người dùng',                              1),
@@ -1130,7 +1131,9 @@ USING (VALUES
     ('PERM_RET_PER_CREATE',   'CREATE_RETAKE_PERIODS',   N'Tạo đợt đăng ký học lại',      'MANAGE_REGISTRATION_PERIODS', 'fas fa-plus',         2, N'Tạo đợt đăng ký học lại mới',                     1),
     ('PERM_RET_PER_EDIT',     'EDIT_RETAKE_PERIODS',     N'Sửa đợt đăng ký học lại',      'MANAGE_REGISTRATION_PERIODS', 'fas fa-edit',         3, N'Sửa thông tin đợt đăng ký học lại',                1),
     ('PERM_RET_PER_DELETE',   'DELETE_RETAKE_PERIODS',   N'Xóa đợt đăng ký học lại',      'MANAGE_REGISTRATION_PERIODS', 'fas fa-trash',        4, N'Xóa đợt đăng ký học lại',                         1),
-    ('PERM_RET_PER_CLASSES',  'MANAGE_RETAKE_PERIOD_CLASSES', N'Quản lý lớp trong đợt đăng ký học lại', 'MANAGE_REGISTRATION_PERIODS', 'fas fa-list', 5, N'Thêm/xóa lớp học lại vào đợt đăng ký',          1)
+    ('PERM_RET_PER_CLASSES',  'MANAGE_RETAKE_PERIOD_CLASSES', N'Quản lý lớp trong đợt đăng ký học lại', 'MANAGE_REGISTRATION_PERIODS', 'fas fa-list', 5, N'Thêm/xóa lớp học lại vào đợt đăng ký',          1),
+    -- ✅ Student Exam Schedule Permission (executable permission, not menu-only)
+    ('PERM_STU_EXAM_SCHEDULES', 'STUDENT_EXAM_SCHEDULES', N'Xem lịch thi', 'STUDENT_SECTION_STUDY', 'fas fa-calendar-check', 8, N'Sinh viên xem lịch thi của mình', 1)
     -- ✅ Student Retake Registration Permissions (under STUDENT_SECTION_STUDY)
     -- ❌ ĐÃ VÔ HIỆU HÓA: Xem môn trượt và lớp học lại (vì form "Kết quả học tập" đã có bảng hiển thị môn trượt)
     -- ('PERM_RET_REGISTER',     'REGISTER_RETAKE_CLASSES', N'Đăng ký lớp học lại',          'STUDENT_SECTION_STUDY',      'fas fa-redo',         1, N'Sinh viên đăng ký lớp học lại',                    0),
@@ -1163,6 +1166,7 @@ USING (VALUES
     ('ROLE_STUDENT','PERM_STU_GRADES'),
     ('ROLE_STUDENT','PERM_STU_ATTENDANCE'),
     ('ROLE_STUDENT','PERM_STU_ENROLLMENT'),
+    ('ROLE_STUDENT','PERM_STU_EXAM_SCHEDULES'),
     -- ❌ ĐÃ XÓA: Đăng ký lớp học lại, Xem môn trượt, Xem lớp học lại (vì form "Kết quả học tập" đã có bảng hiển thị môn trượt)
     -- ('ROLE_STUDENT','PERM_RET_REGISTER'),  -- Đăng ký lớp học lại
     -- ('ROLE_STUDENT','PERM_RET_VIEW_FAILED'),  -- Xem môn trượt
@@ -1193,6 +1197,7 @@ USING (VALUES
     ('ROLE_ADVISOR','PERM_ADV_APPEALS'),
     ('ROLE_ADVISOR','PERM_ADV_RETAKE'),
     ('ROLE_ADVISOR','PERM_ADV_GRADE_FORMULA'),
+    ('ROLE_ADVISOR','PERM_ADV_EXAM_SCHEDULES'),
     -- Lưu ý: PERM_ADV_ENROLLMENTS đã bị xóa vì trùng với PERM_ADM_ENROLLMENTS (cả hai đều là "Duyệt đăng ký")
     -- Xóa PERM_ADV_REPORTS khỏi menu Cố vấn học tập (đã có PERM_ADV_SYSTEM_REPORTS trong menu Hệ thống)
     ('ROLE_ADVISOR','PERM_ADV_SYSTEM'),
@@ -1240,6 +1245,7 @@ USING (VALUES
     -- Xóa PERM_ADM_TIMETABLE (đã gộp vào ADMIN_SECTION_ACADEMIC)
     ('ROLE_ADMIN','PERM_ADM_TIMETABLE_ITEM'),
     ('ROLE_ADMIN','PERM_ADM_ROOMS'),
+    ('ROLE_ADMIN','PERM_ADV_EXAM_SCHEDULES'),  -- ✅ Admin cũng có quyền quản lý lịch thi
     ('ROLE_ADMIN','PERM_ADM_SYSTEM'),
     ('ROLE_ADMIN','PERM_ADM_REPORTS'),
     ('ROLE_ADMIN','PERM_ADM_AUDIT_LOGS'),

@@ -56,7 +56,31 @@ app.controller('StudentAttendanceController', ['$scope', 'AuthService', 'Student
         ApiService.get('/attendances/student/' + $scope.studentId)
             .then(function(response) {
                 if (response.data && response.data.data) {
-                    $scope.attendanceRecords = response.data.data;
+                    // Map dữ liệu từ API response sang format mà view cần
+                    $scope.attendanceRecords = response.data.data.map(function(record) {
+                        // Lấy subject name từ các field có thể có
+                        var subjectName = record.subjectName || record.subject_name || 
+                                         (record.className ? record.className.split(' - ')[0] : null) ||
+                                         (record.class_name ? record.class_name.split(' - ')[0] : null) ||
+                                         '-';
+                        
+                        // Lấy class code từ các field có thể có
+                        var classCode = record.classCode || record.class_code || 
+                                       record.className || record.class_name || '-';
+                        
+                        // Lấy lecturer name (ưu tiên marked_by_name, sau đó lecturer_name)
+                        var lecturerName = record.markedByName || record.marked_by_name || 
+                                          record.lecturerName || record.lecturer_name || '-';
+                        
+                        return {
+                            date: record.attendanceDate || record.attendance_date,
+                            subjectName: subjectName,
+                            classCode: classCode,
+                            lecturerName: lecturerName,
+                            status: record.status || 'PRESENT',
+                            notes: record.notes || record.note || '-'
+                        };
+                    });
                 } else {
                     $scope.attendanceRecords = [];
                 }
@@ -77,7 +101,12 @@ app.controller('StudentAttendanceController', ['$scope', 'AuthService', 'Student
     
     // Get status badge
     $scope.getStatusBadge = function(status) {
-        switch(status) {
+        if (!status) return 'badge-secondary';
+        
+        // Chuyển về chữ hoa để so sánh
+        var statusUpper = String(status).toUpperCase();
+        
+        switch(statusUpper) {
             case 'PRESENT': return 'badge-success';
             case 'ABSENT': return 'badge-danger';
             case 'LATE': return 'badge-warning';
@@ -86,9 +115,14 @@ app.controller('StudentAttendanceController', ['$scope', 'AuthService', 'Student
         }
     };
     
-    // Get status text
+    // Get status text (tiếng Việt)
     $scope.getStatusText = function(status) {
-        switch(status) {
+        if (!status) return 'Không xác định';
+        
+        // Chuyển về chữ hoa để so sánh
+        var statusUpper = String(status).toUpperCase();
+        
+        switch(statusUpper) {
             case 'PRESENT': return 'Có mặt';
             case 'ABSENT': return 'Vắng mặt';
             case 'LATE': return 'Đi muộn';
