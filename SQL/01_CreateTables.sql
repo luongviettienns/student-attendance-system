@@ -408,16 +408,20 @@ IF OBJECT_ID('dbo.grades', 'U') IS NOT NULL DROP TABLE dbo.grades;
 GO
 
 CREATE TABLE dbo.grades (
-    grade_id      VARCHAR(50) PRIMARY KEY,
-    enrollment_id VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.enrollments(enrollment_id),
-    midterm_score DECIMAL(4,2) NULL,
-    final_score   DECIMAL(4,2) NULL,
-    total_score   DECIMAL(4,2) NULL,
-    letter_grade  VARCHAR(5) NULL,
-    created_at    DATETIME NOT NULL DEFAULT(GETDATE()),
-    created_by    VARCHAR(50) NULL,
-    updated_at    DATETIME NULL,
-    updated_by    VARCHAR(50) NULL
+    grade_id         VARCHAR(50) PRIMARY KEY,
+    enrollment_id    VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.enrollments(enrollment_id),
+    midterm_score    DECIMAL(4,2) NULL,
+    final_score      DECIMAL(4,2) NULL,
+    total_score      DECIMAL(4,2) NULL,
+    letter_grade     VARCHAR(5) NULL,
+    attendance_score DECIMAL(4,2) NULL CHECK (attendance_score >= 0 AND attendance_score <= 10),
+    assignment_score DECIMAL(4,2) NULL CHECK (assignment_score >= 0 AND assignment_score <= 10),
+    created_at       DATETIME NOT NULL DEFAULT(GETDATE()),
+    created_by       VARCHAR(50) NULL,
+    updated_at       DATETIME NULL,
+    updated_by       VARCHAR(50) NULL,
+    deleted_at       DATETIME NULL,
+    deleted_by       VARCHAR(50) NULL
 );
 GO
 
@@ -1553,5 +1557,140 @@ CREATE INDEX IX_Retake_Subject ON retake_records(subject_id);
 GO
 
 PRINT '✅ Table created: retake_records';
+GO
+
+-- ===========================================
+-- 24. BẢNG EXAM_SCHEDULES (Lịch thi)
+-- ===========================================
+IF OBJECT_ID('dbo.exam_schedules', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.exam_schedules (
+        exam_id VARCHAR(50) PRIMARY KEY,
+        class_id VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.classes(class_id),
+        subject_id VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.subjects(subject_id),
+        exam_date DATE NOT NULL,
+        exam_time TIME NOT NULL, -- Giờ bắt đầu
+        end_time TIME NOT NULL, -- Giờ kết thúc
+        room_id VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.rooms(room_id),
+        exam_type NVARCHAR(20) NOT NULL CHECK (exam_type IN ('GIỮA_HỌC_PHẦN', 'KẾT_THÚC_HỌC_PHẦN')),
+        session_no INT NULL, -- Ca thi (1, 2, 3, ...)
+        proctor_lecturer_id VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.lecturers(lecturer_id),
+        duration INT NOT NULL, -- Thời lượng thi (phút)
+        max_students INT NULL, -- Số lượng tối đa sinh viên trong ca thi này
+        notes NVARCHAR(500) NULL,
+        status NVARCHAR(20) NOT NULL DEFAULT 'PLANNED' CHECK (status IN ('PLANNED', 'CONFIRMED', 'COMPLETED', 'CANCELLED')),
+        school_year_id VARCHAR(50) NULL FOREIGN KEY REFERENCES dbo.school_years(school_year_id),
+        semester INT NULL,
+        created_at DATETIME NOT NULL DEFAULT(GETDATE()),
+        created_by VARCHAR(50) NULL,
+        updated_at DATETIME NULL,
+        updated_by VARCHAR(50) NULL,
+        deleted_at DATETIME NULL,
+        deleted_by VARCHAR(50) NULL,
+        -- Constraints
+        CONSTRAINT CHK_Exam_Time_Range CHECK (end_time > exam_time),
+        CONSTRAINT CHK_Exam_Duration CHECK (duration > 0 AND duration <= 600) -- Tối đa 10 giờ
+    );
+    PRINT '✓ Table created: exam_schedules';
+END
+ELSE
+BEGIN
+    PRINT '✓ Table already exists: exam_schedules';
+END
+GO
+
+-- Indexes cho exam_schedules
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ExamSchedules_Date' AND object_id = OBJECT_ID('exam_schedules'))
+    CREATE INDEX IX_ExamSchedules_Date ON exam_schedules(exam_date, school_year_id, semester);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ExamSchedules_Room_Time' AND object_id = OBJECT_ID('exam_schedules'))
+    CREATE INDEX IX_ExamSchedules_Room_Time ON exam_schedules(room_id, exam_date, exam_time);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ExamSchedules_Class' AND object_id = OBJECT_ID('exam_schedules'))
+    CREATE INDEX IX_ExamSchedules_Class ON exam_schedules(class_id, exam_type);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ExamSchedules_Subject' AND object_id = OBJECT_ID('exam_schedules'))
+    CREATE INDEX IX_ExamSchedules_Subject ON exam_schedules(subject_id, exam_date);
+GO
+
+-- ===========================================
+-- 25. BẢNG EXAM_ASSIGNMENTS (Phân công thi)
+-- ===========================================
+IF OBJECT_ID('dbo.exam_assignments', 'U') IS NULL
+BEGIN
+    CREATE TABLE dbo.exam_assignments (
+        assignment_id VARCHAR(50) PRIMARY KEY,
+        exam_id VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.exam_schedules(exam_id),
+        enrollment_id VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.enrollments(enrollment_id),
+        student_id VARCHAR(50) NOT NULL FOREIGN KEY REFERENCES dbo.students(student_id),
+        seat_number INT NULL, -- Số ghế (nếu có)
+        status NVARCHAR(20) NULL DEFAULT 'ASSIGNED' CHECK (status IN ('ASSIGNED', 'NOT_QUALIFIED', 'ATTENDED', 'ABSENT', 'EXCUSED')),
+        -- NOT_QUALIFIED: Không đủ điều kiện dự thi (vắng mặt > 20%)
+        -- ASSIGNED: Đã phân vào ca thi và đủ điều kiện
+        -- ATTENDED: Đã dự thi
+        -- ABSENT: Vắng thi không lý do
+        -- EXCUSED: Vắng thi có lý do
+        notes NVARCHAR(500) NULL,
+        created_at DATETIME NOT NULL DEFAULT(GETDATE()),
+        created_by VARCHAR(50) NULL,
+        deleted_at DATETIME NULL,
+        deleted_by VARCHAR(50) NULL
+    );
+    PRINT '✓ Table created: exam_assignments';
+END
+ELSE
+BEGIN
+    PRINT '✓ Table already exists: exam_assignments';
+END
+GO
+
+-- Indexes cho exam_assignments
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ExamAssignments_Exam' AND object_id = OBJECT_ID('exam_assignments'))
+    CREATE INDEX IX_ExamAssignments_Exam ON exam_assignments(exam_id);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ExamAssignments_Student' AND object_id = OBJECT_ID('exam_assignments'))
+    CREATE INDEX IX_ExamAssignments_Student ON exam_assignments(student_id, exam_id);
+IF NOT EXISTS (SELECT * FROM sys.indexes WHERE name = 'IX_ExamAssignments_Enrollment' AND object_id = OBJECT_ID('exam_assignments'))
+    CREATE INDEX IX_ExamAssignments_Enrollment ON exam_assignments(enrollment_id);
+GO
+
+-- ===========================================
+-- 26. BẢNG STUDENT_CLASS_TRANSFERS (Lịch sử chuyển lớp)
+-- ===========================================
+IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'student_class_transfers')
+BEGIN
+    CREATE TABLE dbo.student_class_transfers (
+        -- Primary Key
+        transfer_id          VARCHAR(50) PRIMARY KEY,
+        
+        -- Student Information
+        student_id           VARCHAR(50) NOT NULL,
+        
+        -- Class Information
+        from_admin_class_id  VARCHAR(50) NULL,  -- Lớp cũ (NULL nếu chưa có lớp)
+        to_admin_class_id    VARCHAR(50) NOT NULL,  -- Lớp mới
+        
+        -- Transfer Details
+        transfer_reason      NVARCHAR(500) NULL,  -- Lý do chuyển lớp
+        transfer_date        DATETIME NOT NULL DEFAULT(GETDATE()),  -- Ngày chuyển
+        
+        -- Audit Fields
+        transferred_by       VARCHAR(50) NOT NULL,  -- Người thực hiện chuyển lớp
+        created_at           DATETIME NOT NULL DEFAULT(GETDATE()),
+        
+        -- Foreign Keys
+        FOREIGN KEY (student_id) REFERENCES dbo.students(student_id),
+        FOREIGN KEY (from_admin_class_id) REFERENCES dbo.administrative_classes(admin_class_id),
+        FOREIGN KEY (to_admin_class_id) REFERENCES dbo.administrative_classes(admin_class_id)
+    );
+    
+    -- Indexes
+    CREATE INDEX IX_StudentClassTransfer_StudentId ON dbo.student_class_transfers(student_id);
+    CREATE INDEX IX_StudentClassTransfer_FromClass ON dbo.student_class_transfers(from_admin_class_id);
+    CREATE INDEX IX_StudentClassTransfer_ToClass ON dbo.student_class_transfers(to_admin_class_id);
+    CREATE INDEX IX_StudentClassTransfer_Date ON dbo.student_class_transfers(transfer_date);
+    
+    PRINT '✓ Table created: student_class_transfers';
+END
+ELSE
+BEGIN
+    PRINT '✓ Table already exists: student_class_transfers';
+END
 GO
 

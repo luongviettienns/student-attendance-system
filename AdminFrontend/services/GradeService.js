@@ -81,26 +81,9 @@ app.service('GradeService', ['ApiService', function(ApiService) {
         return ApiService.get(url, params, options)
             .then(function(response) {
                 var grades = unwrap(response, []);
-                var result = Array.isArray(grades) ? grades : [];
-                
-                // Chỉ log khi có vấn đề hoặc thành công
-                if (result.length === 0) {
-                    console.warn('[GradeService] ⚠️ Không có điểm nào cho', studentId, 'năm học', schoolYearId, 'học kỳ', semester);
-                    console.warn('[GradeService] Kiểm tra: enrollment, grade records, hoặc deleted_at');
-                } else {
-                    console.log('[GradeService] ✅ Tìm thấy', result.length, 'điểm cho', studentId);
-                }
-                
-                return result;
+                return Array.isArray(grades) ? grades : [];
             })
             .catch(function(error) {
-                console.error('[GradeService] getByStudentSchoolYear - API Error:', error);
-                console.error('[GradeService] getByStudentSchoolYear - Error details:', {
-                    message: error.message,
-                    status: error.status,
-                    statusText: error.statusText,
-                    data: error.data
-                });
                 throw error;
             });
     };
@@ -129,7 +112,6 @@ app.service('GradeService', ['ApiService', function(ApiService) {
                 return unwrap(response, {});
             })
             .catch(function(error) {
-                console.error('[GradeService] getGradeSummary - API Error:', error);
                 throw error;
             });
     };

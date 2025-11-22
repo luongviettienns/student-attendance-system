@@ -77,6 +77,7 @@ app.service('ReportService', ['ApiService', function(ApiService) {
      */
     this.getStudentReports = function(filters) {
         filters = filters || {};
+        
         var params = {
             schoolYearId: filters.schoolYearId || null,
             semester: filters.semester || null

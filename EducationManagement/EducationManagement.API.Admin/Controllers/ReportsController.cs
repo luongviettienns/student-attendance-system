@@ -12,10 +12,12 @@ namespace EducationManagement.API.Admin.Controllers
     public class ReportsController : ControllerBase
     {
         private readonly ReportService _reportService;
+        private readonly StudentService _studentService;
 
-        public ReportsController(ReportService reportService)
+        public ReportsController(ReportService reportService, StudentService studentService)
         {
             _reportService = reportService;
+            _studentService = studentService;
         }
 
         /// <summary>
@@ -102,17 +104,48 @@ namespace EducationManagement.API.Admin.Controllers
             try
             {
                 // Get student ID from claims
-                var studentId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(studentId))
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                
+                // Debug log
+                Console.WriteLine($"[DEBUG ReportsController] UserId from NameIdentifier claim: {userId}");
+                Console.WriteLine($"[DEBUG ReportsController] SchoolYearId: {schoolYearId}");
+                Console.WriteLine($"[DEBUG ReportsController] Semester: {semester}");
+                
+                // Log all claims for debugging
+                var allClaims = User.Claims.Select(c => $"{c.Type}={c.Value}").ToList();
+                Console.WriteLine($"[DEBUG ReportsController] All claims: {string.Join(", ", allClaims)}");
+                
+                if (string.IsNullOrEmpty(userId))
                 {
+                    Console.WriteLine("[ERROR ReportsController] UserId is null or empty");
                     return Unauthorized(new { success = false, message = "Không tìm thấy thông tin sinh viên" });
                 }
 
+                // Map userId to student_id
+                // userId from claims is actually user_id, need to find student_id from students table
+                var student = await _studentService.GetStudentByUserIdAsync(userId);
+                if (student == null)
+                {
+                    Console.WriteLine($"[ERROR ReportsController] Cannot find student with userId: {userId}");
+                    return Unauthorized(new { success = false, message = "Không tìm thấy thông tin sinh viên" });
+                }
+
+                var studentId = student.StudentId;
+                Console.WriteLine($"[DEBUG ReportsController] Mapped userId '{userId}' to studentId '{studentId}'");
+                Console.WriteLine($"[DEBUG ReportsController] Student code: {student.StudentCode}, Name: {student.FullName}");
+                
                 var report = await _reportService.GetStudentReportAsync(studentId, schoolYearId, semester);
+                
+                Console.WriteLine($"[DEBUG ReportsController] Report generated - Overview.CumulativeGpa: {report.Overview?.CumulativeGpa}");
+                Console.WriteLine($"[DEBUG ReportsController] Report generated - Overview.CreditsEarned: {report.Overview?.CreditsEarned}");
+                Console.WriteLine($"[DEBUG ReportsController] Report generated - Overview.TotalSubjects: {report.Overview?.TotalSubjects}");
+                
                 return Ok(new { success = true, data = report });
             }
             catch (Exception ex)
             {
+                Console.WriteLine($"[ERROR ReportsController] Exception: {ex.Message}");
+                Console.WriteLine($"[ERROR ReportsController] StackTrace: {ex.StackTrace}");
                 return StatusCode(500, new { success = false, message = "Lỗi hệ thống", error = ex.Message });
             }
         }

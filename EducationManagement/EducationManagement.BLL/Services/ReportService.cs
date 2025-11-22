@@ -61,8 +61,7 @@ namespace EducationManagement.BLL.Services
             string? schoolYearId = null,
             int? semester = null)
         {
-            // TODO: Implement student reports
-            return new StudentReportDto();
+            return await _reportRepository.GetStudentReportAsync(studentId, schoolYearId, semester);
         }
     }
 }

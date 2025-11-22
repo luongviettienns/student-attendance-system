@@ -1012,66 +1012,9 @@ WHEN NOT MATCHED THEN
             src.final_score, src.resolution_notes, GETDATE(), src.created_by, src.updated_by, src.resolved_at, src.resolved_by);
 GO
 
-MERGE dbo.retake_records AS target
-USING (VALUES
-    -- Trượt do vắng mặt (ATTENDANCE) - đã được duyệt
-    ('RETAKE_FT_001', 'ENR_FT_006', 'STU_K21_002', 'CLS_SE301_2024', 'SUB_SE301',
-        'ATTENDANCE', 20.0, 35.0, 'APPROVED', N'Cho phep hoc lai o hoc ky tiep theo',
-        DATEADD(DAY, -5, GETDATE()), 'LEC_FT_ADV'),
-    -- Trượt do điểm (GRADE) - đang chờ duyệt
-    ('RETAKE_FT_002', 'ENR_FT_007', 'STU_K22_001', 'CLS_BUS201_2024', 'SUB_BUS201',
-        'GRADE', 4.0, 3.2, 'PENDING', NULL, NULL, NULL),
-    -- Trượt do cả hai (BOTH) - đã được duyệt
-    ('RETAKE_FT_003', 'ENR_FT_008', 'STU_K21_003', 'CLS_SE101_2024', 'SUB_SE101',
-        'BOTH', 20.0, 25.0, 'APPROVED', N'Trượt cả điểm và vắng mặt, được phép học lại',
-        DATEADD(DAY, -3, GETDATE()), 'LEC_FT_ADV'),
-    -- Trượt do điểm (GRADE) - đã được duyệt, đã đăng ký lớp học lại
-    ('RETAKE_FT_004', 'ENR_FT_009', 'STU_K22_002', 'CLS_SE201_2024', 'SUB_SE201',
-        'GRADE', 4.0, 3.7, 'APPROVED', N'Điểm dưới 4.0, được phép học lại',
-        DATEADD(DAY, -10, GETDATE()), 'LEC_FT_ADV'),
-    -- Trượt do vắng mặt (ATTENDANCE) - đang chờ duyệt
-    ('RETAKE_FT_005', 'ENR_FT_010', 'STU_K23_002', 'CLS_DS101_2024', 'SUB_DS101',
-        'ATTENDANCE', 20.0, 30.0, 'PENDING', NULL, NULL, NULL),
-    -- Trượt do điểm (GRADE) - đã bị từ chối
-    ('RETAKE_FT_006', 'ENR_FT_011', 'STU_K24_003', 'CLS_SE101_2024', 'SUB_SE101',
-        'GRADE', 4.0, 3.5, 'REJECTED', N'Điểm gần đạt, không đủ điều kiện học lại',
-        DATEADD(DAY, -7, GETDATE()), 'LEC_FT_ADV'),
-    -- Trượt do cả hai (BOTH) - đang chờ duyệt
-    ('RETAKE_FT_007', 'ENR_FT_012', 'STU_K24_001', 'CLS_SE201_2024', 'SUB_SE201',
-        'BOTH', 20.0, 22.0, 'PENDING', NULL, NULL, NULL),
-    -- Trượt do điểm (GRADE) - đã hoàn thành học lại
-    ('RETAKE_FT_008', 'ENR_FT_013', 'STU_K23_001', 'CLS_SE101_2024', 'SUB_SE101',
-        'GRADE', 4.0, 3.8, 'COMPLETED', N'Đã hoàn thành học lại thành công',
-        DATEADD(DAY, -30, GETDATE()), 'LEC_FT_ADV')
-) AS src(retake_id, enrollment_id, student_id, class_id, subject_id,
-          reason, threshold_value, current_value, status, advisor_notes,
-          resolved_at, resolved_by)
-ON target.retake_id = src.retake_id
-WHEN MATCHED THEN
-    UPDATE SET enrollment_id = src.enrollment_id,
-               student_id = src.student_id,
-               class_id = src.class_id,
-               subject_id = src.subject_id,
-               reason = src.reason,
-               threshold_value = src.threshold_value,
-               current_value = src.current_value,
-               status = src.status,
-               advisor_notes = src.advisor_notes,
-               resolved_at = src.resolved_at,
-               resolved_by = src.resolved_by,
-               updated_at = GETDATE(),
-               updated_by = 'seed_full_test'
-WHEN NOT MATCHED THEN
-    INSERT (retake_id, enrollment_id, student_id, class_id, subject_id,
-            reason, threshold_value, current_value, status, advisor_notes,
-            created_by, resolved_at, resolved_by)
-    VALUES (src.retake_id, src.enrollment_id, src.student_id, src.class_id, src.subject_id,
-            src.reason, src.threshold_value, src.current_value, src.status, src.advisor_notes,
-            'seed_full_test', src.resolved_at, src.resolved_by);
-GO
-
 -- ===========================================
 -- PHAN 14: THONG BAO HE THONG
+-- NOTE: MERGE retake_records được di chuyển xuống sau khi tạo enrollments (xem dòng ~1420)
 -- ===========================================
 MERGE dbo.notifications AS target
 USING (VALUES
@@ -1187,11 +1130,12 @@ USING (VALUES
     ('PERM_RET_PER_CREATE',   'CREATE_RETAKE_PERIODS',   N'Tạo đợt đăng ký học lại',      'MANAGE_REGISTRATION_PERIODS', 'fas fa-plus',         2, N'Tạo đợt đăng ký học lại mới',                     1),
     ('PERM_RET_PER_EDIT',     'EDIT_RETAKE_PERIODS',     N'Sửa đợt đăng ký học lại',      'MANAGE_REGISTRATION_PERIODS', 'fas fa-edit',         3, N'Sửa thông tin đợt đăng ký học lại',                1),
     ('PERM_RET_PER_DELETE',   'DELETE_RETAKE_PERIODS',   N'Xóa đợt đăng ký học lại',      'MANAGE_REGISTRATION_PERIODS', 'fas fa-trash',        4, N'Xóa đợt đăng ký học lại',                         1),
-    ('PERM_RET_PER_CLASSES',  'MANAGE_RETAKE_PERIOD_CLASSES', N'Quản lý lớp trong đợt đăng ký học lại', 'MANAGE_REGISTRATION_PERIODS', 'fas fa-list', 5, N'Thêm/xóa lớp học lại vào đợt đăng ký',          1),
+    ('PERM_RET_PER_CLASSES',  'MANAGE_RETAKE_PERIOD_CLASSES', N'Quản lý lớp trong đợt đăng ký học lại', 'MANAGE_REGISTRATION_PERIODS', 'fas fa-list', 5, N'Thêm/xóa lớp học lại vào đợt đăng ký',          1)
     -- ✅ Student Retake Registration Permissions (under STUDENT_SECTION_STUDY)
-    ('PERM_RET_REGISTER',     'REGISTER_RETAKE_CLASSES', N'Đăng ký lớp học lại',          'STUDENT_SECTION_STUDY',      'fas fa-redo',         1, N'Sinh viên đăng ký lớp học lại',                    1),
-    ('PERM_RET_VIEW_FAILED',  'VIEW_FAILED_SUBJECTS',    N'Xem môn trượt',                'STUDENT_SECTION_STUDY',      'fas fa-exclamation-triangle', 2, N'Xem danh sách môn học đã trượt',               1),
-    ('PERM_RET_VIEW_CLASSES', 'VIEW_RETAKE_CLASSES',     N'Xem lớp học lại',              'STUDENT_SECTION_STUDY',      'fas fa-list',         3, N'Xem danh sách lớp học lại của môn',                1)
+    -- ❌ ĐÃ VÔ HIỆU HÓA: Xem môn trượt và lớp học lại (vì form "Kết quả học tập" đã có bảng hiển thị môn trượt)
+    -- ('PERM_RET_REGISTER',     'REGISTER_RETAKE_CLASSES', N'Đăng ký lớp học lại',          'STUDENT_SECTION_STUDY',      'fas fa-redo',         1, N'Sinh viên đăng ký lớp học lại',                    0),
+    -- ('PERM_RET_VIEW_FAILED',  'VIEW_FAILED_SUBJECTS',    N'Xem môn trượt',                'STUDENT_SECTION_STUDY',      'fas fa-exclamation-triangle', 2, N'Xem danh sách môn học đã trượt',               0),
+    -- ('PERM_RET_VIEW_CLASSES', 'VIEW_RETAKE_CLASSES',     N'Xem lớp học lại',              'STUDENT_SECTION_STUDY',      'fas fa-list',         3, N'Xem danh sách lớp học lại của môn',                0)
 ) AS src(permission_id, permission_code, permission_name, parent_code, icon, sort_order, description, is_active)
 ON target.permission_id = src.permission_id
 WHEN MATCHED THEN
@@ -1219,9 +1163,10 @@ USING (VALUES
     ('ROLE_STUDENT','PERM_STU_GRADES'),
     ('ROLE_STUDENT','PERM_STU_ATTENDANCE'),
     ('ROLE_STUDENT','PERM_STU_ENROLLMENT'),
-    ('ROLE_STUDENT','PERM_RET_REGISTER'),  -- ✅ Đăng ký lớp học lại
-    ('ROLE_STUDENT','PERM_RET_VIEW_FAILED'),  -- ✅ Xem môn trượt
-    ('ROLE_STUDENT','PERM_RET_VIEW_CLASSES'),  -- ✅ Xem lớp học lại
+    -- ❌ ĐÃ XÓA: Đăng ký lớp học lại, Xem môn trượt, Xem lớp học lại (vì form "Kết quả học tập" đã có bảng hiển thị môn trượt)
+    -- ('ROLE_STUDENT','PERM_RET_REGISTER'),  -- Đăng ký lớp học lại
+    -- ('ROLE_STUDENT','PERM_RET_VIEW_FAILED'),  -- Xem môn trượt
+    -- ('ROLE_STUDENT','PERM_RET_VIEW_CLASSES'),  -- Xem lớp học lại
     ('ROLE_STUDENT','PERM_STU_REPORTS'),
     ('ROLE_STUDENT','PERM_STU_PROFILE'),
     ('ROLE_STUDENT','PERM_STU_PROFILE_ITEM'),
@@ -1416,6 +1361,68 @@ WHEN NOT MATCHED THEN
             src.drop_deadline, src.notes, src.drop_reason, 'seed_full_test');
 GO
 
+-- ===========================================
+-- PHAN 13B: RETAKE RECORDS (Học lại)
+-- ===========================================
+-- NOTE: Phải tạo SAU khi tạo enrollments vì có FOREIGN KEY constraint
+MERGE dbo.retake_records AS target
+USING (VALUES
+    -- Trượt do vắng mặt (ATTENDANCE) - đã được duyệt
+    ('RETAKE_FT_001', 'ENR_FT_006', 'STU_K21_002', 'CLS_SE301_2024', 'SUB_SE301',
+        'ATTENDANCE', 20.0, 35.0, 'APPROVED', N'Cho phep hoc lai o hoc ky tiep theo',
+        DATEADD(DAY, -5, GETDATE()), 'LEC_FT_ADV'),
+    -- Trượt do điểm (GRADE) - đang chờ duyệt
+    ('RETAKE_FT_002', 'ENR_FT_007', 'STU_K22_001', 'CLS_BUS201_2024', 'SUB_BUS201',
+        'GRADE', 4.0, 3.2, 'PENDING', NULL, NULL, NULL),
+    -- Trượt do cả hai (BOTH) - đã được duyệt
+    ('RETAKE_FT_003', 'ENR_FT_008', 'STU_K21_003', 'CLS_SE101_2024', 'SUB_SE101',
+        'BOTH', 20.0, 25.0, 'APPROVED', N'Trượt cả điểm và vắng mặt, được phép học lại',
+        DATEADD(DAY, -3, GETDATE()), 'LEC_FT_ADV'),
+    -- Trượt do điểm (GRADE) - đã được duyệt, đã đăng ký lớp học lại
+    ('RETAKE_FT_004', 'ENR_FT_009', 'STU_K22_002', 'CLS_SE201_2024', 'SUB_SE201',
+        'GRADE', 4.0, 3.7, 'APPROVED', N'Điểm dưới 4.0, được phép học lại',
+        DATEADD(DAY, -10, GETDATE()), 'LEC_FT_ADV'),
+    -- Trượt do vắng mặt (ATTENDANCE) - đang chờ duyệt
+    ('RETAKE_FT_005', 'ENR_FT_010', 'STU_K23_002', 'CLS_DS101_2024', 'SUB_DS101',
+        'ATTENDANCE', 20.0, 30.0, 'PENDING', NULL, NULL, NULL),
+    -- Trượt do điểm (GRADE) - đã bị từ chối
+    ('RETAKE_FT_006', 'ENR_FT_011', 'STU_K24_003', 'CLS_SE101_2024', 'SUB_SE101',
+        'GRADE', 4.0, 3.5, 'REJECTED', N'Điểm gần đạt, không đủ điều kiện học lại',
+        DATEADD(DAY, -7, GETDATE()), 'LEC_FT_ADV'),
+    -- Trượt do cả hai (BOTH) - đang chờ duyệt
+    ('RETAKE_FT_007', 'ENR_FT_012', 'STU_K24_001', 'CLS_SE201_2024', 'SUB_SE201',
+        'BOTH', 20.0, 22.0, 'PENDING', NULL, NULL, NULL),
+    -- Trượt do điểm (GRADE) - đã hoàn thành học lại
+    ('RETAKE_FT_008', 'ENR_FT_013', 'STU_K23_001', 'CLS_SE101_2024', 'SUB_SE101',
+        'GRADE', 4.0, 3.8, 'COMPLETED', N'Đã hoàn thành học lại thành công',
+        DATEADD(DAY, -30, GETDATE()), 'LEC_FT_ADV')
+) AS src(retake_id, enrollment_id, student_id, class_id, subject_id,
+          reason, threshold_value, current_value, status, advisor_notes,
+          resolved_at, resolved_by)
+ON target.retake_id = src.retake_id
+WHEN MATCHED THEN
+    UPDATE SET enrollment_id = src.enrollment_id,
+               student_id = src.student_id,
+               class_id = src.class_id,
+               subject_id = src.subject_id,
+               reason = src.reason,
+               threshold_value = src.threshold_value,
+               current_value = src.current_value,
+               status = src.status,
+               advisor_notes = src.advisor_notes,
+               resolved_at = src.resolved_at,
+               resolved_by = src.resolved_by,
+               updated_at = GETDATE(),
+               updated_by = 'seed_full_test'
+WHEN NOT MATCHED THEN
+    INSERT (retake_id, enrollment_id, student_id, class_id, subject_id,
+            reason, threshold_value, current_value, status, advisor_notes,
+            created_by, resolved_at, resolved_by)
+    VALUES (src.retake_id, src.enrollment_id, src.student_id, src.class_id, src.subject_id,
+            src.reason, src.threshold_value, src.current_value, src.status, src.advisor_notes,
+            'seed_full_test', src.resolved_at, src.resolved_by);
+GO
+
 -- Thêm grades với letter grades đa dạng (D, F) và total_score thấp
 MERGE dbo.grades AS target
 USING (VALUES
@@ -1570,6 +1577,82 @@ PRINT '  - Menu-only permissions: ' + CAST(@MenuOnlyCount AS VARCHAR(10));
 PRINT '  - Executable permissions: ' + CAST(@ExecutableCount AS VARCHAR(10));
 PRINT '  - Total permissions: ' + CAST((@MenuOnlyCount + @ExecutableCount) AS VARCHAR(10));
 PRINT '========================================';
+GO
+
+-- ===========================================
+-- CẬP NHẬT TÊN MENU: "Sinh viên được phân công" -> "Danh sách sinh viên"
+-- ===========================================
+PRINT 'Đang cập nhật tên menu "Sinh viên được phân công" thành "Danh sách sinh viên"...';
+
+UPDATE dbo.permissions
+SET permission_name = N'Danh sách sinh viên',
+    description = N'Quản lý danh sách sinh viên',
+    updated_at = GETDATE(),
+    updated_by = 'system'
+WHERE permission_code = 'ADVISOR_STUDENTS'
+  AND permission_name = N'Sinh viên được phân công';
+
+IF @@ROWCOUNT > 0
+BEGIN
+    PRINT '✅ Đã cập nhật thành công!';
+    PRINT '   - Tên menu: "Danh sách sinh viên"';
+    PRINT '   - Mô tả: "Quản lý danh sách sinh viên"';
+END
+ELSE
+BEGIN
+    PRINT '⚠️ Không tìm thấy permission để cập nhật hoặc đã được cập nhật trước đó.';
+    PRINT '   Kiểm tra permission_code = ''ADVISOR_STUDENTS''';
+END
+GO
+
+-- ===========================================
+-- XÓA MENU "XEM MÔN TRƯỢT" VÀ "LỚP HỌC LẠI" CHO SINH VIÊN
+-- ===========================================
+-- Lý do: 
+-- 1. Form "Kết quả học tập" đã có bảng hiển thị môn trượt (trạng thái "Không đạt")
+-- 2. Không cần menu riêng để xem môn trượt và lớp học lại
+-- ===========================================
+PRINT 'Bắt đầu xóa menu "Xem môn trượt" và "Lớp học lại" cho sinh viên...';
+
+-- BƯỚC 1: Xóa các permissions khỏi role_permissions (ẩn menu khỏi sidebar)
+PRINT 'Bước 1: Xóa permissions khỏi role_permissions...';
+
+DELETE FROM dbo.role_permissions 
+WHERE role_id = 'ROLE_STUDENT' 
+  AND permission_id IN (
+    'PERM_RET_REGISTER',      -- Đăng ký lớp học lại
+    'PERM_RET_VIEW_FAILED',   -- Xem môn trượt
+    'PERM_RET_VIEW_CLASSES'   -- Xem lớp học lại
+);
+
+IF @@ROWCOUNT > 0
+    PRINT '  ✓ Đã xóa ' + CAST(@@ROWCOUNT AS VARCHAR(10)) + ' permissions khỏi ROLE_STUDENT';
+ELSE
+    PRINT '  ⚠ Không tìm thấy permissions để xóa (có thể đã bị xóa trước đó)';
+
+-- BƯỚC 2: Vô hiệu hóa các permissions (set is_active = 0) để không hiển thị trong menu
+-- Lưu ý: Không xóa hoàn toàn permissions vì có thể còn được sử dụng bởi Advisor/Admin
+PRINT 'Bước 2: Vô hiệu hóa permissions (set is_active = 0)...';
+
+UPDATE dbo.permissions
+SET is_active = 0,
+    updated_at = GETDATE(),
+    updated_by = 'remove_student_retake_menus'
+WHERE permission_id IN (
+    'PERM_RET_REGISTER',      -- Đăng ký lớp học lại
+    'PERM_RET_VIEW_FAILED',   -- Xem môn trượt
+    'PERM_RET_VIEW_CLASSES'   -- Xem lớp học lại
+);
+
+IF @@ROWCOUNT > 0
+    PRINT '  ✓ Đã vô hiệu hóa ' + CAST(@@ROWCOUNT AS VARCHAR(10)) + ' permissions';
+ELSE
+    PRINT '  ⚠ Không tìm thấy permissions để vô hiệu hóa';
+
+PRINT '';
+PRINT '✅ Hoàn thành! Các menu "Xem môn trượt" và "Lớp học lại" đã được ẩn khỏi sidebar của sinh viên.';
+PRINT '   Sinh viên vẫn có thể xem môn trượt trong form "Kết quả học tập" (trạng thái "Không đạt").';
+PRINT '';
 GO
 
 PRINT '========================================';

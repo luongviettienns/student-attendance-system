@@ -1,6 +1,6 @@
 // Student Dashboard Controller
-app.controller('StudentDashboardController', ['$scope', 'AuthService', 'AvatarService', 'TimetableApi', 'StudentService', 'LoggerService', 
-    function($scope, AuthService, AvatarService, TimetableApi, StudentService, LoggerService) {
+app.controller('StudentDashboardController', ['$scope', 'AuthService', 'AvatarService', 'TimetableApi', 'StudentService', 'ReportService', 'LoggerService', 
+    function($scope, AuthService, AvatarService, TimetableApi, StudentService, ReportService, LoggerService) {
     $scope.currentUser = AuthService.getCurrentUser();
     $scope.loading = false;
     $scope.todaySchedule = [];
@@ -123,23 +123,22 @@ app.controller('StudentDashboardController', ['$scope', 'AuthService', 'AvatarSe
             return;
         }
         
+        // Load basic student info
         StudentService.getByUserId($scope.currentUser.userId)
             .then(function(response) {
                 if (response.data && response.data.data) {
                     var student = response.data.data;
                     $scope.studentId = student.studentId;
                     
-                    // Update student info
-                    $scope.studentInfo = {
-                        fullName: student.fullName || '',
-                        studentCode: student.studentCode || '',
-                        className: student.className || '',
-                        faculty: student.facultyName || '',
-                        academicYear: student.academicYearName || '',
-                        gpa: student.cumulativeGpa || 0,
-                        credits: student.totalCreditsEarned || 0,
-                        attendanceRate: student.attendanceRate || 0
-                    };
+                    // Update basic student info
+                    $scope.studentInfo.fullName = student.fullName || '';
+                    $scope.studentInfo.studentCode = student.studentCode || '';
+                    $scope.studentInfo.className = student.className || '';
+                    $scope.studentInfo.faculty = student.facultyName || '';
+                    $scope.studentInfo.academicYear = student.academicYearName || '';
+                    
+                    // Load actual academic data from reports API (GPA, credits, attendance)
+                    loadAcademicStats();
                     
                     // Load today's schedule
                     loadTodaySchedule();
@@ -150,6 +149,25 @@ app.controller('StudentDashboardController', ['$scope', 'AuthService', 'AvatarSe
             .catch(function(error) {
                 LoggerService.error('Load student info error', error);
                 $scope.loading = false;
+            });
+    }
+    
+    // Load academic statistics (GPA, credits, attendance) from reports API
+    function loadAcademicStats() {
+        // Call reports API without filters to get all-time data
+        ReportService.getStudentReports({})
+            .then(function(res) {
+                var data = (res.data && res.data.data) || res.data || {};
+                var overview = data.overview || data.Overview || {};
+                
+                // Update academic stats with real data
+                $scope.studentInfo.gpa = overview.cumulativeGpa || overview.CumulativeGpa || 0;
+                $scope.studentInfo.credits = overview.creditsEarned || overview.CreditsEarned || 0;
+                $scope.studentInfo.attendanceRate = overview.attendanceRate || overview.AttendanceRate || 0;
+            })
+            .catch(function(err) {
+                LoggerService.error('Load academic stats error', err);
+                // Keep default values (0) if error
             });
     }
     

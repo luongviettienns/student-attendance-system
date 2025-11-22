@@ -1616,6 +1616,1428 @@ BEGIN
 END
 GO
 
+-- ===========================================
+-- EXAM SCHEDULES STORED PROCEDURES
+-- ===========================================
+
+-- 1. SP_GETSTUDENTSBYCLASS - Lấy danh sách sinh viên đã đăng ký trong lớp học phần
+IF OBJECT_ID('sp_GetStudentsByClass', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetStudentsByClass;
+GO
+
+CREATE PROCEDURE sp_GetStudentsByClass
+    @ClassId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        SELECT 
+            s.student_id,
+            s.student_code,
+            s.full_name,
+            e.enrollment_id,
+            e.enrollment_date,
+            e.status as enrollment_status
+        FROM dbo.students s
+        INNER JOIN dbo.enrollments e ON s.student_id = e.student_id
+        WHERE e.class_id = @ClassId
+            AND e.status = 'APPROVED'  -- Chỉ lấy enrollment đã được duyệt
+            AND e.deleted_at IS NULL
+            AND s.deleted_at IS NULL
+        ORDER BY s.student_code;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_GetStudentsByClass';
+GO
+
+-- 2. SP_CHECKSTUDENTQUALIFICATION - Kiểm tra sinh viên có đủ điều kiện dự thi không
+IF OBJECT_ID('sp_CheckStudentQualification', 'P') IS NOT NULL
+    DROP PROCEDURE sp_CheckStudentQualification;
+GO
+
+CREATE PROCEDURE sp_CheckStudentQualification
+    @StudentId VARCHAR(50),
+    @ClassId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        DECLARE @AttendanceRate DECIMAL(5,2);
+        DECLARE @TotalSessions INT;
+        DECLARE @AbsentSessions INT;
+        DECLARE @IsQualified BIT = 1;
+        
+        -- Tính tỷ lệ chuyên cần
+        SELECT 
+            @TotalSessions = COUNT(*),
+            @AbsentSessions = COUNT(CASE WHEN a.status = 'Absent' THEN 1 END)
+        FROM dbo.enrollments e
+        LEFT JOIN dbo.attendances a ON e.enrollment_id = a.enrollment_id
+            AND a.deleted_at IS NULL
+        WHERE e.student_id = @StudentId
+            AND e.class_id = @ClassId
+            AND e.status = 'APPROVED'
+            AND e.deleted_at IS NULL;
+        
+        -- Tính tỷ lệ vắng mặt
+        IF @TotalSessions > 0
+        BEGIN
+            SET @AttendanceRate = CAST((@AbsentSessions * 100.0 / @TotalSessions) AS DECIMAL(5,2));
+            
+            -- Nếu vắng mặt > 20% thì không đủ điều kiện
+            IF @AttendanceRate > 20.0
+                SET @IsQualified = 0;
+        END
+        
+        -- Return result
+        SELECT 
+            @StudentId as student_id,
+            @ClassId as class_id,
+            ISNULL(@TotalSessions, 0) as total_sessions,
+            ISNULL(@AbsentSessions, 0) as absent_sessions,
+            ISNULL(@AttendanceRate, 0) as absent_rate,
+            @IsQualified as is_qualified;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_CheckStudentQualification';
+GO
+
+-- 3. SP_GETEXAMSCHEDULES - Lấy danh sách lịch thi với filter
+IF OBJECT_ID('sp_GetExamSchedules', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetExamSchedules;
+GO
+
+CREATE PROCEDURE sp_GetExamSchedules
+    @SchoolYearId VARCHAR(50) = NULL,
+    @Semester INT = NULL,
+    @ExamType NVARCHAR(20) = NULL,
+    @StartDate DATE = NULL,
+    @EndDate DATE = NULL,
+    @ClassId VARCHAR(50) = NULL,
+    @SubjectId VARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        SELECT 
+            es.exam_id,
+            es.class_id,
+            c.class_code,
+            c.class_name,
+            es.subject_id,
+            s.subject_code,
+            s.subject_name,
+            es.exam_date,
+            es.exam_time,
+            es.end_time,
+            es.room_id,
+            r.room_code,
+            r.building,
+            r.capacity as room_capacity,
+            es.exam_type,
+            es.session_no,
+            es.proctor_lecturer_id,
+            l.full_name as proctor_name,
+            es.duration,
+            es.max_students,
+            es.notes,
+            es.status,
+            es.school_year_id,
+            sy.year_code,
+            sy.year_name,
+            es.semester,
+            (SELECT COUNT(*) FROM dbo.exam_assignments ea 
+             WHERE ea.exam_id = es.exam_id AND ea.deleted_at IS NULL) as assigned_students,
+            es.created_at,
+            es.created_by,
+            es.updated_at,
+            es.updated_by
+        FROM dbo.exam_schedules es
+        INNER JOIN dbo.classes c ON es.class_id = c.class_id
+        INNER JOIN dbo.subjects s ON es.subject_id = s.subject_id
+        LEFT JOIN dbo.rooms r ON es.room_id = r.room_id
+        LEFT JOIN dbo.lecturers l ON es.proctor_lecturer_id = l.lecturer_id
+        LEFT JOIN dbo.school_years sy ON es.school_year_id = sy.school_year_id
+        WHERE es.deleted_at IS NULL
+            AND (@SchoolYearId IS NULL OR es.school_year_id = @SchoolYearId)
+            AND (@Semester IS NULL OR es.semester = @Semester)
+            AND (@ExamType IS NULL OR es.exam_type = @ExamType)
+            AND (@StartDate IS NULL OR es.exam_date >= @StartDate)
+            AND (@EndDate IS NULL OR es.exam_date <= @EndDate)
+            AND (@ClassId IS NULL OR es.class_id = @ClassId)
+            AND (@SubjectId IS NULL OR es.subject_id = @SubjectId)
+        ORDER BY es.exam_date, es.exam_time, es.session_no;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_GetExamSchedules';
+GO
+
+-- 4. SP_GETEXAMSCHEDULEBYID - Lấy chi tiết lịch thi
+IF OBJECT_ID('sp_GetExamScheduleById', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetExamScheduleById;
+GO
+
+CREATE PROCEDURE sp_GetExamScheduleById
+    @ExamId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        SELECT 
+            es.exam_id,
+            es.class_id,
+            c.class_code,
+            c.class_name,
+            es.subject_id,
+            s.subject_code,
+            s.subject_name,
+            es.exam_date,
+            es.exam_time,
+            es.end_time,
+            es.room_id,
+            r.room_code,
+            r.building,
+            r.capacity as room_capacity,
+            es.exam_type,
+            es.session_no,
+            es.proctor_lecturer_id,
+            l.full_name as proctor_name,
+            es.duration,
+            es.max_students,
+            es.notes,
+            es.status,
+            es.school_year_id,
+            sy.year_code,
+            sy.year_name,
+            es.semester,
+            (SELECT COUNT(*) FROM dbo.exam_assignments ea 
+             WHERE ea.exam_id = es.exam_id AND ea.deleted_at IS NULL) as assigned_students,
+            es.created_at,
+            es.created_by,
+            es.updated_at,
+            es.updated_by
+        FROM dbo.exam_schedules es
+        INNER JOIN dbo.classes c ON es.class_id = c.class_id
+        INNER JOIN dbo.subjects s ON es.subject_id = s.subject_id
+        LEFT JOIN dbo.rooms r ON es.room_id = r.room_id
+        LEFT JOIN dbo.lecturers l ON es.proctor_lecturer_id = l.lecturer_id
+        LEFT JOIN dbo.school_years sy ON es.school_year_id = sy.school_year_id
+        WHERE es.exam_id = @ExamId
+            AND es.deleted_at IS NULL;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_GetExamScheduleById';
+GO
+
+-- 5. SP_CHECKROOMCONFLICT - Kiểm tra xung đột phòng thi
+IF OBJECT_ID('sp_CheckRoomConflict', 'P') IS NOT NULL
+    DROP PROCEDURE sp_CheckRoomConflict;
+GO
+
+CREATE PROCEDURE sp_CheckRoomConflict
+    @RoomId VARCHAR(50),
+    @ExamDate DATE,
+    @StartTime TIME,
+    @EndTime TIME,
+    @ExcludeExamId VARCHAR(50) = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        DECLARE @HasConflict BIT = 0;
+        
+        -- Kiểm tra xung đột: cùng phòng, cùng ngày, thời gian chồng chéo
+        IF EXISTS (
+            SELECT 1
+            FROM dbo.exam_schedules es
+            WHERE es.room_id = @RoomId
+                AND es.exam_date = @ExamDate
+                AND es.deleted_at IS NULL
+                AND (@ExcludeExamId IS NULL OR es.exam_id != @ExcludeExamId)
+                AND (
+                    -- Kiểm tra chồng chéo thời gian
+                    (@StartTime >= es.exam_time AND @StartTime < es.end_time)
+                    OR (@EndTime > es.exam_time AND @EndTime <= es.end_time)
+                    OR (@StartTime <= es.exam_time AND @EndTime >= es.end_time)
+                )
+        )
+        BEGIN
+            SET @HasConflict = 1;
+        END
+        
+        SELECT @HasConflict as has_conflict;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_CheckRoomConflict';
+GO
+
+-- 6. SP_CREATEEXAMSCHEDULE - Tạo lịch thi mới
+IF OBJECT_ID('sp_CreateExamSchedule', 'P') IS NOT NULL
+    DROP PROCEDURE sp_CreateExamSchedule;
+GO
+
+CREATE PROCEDURE sp_CreateExamSchedule
+    @ExamId VARCHAR(50),
+    @ClassId VARCHAR(50),
+    @SubjectId VARCHAR(50),
+    @ExamDate DATE,
+    @ExamTime TIME,
+    @EndTime TIME,
+    @RoomId VARCHAR(50) = NULL,
+    @ExamType NVARCHAR(20),
+    @SessionNo INT = NULL,
+    @ProctorLecturerId VARCHAR(50) = NULL,
+    @Duration INT,
+    @MaxStudents INT = NULL,
+    @Notes NVARCHAR(500) = NULL,
+    @Status NVARCHAR(20) = 'PLANNED',
+    @SchoolYearId VARCHAR(50) = NULL,
+    @Semester INT = NULL,
+    @CreatedBy VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Validate: Kiểm tra xung đột phòng (nếu có phòng)
+        IF @RoomId IS NOT NULL
+        BEGIN
+            DECLARE @HasConflict BIT = 0;
+            
+            -- Create temporary table to capture result
+            CREATE TABLE #RoomConflictCheck (
+                has_conflict BIT
+            );
+            
+            INSERT INTO #RoomConflictCheck
+            EXEC sp_CheckRoomConflict 
+                @RoomId = @RoomId,
+                @ExamDate = @ExamDate,
+                @StartTime = @ExamTime,
+                @EndTime = @EndTime,
+                @ExcludeExamId = NULL;
+            
+            SELECT @HasConflict = has_conflict FROM #RoomConflictCheck;
+            
+            DROP TABLE #RoomConflictCheck;
+            
+            IF @HasConflict = 1
+            BEGIN
+                THROW 50001, N'Phòng thi đã được sử dụng trong khoảng thời gian này', 1;
+            END
+        END
+        
+        -- Insert exam schedule
+        INSERT INTO dbo.exam_schedules (
+            exam_id, class_id, subject_id, exam_date, exam_time, end_time,
+            room_id, exam_type, session_no, proctor_lecturer_id, duration,
+            max_students, notes, status, school_year_id, semester,
+            created_at, created_by
+        )
+        VALUES (
+            @ExamId, @ClassId, @SubjectId, @ExamDate, @ExamTime, @EndTime,
+            @RoomId, @ExamType, @SessionNo, @ProctorLecturerId, @Duration,
+            @MaxStudents, @Notes, @Status, @SchoolYearId, @Semester,
+            GETDATE(), @CreatedBy
+        );
+        
+        COMMIT TRANSACTION;
+        
+        -- Return created exam
+        EXEC sp_GetExamScheduleById @ExamId;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+            
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_CreateExamSchedule';
+GO
+
+-- 7. SP_UPDATEEXAMSCHEDULE - Cập nhật lịch thi
+IF OBJECT_ID('sp_UpdateExamSchedule', 'P') IS NOT NULL
+    DROP PROCEDURE sp_UpdateExamSchedule;
+GO
+
+CREATE PROCEDURE sp_UpdateExamSchedule
+    @ExamId VARCHAR(50),
+    @ExamDate DATE = NULL,
+    @ExamTime TIME = NULL,
+    @EndTime TIME = NULL,
+    @RoomId VARCHAR(50) = NULL,
+    @SessionNo INT = NULL,
+    @ProctorLecturerId VARCHAR(50) = NULL,
+    @Duration INT = NULL,
+    @MaxStudents INT = NULL,
+    @Notes NVARCHAR(500) = NULL,
+    @Status NVARCHAR(20) = NULL,
+    @UpdatedBy VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Validate: Kiểm tra xung đột phòng (nếu có phòng mới hoặc thay đổi thời gian)
+        IF @RoomId IS NOT NULL AND (@ExamDate IS NOT NULL OR @ExamTime IS NOT NULL OR @EndTime IS NOT NULL)
+        BEGIN
+            DECLARE @CurrentDate DATE, @CurrentStartTime TIME, @CurrentEndTime TIME;
+            SELECT @CurrentDate = exam_date, @CurrentStartTime = exam_time, @CurrentEndTime = end_time
+            FROM dbo.exam_schedules WHERE exam_id = @ExamId;
+            
+            DECLARE @FinalDate DATE = ISNULL(@ExamDate, @CurrentDate);
+            DECLARE @FinalStartTime TIME = ISNULL(@ExamTime, @CurrentStartTime);
+            DECLARE @FinalEndTime TIME = ISNULL(@EndTime, @CurrentEndTime);
+            
+            DECLARE @HasConflict BIT = 0;
+            
+            -- Create temporary table to capture result
+            CREATE TABLE #RoomConflictCheck (
+                has_conflict BIT
+            );
+            
+            INSERT INTO #RoomConflictCheck
+            EXEC sp_CheckRoomConflict 
+                @RoomId = @RoomId,
+                @ExamDate = @FinalDate,
+                @StartTime = @FinalStartTime,
+                @EndTime = @FinalEndTime,
+                @ExcludeExamId = @ExamId;
+            
+            SELECT @HasConflict = has_conflict FROM #RoomConflictCheck;
+            
+            DROP TABLE #RoomConflictCheck;
+            
+            IF @HasConflict = 1
+            BEGIN
+                THROW 50001, N'Phòng thi đã được sử dụng trong khoảng thời gian này', 1;
+            END
+        END
+        
+        -- Update exam schedule
+        UPDATE dbo.exam_schedules
+        SET exam_date = ISNULL(@ExamDate, exam_date),
+            exam_time = ISNULL(@ExamTime, exam_time),
+            end_time = ISNULL(@EndTime, end_time),
+            room_id = ISNULL(@RoomId, room_id),
+            session_no = ISNULL(@SessionNo, session_no),
+            proctor_lecturer_id = ISNULL(@ProctorLecturerId, proctor_lecturer_id),
+            duration = ISNULL(@Duration, duration),
+            max_students = ISNULL(@MaxStudents, max_students),
+            notes = ISNULL(@Notes, notes),
+            status = ISNULL(@Status, status),
+            updated_at = GETDATE(),
+            updated_by = @UpdatedBy
+        WHERE exam_id = @ExamId
+            AND deleted_at IS NULL;
+        
+        IF @@ROWCOUNT = 0
+        BEGIN
+            THROW 50001, N'Không tìm thấy lịch thi', 1;
+        END
+        
+        COMMIT TRANSACTION;
+        
+        -- Return updated exam
+        EXEC sp_GetExamScheduleById @ExamId;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+            
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_UpdateExamSchedule';
+GO
+
+-- 8. SP_DELETEEXAMSCHEDULE - Xóa lịch thi (soft delete)
+IF OBJECT_ID('sp_DeleteExamSchedule', 'P') IS NOT NULL
+    DROP PROCEDURE sp_DeleteExamSchedule;
+GO
+
+CREATE PROCEDURE sp_DeleteExamSchedule
+    @ExamId VARCHAR(50),
+    @DeletedBy VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Soft delete exam schedule
+        UPDATE dbo.exam_schedules
+        SET deleted_at = GETDATE(),
+            deleted_by = @DeletedBy
+        WHERE exam_id = @ExamId
+            AND deleted_at IS NULL;
+        
+        IF @@ROWCOUNT = 0
+        BEGIN
+            THROW 50001, N'Không tìm thấy lịch thi', 1;
+        END
+        
+        -- Soft delete exam assignments
+        UPDATE dbo.exam_assignments
+        SET deleted_at = GETDATE(),
+            deleted_by = @DeletedBy
+        WHERE exam_id = @ExamId
+            AND deleted_at IS NULL;
+        
+        COMMIT TRANSACTION;
+        
+        SELECT 1 AS success, N'Xóa lịch thi thành công' AS message;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+            
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_DeleteExamSchedule';
+GO
+
+-- 9. SP_GETEXAMASSIGNMENTSBYEXAM - Lấy danh sách sinh viên trong ca thi
+IF OBJECT_ID('sp_GetExamAssignmentsByExam', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetExamAssignmentsByExam;
+GO
+
+CREATE PROCEDURE sp_GetExamAssignmentsByExam
+    @ExamId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        SELECT 
+            ea.assignment_id,
+            ea.exam_id,
+            ea.enrollment_id,
+            ea.student_id,
+            s.student_code,
+            s.full_name as student_name,
+            ea.seat_number,
+            ea.status,
+            ea.notes,
+            ea.created_at,
+            ea.created_by
+        FROM dbo.exam_assignments ea
+        INNER JOIN dbo.students s ON ea.student_id = s.student_id
+        WHERE ea.exam_id = @ExamId
+            AND ea.deleted_at IS NULL
+            AND s.deleted_at IS NULL
+        ORDER BY ea.seat_number, s.student_code;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_GetExamAssignmentsByExam';
+GO
+
+-- 10. SP_GETSTUDENTEXAMS - Lấy lịch thi của sinh viên
+IF OBJECT_ID('sp_GetStudentExams', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetStudentExams;
+GO
+
+CREATE PROCEDURE sp_GetStudentExams
+    @StudentId VARCHAR(50),
+    @SchoolYearId VARCHAR(50) = NULL,
+    @Semester INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        SELECT 
+            es.exam_id,
+            es.class_id,
+            c.class_code,
+            c.class_name,
+            es.subject_id,
+            s.subject_code,
+            s.subject_name,
+            es.exam_date,
+            es.exam_time,
+            es.end_time,
+            es.room_id,
+            r.room_code,
+            r.building,
+            es.exam_type,
+            es.session_no,
+            ea.seat_number,
+            ea.status as assignment_status,
+            es.status as exam_status,
+            es.notes
+        FROM dbo.exam_assignments ea
+        INNER JOIN dbo.exam_schedules es ON ea.exam_id = es.exam_id
+        INNER JOIN dbo.classes c ON es.class_id = c.class_id
+        INNER JOIN dbo.subjects s ON es.subject_id = s.subject_id
+        LEFT JOIN dbo.rooms r ON es.room_id = r.room_id
+        WHERE ea.student_id = @StudentId
+            AND ea.deleted_at IS NULL
+            AND es.deleted_at IS NULL
+            AND (@SchoolYearId IS NULL OR es.school_year_id = @SchoolYearId)
+            AND (@Semester IS NULL OR es.semester = @Semester)
+        ORDER BY es.exam_date, es.exam_time;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_GetStudentExams';
+GO
+
+-- 11. SP_AUTOASSIGNSTUDENTSFROMCLASS - Tự động phân sinh viên trong lớp vào các ca thi
+IF OBJECT_ID('sp_AutoAssignStudentsFromClass', 'P') IS NOT NULL
+    DROP PROCEDURE sp_AutoAssignStudentsFromClass;
+GO
+
+CREATE PROCEDURE sp_AutoAssignStudentsFromClass
+    @ExamId VARCHAR(50),
+    @ClassId VARCHAR(50),
+    @RoomCapacity INT
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        DECLARE @StudentId VARCHAR(50);
+        DECLARE @EnrollmentId VARCHAR(50);
+        DECLARE @AssignmentId VARCHAR(50);
+        DECLARE @SeatNumber INT = 1;
+        DECLARE @CurrentSession INT = 1;
+        DECLARE @StudentsInSession INT = 0;
+        DECLARE @IsQualified BIT;
+        
+        -- Create temporary table once for qualification check (will be reused in loop)
+        CREATE TABLE #QualificationCheck (
+            student_id VARCHAR(50),
+            class_id VARCHAR(50),
+            total_sessions INT,
+            absent_sessions INT,
+            absent_rate DECIMAL(5,2),
+            is_qualified BIT
+        );
+        
+        -- Cursor để duyệt qua từng sinh viên
+        DECLARE student_cursor CURSOR FOR
+        SELECT s.student_id, e.enrollment_id
+        FROM dbo.students s
+        INNER JOIN dbo.enrollments e ON s.student_id = e.student_id
+        WHERE e.class_id = @ClassId
+            AND e.status = 'APPROVED'
+            AND e.deleted_at IS NULL
+            AND s.deleted_at IS NULL
+        ORDER BY s.student_code;
+        
+        OPEN student_cursor;
+        FETCH NEXT FROM student_cursor INTO @StudentId, @EnrollmentId;
+        
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            -- Kiểm tra điều kiện dự thi
+            -- Clear temp table before inserting new result
+            TRUNCATE TABLE #QualificationCheck;
+            
+            INSERT INTO #QualificationCheck
+            EXEC sp_CheckStudentQualification @StudentId, @ClassId;
+            
+            SELECT @IsQualified = is_qualified FROM #QualificationCheck;
+            
+            -- Nếu đã đủ capacity cho ca hiện tại, chuyển sang ca tiếp theo
+            IF @StudentsInSession >= @RoomCapacity
+            BEGIN
+                SET @CurrentSession = @CurrentSession + 1;
+                SET @StudentsInSession = 0;
+                SET @SeatNumber = 1;
+            END
+            
+            -- Tạo assignment
+            SET @AssignmentId = NEWID();
+            
+            INSERT INTO dbo.exam_assignments (
+                assignment_id, exam_id, enrollment_id, student_id,
+                seat_number, status, created_at, created_by
+            )
+            VALUES (
+                @AssignmentId, @ExamId, @EnrollmentId, @StudentId,
+                @SeatNumber,
+                CASE WHEN @IsQualified = 1 THEN 'ASSIGNED' ELSE 'NOT_QUALIFIED' END,
+                GETDATE(), 'system'
+            );
+            
+            SET @SeatNumber = @SeatNumber + 1;
+            SET @StudentsInSession = @StudentsInSession + 1;
+            
+            FETCH NEXT FROM student_cursor INTO @StudentId, @EnrollmentId;
+        END
+        
+        CLOSE student_cursor;
+        DEALLOCATE student_cursor;
+        
+        -- Drop temporary table
+        DROP TABLE IF EXISTS #QualificationCheck;
+        
+        COMMIT TRANSACTION;
+        
+        SELECT @CurrentSession as total_sessions_created,
+               (SELECT COUNT(*) FROM dbo.exam_assignments WHERE exam_id = @ExamId AND deleted_at IS NULL) as total_students_assigned;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+            
+        IF CURSOR_STATUS('global', 'student_cursor') >= 0
+        BEGIN
+            CLOSE student_cursor;
+            DEALLOCATE student_cursor;
+        END
+        
+        -- Clean up temporary table in error handler
+        DROP TABLE IF EXISTS #QualificationCheck;
+        
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_AutoAssignStudentsFromClass';
+GO
+
+-- 12. SP_CREATEEXAMSCHEDULEFORCLASS - Tạo lịch thi cho lớp học phần (tự động phân sinh viên, tạo nhiều ca thi)
+IF OBJECT_ID('sp_CreateExamScheduleForClass', 'P') IS NOT NULL
+    DROP PROCEDURE sp_CreateExamScheduleForClass;
+GO
+
+CREATE PROCEDURE sp_CreateExamScheduleForClass
+    @ClassId VARCHAR(50),
+    @SubjectId VARCHAR(50),
+    @ExamDate DATE,
+    @ExamTime TIME,
+    @EndTime TIME,
+    @RoomId VARCHAR(50),
+    @ExamType NVARCHAR(20),
+    @ProctorLecturerId VARCHAR(50) = NULL,
+    @Duration INT,
+    @Notes NVARCHAR(500) = NULL,
+    @SchoolYearId VARCHAR(50) = NULL,
+    @Semester INT = NULL,
+    @CreatedBy VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        BEGIN TRANSACTION;
+        
+        -- Lấy thông tin phòng để có capacity
+        DECLARE @RoomCapacity INT;
+        SELECT @RoomCapacity = capacity FROM dbo.rooms WHERE room_id = @RoomId;
+        
+        IF @RoomCapacity IS NULL
+        BEGIN
+            THROW 50001, N'Không tìm thấy thông tin phòng thi', 1;
+        END
+        
+        -- Lấy số lượng sinh viên trong lớp
+        DECLARE @TotalStudents INT;
+        SELECT @TotalStudents = COUNT(*)
+        FROM dbo.enrollments e
+        WHERE e.class_id = @ClassId
+            AND e.status = 'APPROVED'
+            AND e.deleted_at IS NULL;
+        
+        -- Tính số ca thi cần thiết
+        DECLARE @RequiredSessions INT = CEILING(CAST(@TotalStudents AS FLOAT) / @RoomCapacity);
+        DECLARE @CurrentSession INT = 1;
+        
+        -- Tạo các ca thi
+        WHILE @CurrentSession <= @RequiredSessions
+        BEGIN
+            DECLARE @ExamId VARCHAR(50) = NEWID();
+            DECLARE @SessionStartTime TIME = @ExamTime;
+            DECLARE @SessionEndTime TIME = @EndTime;
+            
+            -- Tính toán thời gian cho từng ca (nếu có nhiều ca)
+            IF @RequiredSessions > 1
+            BEGIN
+                -- Tự động tính thời gian cho ca tiếp theo (thêm 30 phút nghỉ giữa các ca)
+                DECLARE @MinutesBetweenSessions INT = 30;
+                DECLARE @MinutesAdded INT = (@CurrentSession - 1) * (@Duration + @MinutesBetweenSessions);
+                
+                SET @SessionStartTime = DATEADD(MINUTE, @MinutesAdded, CAST(@ExamTime AS DATETIME));
+                SET @SessionEndTime = DATEADD(MINUTE, @Duration, CAST(@SessionStartTime AS DATETIME));
+                
+                -- Convert back to TIME
+                SET @SessionStartTime = CAST(@SessionStartTime AS TIME);
+                SET @SessionEndTime = CAST(@SessionEndTime AS TIME);
+            END
+            
+            -- Tạo ca thi
+            INSERT INTO dbo.exam_schedules (
+                exam_id, class_id, subject_id, exam_date, exam_time, end_time,
+                room_id, exam_type, session_no, proctor_lecturer_id, duration,
+                max_students, notes, status, school_year_id, semester,
+                created_at, created_by
+            )
+            VALUES (
+                @ExamId, @ClassId, @SubjectId, @ExamDate, @SessionStartTime, @SessionEndTime,
+                @RoomId, @ExamType, @CurrentSession, @ProctorLecturerId, @Duration,
+                @RoomCapacity, @Notes, 'PLANNED', @SchoolYearId, @Semester,
+                GETDATE(), @CreatedBy
+            );
+            
+            -- Tự động phân sinh viên vào ca thi này
+            EXEC sp_AutoAssignStudentsFromClass @ExamId, @ClassId, @RoomCapacity;
+            
+            SET @CurrentSession = @CurrentSession + 1;
+        END
+        
+        COMMIT TRANSACTION;
+        
+        -- Return danh sách các ca thi đã tạo
+        SELECT 
+            es.exam_id,
+            es.class_id,
+            c.class_code,
+            c.class_name,
+            es.exam_date,
+            es.exam_time,
+            es.end_time,
+            es.session_no,
+            (SELECT COUNT(*) FROM dbo.exam_assignments ea 
+             WHERE ea.exam_id = es.exam_id AND ea.deleted_at IS NULL) as assigned_students
+        FROM dbo.exam_schedules es
+        INNER JOIN dbo.classes c ON es.class_id = c.class_id
+        WHERE es.class_id = @ClassId
+            AND es.exam_type = @ExamType
+            AND es.exam_date = @ExamDate
+            AND es.created_by = @CreatedBy
+            AND es.deleted_at IS NULL
+        ORDER BY es.session_no;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+            
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_CreateExamScheduleForClass';
+GO
+
+-- 13. SP_ENTEREXAMSCORES - Nhập điểm cho kỳ thi và tự động gán vào grades
+IF OBJECT_ID('sp_EnterExamScores', 'P') IS NOT NULL
+    DROP PROCEDURE sp_EnterExamScores;
+GO
+
+CREATE PROCEDURE sp_EnterExamScores
+    @ExamId VARCHAR(50),
+    @EnteredBy VARCHAR(50),
+    @Scores NVARCHAR(MAX) -- JSON array of scores: [{"assignmentId":"...","studentId":"...","enrollmentId":"...","score":8.5,"status":"ATTENDED","notes":""},...]
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRANSACTION;
+    
+    BEGIN TRY
+        -- Validate exam exists
+        IF NOT EXISTS (SELECT 1 FROM dbo.exam_schedules WHERE exam_id = @ExamId AND deleted_at IS NULL)
+        BEGIN
+            THROW 50001, 'Không tìm thấy lịch thi', 1;
+        END
+        
+        -- Get exam info
+        DECLARE @ExamType NVARCHAR(20);
+        DECLARE @ClassId VARCHAR(50);
+        
+        SELECT @ExamType = exam_type, @ClassId = class_id
+        FROM dbo.exam_schedules
+        WHERE exam_id = @ExamId;
+        
+        -- Parse JSON scores
+        DECLARE @ScoreTable TABLE (
+            assignment_id VARCHAR(50),
+            student_id VARCHAR(50),
+            enrollment_id VARCHAR(50),
+            score DECIMAL(4,2),
+            status NVARCHAR(20),
+            notes NVARCHAR(500)
+        );
+        
+        -- Parse JSON vào table (SQL Server 2016+ có OPENJSON)
+        INSERT INTO @ScoreTable (assignment_id, student_id, enrollment_id, score, status, notes)
+        SELECT 
+            assignmentId,
+            studentId,
+            enrollmentId,
+            score,
+            ISNULL([status], 'ATTENDED'),
+            ISNULL(notes, '')
+        FROM OPENJSON(@Scores)
+        WITH (
+            assignmentId VARCHAR(50) '$.assignmentId',
+            studentId VARCHAR(50) '$.studentId',
+            enrollmentId VARCHAR(50) '$.enrollmentId',
+            score DECIMAL(4,2) '$.score',
+            [status] NVARCHAR(20) '$.status',
+            notes NVARCHAR(500) '$.notes'
+        );
+        
+        -- Update exam_assignments status và notes
+        UPDATE ea
+        SET 
+            ea.status = st.status,
+            ea.notes = ISNULL(st.notes, ea.notes)
+        FROM dbo.exam_assignments ea
+        INNER JOIN @ScoreTable st ON ea.assignment_id = st.assignment_id
+        WHERE ea.exam_id = @ExamId
+            AND ea.deleted_at IS NULL;
+        
+        -- Update grades table: gán điểm vào midterm_score hoặc final_score tùy theo exam_type
+        -- Tìm grade từ enrollment_id
+        IF @ExamType = 'GIỮA_HỌC_PHẦN'
+        BEGIN
+            -- Gán vào midterm_score
+            UPDATE g
+            SET 
+                g.midterm_score = st.score,
+                g.updated_at = GETDATE(),
+                g.updated_by = @EnteredBy
+            FROM dbo.grades g
+            INNER JOIN @ScoreTable st ON g.enrollment_id = st.enrollment_id
+            WHERE st.status = 'ATTENDED' AND st.score >= 0 AND st.score <= 10;
+        END
+        ELSE IF @ExamType = 'KẾT_THÚC_HỌC_PHẦN'
+        BEGIN
+            -- Gán vào final_score
+            UPDATE g
+            SET 
+                g.final_score = st.score,
+                g.updated_at = GETDATE(),
+                g.updated_by = @EnteredBy
+            FROM dbo.grades g
+            INNER JOIN @ScoreTable st ON g.enrollment_id = st.enrollment_id
+            WHERE st.status = 'ATTENDED' AND st.score >= 0 AND st.score <= 10;
+        END
+        
+        -- Đánh dấu sinh viên vắng thi (status = ABSENT hoặc EXCUSED)
+        UPDATE ea
+        SET ea.status = st.status
+        FROM dbo.exam_assignments ea
+        INNER JOIN @ScoreTable st ON ea.assignment_id = st.assignment_id
+        WHERE ea.exam_id = @ExamId
+            AND st.status IN ('ABSENT', 'EXCUSED');
+        
+        -- Update exam_schedules status to COMPLETED
+        UPDATE dbo.exam_schedules
+        SET 
+            status = 'COMPLETED',
+            updated_at = GETDATE(),
+            updated_by = @EnteredBy
+        WHERE exam_id = @ExamId;
+        
+        COMMIT TRANSACTION;
+        
+        -- Return success
+        SELECT @ExamId as exam_id, 'SUCCESS' as result;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0
+            ROLLBACK TRANSACTION;
+            
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_EnterExamScores';
+GO
+
+-- 14. SP_GETEXAMSCORES - Lấy danh sách điểm đã nhập cho kỳ thi
+IF OBJECT_ID('sp_GetExamScores', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetExamScores;
+GO
+
+CREATE PROCEDURE sp_GetExamScores
+    @ExamId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        SELECT 
+            ea.assignment_id,
+            ea.exam_id,
+            ea.enrollment_id,
+            ea.student_id,
+            s.student_code,
+            s.full_name as student_name,
+            ea.seat_number,
+            ea.status,
+            ea.notes,
+            -- Lấy điểm từ grades table
+            CASE 
+                WHEN es.exam_type = 'GIỮA_HỌC_PHẦN' THEN g.midterm_score
+                WHEN es.exam_type = 'KẾT_THÚC_HỌC_PHẦN' THEN g.final_score
+                ELSE NULL
+            END as score,
+            es.exam_type,
+            es.exam_date,
+            es.exam_time,
+            es.end_time
+        FROM dbo.exam_assignments ea
+        INNER JOIN dbo.exam_schedules es ON ea.exam_id = es.exam_id
+        INNER JOIN dbo.students s ON ea.student_id = s.student_id
+        LEFT JOIN dbo.grades g ON ea.enrollment_id = g.enrollment_id
+        WHERE ea.exam_id = @ExamId
+            AND ea.deleted_at IS NULL
+            AND es.deleted_at IS NULL
+        ORDER BY ea.seat_number, s.student_code;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_GetExamScores';
+GO
+
+-- ===========================================
+-- RETAKE REGISTRATION STORED PROCEDURES
+-- ===========================================
+
+-- 1. SP_GETFAILEDSUBJECTSBYSTUDENT - Lấy danh sách môn trượt của sinh viên
+IF OBJECT_ID('sp_GetFailedSubjectsByStudent', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetFailedSubjectsByStudent;
+GO
+
+CREATE PROCEDURE sp_GetFailedSubjectsByStudent
+    @StudentId VARCHAR(50),
+    @SchoolYearId VARCHAR(50) = NULL,
+    @Semester INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        -- Lấy danh sách môn trượt từ retake_records với status APPROVED
+        SELECT DISTINCT
+            r.retake_id,
+            r.subject_id,
+            s.subject_code,
+            s.subject_name,
+            s.credits,
+            r.class_id AS failed_class_id,
+            c.class_code AS failed_class_code,
+            c.class_name AS failed_class_name,
+            r.reason, -- ATTENDANCE, GRADE, BOTH
+            r.current_value,
+            r.threshold_value,
+            r.status AS retake_status,
+            r.created_at AS retake_created_at,
+            sy.school_year_id,
+            sy.year_code AS school_year_code,
+            sy.start_date AS school_year_start_date,  -- Thêm vào để ORDER BY
+            c.semester
+        FROM dbo.retake_records r
+        INNER JOIN dbo.subjects s ON r.subject_id = s.subject_id
+        INNER JOIN dbo.classes c ON r.class_id = c.class_id
+        LEFT JOIN dbo.school_years sy ON c.school_year_id = sy.school_year_id
+        WHERE r.student_id = @StudentId
+            AND r.status IN ('APPROVED', 'PENDING') -- Chỉ lấy môn đã được approve học lại hoặc đang chờ
+            AND r.deleted_at IS NULL
+            AND s.deleted_at IS NULL
+            AND (@SchoolYearId IS NULL OR c.school_year_id = @SchoolYearId)
+            AND (@Semester IS NULL OR c.semester = @Semester)
+        ORDER BY sy.start_date DESC, c.semester, s.subject_name;
+        
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_GetFailedSubjectsByStudent';
+GO
+
+-- 2. SP_GETRETAKECLASSESFORSUBJECT - Lấy danh sách lớp học lại của môn
+IF OBJECT_ID('sp_GetRetakeClassesForSubject', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GetRetakeClassesForSubject;
+GO
+
+CREATE PROCEDURE sp_GetRetakeClassesForSubject
+    @SubjectId VARCHAR(50),
+    @StudentId VARCHAR(50) = NULL, -- Optional: để kiểm tra xem sinh viên đã đăng ký chưa
+    @PeriodId VARCHAR(50) = NULL   -- Optional: nếu không có thì lấy từ period đang mở
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        -- Lấy period đang mở cho retake (nếu không có PeriodId)
+        DECLARE @ActiveRetakePeriodId VARCHAR(50);
+        
+        IF @PeriodId IS NULL
+        BEGIN
+            SELECT TOP 1 @ActiveRetakePeriodId = period_id
+            FROM dbo.registration_periods
+            WHERE period_type = 'RETAKE'
+                AND status = 'OPEN'
+                AND GETDATE() BETWEEN start_date AND end_date
+                AND deleted_at IS NULL
+                AND is_active = 1
+            ORDER BY created_at DESC;
+        END
+        ELSE
+        BEGIN
+            SET @ActiveRetakePeriodId = @PeriodId;
+        END
+        
+        IF @ActiveRetakePeriodId IS NULL
+        BEGIN
+            -- Không có đợt đăng ký học lại đang mở, trả về empty result với structure đúng
+            SELECT TOP 0 
+                c.class_id,
+                c.class_code,
+                c.class_name,
+                CAST(NULL AS VARCHAR(50)) AS subject_code,
+                CAST(NULL AS NVARCHAR(200)) AS subject_name,
+                CAST(NULL AS INT) AS credits,
+                CAST(NULL AS VARCHAR(50)) AS lecturer_id,
+                CAST(NULL AS NVARCHAR(100)) AS lecturer_name,
+                CAST(NULL AS VARCHAR(50)) AS room_id,
+                CAST(NULL AS VARCHAR(50)) AS room_code,
+                CAST(NULL AS NVARCHAR(100)) AS building,
+                c.max_students,
+                c.current_enrollment,
+                (c.max_students - c.current_enrollment) AS available_seats,
+                0 AS is_registered,
+                CAST(NULL AS VARCHAR(50)) AS school_year_code,
+                CAST(NULL AS INT) AS semester,
+                CAST(NULL AS NVARCHAR(500)) AS schedule_info
+            FROM dbo.classes c;
+            RETURN;
+        END
+        
+        -- Lấy danh sách lớp học lại của môn trong đợt đăng ký đang mở
+        SELECT 
+            c.class_id,
+            c.class_code,
+            c.class_name,
+            s.subject_code,
+            s.subject_name,
+            s.credits,
+            l.lecturer_id,
+            l.full_name AS lecturer_name,
+            r.room_id,
+            r.room_code,
+            r.building,
+            c.max_students,
+            c.current_enrollment,
+            (c.max_students - c.current_enrollment) AS available_seats,
+            CASE 
+                WHEN @StudentId IS NOT NULL AND EXISTS (
+                    SELECT 1 FROM dbo.enrollments e
+                    WHERE e.student_id = @StudentId
+                        AND e.class_id = c.class_id
+                        AND e.enrollment_status IN ('APPROVED', 'PENDING')
+                        AND e.deleted_at IS NULL
+                ) THEN 1
+                ELSE 0
+            END AS is_registered,
+            sy.year_code AS school_year_code,
+            c.semester,
+            -- Lấy lịch học từ timetable_sessions
+            (SELECT STRING_AGG(
+                CASE 
+                    WHEN ts.weekday = 1 THEN N'CN'
+                    WHEN ts.weekday = 2 THEN N'T2'
+                    WHEN ts.weekday = 3 THEN N'T3'
+                    WHEN ts.weekday = 4 THEN N'T4'
+                    WHEN ts.weekday = 5 THEN N'T5'
+                    WHEN ts.weekday = 6 THEN N'T6'
+                    WHEN ts.weekday = 7 THEN N'T7'
+                    ELSE N'?'
+                END + 
+                CASE 
+                    WHEN ts.period_from IS NOT NULL AND ts.period_to IS NOT NULL 
+                    THEN N' Tiết ' + CAST(ts.period_from AS NVARCHAR(2)) + N'-' + CAST(ts.period_to AS NVARCHAR(2))
+                    ELSE N' ' + CAST(ts.start_time AS NVARCHAR(5)) + N'-' + CAST(ts.end_time AS NVARCHAR(5))
+                END, ', ')
+             FROM dbo.timetable_sessions ts
+             WHERE ts.class_id = c.class_id AND ts.deleted_at IS NULL
+            ) AS schedule_info
+        FROM dbo.period_classes pc
+        INNER JOIN dbo.classes c ON pc.class_id = c.class_id
+        INNER JOIN dbo.subjects s ON c.subject_id = s.subject_id
+        LEFT JOIN dbo.lecturers l ON c.lecturer_id = l.lecturer_id
+        LEFT JOIN dbo.school_years sy ON c.school_year_id = sy.school_year_id
+        LEFT JOIN dbo.timetable_sessions ts ON c.class_id = ts.class_id AND ts.deleted_at IS NULL
+        LEFT JOIN dbo.rooms r ON ts.room_id = r.room_id AND r.deleted_at IS NULL
+        WHERE pc.period_id = @ActiveRetakePeriodId
+            AND c.subject_id = @SubjectId
+            AND pc.is_active = 1
+            AND pc.deleted_at IS NULL
+            AND c.deleted_at IS NULL
+            AND s.deleted_at IS NULL
+        GROUP BY 
+            c.class_id, c.class_code, c.class_name,
+            s.subject_code, s.subject_name, s.credits,
+            l.lecturer_id, l.full_name,
+            r.room_id, r.room_code, r.building,
+            c.max_students, c.current_enrollment,
+            sy.year_code, c.semester
+        ORDER BY c.class_code;
+        
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_GetRetakeClassesForSubject';
+GO
+
+-- 3. SP_CHECKRETAKEENROLLMENTELIGIBILITY - Kiểm tra điều kiện đăng ký học lại
+IF OBJECT_ID('sp_CheckRetakeEnrollmentEligibility', 'P') IS NOT NULL
+    DROP PROCEDURE sp_CheckRetakeEnrollmentEligibility;
+GO
+
+CREATE PROCEDURE sp_CheckRetakeEnrollmentEligibility
+    @StudentId VARCHAR(50),
+    @ClassId VARCHAR(50)
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        DECLARE @IsEligible BIT = 1;
+        DECLARE @ErrorMessage NVARCHAR(500) = NULL;
+        DECLARE @SubjectId VARCHAR(50);
+        DECLARE @PeriodId VARCHAR(50);
+        
+        -- 1. Kiểm tra student và class tồn tại
+        IF NOT EXISTS (SELECT 1 FROM dbo.students WHERE student_id = @StudentId AND deleted_at IS NULL)
+        BEGIN
+            SET @IsEligible = 0;
+            SET @ErrorMessage = N'Sinh viên không tồn tại';
+        END
+        ELSE IF NOT EXISTS (SELECT 1 FROM dbo.classes WHERE class_id = @ClassId AND deleted_at IS NULL)
+        BEGIN
+            SET @IsEligible = 0;
+            SET @ErrorMessage = N'Lớp học không tồn tại';
+        END
+        ELSE
+        BEGIN
+            -- Lấy subject_id của lớp
+            SELECT @SubjectId = subject_id FROM dbo.classes WHERE class_id = @ClassId;
+            
+            -- 2. Kiểm tra sinh viên có retake_record APPROVED cho môn này không
+            IF NOT EXISTS (
+                SELECT 1 FROM dbo.retake_records
+                WHERE student_id = @StudentId
+                    AND subject_id = @SubjectId
+                    AND status = 'APPROVED'
+                    AND deleted_at IS NULL
+            )
+            BEGIN
+                SET @IsEligible = 0;
+                SET @ErrorMessage = N'Sinh viên chưa được duyệt học lại cho môn này';
+            END
+            -- 3. Kiểm tra đợt đăng ký học lại đang mở
+            ELSE IF NOT EXISTS (
+                SELECT 1 FROM dbo.registration_periods rp
+                INNER JOIN dbo.period_classes pc ON rp.period_id = pc.period_id
+                WHERE pc.class_id = @ClassId
+                    AND rp.period_type = 'RETAKE'
+                    AND rp.status = 'OPEN'
+                    AND GETDATE() BETWEEN rp.start_date AND rp.end_date
+                    AND rp.deleted_at IS NULL
+                    AND pc.deleted_at IS NULL
+                    AND pc.is_active = 1
+            )
+            BEGIN
+                SET @IsEligible = 0;
+                SET @ErrorMessage = N'Lớp không thuộc đợt đăng ký học lại đang mở';
+            END
+            -- 4. Kiểm tra lớp chưa đầy
+            ELSE IF EXISTS (
+                SELECT 1 FROM dbo.classes
+                WHERE class_id = @ClassId
+                    AND current_enrollment >= max_students
+                    AND max_students IS NOT NULL
+            )
+            BEGIN
+                SET @IsEligible = 0;
+                SET @ErrorMessage = N'Lớp đã đầy';
+            END
+            -- 5. Kiểm tra chưa đăng ký vào lớp này
+            ELSE IF EXISTS (
+                SELECT 1 FROM dbo.enrollments
+                WHERE student_id = @StudentId
+                    AND class_id = @ClassId
+                    AND enrollment_status IN ('APPROVED', 'PENDING')
+                    AND deleted_at IS NULL
+            )
+            BEGIN
+                SET @IsEligible = 0;
+                SET @ErrorMessage = N'Sinh viên đã đăng ký vào lớp này';
+            END
+            -- 6. Kiểm tra trùng lịch học (tương tự sp_CheckEnrollmentEligibility)
+            ELSE IF EXISTS (
+                SELECT 1
+                FROM dbo.enrollments e_existing
+                INNER JOIN dbo.classes c_existing ON e_existing.class_id = c_existing.class_id
+                INNER JOIN dbo.timetable_sessions ts_existing ON c_existing.class_id = ts_existing.class_id
+                INNER JOIN dbo.timetable_sessions ts_new ON @ClassId = ts_new.class_id
+                WHERE ts_existing.weekday = ts_new.weekday
+                    AND ts_existing.week_no = ts_new.week_no
+                    AND (
+                        (ts_existing.period_from IS NOT NULL AND ts_new.period_from IS NOT NULL
+                         AND ts_existing.period_from = ts_new.period_from
+                         AND ts_existing.period_to = ts_new.period_to)
+                        OR
+                        (ts_existing.start_time IS NOT NULL AND ts_new.start_time IS NOT NULL
+                         AND ts_existing.start_time = ts_new.start_time
+                         AND ts_existing.end_time = ts_new.end_time)
+                    )
+                    AND ts_existing.deleted_at IS NULL
+                    AND ts_new.deleted_at IS NULL
+                    AND e_existing.student_id = @StudentId
+                    AND e_existing.enrollment_status = 'APPROVED'
+                    AND e_existing.deleted_at IS NULL
+                    AND c_existing.class_id != @ClassId
+            )
+            BEGIN
+                SET @IsEligible = 0;
+                SET @ErrorMessage = N'Trùng lịch học';
+            END
+        END
+        
+        -- Return result
+        SELECT 
+            @IsEligible AS is_eligible,
+            @ErrorMessage AS error_message,
+            @StudentId AS student_id,
+            @ClassId AS class_id,
+            @SubjectId AS subject_id;
+        
+    END TRY
+    BEGIN CATCH
+        DECLARE @Error NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @Error, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_CheckRetakeEnrollmentEligibility';
+GO
+
+-- 4. SP_DELETEGRADE - Soft delete grade (từ migration)
+IF OBJECT_ID('sp_DeleteGrade', 'P') IS NOT NULL DROP PROCEDURE sp_DeleteGrade;
+GO
+CREATE PROCEDURE sp_DeleteGrade
+    @GradeId VARCHAR(50),
+    @DeletedBy VARCHAR(50) = 'system'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    BEGIN TRY
+        UPDATE dbo.grades
+        SET deleted_at = GETDATE(),
+            deleted_by = @DeletedBy
+        WHERE grade_id = @GradeId
+            AND deleted_at IS NULL; -- Chỉ update nếu chưa bị xóa
+        
+        IF @@ROWCOUNT = 0
+        BEGIN
+            RAISERROR('Không tìm thấy grade với ID: %s hoặc đã bị xóa', 16, 1, @GradeId);
+        END
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(4000) = ERROR_MESSAGE();
+        THROW 50001, @ErrorMessage, 1;
+    END CATCH
+END
+GO
+
+PRINT '✓ Created stored procedure: sp_DeleteGrade';
+GO
+
 PRINT '========================================';
 PRINT '[OK] Academic Operations SPs completed';
 PRINT '========================================';
