@@ -13,10 +13,37 @@ app.controller('ForgotPasswordController', ['$scope', '$location', '$timeout', '
     $scope.otpSent = false;
     $scope.resendCooldown = 0;
     
+    // Validate email format
+    $scope.isValidEmail = function(email) {
+        if (!email) return false;
+        var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email.trim());
+    };
+    
     // Send OTP to email
-    $scope.sendOTP = function() {
-        if (!$scope.email || !$scope.email.trim()) {
+    $scope.sendOTP = function(event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        
+        // Lấy giá trị trực tiếp từ input element để tránh vấn đề binding
+        var inputElement = document.getElementById('forgot-email');
+        var emailFromInput = inputElement ? inputElement.value : '';
+        var email = emailFromInput ? emailFromInput.trim() : ($scope.email ? $scope.email.trim() : '');
+        
+        // Cập nhật $scope.email với giá trị từ input
+        if (emailFromInput) {
+            $scope.email = emailFromInput;
+        }
+        
+        if (!email) {
             $scope.error = 'Vui lòng nhập email';
+            return;
+        }
+        
+        if (!$scope.isValidEmail(email)) {
+            $scope.error = 'Email không đúng định dạng. Vui lòng nhập email hợp lệ (ví dụ: example@domain.com)';
             return;
         }
         
@@ -24,7 +51,7 @@ app.controller('ForgotPasswordController', ['$scope', '$location', '$timeout', '
         $scope.success = null;
         $scope.loading = true;
         
-        AuthService.forgotPassword($scope.email.trim())
+        AuthService.forgotPassword(email)
             .then(function(response) {
                 if (response.data && response.data.success) {
                     $scope.otpSent = true;
@@ -37,7 +64,13 @@ app.controller('ForgotPasswordController', ['$scope', '$location', '$timeout', '
                 $scope.loading = false;
             })
             .catch(function(error) {
-                $scope.error = error.data?.message || 'Không thể gửi mã OTP. Vui lòng thử lại.';
+                console.error('[ForgotPassword] API Error:', {
+                    status: error.status,
+                    statusText: error.statusText,
+                    data: error.data,
+                    message: error.data?.message || error.statusText || 'Không thể gửi mã OTP. Vui lòng thử lại.'
+                });
+                $scope.error = error.data?.message || error.statusText || 'Không thể gửi mã OTP. Vui lòng thử lại.';
                 $scope.loading = false;
             });
     };
@@ -62,7 +95,14 @@ app.controller('ForgotPasswordController', ['$scope', '$location', '$timeout', '
     
     // Navigate to verify OTP page
     $scope.goToVerifyOTP = function() {
-        $location.path('/verify-otp').search({ email: $scope.email });
+        var email = $scope.email || '';
+        
+        if (!email) {
+            $scope.error = 'Email không tồn tại. Vui lòng thử lại.';
+            return;
+        }
+        
+        $location.path('/verify-otp').search({ email: email });
     };
 }]);
 
@@ -79,6 +119,12 @@ app.controller('VerifyOTPController', ['$scope', '$location', '$timeout', '$inte
     $scope.remainingSeconds = 0;
     $scope.resendCooldown = 0;
     var countdownInterval = null;
+    
+    // Kiểm tra nếu không có email thì redirect về forgot-password
+    if (!$scope.email) {
+        $location.path('/forgot-password');
+        return;
+    }
     
     // Initialize countdown
     function startCountdown() {
@@ -186,6 +232,11 @@ app.controller('VerifyOTPController', ['$scope', '$location', '$timeout', '$inte
                 $scope.loading = false;
             })
             .catch(function(error) {
+                console.error('[VerifyOTP] API Error:', {
+                    status: error.status,
+                    statusText: error.statusText,
+                    data: error.data
+                });
                 $scope.error = error.data?.message || 'Mã OTP không đúng. Vui lòng thử lại.';
                 $scope.loading = false;
                 // Clear OTP inputs on error
@@ -222,6 +273,7 @@ app.controller('VerifyOTPController', ['$scope', '$location', '$timeout', '$inte
                 $scope.loading = false;
             })
             .catch(function(error) {
+                console.error('[VerifyOTP] Resend OTP error:', error);
                 $scope.error = error.data?.message || 'Không thể gửi mã OTP. Vui lòng thử lại.';
                 $scope.loading = false;
             });
@@ -241,14 +293,18 @@ app.controller('VerifyOTPController', ['$scope', '$location', '$timeout', '$inte
     
     // Navigate to reset password page
     $scope.goToResetPassword = function() {
+        if (!$scope.email) {
+            $scope.error = 'Email không tồn tại. Vui lòng thử lại từ đầu.';
+            return;
+        }
+        
+        if (!$scope.otpVerified) {
+            $scope.error = 'Vui lòng xác thực OTP trước khi đặt lại mật khẩu.';
+            return;
+        }
+        
         $location.path('/reset-password').search({ email: $scope.email });
     };
-    
-    // Initialize
-    if (!$scope.email) {
-        $location.path('/forgot-password');
-        return;
-    }
     
     // Load remaining time from server
     loadRemainingTime();
@@ -313,21 +369,48 @@ app.controller('ResetPasswordController', ['$scope', '$location', '$timeout', 'A
     });
     
     // Reset Password
-    $scope.resetPassword = function() {
-        if ($scope.newPassword !== $scope.confirmPassword) {
-            $scope.error = 'Mật khẩu xác nhận không khớp';
-            return;
+    $scope.resetPassword = function(event) {
+        if (event) {
+            event.preventDefault();
+            event.stopPropagation();
         }
         
-        if ($scope.newPassword.length < 6) {
+        // Lấy giá trị trực tiếp từ input element để tránh vấn đề binding
+        var newPasswordInput = document.getElementById('reset-password');
+        var confirmPasswordInput = document.getElementById('reset-confirm-password');
+        
+        var newPasswordFromInput = newPasswordInput ? newPasswordInput.value : '';
+        var confirmPasswordFromInput = confirmPasswordInput ? confirmPasswordInput.value : '';
+        
+        var newPassword = newPasswordFromInput || ($scope.newPassword || '');
+        var confirmPassword = confirmPasswordFromInput || ($scope.confirmPassword || '');
+        
+        // Cập nhật $scope với giá trị từ input
+        if (newPasswordFromInput) {
+            $scope.newPassword = newPasswordFromInput;
+        }
+        if (confirmPasswordFromInput) {
+            $scope.confirmPassword = confirmPasswordFromInput;
+        }
+        
+        // Clear previous errors
+        $scope.error = null;
+        
+        // Validate password length
+        if (!newPassword || newPassword.length < 6) {
             $scope.error = 'Mật khẩu phải có ít nhất 6 ký tự';
             return;
         }
         
-        $scope.error = null;
+        // Validate passwords match
+        if (newPassword !== confirmPassword) {
+            $scope.error = 'Mật khẩu xác nhận không khớp';
+            return;
+        }
+        
         $scope.loading = true;
         
-        AuthService.resetPassword($scope.email, $scope.newPassword, $scope.confirmPassword)
+        AuthService.resetPassword($scope.email, newPassword, confirmPassword)
             .then(function(response) {
                 if (response.data && response.data.success) {
                     $scope.passwordReset = true;
@@ -338,6 +421,11 @@ app.controller('ResetPasswordController', ['$scope', '$location', '$timeout', 'A
                 $scope.loading = false;
             })
             .catch(function(error) {
+                console.error('[ResetPassword] API Error:', {
+                    status: error.status,
+                    statusText: error.statusText,
+                    data: error.data
+                });
                 $scope.error = error.data?.message || 'Không thể đặt lại mật khẩu. Vui lòng thử lại.';
                 $scope.loading = false;
             });

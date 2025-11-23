@@ -15,6 +15,7 @@ namespace EducationManagement.Common.DTOs.Advisor
         public decimal? GpaMax { get; set; }
         public decimal? AttendanceRateMin { get; set; }
         public decimal? AttendanceRateMax { get; set; }
+        public bool ShowAll { get; set; } = false; // Cho phép hiển thị toàn bộ sinh viên không cần filter
     }
 }
 

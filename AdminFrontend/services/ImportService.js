@@ -5,10 +5,12 @@ app.service('ImportService', ['$q', function($q) {
      * Read Excel/CSV file
      */
     this.readFile = function(file) {
+        console.log('[ImportService] 📁 readFile() - Bắt đầu đọc file:', file.name);
         var deferred = $q.defer();
         
         // Check if XLSX is loaded
         if (typeof XLSX === 'undefined') {
+            console.error('[ImportService] ❌ XLSX library chưa được tải');
             deferred.reject('Thư viện Excel chưa được tải. Vui lòng refresh trang và thử lại.');
             return deferred.promise;
         }
@@ -17,18 +19,120 @@ app.service('ImportService', ['$q', function($q) {
         
         reader.onload = function(e) {
             try {
+                console.log('[ImportService] 📄 File đã được đọc, đang parse Excel...');
                 var data = e.target.result;
                 var workbook = XLSX.read(data, { type: 'binary' });
-                var firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                var jsonData = XLSX.utils.sheet_to_json(firstSheet);
+                console.log('[ImportService] 📊 Workbook:', {
+                    sheetNames: workbook.SheetNames,
+                    sheetCount: workbook.SheetNames.length
+                });
                 
-                deferred.resolve(jsonData);
+                // Tìm sheet chứa dữ liệu (ưu tiên sheet có tên "Dữ liệu", "Data", "Mẫu Import")
+                var targetSheet = null;
+                var targetSheetName = null;
+                
+                // Ưu tiên 1: Tìm sheet có tên chứa "Dữ liệu", "Data", "Mẫu Import"
+                for (var i = 0; i < workbook.SheetNames.length; i++) {
+                    var sheetName = workbook.SheetNames[i].toLowerCase();
+                    if (sheetName.includes('dữ liệu') || sheetName.includes('data') || 
+                        sheetName.includes('mẫu import') || sheetName.includes('mau import')) {
+                        targetSheetName = workbook.SheetNames[i];
+                        targetSheet = workbook.Sheets[targetSheetName];
+                        console.log('[ImportService] ✅ Tìm thấy sheet dữ liệu:', targetSheetName);
+                        break;
+                    }
+                }
+                
+                // Ưu tiên 2: Nếu không tìm thấy, dùng sheet thứ 2 (thường sheet đầu là hướng dẫn)
+                if (!targetSheet && workbook.SheetNames.length > 1) {
+                    targetSheetName = workbook.SheetNames[1];
+                    targetSheet = workbook.Sheets[targetSheetName];
+                    console.log('[ImportService] ⚠️ Dùng sheet thứ 2 (sheet đầu có thể là hướng dẫn):', targetSheetName);
+                }
+                
+                // Ưu tiên 3: Nếu chỉ có 1 sheet, dùng sheet đó
+                if (!targetSheet) {
+                    targetSheetName = workbook.SheetNames[0];
+                    targetSheet = workbook.Sheets[targetSheetName];
+                    console.log('[ImportService] ⚠️ Dùng sheet đầu tiên:', targetSheetName);
+                }
+                
+                if (!targetSheet) {
+                    console.error('[ImportService] ❌ Không tìm thấy sheet nào');
+                    deferred.reject('File Excel không có sheet dữ liệu');
+                    return;
+                }
+                
+                // Đọc dữ liệu từ sheet
+                var jsonData = XLSX.utils.sheet_to_json(targetSheet, {
+                    defval: '', // Giá trị mặc định cho ô trống
+                    raw: false  // Parse tất cả thành string
+                });
+                
+                console.log('[ImportService] 📊 Dữ liệu thô từ sheet:', {
+                    rowCount: jsonData.length,
+                    firstRow: jsonData[0],
+                    columns: jsonData.length > 0 ? Object.keys(jsonData[0]) : []
+                });
+                
+                // Lọc bỏ các dòng không có header hợp lệ (các dòng hướng dẫn)
+                // Tìm dòng đầu tiên có chứa header hợp lệ (có "Mã SV", "Họ tên", "Email", "Mã Ngành")
+                var validData = [];
+                var headerRowIndex = -1;
+                var validHeaders = ['mã sv', 'họ tên', 'email', 'mã ngành', 'studentcode', 'fullname', 'majorid'];
+                
+                for (var i = 0; i < jsonData.length; i++) {
+                    var row = jsonData[i];
+                    var rowKeys = Object.keys(row).map(function(k) { return k.toLowerCase(); });
+                    
+                    // Kiểm tra xem dòng này có phải là header không
+                    var hasValidHeaders = validHeaders.some(function(h) {
+                        return rowKeys.some(function(k) { return k.includes(h); });
+                    });
+                    
+                    if (hasValidHeaders && headerRowIndex === -1) {
+                        headerRowIndex = i;
+                        console.log('[ImportService] ✅ Tìm thấy header ở dòng:', i + 1, 'Columns:', rowKeys);
+                        // Bỏ qua dòng header, bắt đầu từ dòng tiếp theo
+                        continue;
+                    }
+                    
+                    // Nếu đã tìm thấy header, bắt đầu lấy dữ liệu từ dòng tiếp theo
+                    if (headerRowIndex !== -1 && i > headerRowIndex) {
+                        // Kiểm tra xem dòng này có dữ liệu thực sự không (ít nhất có 1 field không rỗng)
+                        var hasData = Object.values(row).some(function(val) {
+                            return val && val.toString().trim() !== '';
+                        });
+                        
+                        if (hasData) {
+                            validData.push(row);
+                        }
+                    }
+                }
+                
+                // Nếu không tìm thấy header, dùng toàn bộ dữ liệu (có thể file không có header row)
+                if (headerRowIndex === -1) {
+                    console.log('[ImportService] ⚠️ Không tìm thấy header, dùng toàn bộ dữ liệu');
+                    validData = jsonData;
+                }
+                
+                console.log('[ImportService] ✅ Đã parse Excel thành công:', {
+                    totalRows: jsonData.length,
+                    validRows: validData.length,
+                    headerRow: headerRowIndex !== -1 ? headerRowIndex + 1 : 'Không tìm thấy',
+                    firstValidRow: validData.length > 0 ? validData[0] : null,
+                    columns: validData.length > 0 ? Object.keys(validData[0]) : []
+                });
+                
+                deferred.resolve(validData);
             } catch (error) {
+                console.error('[ImportService] ❌ Lỗi khi parse Excel:', error);
                 deferred.reject('Lỗi đọc file: ' + error.message);
             }
         };
         
-        reader.onerror = function() {
+        reader.onerror = function(error) {
+            console.error('[ImportService] ❌ FileReader error:', error);
             deferred.reject('Lỗi đọc file');
         };
         
@@ -40,17 +144,33 @@ app.service('ImportService', ['$q', function($q) {
      * Validate imported data
      */
     this.validate = function(data, schema) {
+        console.log('[ImportService] 🔍 validate() - Bắt đầu validate dữ liệu');
+        console.log('[ImportService] 📊 Input:', {
+            dataCount: data.length,
+            schemaFields: schema.map(function(f) { return f.name; }),
+            firstRow: data[0]
+        });
+        
         var errors = [];
         var validData = [];
         
         data.forEach(function(row, index) {
+            if (index < 3) { // Log first 3 rows
+                console.log(`[ImportService] 🔍 Validate dòng ${index + 1}:`, row);
+            }
+            
             var rowErrors = [];
             var isValid = true;
             
             // Check required fields
             schema.forEach(function(field) {
-                if (field.required && !row[field.name]) {
-                    rowErrors.push(field.label + ' là bắt buộc');
+                var fieldValue = row[field.name];
+                if (field.required && (!fieldValue || (typeof fieldValue === 'string' && fieldValue.trim() === ''))) {
+                    var errorMsg = field.label + ' là bắt buộc';
+                    if (index < 3) {
+                        console.log(`[ImportService] ❌ Dòng ${index + 1}: ${errorMsg} (field: ${field.name}, value: '${fieldValue}')`);
+                    }
+                    rowErrors.push(errorMsg);
                     isValid = false;
                 }
                 

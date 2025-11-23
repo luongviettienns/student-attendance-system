@@ -7,32 +7,32 @@ app.directive('pagination', function() {
             onPageChange: '&'
         },
         template: 
-            '<div class="pagination-container">' +
+            '<div class="pagination-container" ng-if="pagination">' +
                 '<div class="pagination-info">' +
-                    '<span ng-if="pagination.totalItems > 0">Hiển thị {{pagination.startItem}}-{{pagination.endItem}} / {{pagination.totalItems}}</span>' +
-                    '<span ng-if="pagination.totalItems === 0">Không có dữ liệu</span>' +
+                    '<span ng-if="pagination.totalItems > 0">Hiển thị {{pagination.startItem || 0}}-{{pagination.endItem || 0}} / {{pagination.totalItems || 0}}</span>' +
+                    '<span ng-if="!pagination.totalItems || pagination.totalItems === 0">Không có dữ liệu</span>' +
                 '</div>' +
                 '<div class="pagination-controls">' +
-                    '<select ng-model="pagination.pageSize" ng-change="changePageSize()" class="page-size-select">' +
+                    '<select ng-model="pagination.pageSize" ng-change="changePageSize()" class="page-size-select" ng-if="pagination.pageSizeOptions">' +
                         '<option ng-repeat="size in pagination.pageSizeOptions" value="{{size}}">{{size}} / trang</option>' +
                     '</select>' +
                     '<div class="pagination-buttons">' +
-                        '<button ng-click="goToPage(1)" ng-disabled="pagination.currentPage === 1" class="btn btn-sm">' +
+                        '<button ng-click="goToPage(1)" ng-disabled="!pagination.currentPage || pagination.currentPage === 1" class="btn btn-sm">' +
                             '<i class="fas fa-angle-double-left"></i>' +
                         '</button>' +
-                        '<button ng-click="goToPage(pagination.currentPage - 1)" ng-disabled="pagination.currentPage === 1" class="btn btn-sm">' +
+                        '<button ng-click="goToPage((pagination.currentPage || 1) - 1)" ng-disabled="!pagination.currentPage || pagination.currentPage === 1" class="btn btn-sm">' +
                             '<i class="fas fa-angle-left"></i>' +
                         '</button>' +
                         '<button ng-repeat="page in pageNumbers" ' +
                                 'ng-click="goToPage(page)" ' +
-                                'ng-class="{\'active\': page === pagination.currentPage}" ' +
+                                'ng-class="{\'active\': page === (pagination.currentPage || 1)}" ' +
                                 'class="btn btn-sm page-number">' +
                             '{{page}}' +
                         '</button>' +
-                        '<button ng-click="goToPage(pagination.currentPage + 1)" ng-disabled="pagination.currentPage === pagination.totalPages" class="btn btn-sm">' +
+                        '<button ng-click="goToPage((pagination.currentPage || 1) + 1)" ng-disabled="!pagination.currentPage || !pagination.totalPages || pagination.currentPage === pagination.totalPages" class="btn btn-sm">' +
                             '<i class="fas fa-angle-right"></i>' +
                         '</button>' +
-                        '<button ng-click="goToPage(pagination.totalPages)" ng-disabled="pagination.currentPage === pagination.totalPages" class="btn btn-sm">' +
+                        '<button ng-click="goToPage(pagination.totalPages || 1)" ng-disabled="!pagination.currentPage || !pagination.totalPages || pagination.currentPage === pagination.totalPages" class="btn btn-sm">' +
                             '<i class="fas fa-angle-double-right"></i>' +
                         '</button>' +
                     '</div>' +
@@ -41,23 +41,33 @@ app.directive('pagination', function() {
         link: function(scope) {
             // Calculate page numbers
             scope.updatePageNumbers = function() {
+                // Check if pagination object exists
+                if (!scope.pagination) {
+                    scope.pageNumbers = [];
+                    return;
+                }
+                
                 var pages = [];
                 var maxPages = 5;
                 var startPage, endPage;
                 
-                if (scope.pagination.totalPages <= maxPages) {
+                // Ensure totalPages is a valid number
+                var totalPages = scope.pagination.totalPages || 0;
+                var currentPage = scope.pagination.currentPage || 1;
+                
+                if (totalPages <= maxPages) {
                     startPage = 1;
-                    endPage = scope.pagination.totalPages;
+                    endPage = totalPages;
                 } else {
-                    if (scope.pagination.currentPage <= 3) {
+                    if (currentPage <= 3) {
                         startPage = 1;
                         endPage = maxPages;
-                    } else if (scope.pagination.currentPage + 2 >= scope.pagination.totalPages) {
-                        startPage = scope.pagination.totalPages - maxPages + 1;
-                        endPage = scope.pagination.totalPages;
+                    } else if (currentPage + 2 >= totalPages) {
+                        startPage = totalPages - maxPages + 1;
+                        endPage = totalPages;
                     } else {
-                        startPage = scope.pagination.currentPage - 2;
-                        endPage = scope.pagination.currentPage + 2;
+                        startPage = currentPage - 2;
+                        endPage = currentPage + 2;
                     }
                 }
                 
@@ -69,27 +79,48 @@ app.directive('pagination', function() {
             };
             
             scope.goToPage = function(page) {
-                if (page < 1 || page > scope.pagination.totalPages || page === scope.pagination.currentPage) {
+                if (!scope.pagination) return;
+                
+                var totalPages = scope.pagination.totalPages || 0;
+                var currentPage = scope.pagination.currentPage || 1;
+                
+                if (page < 1 || page > totalPages || page === currentPage) {
                     return;
                 }
                 scope.pagination.currentPage = page;
                 scope.updatePageNumbers();
-                scope.onPageChange();
+                if (scope.onPageChange) {
+                    scope.onPageChange();
+                }
             };
             
             scope.changePageSize = function() {
+                if (!scope.pagination) return;
+                
                 scope.pagination.currentPage = 1;
                 scope.updatePageNumbers();
-                scope.onPageChange();
+                if (scope.onPageChange) {
+                    scope.onPageChange();
+                }
             };
             
             // Watch for changes
-            scope.$watch('pagination.totalPages', function() {
-                scope.updatePageNumbers();
+            scope.$watch('pagination', function(newVal, oldVal) {
+                if (newVal) {
+                    scope.updatePageNumbers();
+                }
+            }, true);
+            
+            scope.$watch('pagination.totalPages', function(newVal) {
+                if (scope.pagination && newVal !== undefined) {
+                    scope.updatePageNumbers();
+                }
             });
             
-            scope.$watch('pagination.currentPage', function() {
-                scope.updatePageNumbers();
+            scope.$watch('pagination.currentPage', function(newVal) {
+                if (scope.pagination && newVal !== undefined) {
+                    scope.updatePageNumbers();
+                }
             });
         }
     };

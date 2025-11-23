@@ -17,18 +17,40 @@
                         <button class="btn btn-sm btn-outline" ng-click="clearFilters()" ng-disabled="loadingStudents">
                             <i class="fas fa-times"></i> Xóa bộ lọc
                         </button>
-                        <button class="btn btn-sm btn-primary" ng-click="loadStudents()" ng-disabled="loadingStudents || !hasFilter()">
-                            <i class="fas fa-search"></i> Tìm kiếm
-                        </button>
                     </div>
                 </div>
                 <div class="card-body">
+                    <!-- Show All Toggle -->
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" 
+                                   class="form-check-input" 
+                                   id="showAllToggle"
+                                   ng-model="showAll" 
+                                   ng-change="onShowAllToggle()">
+                            <label class="form-check-label" for="showAllToggle">
+                                <strong><i class="fas fa-list"></i> Hiển thị toàn bộ sinh viên</strong>
+                                <small class="text-muted d-block">Bỏ qua bộ lọc và hiển thị tất cả sinh viên (có phân trang)</small>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Show All Active Notice -->
+                    <div class="alert alert-info" ng-if="showAll">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Đang hiển thị toàn bộ sinh viên.</strong> 
+                        Bạn có thể bỏ chọn checkbox ở trên để sử dụng bộ lọc tìm kiếm.
+                    </div>
+                    
                     <!-- Alert: Filter required -->
-                    <div class="alert alert-warning" ng-if="!hasFilter()">
+                    <div class="alert alert-warning" ng-if="!hasFilter() && !showAll">
                         <i class="fas fa-exclamation-triangle"></i>
-                        <strong>Lưu ý:</strong> Vui lòng chọn ít nhất một bộ lọc để tìm kiếm sinh viên.
+                        <strong>Lưu ý:</strong> Vui lòng chọn ít nhất một bộ lọc để tìm kiếm sinh viên, hoặc bật "Hiển thị toàn bộ sinh viên" để xem tất cả.
                         Các bộ lọc có sẵn: Khoa, Ngành, Lớp, Khóa học, Tìm kiếm, Tình trạng cảnh báo, GPA, Tỷ lệ chuyên cần.
                     </div>
+                    
+                    <!-- Filter fields (hidden when showAll is active) -->
+                    <div ng-if="!showAll">
                     
                     <!-- Filter Row 1: Basic Filters -->
                     <div class="form-row">
@@ -141,6 +163,8 @@
                                    placeholder="100">
                         </div>
                     </div>
+                    </div>
+                    <!-- End of filter fields -->
                 </div>
             </div>
             
@@ -278,8 +302,10 @@
             <div ng-if="!loadingStudents && !errorStudents && students.length === 0 && !hasFilter()" class="card">
                 <div class="card-body text-center text-muted" style="padding: 60px;">
                     <i class="fas fa-filter fa-3x mb-3"></i>
-                    <p>Vui lòng chọn ít nhất một bộ lọc để tìm kiếm sinh viên.</p>
-                    <p class="small">Để bảo vệ hiệu suất hệ thống, việc tìm kiếm yêu cầu ít nhất một bộ lọc.</p>
+                    <p>Vui lòng chọn ít nhất một bộ lọc để tìm kiếm sinh viên, hoặc bật "Xem tất cả" để hiển thị toàn bộ sinh viên.</p>
+                    <button class="btn btn-success mt-2" ng-click="showAll = true; toggleShowAll(); loadStudents()">
+                        <i class="fas fa-list"></i> Xem tất cả sinh viên
+                    </button>
                 </div>
             </div>
         </div>

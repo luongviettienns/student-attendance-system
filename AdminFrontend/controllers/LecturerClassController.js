@@ -280,7 +280,7 @@ app.controller('LecturerClassController', [
     // View class details (read-only)
     $scope.viewClassDetails = function(classItem) {
         // Có thể mở modal hoặc navigate đến trang chi tiết
-        LoggerService.info('View class details', classItem);
+        LoggerService.log('View class details', classItem);
         ToastService.info('Xem chi tiết lớp: ' + classItem.className);
     };
     

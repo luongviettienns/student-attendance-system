@@ -16,10 +16,14 @@ namespace EducationManagement.BLL.Services
     public class StudentExcelService
     {
         private readonly StudentService _studentService;
+        private readonly MajorService _majorService;
+        private readonly AcademicYearService _academicYearService;
 
-        public StudentExcelService(StudentService studentService)
+        public StudentExcelService(StudentService studentService, MajorService majorService, AcademicYearService academicYearService)
         {
             _studentService = studentService;
+            _majorService = majorService;
+            _academicYearService = academicYearService;
         }
 
         /// <summary>
@@ -94,25 +98,57 @@ namespace EducationManagement.BLL.Services
                 worksheet.Cells[headerRow, i + 1].Style.HorizontalAlignment = ExcelHorizontalAlignment.Center;
             }
 
-            // Ví dụ dữ liệu
-            int exampleRow = headerRow + 1;
-            worksheet.Cells[exampleRow, 1].Value = "SV001";
-            worksheet.Cells[exampleRow, 2].Value = "Nguyễn Văn A";
-            worksheet.Cells[exampleRow, 3].Value = "sv001@example.com";
-            worksheet.Cells[exampleRow, 4].Value = "0123456789";
-            worksheet.Cells[exampleRow, 5].Value = "01/01/2000";
-            worksheet.Cells[exampleRow, 6].Value = "Nam";
-            worksheet.Cells[exampleRow, 7].Value = "123 Đường ABC, Quận XYZ";
-            worksheet.Cells[exampleRow, 8].Value = "CNTT";
-            worksheet.Cells[exampleRow, 9].Value = "2024-2025";
+            // Lấy dữ liệu thực tế từ database để tạo mẫu hợp lệ
+            var majors = await _majorService.GetAllAsync();
+            var academicYears = await _academicYearService.GetAllAsync();
+            
+            // Lấy major đầu tiên (hoặc mặc định)
+            var sampleMajor = majors.FirstOrDefault()?.MajorId ?? "MAJ_SE";
+            var sampleMajorCode = majors.FirstOrDefault()?.MajorCode ?? "SE";
+            
+            // Lấy academic year đầu tiên (hoặc mặc định)
+            var sampleAcademicYear = academicYears.FirstOrDefault()?.AcademicYearId ?? "AY2024";
+            var sampleAcademicYearName = academicYears.FirstOrDefault()?.YearName ?? "2024-2025";
 
-            // Format example row
-            for (int i = 1; i <= headers.Length; i++)
+            // Tạo nhiều dòng dữ liệu mẫu (5 dòng) với dữ liệu hợp lệ
+            var sampleData = new List<object[]>
             {
-                worksheet.Cells[exampleRow, i].Style.Border.BorderAround(ExcelBorderStyle.Thin);
-                worksheet.Cells[exampleRow, i].Style.Fill.PatternType = ExcelFillStyle.Solid;
-                worksheet.Cells[exampleRow, i].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(242, 242, 242));
+                new object[] { "K24SE001", "Nguyễn Văn An", "k24se001@student.edu.vn", "0912345678", "15/03/2006", "Nam", "123 Đường Lê Lợi, Quận 1, TP.HCM", sampleMajor, sampleAcademicYear },
+                new object[] { "K24SE002", "Trần Thị Bình", "k24se002@student.edu.vn", "0912345679", "20/05/2006", "Nữ", "456 Đường Nguyễn Huệ, Quận 1, TP.HCM", sampleMajor, sampleAcademicYear },
+                new object[] { "K24SE003", "Lê Minh Cường", "k24se003@student.edu.vn", "0912345680", "10/08/2006", "Nam", "789 Đường Pasteur, Quận 3, TP.HCM", sampleMajor, sampleAcademicYear },
+                new object[] { "K24SE004", "Phạm Thị Dung", "k24se004@student.edu.vn", "0912345681", "25/11/2006", "Nữ", "321 Đường Võ Văn Tần, Quận 3, TP.HCM", sampleMajor, sampleAcademicYear },
+                new object[] { "K24SE005", "Hoàng Văn Em", "k24se005@student.edu.vn", "0912345682", "05/01/2006", "Nam", "654 Đường Điện Biên Phủ, Quận Bình Thạnh, TP.HCM", sampleMajor, sampleAcademicYear }
+            };
+
+            // Ghi dữ liệu mẫu vào Excel
+            int startDataRow = headerRow + 1;
+            for (int rowIndex = 0; rowIndex < sampleData.Count; rowIndex++)
+            {
+                int currentRow = startDataRow + rowIndex;
+                var rowData = sampleData[rowIndex];
+                
+                for (int colIndex = 0; colIndex < rowData.Length && colIndex < headers.Length; colIndex++)
+                {
+                    worksheet.Cells[currentRow, colIndex + 1].Value = rowData[colIndex];
+                    worksheet.Cells[currentRow, colIndex + 1].Style.Border.BorderAround(ExcelBorderStyle.Thin);
+                }
+                
+                // Format dòng dữ liệu mẫu
+                for (int i = 1; i <= headers.Length; i++)
+                {
+                    worksheet.Cells[currentRow, i].Style.Fill.PatternType = ExcelFillStyle.Solid;
+                    worksheet.Cells[currentRow, i].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(242, 242, 242));
+                }
             }
+            
+            // Thêm ghi chú về dữ liệu mẫu
+            int noteRow = startDataRow + sampleData.Count + 1;
+            worksheet.Cells[noteRow, 1].Value = $"LƯU Ý: Dữ liệu mẫu trên đã được điền sẵn với MajorId ({sampleMajor}) và AcademicYearId ({sampleAcademicYear}) hợp lệ từ hệ thống. Bạn có thể sửa đổi hoặc xóa các dòng này và thêm dữ liệu của riêng bạn.";
+            worksheet.Cells[noteRow, 1, noteRow, headers.Length].Merge = true;
+            worksheet.Cells[noteRow, 1].Style.Font.Italic = true;
+            worksheet.Cells[noteRow, 1].Style.Font.Color.SetColor(System.Drawing.Color.FromArgb(0, 102, 204));
+            worksheet.Cells[noteRow, 1].Style.Fill.PatternType = ExcelFillStyle.Solid;
+            worksheet.Cells[noteRow, 1].Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(217, 225, 242));
 
             // Auto-fit columns
             for (int i = 1; i <= headers.Length; i++)
@@ -134,6 +170,7 @@ namespace EducationManagement.BLL.Services
         /// </summary>
         public async Task<ImportExcelResultDto> ImportFromExcelAsync(Stream fileStream, string createdBy)
         {
+            Console.WriteLine("[StudentExcelService] 🔄 ImportFromExcelAsync() - Bắt đầu import");
             ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
             
             var result = new ImportExcelResultDto
@@ -149,7 +186,10 @@ namespace EducationManagement.BLL.Services
                 if (fileStream.CanSeek)
                     fileStream.Position = 0;
 
+                Console.WriteLine("[StudentExcelService] 📄 Đang đọc Excel package...");
                 using var package = new ExcelPackage(fileStream);
+                
+                Console.WriteLine($"[StudentExcelService] 📊 Workbook có {package.Workbook.Worksheets.Count} worksheet(s)");
                 
                 if (package.Workbook.Worksheets.Count == 0)
                 {
@@ -164,9 +204,11 @@ namespace EducationManagement.BLL.Services
                 }
 
                 var worksheet = package.Workbook.Worksheets.FirstOrDefault();
+                Console.WriteLine($"[StudentExcelService] 📋 Worksheet: {worksheet?.Name ?? "NULL"}");
 
                 if (worksheet == null)
                 {
+                    Console.WriteLine("[StudentExcelService] ❌ Worksheet không tồn tại");
                     result.Errors.Add(new ImportErrorDto
                     {
                         RowNumber = 0,
@@ -180,6 +222,7 @@ namespace EducationManagement.BLL.Services
                 // Kiểm tra worksheet có dữ liệu không
                 if (worksheet.Dimension == null)
                 {
+                    Console.WriteLine("[StudentExcelService] ❌ Worksheet không có dữ liệu (Dimension = null)");
                     result.Errors.Add(new ImportErrorDto
                     {
                         RowNumber = 0,
@@ -190,16 +233,22 @@ namespace EducationManagement.BLL.Services
                     return result;
                 }
 
+                Console.WriteLine($"[StudentExcelService] 📊 Worksheet dimension: {worksheet.Dimension.Address} (Rows: {worksheet.Dimension.End.Row}, Cols: {worksheet.Dimension.End.Column})");
+
                 // Tìm dòng header (có thể ở dòng 13 hoặc dòng đầu tiên có "Mã sinh viên")
                 int headerRow = 1;
                 int maxSearchRow = Math.Min(20, worksheet.Dimension.End.Row);
+                Console.WriteLine($"[StudentExcelService] 🔍 Tìm header từ dòng 1 đến {maxSearchRow}");
+                
                 for (int row = 1; row <= maxSearchRow; row++)
                 {
                     var cellValue = worksheet.Cells[row, 1].Text?.Trim() ?? "";
+                    Console.WriteLine($"[StudentExcelService] 🔍 Dòng {row}, cột 1: '{cellValue}'");
                     if (cellValue.Contains("Mã sinh viên") || cellValue.Contains("StudentCode") || 
-                        cellValue.Contains("Mã sinh viên*"))
+                        cellValue.Contains("Mã sinh viên*") || cellValue.Contains("Mã SV"))
                     {
                         headerRow = row;
+                        Console.WriteLine($"[StudentExcelService] ✅ Tìm thấy header ở dòng {headerRow}");
                         break;
                     }
                 }
@@ -207,47 +256,92 @@ namespace EducationManagement.BLL.Services
                 // Đọc header để xác định cột
                 var columnMap = new Dictionary<string, int>();
                 int maxColumn = worksheet.Dimension?.End.Column ?? 9;
+                Console.WriteLine($"[StudentExcelService] 🔍 Đọc header ở dòng {headerRow}, tối đa {maxColumn} cột");
+                
                 for (int col = 1; col <= maxColumn; col++)
                 {
                     var headerValue = worksheet.Cells[headerRow, col].Text?.Trim() ?? "";
-                    if (headerValue.Contains("Mã sinh viên") || headerValue.Contains("StudentCode"))
+                    Console.WriteLine($"[StudentExcelService] 🔍 Cột {col}: '{headerValue}'");
+                    
+                    if (headerValue.Contains("Mã sinh viên") || headerValue.Contains("StudentCode") || headerValue.Contains("Mã SV"))
+                    {
                         columnMap["StudentCode"] = col;
-                    else if (headerValue.Contains("Họ và tên") || headerValue.Contains("FullName"))
+                        Console.WriteLine($"[StudentExcelService] ✅ Map StudentCode -> cột {col}");
+                    }
+                    else if (headerValue.Contains("Họ và tên") || headerValue.Contains("FullName") || headerValue.Contains("Họ tên"))
+                    {
                         columnMap["FullName"] = col;
+                        Console.WriteLine($"[StudentExcelService] ✅ Map FullName -> cột {col}");
+                    }
                     else if (headerValue.Contains("Email"))
+                    {
                         columnMap["Email"] = col;
+                        Console.WriteLine($"[StudentExcelService] ✅ Map Email -> cột {col}");
+                    }
                     else if (headerValue.Contains("Số điện thoại") || headerValue.Contains("Phone"))
+                    {
                         columnMap["Phone"] = col;
+                        Console.WriteLine($"[StudentExcelService] ✅ Map Phone -> cột {col}");
+                    }
                     else if (headerValue.Contains("Ngày sinh") || headerValue.Contains("DateOfBirth"))
+                    {
                         columnMap["DateOfBirth"] = col;
+                        Console.WriteLine($"[StudentExcelService] ✅ Map DateOfBirth -> cột {col}");
+                    }
                     else if (headerValue.Contains("Giới tính") || headerValue.Contains("Gender"))
+                    {
                         columnMap["Gender"] = col;
+                        Console.WriteLine($"[StudentExcelService] ✅ Map Gender -> cột {col}");
+                    }
                     else if (headerValue.Contains("Địa chỉ") || headerValue.Contains("Address"))
+                    {
                         columnMap["Address"] = col;
-                    else if (headerValue.Contains("Mã ngành") || headerValue.Contains("MajorId"))
+                        Console.WriteLine($"[StudentExcelService] ✅ Map Address -> cột {col}");
+                    }
+                    else if (headerValue.Contains("Mã ngành") || headerValue.Contains("MajorId") || headerValue.Contains("Mã Ngành"))
+                    {
                         columnMap["MajorId"] = col;
-                    else if (headerValue.Contains("Mã năm học") || headerValue.Contains("AcademicYearId"))
+                        Console.WriteLine($"[StudentExcelService] ✅ Map MajorId -> cột {col}");
+                    }
+                    else if (headerValue.Contains("Mã năm học") || headerValue.Contains("AcademicYearId") || headerValue.Contains("Niên khóa"))
+                    {
                         columnMap["AcademicYearId"] = col;
+                        Console.WriteLine($"[StudentExcelService] ✅ Map AcademicYearId -> cột {col}");
+                    }
                 }
+                
+                Console.WriteLine($"[StudentExcelService] 📊 Column mapping: {System.Text.Json.JsonSerializer.Serialize(columnMap)}");
 
                 // Kiểm tra các cột bắt buộc
-                if (!columnMap.ContainsKey("StudentCode") || !columnMap.ContainsKey("FullName") || 
-                    !columnMap.ContainsKey("Email") || !columnMap.ContainsKey("MajorId"))
+                var missingColumns = new List<string>();
+                if (!columnMap.ContainsKey("StudentCode")) missingColumns.Add("Mã sinh viên");
+                if (!columnMap.ContainsKey("FullName")) missingColumns.Add("Họ và tên");
+                if (!columnMap.ContainsKey("Email")) missingColumns.Add("Email");
+                if (!columnMap.ContainsKey("MajorId")) missingColumns.Add("Mã ngành");
+                
+                if (missingColumns.Any())
                 {
+                    var errorMsg = $"File Excel thiếu các cột bắt buộc: {string.Join(", ", missingColumns)}";
+                    Console.WriteLine($"[StudentExcelService] ❌ {errorMsg}");
+                    Console.WriteLine($"[StudentExcelService] ❌ Các cột tìm thấy: {string.Join(", ", columnMap.Keys)}");
                     result.Errors.Add(new ImportErrorDto
                     {
                         RowNumber = 0,
                         StudentCode = "",
-                        ErrorMessage = "File Excel thiếu các cột bắt buộc: Mã sinh viên, Họ và tên, Email, Mã ngành"
+                        ErrorMessage = errorMsg
                     });
                     result.ErrorCount++;
                     return result;
                 }
+                
+                Console.WriteLine("[StudentExcelService] ✅ Tất cả cột bắt buộc đã được tìm thấy");
 
                 // Đọc dữ liệu từ dòng sau header
                 var students = new List<StudentImportDto>();
                 int dataStartRow = headerRow + 1;
                 int endRow = worksheet.Dimension.End.Row;
+                
+                Console.WriteLine($"[StudentExcelService] 📖 Đọc dữ liệu từ dòng {dataStartRow} đến {endRow}");
 
                 for (int row = dataStartRow; row <= endRow; row++)
                 {
@@ -257,17 +351,29 @@ namespace EducationManagement.BLL.Services
                     
                     // Bỏ qua dòng trống hoặc dòng chỉ có khoảng trắng
                     if (string.IsNullOrWhiteSpace(studentCode))
+                    {
+                        if (row <= dataStartRow + 5) // Log first few empty rows
+                            Console.WriteLine($"[StudentExcelService] ⏭️ Bỏ qua dòng {row} (trống)");
                         continue;
+                    }
+
+                    Console.WriteLine($"[StudentExcelService] 📝 Đọc dòng {row}: StudentCode = '{studentCode}'");
+                    
+                    var fullName = worksheet.Cells[row, columnMap["FullName"]].Text?.Trim() ?? "";
+                    var email = worksheet.Cells[row, columnMap["Email"]].Text?.Trim() ?? "";
+                    var majorId = worksheet.Cells[row, columnMap["MajorId"]].Text?.Trim() ?? "";
+                    
+                    Console.WriteLine($"[StudentExcelService] 📝 Dòng {row} - FullName: '{fullName}', Email: '{email}', MajorId: '{majorId}'");
 
                     var student = new StudentImportDto
                     {
                         StudentCode = studentCode,
-                        FullName = worksheet.Cells[row, columnMap["FullName"]].Text?.Trim() ?? "",
-                        Email = worksheet.Cells[row, columnMap["Email"]].Text?.Trim() ?? "",
+                        FullName = fullName,
+                        Email = email,
                         Phone = columnMap.ContainsKey("Phone") ? worksheet.Cells[row, columnMap["Phone"]].Text?.Trim() : null,
                         Gender = columnMap.ContainsKey("Gender") ? worksheet.Cells[row, columnMap["Gender"]].Text?.Trim() : null,
                         Address = columnMap.ContainsKey("Address") ? worksheet.Cells[row, columnMap["Address"]].Text?.Trim() : null,
-                        MajorId = worksheet.Cells[row, columnMap["MajorId"]].Text?.Trim() ?? "",
+                        MajorId = majorId,
                         AcademicYearId = columnMap.ContainsKey("AcademicYearId") ? worksheet.Cells[row, columnMap["AcademicYearId"]].Text?.Trim() : null
                     };
 
@@ -299,13 +405,21 @@ namespace EducationManagement.BLL.Services
                     var validationErrors = ValidateStudentImport(student, row);
                     if (validationErrors.Any())
                     {
+                        Console.WriteLine($"[StudentExcelService] ❌ Dòng {row} có {validationErrors.Count} lỗi validation:");
+                        foreach (var err in validationErrors)
+                        {
+                            Console.WriteLine($"[StudentExcelService]    - {err.ErrorMessage}");
+                        }
                         result.Errors.AddRange(validationErrors);
                         result.ErrorCount += validationErrors.Count;
                         continue;
                     }
 
+                    Console.WriteLine($"[StudentExcelService] ✅ Dòng {row} hợp lệ, thêm vào danh sách");
                     students.Add(student);
                 }
+
+                Console.WriteLine($"[StudentExcelService] 📊 Tổng kết: {students.Count} sinh viên hợp lệ, {result.ErrorCount} lỗi");
 
                 if (students.Count == 0)
                 {
@@ -346,16 +460,20 @@ namespace EducationManagement.BLL.Services
         /// </summary>
         private List<ImportErrorDto> ValidateStudentImport(StudentImportDto student, int rowNumber)
         {
+            Console.WriteLine($"[StudentExcelService] 🔍 ValidateStudentImport() - Dòng {rowNumber}");
+            Console.WriteLine($"[StudentExcelService] 📝 Student data: StudentCode='{student.StudentCode}', FullName='{student.FullName}', Email='{student.Email}', MajorId='{student.MajorId}'");
+            
             var errors = new List<ImportErrorDto>();
 
             // Validate StudentCode
             if (string.IsNullOrWhiteSpace(student.StudentCode))
             {
+                Console.WriteLine($"[StudentExcelService] ❌ Dòng {rowNumber}: StudentCode trống");
                 errors.Add(new ImportErrorDto
                 {
                     RowNumber = rowNumber,
                     StudentCode = "",
-                    ErrorMessage = "Mã sinh viên không được để trống"
+                    ErrorMessage = "Mã SV là bắt buộc"
                 });
             }
             else if (student.StudentCode.Length > 20)
@@ -391,11 +509,12 @@ namespace EducationManagement.BLL.Services
             // Validate Email
             if (string.IsNullOrWhiteSpace(student.Email))
             {
+                Console.WriteLine($"[StudentExcelService] ❌ Dòng {rowNumber}: Email trống");
                 errors.Add(new ImportErrorDto
                 {
                     RowNumber = rowNumber,
                     StudentCode = student.StudentCode,
-                    ErrorMessage = "Email không được để trống"
+                    ErrorMessage = "Email là bắt buộc"
                 });
             }
             else if (student.Email.Length > 150)
@@ -458,12 +577,22 @@ namespace EducationManagement.BLL.Services
             // Validate MajorId
             if (string.IsNullOrWhiteSpace(student.MajorId))
             {
+                Console.WriteLine($"[StudentExcelService] ❌ Dòng {rowNumber}: MajorId trống");
                 errors.Add(new ImportErrorDto
                 {
                     RowNumber = rowNumber,
                     StudentCode = student.StudentCode,
-                    ErrorMessage = "Mã ngành không được để trống"
+                    ErrorMessage = "Mã Ngành là bắt buộc"
                 });
+            }
+
+            Console.WriteLine($"[StudentExcelService] ✅ Validation hoàn tất cho dòng {rowNumber}: {errors.Count} lỗi");
+            if (errors.Count > 0)
+            {
+                foreach (var err in errors)
+                {
+                    Console.WriteLine($"[StudentExcelService]    - {err.ErrorMessage}");
+                }
             }
 
             return errors;

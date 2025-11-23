@@ -2,12 +2,13 @@
 app.controller('AdvisorStudentListController', [
     '$scope',
     '$location',
+    '$timeout',
     'AdvisorService',
     'FacultyService',
     'MajorService',
     'AdministrativeClassService',
     'ToastService',
-    function($scope, $location, AdvisorService, FacultyService, MajorService, AdministrativeClassService, ToastService) {
+    function($scope, $location, $timeout, AdvisorService, FacultyService, MajorService, AdministrativeClassService, ToastService) {
     
     // Students list
     $scope.students = [];
@@ -21,6 +22,9 @@ app.controller('AdvisorStudentListController', [
         totalCount: 0,
         totalPages: 0
     };
+    
+    // Show all students toggle
+    $scope.showAll = false;
     
     // Filters
     $scope.filters = {
@@ -125,9 +129,10 @@ app.controller('AdvisorStudentListController', [
         }
     };
     
-    // Check if at least one filter is provided
+    // Check if at least one filter is provided or showAll is enabled
     $scope.hasFilter = function() {
-        return $scope.filters.facultyId || 
+        return $scope.showAll || 
+               $scope.filters.facultyId || 
                $scope.filters.majorId || 
                $scope.filters.classId || 
                $scope.filters.cohortYear || 
@@ -141,15 +146,26 @@ app.controller('AdvisorStudentListController', [
     
     // Load students
     $scope.loadStudents = function(page) {
-        // Validate filters
+        console.log('[AdvisorStudentList] 🔍 loadStudents() - Bắt đầu tải danh sách sinh viên');
+        console.log('[AdvisorStudentList] 📊 Trạng thái:', {
+            page: page,
+            currentPage: $scope.pagination.page,
+            showAll: $scope.showAll,
+            hasFilter: $scope.hasFilter(),
+            filters: $scope.filters
+        });
+        
+        // Validate filters (unless showAll is enabled)
         if (!$scope.hasFilter()) {
-            $scope.errorStudents = 'Vui lòng chọn ít nhất một bộ lọc để tìm kiếm sinh viên.';
+            console.log('[AdvisorStudentList] ❌ Không có filter và showAll = false');
+            $scope.errorStudents = 'Vui lòng chọn ít nhất một bộ lọc để tìm kiếm sinh viên, hoặc bật "Xem tất cả" để hiển thị toàn bộ sinh viên.';
             $scope.students = [];
             return;
         }
         
         if (page) {
             $scope.pagination.page = page;
+            console.log('[AdvisorStudentList] 📄 Chuyển trang:', page);
         }
         
         $scope.loadingStudents = true;
@@ -158,10 +174,19 @@ app.controller('AdvisorStudentListController', [
         var params = {
             page: $scope.pagination.page,
             pageSize: $scope.pagination.pageSize,
-            filters: $scope.filters
+            filters: $scope.filters,
+            showAll: $scope.showAll
         };
         
+        console.log('[AdvisorStudentList] 📤 Gửi request với params:', params);
+        
         AdvisorService.getStudents(params, false).then(function(response) {
+            console.log('[AdvisorStudentList] 📥 Nhận được response:', response);
+            console.log('[AdvisorStudentList] 📊 Dữ liệu:', {
+                studentsCount: response.data?.length || 0,
+                pagination: response.pagination
+            });
+            
             $scope.students = response.data || [];
             $scope.pagination = {
                 page: response.pagination?.page || 1,
@@ -169,9 +194,22 @@ app.controller('AdvisorStudentListController', [
                 totalCount: response.pagination?.totalCount || 0,
                 totalPages: response.pagination?.totalPages || 0
             };
+            
+            console.log('[AdvisorStudentList] ✅ Đã cập nhật:', {
+                studentsCount: $scope.students.length,
+                pagination: $scope.pagination
+            });
+            
             $scope.loadingStudents = false;
         }).catch(function(error) {
-            // Error('Error loading students:', error);
+            console.error('[AdvisorStudentList] ❌ Lỗi khi tải danh sách sinh viên:', error);
+            console.error('[AdvisorStudentList] ❌ Error details:', {
+                message: error.message,
+                data: error.data,
+                status: error.status,
+                statusText: error.statusText
+            });
+            
             $scope.errorStudents = error.message || error.data?.message || 'Lỗi khi tải danh sách sinh viên';
             $scope.students = [];
             $scope.loadingStudents = false;
@@ -181,6 +219,7 @@ app.controller('AdvisorStudentListController', [
     
     // Clear filters
     $scope.clearFilters = function() {
+        $scope.showAll = false;
         $scope.filters = {
             facultyId: null,
             majorId: null,
@@ -203,6 +242,47 @@ app.controller('AdvisorStudentListController', [
             totalCount: 0,
             totalPages: 0
         };
+    };
+    
+    // Toggle show all (deprecated - logic moved to onShowAllToggle)
+    $scope.toggleShowAll = function() {
+        // Logic moved to onShowAllToggle for better control
+    };
+    
+    // Handle show all toggle change
+    $scope.onShowAllToggle = function() {
+        console.log('[AdvisorStudentList] 🔘 onShowAllToggle() - showAll:', $scope.showAll);
+        
+        // When enabling showAll, clear filters first
+        if ($scope.showAll) {
+            console.log('[AdvisorStudentList] ✅ Bật showAll, đang xóa filters...');
+            $scope.filters = {
+                facultyId: null,
+                majorId: null,
+                classId: null,
+                cohortYear: null,
+                search: null,
+                warningStatus: null,
+                gpaMin: null,
+                gpaMax: null,
+                attendanceRateMin: null,
+                attendanceRateMax: null
+            };
+            $scope.majors = [];
+            $scope.classes = [];
+            $scope.pagination.page = 1;
+            $scope.errorStudents = null;
+            console.log('[AdvisorStudentList] ✅ Đã xóa filters, đang load students...');
+            // Use $timeout to ensure showAll is updated in the scope
+            $timeout(function() {
+                $scope.loadStudents();
+            }, 0);
+        } else {
+            console.log('[AdvisorStudentList] ℹ️ Tắt showAll, reset pagination và clear students');
+            $scope.pagination.page = 1;
+            $scope.students = [];
+            $scope.errorStudents = null;
+        }
     };
     
     // Search with debounce
@@ -299,7 +379,9 @@ app.controller('AdvisorStudentListController', [
     };
     
     // Initialize
+    console.log('[AdvisorStudentList] 🚀 Khởi tạo controller');
     $scope.initCohortYears();
     $scope.loadFaculties();
+    console.log('[AdvisorStudentList] ✅ Controller đã được khởi tạo');
 }]);
 

@@ -178,10 +178,21 @@ namespace EducationManagement.API.Admin.Controllers
         public async Task<IActionResult> GetStudents(
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
-            [FromQuery] StudentFiltersDto? filters = null)
+            [FromQuery] StudentFiltersDto? filters = null,
+            [FromQuery] bool showAll = false)
         {
             try
             {
+                // Set ShowAll flag if provided as separate query parameter
+                if (showAll && filters != null)
+                {
+                    filters.ShowAll = true;
+                }
+                else if (showAll && filters == null)
+                {
+                    filters = new StudentFiltersDto { ShowAll = true };
+                }
+                
                 var (students, totalCount) = await _advisorService.GetStudentsAsync(page, pageSize, filters);
 
                 return Ok(new

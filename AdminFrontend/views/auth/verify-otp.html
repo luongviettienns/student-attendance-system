@@ -122,8 +122,14 @@
                 <button 
                     type="button" 
                     class="login-btn-primary"
-                    ng-click="goToResetPassword()">
-                    <i class="fas fa-key"></i> Đặt lại mật khẩu
+                    ng-click="goToResetPassword()"
+                    ng-disabled="loading">
+                    <span ng-if="!loading">
+                        <i class="fas fa-key"></i> Đặt lại mật khẩu
+                    </span>
+                    <span ng-if="loading">
+                        <i class="fas fa-spinner fa-spin"></i> Đang xử lý...
+                    </span>
                 </button>
             </div>
         </div>

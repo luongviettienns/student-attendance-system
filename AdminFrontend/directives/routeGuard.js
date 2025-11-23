@@ -3,7 +3,7 @@ app.run(['$rootScope', '$location', 'AuthService', 'RoleService', 'ToastService'
     function($rootScope, $location, AuthService, RoleService, ToastService) {
     
     // ✅ Các route PUBLIC (không cần login)
-    var publicRoutes = ['/login', '/register', '/forgot-password'];
+    var publicRoutes = ['/login', '/register', '/forgot-password', '/verify-otp', '/reset-password'];
     
     // ✅ Lắng nghe sự kiện thay đổi route
     $rootScope.$on('$locationChangeStart', function(event, next, current) {

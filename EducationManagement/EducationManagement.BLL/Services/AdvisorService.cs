@@ -174,21 +174,22 @@ namespace EducationManagement.BLL.Services
             if (pageSize < 1) pageSize = 20;
             if (pageSize > 100) pageSize = 100;
 
-            // Mandatory filter validation: at least one filter must be provided
-            if (filters == null ||
-                (string.IsNullOrEmpty(filters.FacultyId) &&
-                 string.IsNullOrEmpty(filters.MajorId) &&
-                 string.IsNullOrEmpty(filters.ClassId) &&
-                 string.IsNullOrEmpty(filters.CohortYear) &&
-                 string.IsNullOrEmpty(filters.Search) &&
-                 string.IsNullOrEmpty(filters.WarningStatus) &&
-                 !filters.GpaMin.HasValue &&
-                 !filters.GpaMax.HasValue &&
-                 !filters.AttendanceRateMin.HasValue &&
-                 !filters.AttendanceRateMax.HasValue))
+            // Mandatory filter validation: at least one filter must be provided (unless ShowAll is true)
+            if (!filters?.ShowAll == true && 
+                (filters == null ||
+                 (string.IsNullOrEmpty(filters.FacultyId) &&
+                  string.IsNullOrEmpty(filters.MajorId) &&
+                  string.IsNullOrEmpty(filters.ClassId) &&
+                  string.IsNullOrEmpty(filters.CohortYear) &&
+                  string.IsNullOrEmpty(filters.Search) &&
+                  string.IsNullOrEmpty(filters.WarningStatus) &&
+                  !filters.GpaMin.HasValue &&
+                  !filters.GpaMax.HasValue &&
+                  !filters.AttendanceRateMin.HasValue &&
+                  !filters.AttendanceRateMax.HasValue)))
             {
                 throw new ArgumentException(
-                    "Filter is required. Please provide at least one filter (faculty, major, class, cohort, search, warningStatus, gpa, or attendanceRate)",
+                    "Filter is required. Please provide at least one filter (faculty, major, class, cohort, search, warningStatus, gpa, or attendanceRate), or set showAll=true to view all students",
                     nameof(filters));
             }
 

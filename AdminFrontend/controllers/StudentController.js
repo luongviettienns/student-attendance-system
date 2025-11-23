@@ -288,6 +288,7 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
     
     // Open import modal
     $scope.openImportModal = function() {
+        console.log('[StudentController] 🔘 openImportModal() - Mở modal import');
         $scope.showImportModal = true;
         $scope.importData = {
             file: null,
@@ -296,11 +297,14 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
             validCount: 0,
             errorCount: 0
         };
+        console.log('[StudentController] ✅ showImportModal =', $scope.showImportModal);
     };
     
     // Close import modal
     $scope.closeImportModal = function() {
+        console.log('[StudentController] 🔘 closeImportModal() - Đóng modal import');
         $scope.showImportModal = false;
+        console.log('[StudentController] ✅ showImportModal =', $scope.showImportModal);
     };
     
     // Download import template
@@ -367,16 +371,42 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
     
     // Handle file selection
     $scope.onFileSelect = function(files) {
+        console.log('[StudentController] 📁 onFileSelect() - File được chọn:', files);
         if (files && files.length > 0) {
-            $scope.importData.file = files[0];
+            var file = files[0];
+            console.log('[StudentController] 📄 File info:', {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+                lastModified: file.lastModified
+            });
+            $scope.importData.file = file;
             $scope.processImportFile();
+        } else {
+            console.warn('[StudentController] ⚠️ Không có file được chọn');
         }
     };
     
     // Process import file
     $scope.processImportFile = function() {
+        console.log('[StudentController] 🔄 processImportFile() - Bắt đầu xử lý file');
+        console.log('[StudentController] 📄 File:', $scope.importData.file);
+        
+        if (!$scope.importData.file) {
+            console.error('[StudentController] ❌ Không có file để xử lý');
+            $scope.error = 'Vui lòng chọn file để import';
+            return;
+        }
+        
         ImportService.readFile($scope.importData.file)
             .then(function(data) {
+                console.log('[StudentController] 📥 Đã đọc file thành công');
+                console.log('[StudentController] 📊 Dữ liệu đọc được:', {
+                    rowCount: data ? data.length : 0,
+                    firstRow: data && data.length > 0 ? data[0] : null,
+                    sampleData: data ? data.slice(0, 3) : []
+                });
+                
                 // Validate data
                 var schema = [
                     { 
@@ -445,19 +475,44 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
                 
                 var result = ImportService.validate(data, schema);
                 
+                console.log('[StudentController] ✅ Validation hoàn tất:', {
+                    validCount: result.valid.length,
+                    errorCount: result.invalid.length,
+                    validSample: result.valid.slice(0, 2),
+                    errorSample: result.invalid.slice(0, 3)
+                });
+                
+                if (result.invalid.length > 0) {
+                    console.log('[StudentController] ❌ Chi tiết lỗi validation:', result.invalid);
+                }
+                
                 $scope.importData.preview = result.valid;
                 $scope.importData.errors = result.invalid;
                 $scope.importData.validCount = result.valid.length;
                 $scope.importData.errorCount = result.invalid.length;
             })
             .catch(function(error) {
-                $scope.error = error;
+                console.error('[StudentController] ❌ Lỗi khi đọc/xử lý file:', error);
+                console.error('[StudentController] ❌ Error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    data: error.data
+                });
+                $scope.error = error.message || error || 'Lỗi khi đọc file Excel';
             });
     };
     
     // Confirm and import data
     $scope.confirmImport = function() {
+        console.log('[StudentController] 🔘 confirmImport() - Bắt đầu import');
+        console.log('[StudentController] 📊 Trạng thái import:', {
+            validCount: $scope.importData.validCount,
+            errorCount: $scope.importData.errorCount,
+            previewCount: $scope.importData.preview ? $scope.importData.preview.length : 0
+        });
+        
         if ($scope.importData.validCount === 0) {
+            console.error('[StudentController] ❌ Không có dữ liệu hợp lệ để import');
             $scope.error = 'Không có dữ liệu hợp lệ để import';
             return;
         }
@@ -466,29 +521,62 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
         
         // Transform data to match API format
         var studentsToImport = $scope.importData.preview.map(function(row) {
+            // Helper function to get value with fallback
+            var getValue = function(key1, key2) {
+                return row[key1] || row[key2] || '';
+            };
+            
             // Parse date if exists
             var dob = null;
-            if (row['Ngày sinh']) {
-                dob = new Date(row['Ngày sinh']).toISOString();
+            var dobValue = row['Ngày sinh'] || row['Ngày sinh (*)'];
+            if (dobValue) {
+                dob = new Date(dobValue).toISOString();
             }
             
+            var studentCode = getValue('Mã SV (*)', 'Mã SV');
+            var fullName = getValue('Họ tên (*)', 'Họ tên');
+            var email = getValue('Email (*)', 'Email');
+            var majorId = getValue('Mã Ngành (*)', 'Mã Ngành');
+            
+            console.log('[StudentController] 🔄 Transform row:', {
+                original: row,
+                transformed: {
+                    studentCode: studentCode,
+                    fullName: fullName,
+                    email: email,
+                    majorId: majorId
+                }
+            });
+            
             return {
-                studentCode: row['Mã SV'],
-                fullName: row['Họ tên'],
-                email: row['Email'],
+                studentCode: studentCode,
+                fullName: fullName,
+                email: email,
                 phone: row['Số điện thoại'] || null,
                 dateOfBirth: dob,
                 gender: row['Giới tính'] || null,
                 address: row['Địa chỉ'] || null,
-                majorId: row['Mã Ngành'] || row['Mã Ngành (*)'],
+                majorId: majorId,
                 academicYearId: row['Niên khóa'] || null
             };
+        });
+        
+        console.log('[StudentController] 📤 Gửi request import:', {
+            count: studentsToImport.length,
+            sample: studentsToImport.slice(0, 2)
         });
         
         // ✅ Use BATCH IMPORT API (1 request instead of N requests)
         StudentService.importBatch(studentsToImport)
             .then(function(response) {
+                console.log('[StudentController] 📥 Nhận được response:', response);
                 var result = response.data.data;
+                
+                console.log('[StudentController] 📊 Kết quả import:', {
+                    successCount: result.successCount,
+                    errorCount: result.errorCount,
+                    errors: result.errors
+                });
                 
                 if (result.errorCount > 0) {
                     // Show partial success with errors
@@ -509,6 +597,14 @@ app.controller('StudentController', ['$scope', '$location', '$routeParams', '$ti
                 $scope.loadStudents();
             })
             .catch(function(error) {
+                console.error('[StudentController] ❌ Lỗi khi import:', error);
+                console.error('[StudentController] ❌ Error details:', {
+                    message: error.message,
+                    status: error.status,
+                    statusText: error.statusText,
+                    data: error.data,
+                    stack: error.stack
+                });
                 $scope.error = 'Lỗi khi import: ' + (error.data?.message || error.message || 'Vui lòng thử lại');
                 $scope.loadingStates.import = false;
                 LoggerService.error('Error importing students', error);

@@ -199,10 +199,14 @@ app.service('AdvisorService', ['ApiService', function(ApiService) {
      * @param {boolean} useCache - Whether to use cache (default: false for pagination)
      */
     this.getStudents = function(params, useCache) {
+        console.log('[AdvisorService] 🔍 getStudents() - Bắt đầu');
+        console.log('[AdvisorService] 📥 Params nhận được:', params);
+        
         params = params || {};
         
-        // Validate at least one filter
+        // Validate at least one filter (unless showAll is true)
         var filters = params.filters || {};
+        var showAll = params.showAll === true || filters.showAll === true;
         var hasFilter = false;
         
         if (filters.facultyId || filters.majorId || filters.classId || filters.cohortYear || 
@@ -212,8 +216,15 @@ app.service('AdvisorService', ['ApiService', function(ApiService) {
             hasFilter = true;
         }
         
-        if (!hasFilter) {
-            return Promise.reject(new Error('Filter is required. Please provide at least one filter (faculty, major, class, cohort, search, warningStatus, gpa, or attendanceRate)'));
+        console.log('[AdvisorService] 📊 Validation:', {
+            showAll: showAll,
+            hasFilter: hasFilter,
+            filters: filters
+        });
+        
+        if (!hasFilter && !showAll) {
+            console.error('[AdvisorService] ❌ Không có filter và showAll = false');
+            return Promise.reject(new Error('Filter is required. Please provide at least one filter (faculty, major, class, cohort, search, warningStatus, gpa, or attendanceRate), or set showAll=true to view all students'));
         }
         
         var queryParams = {
@@ -228,7 +239,8 @@ app.service('AdvisorService', ['ApiService', function(ApiService) {
             gpaMin: filters.gpaMin !== undefined ? filters.gpaMin : null,
             gpaMax: filters.gpaMax !== undefined ? filters.gpaMax : null,
             attendanceRateMin: filters.attendanceRateMin !== undefined ? filters.attendanceRateMin : null,
-            attendanceRateMax: filters.attendanceRateMax !== undefined ? filters.attendanceRateMax : null
+            attendanceRateMax: filters.attendanceRateMax !== undefined ? filters.attendanceRateMax : null,
+            showAll: showAll ? true : null
         };
         
         // Remove null values
@@ -238,13 +250,31 @@ app.service('AdvisorService', ['ApiService', function(ApiService) {
             }
         });
         
+        console.log('[AdvisorService] 📤 Query params sau khi xử lý:', queryParams);
+        console.log('[AdvisorService] 🌐 Gọi API: GET /advisor/students');
+        
         var options = {
             cache: useCache !== false && false, // Don't cache paginated results by default
             cacheTTL: 2 * 60 * 1000 // 2 minutes
         };
         
         return ApiService.get('/advisor/students', queryParams, options).then(function(response) {
+            console.log('[AdvisorService] ✅ API response:', response);
+            console.log('[AdvisorService] 📊 Response data:', {
+                hasData: !!response.data,
+                dataType: typeof response.data,
+                dataKeys: response.data ? Object.keys(response.data) : []
+            });
             return response.data;
+        }).catch(function(error) {
+            console.error('[AdvisorService] ❌ API error:', error);
+            console.error('[AdvisorService] ❌ Error details:', {
+                message: error.message,
+                data: error.data,
+                status: error.status,
+                statusText: error.statusText
+            });
+            throw error;
         });
     };
     

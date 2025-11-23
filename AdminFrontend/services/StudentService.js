@@ -73,6 +73,11 @@ app.service('StudentService', ['ApiService', function(ApiService) {
     };
     
     this.importBatch = function(students) {
+        console.log('[StudentService] 📤 importBatch() - Gửi request import');
+        console.log('[StudentService] 📊 Students to import:', {
+            count: students.length,
+            sample: students.slice(0, 2)
+        });
         return ApiService.post('/students/import/batch', students, {
             invalidateCache: 'students:*'
         });

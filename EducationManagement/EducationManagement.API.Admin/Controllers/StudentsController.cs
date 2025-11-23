@@ -210,12 +210,34 @@ namespace EducationManagement.API.Admin.Controllers
         [HttpPost("import/batch")]
         public async Task<IActionResult> ImportStudentsBatch([FromBody] List<StudentImportDto> students)
         {
+            Console.WriteLine($"[StudentsController] 📥 ImportStudentsBatch() - Nhận {students?.Count ?? 0} sinh viên để import");
+            
             if (students == null || students.Count == 0)
-                return BadRequest(new { message = "Không có dữ liệu để import" });
+            {
+                Console.WriteLine("[StudentsController] ❌ Danh sách sinh viên rỗng");
+                return BadRequest(new { success = false, message = "Không có dữ liệu để import" });
+            }
+            
+            Console.WriteLine($"[StudentsController] 📊 Sample data (first 2):");
+            foreach (var s in students.Take(2))
+            {
+                Console.WriteLine($"[StudentsController]    - StudentCode: '{s.StudentCode}', FullName: '{s.FullName}', Email: '{s.Email}', MajorId: '{s.MajorId}'");
+            }
 
             try
             {
+                Console.WriteLine($"[StudentsController] 🔄 Gọi _studentService.ImportStudentsBatchAsync()...");
                 var result = await _studentService.ImportStudentsBatchAsync(students, User.Identity?.Name ?? "system");
+                
+                Console.WriteLine($"[StudentsController] ✅ Import hoàn tất: Success={result.SuccessCount}, Errors={result.ErrorCount}");
+                if (result.Errors.Any())
+                {
+                    Console.WriteLine($"[StudentsController] ❌ Chi tiết lỗi ({result.Errors.Count} lỗi):");
+                    foreach (var err in result.Errors.Take(10))
+                    {
+                        Console.WriteLine($"[StudentsController]    - Dòng {err.RowNumber} ({err.StudentCode}): {err.ErrorMessage}");
+                    }
+                }
                 
                 // ✅ Audit log: Import sinh viên
                 await LogImportAsync("Student", new
@@ -299,11 +321,22 @@ namespace EducationManagement.API.Admin.Controllers
 
             try
             {
+                Console.WriteLine($"[StudentsController] 📥 ImportFromExcel() - Nhận file: {file.FileName}, Size: {file.Length} bytes");
                 System.Diagnostics.Debug.WriteLine($"📥 Nhận file import: {file.FileName}, Size: {file.Length} bytes");
                 
                 using var stream = file.OpenReadStream();
+                Console.WriteLine($"[StudentsController] 🔄 Gọi _excelService.ImportFromExcelAsync()...");
                 var result = await _excelService.ImportFromExcelAsync(stream, User.Identity?.Name ?? GetCurrentUserId() ?? "system");
 
+                Console.WriteLine($"[StudentsController] ✅ Import hoàn tất: Success={result.SuccessCount}, Errors={result.ErrorCount}");
+                if (result.Errors.Any())
+                {
+                    Console.WriteLine($"[StudentsController] ❌ Chi tiết lỗi ({result.Errors.Count} lỗi):");
+                    foreach (var err in result.Errors.Take(10)) // Log first 10 errors
+                    {
+                        Console.WriteLine($"[StudentsController]    - Dòng {err.RowNumber} ({err.StudentCode}): {err.ErrorMessage}");
+                    }
+                }
                 System.Diagnostics.Debug.WriteLine($"✅ Import hoàn tất: Success={result.SuccessCount}, Errors={result.ErrorCount}");
 
                 // ✅ Audit log: Import từ Excel

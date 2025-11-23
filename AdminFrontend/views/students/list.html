@@ -186,8 +186,8 @@
 </div>
 
 <!-- Import Modal -->
-<div ng-if="showImportModal" class="modal-overlay" ng-click="closeImportModal()" style="display: flex !important; align-items: center; justify-content: center;">
-    <div class="modal" ng-click="$event.stopPropagation()" style="display: block !important; width: 800px; position: relative; transform: none; top: auto; left: auto;">
+<div ng-if="showImportModal" class="modal-overlay" ng-class="{'active': showImportModal}" ng-click="closeImportModal()">
+    <div class="modal" ng-class="{'active': showImportModal}" ng-click="$event.stopPropagation()" style="width: 800px; max-height: 90vh; overflow-y: auto;">
         <div class="modal-header">
             <h3 class="modal-title">Import danh sách Sinh viên</h3>
             <button class="modal-close" ng-click="closeImportModal()">
@@ -228,12 +228,12 @@
                             </thead>
                             <tbody>
                                 <tr ng-repeat="row in importData.preview | limitTo:10">
-                                    <td>{{row['Mã SV']}}</td>
-                                    <td>{{row['Họ tên']}}</td>
-                                    <td>{{row['Email']}}</td>
+                                    <td>{{row['Mã SV (*)'] || row['Mã SV']}}</td>
+                                    <td>{{row['Họ tên (*)'] || row['Họ tên']}}</td>
+                                    <td>{{row['Email (*)'] || row['Email']}}</td>
                                     <td>{{row['Số điện thoại']}}</td>
                                     <td>{{row['Mã Khoa']}}</td>
-                                    <td>{{row['Mã Ngành']}}</td>
+                                    <td>{{row['Mã Ngành (*)'] || row['Mã Ngành']}}</td>
                                 </tr>
                             </tbody>
                         </table>
